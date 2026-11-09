@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
-import {WEAPON_IDS,WEAPONS,TRI_FAN,weaponForward,WEAPON_ALIASES} from '../public/js/engines/kart-weapon-contract.mjs';
+import {WEAPON_IDS,WEAPONS,TRI_FAN,CURATED_MUZZLE,weaponForward,WEAPON_ALIASES} from '../public/js/engines/kart-weapon-contract.mjs';
 import {createKartCombatArt} from '../public/js/engines/kart-combat-art.mjs';
 import {createArsenalFX} from '../public/js/engines/kart-arsenal-fx.mjs';
 import {createKartImpactFX} from '../public/js/engines/kart-impact-fx.mjs';
@@ -27,7 +27,7 @@ for(const yaw of [-2.5,0,.8,2.1]){
  model.position.set(4,3,-2);model.rotation.y=yaw;model.updateMatrixWorld(true);
  for(let i=0;i<3;i++){
   const barrel=rig.getObjectByName('TriBarrel'+i),tip=barrel.localToWorld(new THREE.Vector3(0,0,.5));
-  const expected=new THREE.Vector3((i-1)*.2,.5,1.9).applyQuaternion(model.quaternion).add(model.position);
+  const expected=new THREE.Vector3((i-1)*.2,CURATED_MUZZLE.y,1.9).applyQuaternion(model.quaternion).add(model.position);
   check(tip.distanceTo(expected)<1e-7,'actual tri barrel muzzle agrees with authority');
   check(barrel.getWorldDirection(new THREE.Vector3()).angleTo(new THREE.Vector3().copy(weaponForward(model.quaternion,TRI_FAN[i])))<1e-7,'actual tri barrel fan agrees with authority');
  }

@@ -4,7 +4,7 @@
 // NODE_PATH=/private/tmp/codex-driving-browser/node_modules node test/kart-performance-browser.cjs
 const fs=require('node:fs'),path=require('node:path'),{fork,execFileSync}=require('node:child_process');
 const {chromium}=require('playwright'),WebSocket=require('ws');
-const ROOT=path.resolve(__dirname,'..'),OUT=process.env.KART_PERF_OUT||'/tmp/kart-performance',PORT=8300;
+const ROOT=path.resolve(__dirname,'..'),OUT=process.env.KART_PERF_OUT||'/tmp/kart-performance',PORT=Number(process.env.KART_PERF_PORT||8300);
 const maps=(process.env.KART_PERF_MAPS||'Rookie Ring,Bumper Blocks,Garden Circuit,Frosty Pass,Neon Yard,Alpine Courtyard,Frost Quarry,Neon Harbor,Harbor Heights,Skyport,Foundry').split(',');
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 async function until(fn,label,ms=90000){const end=Date.now()+ms;while(Date.now()<end){if(await fn())return;await sleep(100);}throw Error('timeout: '+label);}
@@ -28,8 +28,15 @@ async function until(fn,label,ms=90000){const end=Date.now()+ms;while(Date.now()
     const host=await bot(0);for(let i=1;i<7;i++)await bot(i,host.hello.code);
     console.log('START '+slug);
     context=await browser.newContext({viewport:{width,height},deviceScaleFactor:1,isMobile:width<500,hasTouch:width<500,recordVideo:process.env.KART_PERF_VIDEO==='1'?{dir:OUT,size:{width,height}}:undefined});
+    const instrumentEngine=body=>{body=body.replaceAll('}).catch(()=>null);','}).catch(error=>{globalThis.__kartPerf.preparationError=String(error.stack);return null;});');body=body.replace('onProgress:({completed,total})=>{','onProgress:({completed,total})=>{globalThis.__kartPerf.preparation={completed,total};if(!completed)performance.mark(\'kart:prep-start\');');body=body.replaceAll('rendererWarmup=warmup;','rendererWarmup=warmup;performance.mark(\'kart:prep-end\');globalThis.__kartPerf.prepSkipped=warmup?.skipped;');return body;};
+    const instrumentRenderer=body=>{body=body.replace('mountEl.appendChild(canvas);','mountEl.appendChild(canvas); globalThis.__kartPerf.renderer=renderer;').replace('const { scene, camera } = built;','const { scene, camera } = built; globalThis.__kartPerf.scene=scene; globalThis.__kartPerf.camera=camera; const perf=globalThis.__kartPerf, frame=built.frame.bind(built), render=renderer.render.bind(renderer); built.frame=(...a)=>{perf.workStart=performance.now();return frame(...a);};renderer.render=(...a)=>{const result=render(...a);perf.workMs=performance.now()-perf.workStart;return result;};');return body;};
+    if(process.env.KART_PERF_BASELINE||process.env.KART_PERF_BASELINE_REF){
     await context.route('**/js/engines/kart-*',async route=>{let body;const file=new URL(route.request().url()).pathname.split('/').pop();if(process.env.KART_PERF_BASELINE)body=fs.readFileSync(path.join(process.env.KART_PERF_BASELINE,file),'utf8');else if(process.env.KART_PERF_BASELINE_REF){if(!baselineModules.has(file))baselineModules.set(file,execFileSync('git',['show',process.env.KART_PERF_BASELINE_REF+':apps/games/public/js/engines/'+file],{cwd:ROOT,encoding:'utf8'}));body=baselineModules.get(file);}else body=await(await route.fetch()).text();body=body.replaceAll('}).catch(()=>null);','}).catch(error=>{globalThis.__kartPerf.preparationError=String(error.stack);return null;});');body=body.replace('onProgress:({completed,total})=>{','onProgress:({completed,total})=>{globalThis.__kartPerf.preparation={completed,total};if(!completed)performance.mark(\'kart:prep-start\');');body=body.replaceAll('rendererWarmup=warmup;','rendererWarmup=warmup;performance.mark(\'kart:prep-end\');globalThis.__kartPerf.prepSkipped=warmup?.skipped;');await route.fulfill({contentType:'text/javascript',body});});
     await context.route('**/js/renderers/three-view.js',async route=>{const response=await route.fetch();let body=await response.text();body=body.replace('mountEl.appendChild(canvas);','mountEl.appendChild(canvas); globalThis.__kartPerf.renderer=renderer;').replace('const { scene, camera } = built;','const { scene, camera } = built; globalThis.__kartPerf.scene=scene; globalThis.__kartPerf.camera=camera; const perf=globalThis.__kartPerf, frame=built.frame.bind(built), render=renderer.render.bind(renderer); built.frame=(...a)=>{perf.workStart=performance.now();return frame(...a);};renderer.render=(...a)=>{const result=render(...a);perf.workMs=performance.now()-perf.workStart;return result;};');await route.fulfill({response,body});});
+    }else{
+     const {installKartGalleryBundle}=require('./helpers/kart-gallery-bundle.cjs');
+     await installKartGalleryBundle(context,{'kart-view.js':instrumentEngine,'kart-elevated-view.js':instrumentEngine,'three-view.js':instrumentRenderer});
+    }
     await context.addInitScript(()=>{
      const p=window.__kartPerf={frames:[],tasks:[],events:[],mutations:0,uploads:{programs:0,buffers:0,textures:0},active:false};
      const native=WebSocket.prototype.send;WebSocket.prototype.send=function(data){try{const m=JSON.parse(data);if(m.t==='action')p.lastInput=m;}catch{}return native.call(this,data);};
@@ -68,7 +75,7 @@ async function until(fn,label,ms=90000){const end=Date.now()+ms;while(Date.now()
      const stressEvents=host.observed=[];await page.evaluate(()=>window.__kartPerf.begin());
      let commandId=0;
      const command=command=>new Promise((resolve,reject)=>{const id=++commandId,timer=setTimeout(()=>{server.off('message',receive);reject(Error('Scenario IPC timed out: '+log.slice(-1200)));},10000),receive=m=>{if(m.id!==id)return;clearTimeout(timer);server.off('message',receive);m.ok?resolve():reject(Error(m.error));};server.on('message',receive);server.send({command,id},error=>{if(error){clearTimeout(timer);server.off('message',receive);reject(error);}});});
-     for(const weapon of ['machinegun','trishot','missile','cannon','blades','supernova','mine','oil','frost','thunder','boomerang','ram','nuke']){await command(weapon);await page.keyboard.press('Space');await sleep(1200);}
+     for(const weapon of ['machinegun','trishot','missile','cannon','blades','supernova','mine','frost','ram','nuke']){await command(weapon);await page.keyboard.press('Space');await sleep(1200);}
      await sleep(3000);await command('ko');await sleep(2500);
      stress={controlled:true,...await page.evaluate(()=>window.__kartPerf.end()),events:stressEvents};
     }
@@ -102,5 +109,5 @@ async function until(fn,label,ms=90000){const end=Date.now()+ms;while(Date.now()
    }finally{clearInterval(interval);if(bots[0]?.ws.readyState===WebSocket.OPEN){bots[0].ws.send(JSON.stringify({t:'lobby'}));await sleep(150);}for(const b of bots)b.ws.close();await context?.close();if(video){const file=await video.path();fs.renameSync(file,path.join(OUT,slug+'.webm'));}}
   }
  }finally{await browser?.close();server.kill();fs.writeFileSync(path.join(OUT,'server.log'),log);}
- if(results.some(r=>r.errors.length||r.drivers!==8||!r.frames.length))process.exitCode=1;
+ if(results.some(r=>r.errors.length||r.drivers!==8||!r.frames.length||r.sweep.badBounds.length||r.stress&&Object.values(r.stress.uploads).some(n=>n!==0)))process.exitCode=1;
 })().catch(e=>{console.error(e);process.exitCode=1;});

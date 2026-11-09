@@ -19,10 +19,10 @@ export function createKartWarmupLibrary(THREE,scene,assets,combat){
 // Borrow the shipping object only during a synchronous submission: its exact
 // instance binding state stays cached, with all live state restored before
 // every await. Hidden pools never become visible in the live scene.
-export async function warmKartRenderer(THREE,renderer,scene,camera,{roots=[],priorityRoots=[],
+export async function warmKartRenderer(THREE,renderer,scene,camera,{roots=[],priorityRoots=[],requiredRoots=[],
   isAlive=()=>true,budgetMs=Infinity,signal,onProgress,yieldTask}={}){
-  const scheduler=createKartWarmupScheduler({budgetMs,signal,isAlive,onProgress,yieldTask});
-  const sources=new Set(),optional=new Set(),priority=new Set(),lights=[],textures=new Set();
+  const scheduler=createKartWarmupScheduler({budgetMs:requiredRoots.length?Infinity:budgetMs,signal,isAlive,onProgress,yieldTask});
+  const sources=new Set(),optional=new Set(),priority=new Set(),required=new Set(),lights=[],textures=new Set();
   const renderable=o=>o.isMesh||o.isSprite||o.isLine||o.isPoints;
   const visit=(o,set,hidden=false)=>{
     if(!o||o.name==='OriginalKartBody'||(!hidden&&!o.visible))return;
@@ -31,13 +31,16 @@ export async function warmKartRenderer(THREE,renderer,scene,camera,{roots=[],pri
   };
   for(const root of roots)visit(root,optional,true);
   for(const root of priorityRoots)visit(root,priority,true);
+  for(const root of requiredRoots)visit(root,required,true);
   visit(scene,sources);
   for(const source of optional)sources.add(source);
+  for(const source of required)sources.add(source);
   // Visible scenery, seated drivers and pickups precede rare weapons and
   // alternate drivers. Prepare both quality modes together so a deadline
   // cannot leave all shadow-off programs cold for the adaptive switch.
   const bindings=new Set();
-  const ordered=[...sources].sort((a,b)=>(priority.has(b)?2:optional.has(b)?0:1)-(priority.has(a)?2:optional.has(a)?0:1)).filter(o=>{
+  const rank=o=>required.has(o)?3:priority.has(o)?2:optional.has(o)?0:1;
+  const ordered=[...sources].sort((a,b)=>rank(b)-rank(a)).filter(o=>{
     // Ordinary clones share geometry buffers/VAOs and material programs. One
     // exact binding warms them all. Instance/skin/batch data belongs to each
     // object, so those still need their own upload. Preserve shadow variants.
@@ -98,44 +101,68 @@ export async function warmKartRenderer(THREE,renderer,scene,camera,{roots=[],pri
     }
   }
   const step=work=>scheduler.step(work),living=()=>scheduler.isAlive();
+  async function settleUploads(final=false){
+    if(!final&&completed%16!==0)return;
+    const gl=renderer.getContext?.();
+    if(!gl?.fenceSync)return;
+    const fence=gl.fenceSync(gl.SYNC_GPU_COMMANDS_COMPLETE,0);
+    if(!fence)return;
+    try{
+      gl.flush();
+      while(await step(()=>gl.clientWaitSync(fence,0,0))===gl.TIMEOUT_EXPIRED){
+        // A real task gives Chrome's GPU process time to finish; a resolved
+        // scheduler promise alone can spin until the preparation budget ends.
+        await new Promise(resolve=>setTimeout(resolve,8));
+      }
+    }finally{gl.deleteSync(fence);}
+  }
   return scheduler.run(async()=>{
     const warmTexture=async value=>{
       if(value?.isTexture&&!value.isRenderTargetTexture&&!textures.has(value)){
         textures.add(value);await step(()=>renderer.initTexture?.(value));
       }
     };
+    const warmMaterial=async object=>{
+      for(const m of Array.isArray(object.material)?object.material:[object.material])if(m){
+        for(const value of Object.values(m))await warmTexture(value);
+        for(const uniform of Object.values(m.uniforms||{}))for(const value of Array.isArray(uniform.value)?uniform.value:[uniform.value])await warmTexture(value);
+      }
+    };
     await warmTexture(scene.background);await warmTexture(scene.environment);
-    for(const source of ordered)for(const shadows of modes){
-      const object=source;
-      {
-        for(const m of Array.isArray(object.material)?object.material:[object.material])if(m){
-          for(const value of Object.values(m))await warmTexture(value);
-          for(const uniform of Object.values(m.uniforms||{}))for(const value of Array.isArray(uniform.value)?uniform.value:[uniform.value])await warmTexture(value);
+    // Required weapon/pickup bindings finish in both modes before the optional
+    // scenery budget starts. Exact-binding deduplication keeps their priority.
+    const requiredObjects=ordered.filter(o=>required.has(o));
+    if(requiredObjects.length){
+      for(const shadows of modes){
+        // Submit the combat library together, then link/reflect once per mode.
+        for(const object of requiredObjects){
+          await warmMaterial(object);
+          if(shadows&&object.castShadow&&renderer.renderBufferDirect&&renderer.compile){
+            await step(()=>sample(object,shadows,()=>prepareKartPass(THREE,renderer,()=>renderer.render(staging,camera),{shadowsOnly:true,isAlive:living,wait:false})));
+          }
+          await step(()=>sample(object,shadows,()=>renderer.compile?renderer.compile(object,camera,staging):renderer.compileAsync(object,camera,staging)));
         }
-        if(shadows&&object.castShadow&&renderer.renderBufferDirect&&renderer.compile){
-          await step(()=>sample(object,shadows,()=>prepareKartPass(THREE,renderer,()=>renderer.render(staging,camera),{shadowsOnly:true,isAlive:living})));
-        }
-        // compileAsync submits through compile(), then polls with timers.
-        // Hidden seats clamp those timers. Our all-program barrier below
-        // provides the same completion check using cooperative tasks.
-        await step(()=>sample(object,shadows,()=>renderer.compile?renderer.compile(object,camera,staging):renderer.compileAsync(object,camera,staging)));
         await waitKartPrograms(renderer,living,step);
-        await step(()=>sample(object,shadows,()=>renderer.render(staging,camera)));
-        // Settle a small batch of uploads together, with a final fence for
-        // everything. One fence per clone wastes the bounded preparation
-        // budget waiting for hundreds of tiny GPU submissions individually.
-        const gl=(completed+1===total||(completed+1)%16===0)?renderer.getContext?.():null;
-        if(gl?.fenceSync){
-          const fence=gl.fenceSync(gl.SYNC_GPU_COMMANDS_COMPLETE,0);
-          if(fence){try{gl.flush();while(await step(()=>gl.clientWaitSync(fence,0,0))===gl.TIMEOUT_EXPIRED){
-            // scheduler.yield() can immediately resume on Chrome while the
-            // GPU process still needs a real turn. Do not spin until budget
-            // expiry on the first fence and leave every other pool cold.
-            await new Promise(resolve=>setTimeout(resolve,8));
-          }}finally{gl.deleteSync(fence);}}
+        for(const object of requiredObjects){
+          await step(()=>sample(object,shadows,()=>renderer.render(staging,camera)));
+          scheduler.progress(++completed,total);
+          await settleUploads(object===requiredObjects.at(-1));
         }
       }
+      scheduler.setBudget(budgetMs);
+    }
+    // Prepare both quality modes for each remaining binding together, so a
+    // deadline cannot leave all shadow-off variants cold for adaptive quality.
+    for(const object of ordered.filter(o=>!required.has(o)))for(const shadows of modes){
+      await warmMaterial(object);
+      if(shadows&&object.castShadow&&renderer.renderBufferDirect&&renderer.compile){
+        await step(()=>sample(object,shadows,()=>prepareKartPass(THREE,renderer,()=>renderer.render(staging,camera),{shadowsOnly:true,isAlive:living})));
+      }
+      await step(()=>sample(object,shadows,()=>renderer.compile?renderer.compile(object,camera,staging):renderer.compileAsync(object,camera,staging)));
+      await waitKartPrograms(renderer,living,step);
+      await step(()=>sample(object,shadows,()=>renderer.render(staging,camera)));
       scheduler.progress(++completed,total);
+      await settleUploads(completed===total);
     }
   });
 }

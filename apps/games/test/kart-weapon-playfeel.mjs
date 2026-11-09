@@ -26,31 +26,19 @@ function classic(weapon,x,z){
  return {a,b,s,step(dt=1/60,geo){battle.tick(s,connected,dt,null,null,new Map(),geo);},fire(){a.pendingFire=true;this.step(0);}};
 }
 const ahead={x:0,y:0,z:1},origin={x:0,y:0,z:0};
-for(const angle of [-16,-14,0,14,16,90,180])for(const distance of [20,36]){
- const radians=angle*Math.PI/180,to={x:Math.sin(radians)*distance,y:0,z:Math.cos(radians)*distance};
- const valid=Math.abs(angle)<=15&&distance<=35,f=classic('thunder',to.x,to.z);f.fire();
- check((f.b.health===2)===valid,'classic Thunder strict 30 degree cone / 35m '+angle+'/'+distance);
- if(!valid){const blast=f.s.events.find(e=>e.type==='blast');check(!blast.other&&Math.abs(blast.x)<1e-7&&Math.abs(blast.z-18)<1e-7,'miss strikes the ground exactly 18m ahead');}
- check(inWeaponCone(origin,ahead,to,35,15)===valid,'shared cone boundary');
-}
 {
  const f=classic('missile',40,20);f.fire();check(!f.s.zaps[0].targetId,'outside launch cone has no lock');
  f.b.x=0;f.b.z=30;f.step(.1);f.step(.12);check(!f.s.zaps[0].targetId,'entering the cone after launch cannot create a lock');
 }
-{
- const f=classic('boomerang',0,-15);f.a.weapon=null;f.a.ammo=0;
- f.s.zaps.push({id:'returning',kind:'boomerang',owner:'a',age:1,x:0,z:-15,angle:0,vx:0,vy:0,vz:30,ttl:1,volley:'return',curve:1});f.step();
- check(f.b.health===3,'returning boomerang cannot hit a rival behind the thrower');
-}
 for(const kind of ['blades','supernova'])for(const target of [{x:0,z:20},{x:0,z:-20}]){
  const f=classic(kind,target.x,target.z);f.fire();for(let i=0;i<420;i++)f.step();
- check(f.b.health===3,kind+' stays inside its local area in front and behind');
+ check(f.b.health===100,kind+' stays inside its local area in front and behind');
 }
 for(const weapon of ['machinegun','cannon']){
  const f=classic(weapon,0,10),kicks=[];for(const k of [f.a,f.b])k.physicalPose={position:{x:k.x,y:.7,z:k.z},rotation:{x:0,y:0,z:0,w:1},linearVelocity:{x:0,y:0,z:0}};
  f.a.pendingFire=true;const geo={sweepStatic:()=>null,kickKart:(id,v)=>kicks.push({id,v})};f.step(0,geo);for(let i=0;i<60;i++)f.step(1/60,geo);
  check(kicks.some(k=>k.id==='b'&&(weapon==='machinegun'?k.v.z>0&&k.v.z<1:k.v.z>=9)),'classic '+weapon+' weighted authority knockback');
- check(kicks.filter(k=>k.id==='b').length===1,'one pickup causes one accepted knockback per rival');
+ check(kicks.filter(k=>k.id==='b').length===(weapon==='machinegun'?12:1),'each accepted bullet causes one bounded knockback');
 }
 for(const angle of [-Math.PI,-1.1,0,.7,2.4]){
  const f=classic('machinegun',3,4);f.b.angle=angle;
@@ -63,13 +51,6 @@ const map=(x,z,angle=0)=>({id:'feel',revision:'1',half:100,colliders:[{id:'floor
 const step=w=>w.advance(w.snapshot().serverAt+1000/60);
 function input(w,id,value){const s=w.snapshot(id),a=s.you;assert.ok(w.input(id,{instance:s.instance,life:a.life,controlEpoch:a.controlEpoch,seq:a.receivedSeq+1,steer:0,throttle:0,brake:0,nitro:false,use:false,...value},s.serverAt).ok);}
 function armed(kind,m){for(let seed=0;seed<512;seed++){const w=elevated.createElevatedCombat(RAPIER,CONFIG,m,[{id:'a'},{id:'b'}],{instance:'feel'+seed,seed,startAt:0,countdownMs:0,roundMs:15000,crates:1});step(w);if(w.snapshot().karts[0].weapon===kind){for(let i=0;i<160;i++)step(w);return w;}w.dispose();}throw Error('pickup '+kind);}
-for(const [x,z,valid]of [[0,30,true],[6,30,true],[10,30,false],[0,36,false],[0,-15,false]]){
- const w=armed('thunder',map(x,z));try{
-  input(w,'a',{use:true});step(w);const s=w.snapshot(),e=s.events.find(e=>e.type==='blast'&&e.weapon==='thunder');
-  check((s.karts[1].health===2)===valid,'elevated Thunder aimed target '+x+'/'+z);
-  if(!valid)check(!e.other&&Math.abs(e.position.z-18)<.05&&Math.abs(e.position.y)<.05,'elevated miss hits real ground ahead');
- }finally{w.dispose();}
-}
 for(const [x,z,locked]of [[12,35,true],[30,30,false],[0,-15,false],[0,70,false]]){
  const w=armed('missile',map(x,z));try{
   const before=w.snapshot();check((before.karts[0].lockTarget==='b')===locked,'authority lock preview matches launch cone');
@@ -83,21 +64,11 @@ for(const [x,z,locked]of [[12,35,true],[30,30,false],[0,-15,false],[0,70,false]]
 }
 // Local area weapons cannot reach through solid cover in either authority.
 for(const weapon of ['blades','supernova']){
- const f=classic(weapon,3.8,0);f.s.blocks=[{x:1.9,z:0,hw:.15,hd:3}];f.fire();for(let i=0;i<420;i++)f.step();check(f.b.health===3,weapon+' classic cover blocks local damage');
+ const f=classic(weapon,3.8,0);f.s.blocks=[{x:1.9,z:0,hw:.15,hd:3}];f.fire();for(let i=0;i<420;i++)f.step();check(f.b.health===100,weapon+' classic cover blocks local damage');
  const covered=map(3.8,0);covered.colliders.push({id:'wall',shape:'box',position:{x:1.9,y:2,z:0},half:{x:.15,y:2,z:3}});
- const w=armed(weapon,covered);try{input(w,'a',{use:true});for(let i=0;i<420;i++)step(w);check(w.snapshot().karts[1].health===3,weapon+' elevated cover blocks local damage');}finally{w.dispose();}
+ const w=armed(weapon,covered);try{input(w,'a',{use:true});for(let i=0;i<420;i++)step(w);check(w.snapshot().karts[1].health===100,weapon+' elevated cover blocks local damage');}finally{w.dispose();}
 }
-// Record an actual returning route, then place a legal rival only on that
-// return path. A returning disc must cross it harmlessly, with no free rear hit.
-{
- const w=armed('boomerang',map(70,70)),out=[],back=[];
- try{input(w,'a',{use:true});for(let i=0;i<190;i++){step(w);const shot=w.snapshot().projectiles[0];if(!shot)continue;(shot.age<=WEAPONS.boomerang.outTime?out:back).push({...shot.position});}}finally{w.dispose();}
- const target=back.find(p=>Math.hypot(p.x,p.z)>4&&out.every(q=>Math.hypot(p.x-q.x,p.z-q.z)>3));check(target,'real Boomerang route has a distinct return segment');
- const replay=armed('boomerang',map(target.x,target.z));let close=Infinity;
- try{input(replay,'a',{use:true});for(let i=0;i<190;i++){step(replay);const s=replay.snapshot(),shot=s.projectiles[0];if(shot?.age>WEAPONS.boomerang.outTime)close=Math.min(close,Math.hypot(shot.position.x-s.karts[1].pose.position.x,shot.position.z-s.karts[1].pose.position.z));}
- check(close<1.7&&replay.snapshot().karts[1].health===3,'actual returning Boomerang crosses a rival without damage');}finally{replay.dispose();}
-}
-for(const reduced of [false,true])for(const weapon of ['mine','oil','missile','cannon','frost','thunder','supernova','nuke']){
+for(const reduced of [false,true])for(const weapon of ['mine','missile','cannon','frost','supernova','nuke']){
  const scene=new THREE.Scene(),fx=createKartImpactFX(THREE,scene,{reducedMotion:reduced}),arsenal=createArsenalFX(THREE,scene,{reducedMotion:()=>reduced});
  fx.emit({id:'blast',type:'blast',weapon,position:{x:0,y:1,z:0}});arsenal.event({type:'blast',weapon,position:{x:0,y:1,z:0}});
  for(const mesh of scene.getObjectByName('KartImpactFX').children){const life=mesh.geometry.attributes.fxLife.array;for(let i=1;i<life.length;i+=4)check(life[i]<=(mesh.name==='KartImpactFireFlash'?BLAST_FX_BUDGETS.fire:BLAST_FX_BUDGETS.total)+1e-6,weapon+' every particle lifetime respects its layer budget');}
@@ -123,7 +94,7 @@ check(blastSize('nuke')>5*blastSize('cannon'),'nuke fireball is much bigger than
  check(seen.size>=4,'roulette cycles readable weapon icons');roulette.tick();check(!roulette.display(kart)&&!roulette.active(),'roulette settles in half a second');
  roulette.begin('cannon');check(roulette.skip()&&!roulette.display(kart),'fire immediately skips the roulette');
  roulette.begin('cannon');roulette.sync('one',1);check(!roulette.active(),'respawn clears roulette');roulette.begin('cannon');roulette.sync('two',1);check(!roulette.active(),'new round clears roulette');
- reduced=true;roulette.begin('cannon');check(!roulette.active(),'reduced motion reveals item immediately');
+ reduced=true;roulette.begin('cannon');check(roulette.display(kart)?.kind==='crate','reduced motion uses a steady reveal');
  const feedback=createKartFeedback(),s={instanceId:'one',phase:'drive',simAt:0,karts:[],events:[]};feedback.ingest(s,0);s.simAt=50;s.events=[{id:'blast',type:'blast',weapon:'nuke',x:0,z:0,position:{x:0,y:0,z:0}}];feedback.ingest(s,50);check(feedback.current(50).length===1,'new blast accepted once');feedback.current(1500);feedback.ingest(s,1500);check(feedback.current(1500).length===0,'old snapshot cannot bring back an explosion');
 }
 console.log(JSON.stringify({pass:true,checks,scope:'launch targeting and misses in both authorities; every blast particle budget; real pooled recoil/lock/flash; roulette and replay safety; no GPU or subjective fun claim'}));

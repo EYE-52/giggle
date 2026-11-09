@@ -7,16 +7,18 @@ export function createKartWarmupScheduler({budgetMs=6000, signal, isAlive=()=>tr
   now=()=>performance.now(), yieldTask=task, onProgress=()=>{}}={}) {
   let skipped=false, finished=false, cancelled=false, release;
   const released=new Promise(resolve=>{release=resolve;});
-  const start=now();
+  let start=now(),timer;
   const cleanup=()=>{clearTimeout(timer);signal?.removeEventListener('abort',expire);};
   const cancel=()=>{cancelled=true;cleanup();release();};
   const expire=()=>{if(!finished){skipped=true;cancel();}};
-  const timer=Number.isFinite(budgetMs)?setTimeout(expire,budgetMs):null;
+  const setBudget=ms=>{if(cancelled||finished)return;clearTimeout(timer);budgetMs=ms;start=now();timer=Number.isFinite(ms)?setTimeout(expire,ms):null;};
+  setBudget(budgetMs);
   signal?.addEventListener('abort',expire,{once:true});
   if(signal?.aborted)expire();
   const alive=()=>{if(cancelled||!isAlive())throw Error('Retired kart renderer warmup');};
   return {
     isAlive:()=>!cancelled&&isAlive(),
+    setBudget,
     async step(work) {
       alive();
       if(now()-start>=budgetMs)expire();

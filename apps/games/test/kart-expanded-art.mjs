@@ -44,7 +44,7 @@ for(const [label,assets]of [['GLB',{get}],['fallback',null]]){
   assert(!prox.getObjectByName('BombMuzzleTip'),'GLB proximity clone prunes its muzzle helper');
   const tip=get('BombMuzzleTip');get('Bomb').updateWorldMatrix(true,true);const local=get('Bomb').worldToLocal(tip.getWorldPosition(new THREE.Vector3()));
   assert(local.distanceTo(new THREE.Vector3(...prox.userData.combat.muzzle))<1e-5,'GLB proximity muzzle is calibrated from BombMuzzleTip');
-  assert(nuke.getObjectByName('RocketHousing'),'GLB nuke uses the rocket rig');
+  assert(nuke.userData.combat.curated,'Nuke uses the new pooled toy rig');
  }
  // Proximity charge: dynamite bundle, lamp tail, settle + armed lamp.
  const charge=art.projectile('proximity'),c=charge.userData.combat;

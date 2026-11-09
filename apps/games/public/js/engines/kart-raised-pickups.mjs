@@ -11,6 +11,6 @@ export function createRaisedPickups(THREE,scene,capacity=32){
   const mesh=new THREE.InstancedMesh(geometry,material,capacity);mesh.name='raised-item-boxes';mesh.count=0;mesh.visible=false;mesh.castShadow=false;mesh.receiveShadow=false;mesh.frustumCulled=false;scene.add(mesh);
   mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
   const dummy=new THREE.Object3D();let disposed=false;
-  return {mesh,update(crates,time){if(disposed)return;let n=0;for(const c of crates||[]){if(c.available===false||n>=capacity)continue;dummy.position.copy(c.position);dummy.position.y+=.3+Math.sin(time*2+c.position.x)*.12;dummy.rotation.set(0,time*.6,0);dummy.updateMatrix();mesh.setMatrixAt(n++,dummy.matrix);}mesh.count=n;mesh.visible=n>0;if(n)mesh.instanceMatrix.needsUpdate=true;},
+  return {mesh,update(crates,time,hidden=null){if(disposed)return;let n=0;for(const c of crates||[]){if(c.available===false||hidden?.(c.id)||n>=capacity)continue;dummy.position.copy(c.position);dummy.position.y+=.3+Math.sin(time*2+c.position.x)*.12;dummy.rotation.set(0,time*.6,0);dummy.updateMatrix();mesh.setMatrixAt(n++,dummy.matrix);}mesh.count=n;mesh.visible=n>0;if(n)mesh.instanceMatrix.needsUpdate=true;},
     dispose(){if(disposed)return;disposed=true;mesh.removeFromParent();mesh.dispose();geometry.dispose();material.dispose();texture.dispose();}};
 }

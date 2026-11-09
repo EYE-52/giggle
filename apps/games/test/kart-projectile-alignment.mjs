@@ -17,7 +17,7 @@ import ADAPTER from '../games/engines/kart-elevated-adapter.js';
 await Promise.all([RAPIER.init(),MeshoptDecoder.ready]);
 const radii=COMBAT.staticSweepRadii,kinds=Object.keys(radii),measurements=[],results=[];
 const check=(label,ok)=>{assert.ok(ok,label);results.push(label);};
-assert.deepEqual(radii,{machinegun:.22,trishot:.25,missile:.42,cannon:.48,boomerang:.62});
+assert.deepEqual(radii,{machinegun:.22,trishot:.25,missile:.42,cannon:.48});
 assert(Object.isFrozen(radii));
 assert.strictEqual(radii,SHARED.config.staticSweepRadii);
 // Embedded image dimensions stand in for the decoder; this is geometry QA.
@@ -126,8 +126,8 @@ for(const kind of kinds){let match,adapter,state;
   if(kind==='boomerang')continue;
   let impact;for(let i=0;i<120&&!impact;i++){step(match);impact=match.snapshot().events.find(e=>e.type==='impact'&&e.weapon===kind&&e.other==='b');}
   assert(impact,kind+' legitimate first-hull impact');const victim=match.snapshot().karts.find(k=>k.id==='b');
-  const health={machinegun:2,trishot:2,missile:1,cannon:1,boomerang:2};
-  check(kind+' larger static envelope retains established target hearts',victim.health===health[kind]);
+  const health={machinegun:95,trishot:100-150/9,missile:35,cannon:30};
+  check(kind+' larger static envelope retains established target hearts',kind==='trishot'?victim.health<=health[kind]+1e-8&&victim.health>=50-1e-8:victim.health===health[kind]);
   if(['machinegun','trishot'].includes(kind))check(kind+' confirmed event retains exact sweep endpoints',impact.from&&Object.values(impact.from).every(Number.isFinite)&&Object.values(impact.position).every(Number.isFinite));
  }finally{if(adapter&&state)adapter.dispose(state);else match.dispose();}
 }

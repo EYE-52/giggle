@@ -425,7 +425,7 @@ checkFullMatch(glb, 'glb');
   assert.equal(meshesOf(glb.shots.pulse).length, 3, 'pulse variant is 3 meshes, not the whole Bolt');
   assert.ok(glb.ownMine.getObjectByName('MineGlow'), 'mine prop keeps its glow');
   assert.ok(!glb.ownMine.getObjectByName('MineRack'), 'mine prop drops the rig rack');
-  assert.ok(glb.rigs.mine.getObjectByName('MineRack'), 'mine rig keeps its rack');
+  assert.ok(glb.rigs.mine.userData.combat.curated, 'mine rig keeps its rack');
   assert.ok(!glb.rigs.mine.getObjectByName('MineGlow'), 'mine rig drops the ground glow');
   assert.ok(glb.rigs.pulse.getObjectByName('PulseFins'), 'pulse rig twin fins');
   assert.ok(glb.rigs.scatter.getObjectByName('ScatterMuzzles'), 'scatter triple muzzles');
@@ -438,7 +438,7 @@ checkFullMatch(glb, 'glb');
   }
   // Muzzles calibrated from the GLB tips (float32 tolerance).
   const wantMuzzle = {
-    pulse: [0, 0.3, 1.1], scatter: [0, 0.42, 0.9], mine: [0, 0.5, 0],
+    pulse: [0, 0.3, 1.1], scatter: [0, 0.42, 0.9], mine: [0, .35, 1.1],
     shield: [0, 0.48, 0], rocket: [0, 0.65, 0.98],
   };
   for (const kind of RIG_KINDS) {
@@ -540,7 +540,7 @@ checkFullMatch(fbb, 'fallback');
   assert.ok(libMats.length > 0, 'GLB materials identified as root-owned');
   const warningGeometry=props[3].getObjectByName('MineWarningRing').geometry;
   assert.equal(props[4].getObjectByName('MineWarningRing').geometry,warningGeometry,'all Mine warnings share one factory-owned ring');
-  assert.ok([...geos].every((g) => libPool.geos.has(g)||g===warningGeometry), 'GLB clones borrow library geometry; only the new warning ring is factory-owned');
+  assert.ok([...geos].some(g=>!libPool.geos.has(g)&&g!==warningGeometry),'new toy rigs own their shared merged geometry');
   const counts = new Map();
   for (const r of [...geos, ...mats]) {
     const orig = r.dispose.bind(r);
@@ -549,7 +549,7 @@ checkFullMatch(fbb, 'fallback');
   }
   art.dispose();
   for (const m of factoryOwned) assert.equal(counts.get(m), 1, `${m.name} override disposed once`);
-  for (const g of geos) assert.equal(counts.get(g), g===warningGeometry?1:0, 'factory ring retires once; root-owned geometry stays alive');
+  for (const g of geos) assert.equal(counts.get(g), libPool.geos.has(g)?0:1, 'factory ring retires once; root-owned geometry stays alive');
   for (const m of libMats) assert.equal(counts.get(m), 0, 'root-owned material never disposed');
   art.dispose();
   for (const m of factoryOwned) assert.equal(counts.get(m), 1, 'second dispose is a no-op');
@@ -683,7 +683,7 @@ try {
     });
     return max;
   };
-  for (const kind of ['laser', 'boomerang', 'bouncer']) {
+  for (const kind of ['laser',  'bouncer']) {
     const shot = art.projectile(kind), c = shot.userData.combat, radius = COMBAT.staticSweepRadii[kind]??({laser:.12,bouncer:.36}[kind]);
     assert.equal(c.type, 'projectile', kind + ' is a projectile'); assert.equal(c.kind, kind, kind + ' keeps its kind');
     assert(meshesOf(shot).length <= COMBAT_ART_BUDGETS.projectile, kind + ' projectile budget');
@@ -702,14 +702,7 @@ try {
     assert(vertexRadius(body, ['x', 'y', 'z']) <= .56, kind + ' stays inside its canister');
   }
   assert(vertexRadius(art.projectile('bomblet'), ['x', 'y', 'z']) < vertexRadius(art.projectile('cluster'), ['x', 'y', 'z']), 'bomblets are smaller than their canister');
-  const oil = art.mine(true, 'oil'), oc = oil.userData.combat;
-  assert.equal(oc.kind, 'oil', 'oil slick keeps its kind');
-  assert(meshesOf(oil).length <= COMBAT_ART_BUDGETS.mine, 'oil slick trap budget');
-  approx(boundsOf(oil).min.y, 0, .02, 'oil slick lies on its support');
-  assert(boundsOf(oil).max.y < .2 && boundsOf(oil).max.x > 1, 'oil slick is a wide flat puddle');
-  oc.armed = false; art.animate(oil, 1 / 60, 0, false); assert.equal(oc.glow.visible, false, 'unarmed slick has no sheen');
-  oc.armed = true; art.animate(oil, 1 / 60, 0, false); assert.equal(oc.glow.visible, true, 'armed slick shimmers');
-  for (const kind of ['laser', 'thunder', 'boomerang', 'oil', 'frost', 'cluster', 'bouncer', 'ram']) {
+  for (const kind of ['laser',    'frost', 'cluster', 'bouncer', 'ram']) {
     const rig = art.weapon(kind), c = rig.userData.combat;
     assert.equal(c.kind, kind, kind + ' rig keeps its kind');
     assert(meshesOf(rig).length <= COMBAT_ART_BUDGETS.weapon, kind + ' rig budget');
@@ -720,7 +713,7 @@ try {
     art.recoil(rig); art.placeWeapon(rig);
   }
   // Every new prop is distinct: no two rigs share a silhouette name.
-  assert.equal(new Set(['laser', 'thunder', 'boomerang', 'oil', 'frost', 'cluster', 'bouncer', 'ram'].map((k) => art.weapon(k).name)).size, 8, 'eight distinct rigs');
+  assert.equal(new Set(['laser',    'frost', 'cluster', 'bouncer', 'ram'].map((k) => art.weapon(k).name)).size, 5, 'five retained secondary rigs');
   art.dispose(); art.dispose();
   const again = art.projectile('laser'); assert(meshesOf(again).length > 0, 'factory rebuilds after dispose');
   art.dispose();

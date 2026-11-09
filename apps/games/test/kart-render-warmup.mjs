@@ -141,7 +141,7 @@ for(const fail of ['compile','retired']){
   ok(!mesh.visible&&mesh.count===0,'failure restores visibility and capacity: '+fail);
   ok(rendered===0,'failed/retired compile never renders');
 }
-console.log(JSON.stringify({pass:true,checks,scope:'Shipping GLBs and fallback, all 13 weapons, first-use material/texture/geometry coverage, every driver, unchanged draws/triangles and loading lifecycle; real WebGL checked separately.'}));
+console.log(JSON.stringify({pass:true,checks,scope:'Shipping GLBs and fallback, all ten weapons plus legacy asset compatibility, first-use material/texture/geometry coverage, every driver, unchanged draws/triangles and loading lifecycle; real WebGL checked separately.'}));
 
 // Once all jobs finish, quality switches select cached, reflected shaders,
 // including materials hidden until the first weapon/status use.
@@ -165,4 +165,20 @@ console.log(JSON.stringify({pass:true,checks,scope:'Shipping GLBs and fallback, 
  await warmKartRenderer(THREE,renderer,scene,camera,{yieldTask:async()=>{}});
  assert(compiles>0&&draws>0&&reflected>0,'submission, reflection and warm draw all run');
  mesh.geometry.dispose();mesh.material.dispose();
+}
+
+// A short optional budget must never postpone first-fire GPU resources.
+{
+ const scene=new THREE.Scene(),camera=new THREE.Camera(),combat=new THREE.Mesh(new THREE.BoxGeometry(),new THREE.MeshBasicMaterial()),scenery=new THREE.Mesh(new THREE.BoxGeometry(),new THREE.MeshBasicMaterial());
+ const duplicate=new THREE.Mesh(combat.geometry,combat.material);duplicate.name='OptionalDuplicate';scene.add(duplicate);
+ combat.name='RequiredWeapon';scenery.name='OptionalScenery';combat.visible=false;scene.add(combat,scenery);
+ let fences=0;const gl={SYNC_GPU_COMMANDS_COMPLETE:1,TIMEOUT_EXPIRED:2,fenceSync(){fences++;return{};},flush(){},clientWaitSync:()=>3,deleteSync(){}};
+ const compiled=[],drawn=[],renderer={getContext:()=>gl,shadowMap:{enabled:true},async compileAsync(object){compiled.push([object.name,this.shadowMap.enabled]);},render(staging){drawn.push(staging.children.find(o=>o.isMesh)?.name);}};
+ const handle=await warmKartRenderer(THREE,renderer,scene,camera,{requiredRoots:[combat],roots:[scenery],priorityRoots:[duplicate],budgetMs:0,yieldTask:async()=>{}});
+ await handle.done.catch(()=>{});
+ assert.deepEqual(compiled,[['RequiredWeapon',true],['RequiredWeapon',false]],'both combat quality modes finish before the optional budget starts');
+ assert.equal(fences,2,'both required modes finish their final upload fence before the optional deadline');
+ assert.deepEqual(drawn,['RequiredWeapon','RequiredWeapon'],'an optional clone cannot remove the required binding during deduplication');assert(handle.skipped,'the zero optional budget is still enforced');
+ assert(!combat.visible&&renderer.shadowMap.enabled,'warm-up restores the hidden pool and current shadow mode');
+ for(const mesh of [combat,scenery]){mesh.geometry.dispose();mesh.material.dispose();}
 }

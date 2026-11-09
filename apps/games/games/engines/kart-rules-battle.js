@@ -1,5 +1,5 @@
 'use strict';
-/* Classic battle authority. Three hearts, one inventory slot and thirteen
+/* Classic battle authority. 100 HP, one inventory slot and ten
  * curated pickups from kart-combat-config.js. The server owns every hit,
  * status timer, knockout, respawn and expiry; renderers only draw snapshots.
  *
@@ -7,8 +7,8 @@
  * A Tri-Shot adds only its explicit -8/0/+8 degree fan. Missiles acquire a
  * rival at launch, coast straight briefly, then turn at a bounded rate.
  * Machine Gun and Tri-Shot commit their complete pickup on a fresh press.
- * Rapid fire and blades repeat on per-rival cooldowns; other pickups hit once.
- * Mine/oil traps are separate.
+ * Each rapid projectile counts once; contact weapons knock out on contact.
+ * Mines are separate swept traps.
  *
  * Sweeps stop at the earliest static surface, hull or expiry. Static cover
  * wins exact ties. Lifecycle caps are 64 shots, 16 traps and 12 canisters.
@@ -17,7 +17,7 @@
  * and wire names remain for old fixtures and already-created bodies.
  */
 
-const {config:COMBAT,damageAt,weaponForRoll,bladeContact,volleyHit} = require('./kart-combat-config');
+const {config:COMBAT,damageAt,blastDamage,weaponForRoll,bladeContact,volleyHit} = require('./kart-combat-config');
 const {normalizeWeapon}=require('./kart-combat-config');
 const {weaponForward,launchVelocity,TRI_FAN,CURATED_MUZZLE,inWeaponCone,WEAPON_FEEL}=require('../../public/js/engines/kart-weapon-contract.mjs');
 const LEGACY={proximity:{bodyRadius:.6,splashRadius:5.5,triggerRadius:3},laser:{speed:190,ttl:.7},bouncer:{speed:48,ttl:3.5,bounces:4},cluster:{fuse:.75,bomblets:5,splashRadius:3}};
@@ -53,16 +53,11 @@ const MAX_ZAPS = 64;
 const W = COMBAT.weapons;
 const LASER_SPEED = LEGACY.laser.speed;
 const LASER_TTL = LEGACY.laser.ttl;
-const BOOMERANG_SPEED = W.boomerang.speed;
-const BOOMERANG_TTL = W.boomerang.ttl;
 const BOUNCER_SPEED = LEGACY.bouncer.speed;
 const BOUNCER_TTL = LEGACY.bouncer.ttl;
 const BOUNCER_BOUNCES = LEGACY.bouncer.bounces;
-const THUNDER_RANGE = W.thunder.range;
-const THUNDER_HALF_ANGLE = W.thunder.halfAngle * Math.PI / 180;
-const OIL_R2 = W.oil.triggerRadius ** 2;
-const SPIN_TIME = W.oil.spinTime;
-const SPIN_KICK = 7; // rad/s yaw kick a fresh oil hit gives the chassis
+const SPIN_TIME = 0;
+const SPIN_KICK = 7; // legacy wire-status yaw kick
 const FROST_TIME = W.frost.slowTime;
 const RAM_TIME = W.ram.duration;
 const RAM_REACH = W.ram.reach;
@@ -71,7 +66,7 @@ const BOMBLET_STAGGER = .11;
 const BOMBLET_SPEED = 7.5;
 const BOMBLET_VY = 5;
 // Lobbed kinds: blast radius and fuse per canister kind. A Cluster bursts
-// into bomblets (no damage of its own); bomblets carry the Cluster's hearts.
+// into bomblets; retained only for already-created legacy bodies.
 const LOBBED = {
   nuke: {fuse: 2.5, radius: W.nuke.splashRadius, weapon: 'nuke'},
   frost: {fuse: W.frost.fuse, radius: W.frost.splashRadius, weapon: 'frost'},
@@ -113,8 +108,8 @@ const SPAWN_SHIELD = 2.5;
 const RESPAWN_TIME = 2;
 const RESPAWN_CLEAR = 2.5; // min live-kart clearance for a respawn pose
 const CRATE_KART_KEEP = 5; // crates recycle away from live karts
-const PAYLOAD_WEAPONS = new Set(['machinegun','trishot','cannon','mine','laser','boomerang','bouncer','oil']);
-const SHOT_WEAPONS = ['machinegun','trishot','cannon','missile','nuke','laser','boomerang','bouncer','frost','cluster'];
+const PAYLOAD_WEAPONS = new Set(['machinegun','trishot','cannon','mine','laser','bouncer']);
+const SHOT_WEAPONS = ['machinegun','trishot','cannon','missile','nuke','laser','bouncer','frost','cluster'];
 // Private to authority: public views contain only ammo/weapon/firing.
 const payloads = new WeakMap();
 // Receipt-time button state survives movement TTL; only a real neutral receipt
@@ -213,7 +208,7 @@ function pushEvent(state, type, pid, other, weapon, extra) {
     for (const k of Object.keys(extra)) {
       const v = extra[k];
       if (typeof v === 'number' && Number.isFinite(v)) e[k] = v;
-      else if(k==='targetId'&&typeof v==='string')e[k]=v;
+      else if(['targetId','crateId'].includes(k)&&typeof v==='string')e[k]=v;
       else if(['position','direction','from'].includes(k) && v && [v.x,v.y,v.z].every(Number.isFinite)) e[k]={x:v.x,y:v.y,z:v.z};
     }
   }
@@ -260,23 +255,19 @@ function knockOut(state, victim, shooterPid, weapon, econ) {
   pushEvent(state, 'ko', shooterPid, victim.pid, weapon,victim.physicalPose?{position:physicalHullCenter(victim)}:undefined);
 }
 
-/* Timed status effects. Frost slows, oil spins out, ram boosts. A KO or
+/* Timed status effects. Frost slows and ram boosts. A KO or
  * respawn ends every one of them. */
 function clearStatus(kart) {
   kart.bladesT=0;kart.bladesAge=0;kart.supernovaT=0;kart.bladesVolley=null;kart.supernovaVolley=null;kart.bladesHits=null;
   kart.frostT = 0; kart.spinT = 0; kart.rammingT = 0; kart.ramVolley = null; kart.spinKick = 0;
 }
 function applyStatus(state, victim, weapon) {
-  if (weapon === 'oil') {
-    victim.spinT = SPIN_TIME;
-    // Alternate the spin direction so repeated slicks never feel scripted.
-    victim.spinKick = (state.eventSeq % 2 ? 1 : -1) * SPIN_KICK;
-  } else if (weapon === 'frost') victim.frostT = FROST_TIME;
+  if (weapon === 'frost') victim.frostT = FROST_TIME;
 }
 
-/* Whole hearts, with per-target cooldowns for rapid fire and blades. Supernova blocks every hit
+/* HP damage, with independent bullets and one contact per activation. Supernova blocks every hit
  * while active. The old guard field only serves legacy state. */
-function damage(state,victim,owner,weapon,connected,econ,volley=null,override=null) {
+function damage(state,victim,owner,weapon,connected,econ,volley=null,override=null,shot=null) {
   const amount=override??damageAt(weapon);
   if(!victim || victim.pid===owner || !connected.has(victim.pid) || victim.respawn>0 || victim.shield>0 || !(amount>0)) return false;
   const hitPosition = victim.physicalPose ? physicalHullCenter(victim) : {x:+victim.x.toFixed(3),y:0,z:+victim.z.toFixed(3)};
@@ -285,15 +276,15 @@ function damage(state,victim,owner,weapon,connected,econ,volley=null,override=nu
     if(volley){let hits=state.volleyHits.get(volley);if(!hits)state.volleyHits.set(volley,hits=new Map());const key='blocked:'+victim.pid+':'+(victim.spawnSeq||0);announce=!hits.has(key);hits.set(key,true);}
     if(announce)pushEvent(state,'block',owner,victim.pid,weapon,{position:hitPosition});return true;
   }
-  if(weapon!=='blades'&&!volleyHit(state.volleyHits,volley,victim.pid,victim.spawnSeq||0,weapon,state.nowMs/1000))return false;
+  if(weapon!=='blades'&&!volleyHit(state.volleyHits,volley,victim.pid,victim.spawnSeq||0,weapon,state.nowMs/1000,shot))return false;
   if(victim.guard){victim.guard=false;pushEvent(state,'block',owner,victim.pid,weapon,{position:hitPosition});return true;}
   const health=Number.isFinite(victim.health)?victim.health:COMBAT.maxHealth;
-  const taken=Math.min(health,amount);victim.health=Math.max(0,health-taken);
+  const taken=Math.min(health,amount);victim.health=Math.max(0,health-taken<1e-8?0:health-taken);
   pushEvent(state,'hit',owner,victim.pid,weapon,{damage:taken,health:victim.health,maxHealth:COMBAT.maxHealth,position:hitPosition});
   if(victim.health===0)knockOut(state,victim,owner,weapon,econ);
   else {
     applyStatus(state,victim,weapon);
-    const ownerKart=state.karts.find(k=>k.pid===owner),strength=(WEAPON_FEEL[weapon]?.kick||0)*(override===1?.45:1);
+    const ownerKart=state.karts.find(k=>k.pid===owner),strength=(WEAPON_FEEL[weapon]?.kick||0)*(override==null?1:Math.min(1,override/(damageAt(weapon)||1)));
     if(ownerKart&&strength)bumpAway(state,victim,ownerKart.x,ownerKart.z,strength,tickGeometry.get(state));
   }
   return true;
@@ -324,10 +315,8 @@ function updateCuratedStatus(state,connected,dt,econ,geometry){
    if(k.bladesT===0){k.bladesVolley=null;k.bladesHits=null;}
   }
   if(k.supernovaT>0){k.supernovaT=Math.max(0,k.supernovaT-dt);if(k.supernovaT===0){
-   pushEvent(state,'blast',k.pid,undefined,'supernova',{x:me.x,z:me.z,position:me});
-   for(const v of state.karts){const p=v.physicalPose?physicalHullCenter(v):{x:v.x,y:0,z:v.z};
-    if(Math.hypot(p.x-me.x,p.y-me.y,p.z-me.z)<W.supernova.splashRadius&&!geometry?.sweepStatic?.(me,p)&&!splashBlocked(me.x,me.z,p.x,p.z,state.blocks))damage(state,v,k.pid,'supernova',connected,econ,k.supernovaVolley);
-   }k.supernovaVolley=null;
+   detonateArea(state,me,k.pid,'supernova',connected,econ,k.supernovaVolley,geometry);
+   k.supernovaVolley=null;
   }}
  }
 }
@@ -396,7 +385,7 @@ function respawnKart(state, kart) {
 
 function zapTtlFor(kind) {
   if (kind === 'laser') return LASER_TTL;
-  if (kind === 'boomerang') return BOOMERANG_TTL;
+
   if (kind === 'bouncer') return BOUNCER_TTL;
   if (kind === 'trishot') return SCATTER_TTL;
   if (kind === 'cannon') return ROCKET_TTL;
@@ -430,13 +419,14 @@ function fireMount(state, start, kind, fireGeometry, yawOffset=0) {
   const origin = {x:p.x+originOffset.x,y:p.y+originOffset.y,z:p.z+originOffset.z};
   const muzzle = {x:p.x+muzzleOffset.x,y:p.y+muzzleOffset.y,z:p.z+muzzleOffset.z};
   const direction = weaponForward(q,yawOffset);
-  const blocked = !!fireGeometry.sweepStatic(origin,muzzle,LOBBED[kind]?GRENADE_R:(COMBAT.staticSweepRadii[kind]||0));
+  const radius=LOBBED[kind]?GRENADE_R:(COMBAT.staticSweepRadii[kind]||0);
+  const blocked = !!(fireGeometry.sweepStatic(origin,{x:origin.x,y:origin.y+1e-6,z:origin.z},radius)||fireGeometry.sweepStatic(origin,muzzle,radius));
   return {origin,muzzle,direction,velocity:pose.linearVelocity||{x:0,y:0,z:0},physical:true,blocked};
 }
 
 function launchZap(state, kart, start, angle, kind, volley=null, geometry=null, extra=null) {
-  // Rolling balls and boomerangs travel level with the ground they leave.
-  if (geometry?.physical && (kind === 'boomerang' || kind === 'bouncer')) {
+  // Level shots follow the ground height at launch.
+  if (geometry?.physical && kind === 'bouncer') {
     const n = Math.hypot(geometry.direction.x, geometry.direction.z) || 1;
     geometry = {...geometry, direction: {x: geometry.direction.x / n, y: 0, z: geometry.direction.z / n}};
   }
@@ -462,7 +452,7 @@ function launchZap(state, kart, start, angle, kind, volley=null, geometry=null, 
  * level (0..3) when the garage applies. Classic (state.garage !== true)
  * and fixtures without upgrades always get the flat base. */
 function fireCooldownFor(state, kart) {
-  const mine=(kart.weapon==='mine'||kart.weapon==='oil')&&!!kart.physicalPose;
+  const mine=(kart.weapon==='mine')&&!!kart.physicalPose;
   const base=COMBAT.weapons[kart.weapon]?.cooldown??(mine?COMBAT.weapons[kart.weapon].dropInterval:FIRE_CD);
   if(mine)return base;
   if (!state || state.garage !== true) return base;
@@ -535,16 +525,7 @@ function seekerLock(state, kart, from, direction, connected, fireGeometry) {
 }
 
 /* Thunder has no fallback target. A miss is a visible ground strike. */
-function thunderTarget(state,kart,start,direction,connected){
- const from=kart.physicalPose?physicalHullCenter(kart):{x:start.x,y:0,z:start.z},forward=direction||{x:Math.sin(kart.angle),y:0,z:Math.cos(kart.angle)};
- let best=null,bestD=Infinity;
- for(const k of state.karts){
-  if(k===kart||!connected.has(k.pid)||k.respawn>0||k.shield>0)continue;
-  const to=k.physicalPose?physicalHullCenter(k):{x:k.x,y:0,z:k.z};
-  if(!inWeaponCone(from,forward,to,W.thunder.range,W.thunder.halfAngle))continue;
-  const d=Math.hypot(to.x-from.x,to.y-from.y,to.z-from.z);if(d<bestD){best=k;bestD=d;}
- }return best;
-}
+
 // The tick's economy handle, for spends that score at once (Thunder).
 const tickEcon = new WeakMap(),tickGeometry=new WeakMap();
 function econOf(state){return tickEcon.get(state)||null;}
@@ -558,7 +539,7 @@ function econOf(state){return tickEcon.get(state)||null;}
  * acceptance; blasts add their own bounded 'blast' records later. */
 function tryFire(state, kart, start, connected, fireGeometry) {
   const weapon = kart.weapon = normalizeWeapon(kart.weapon);
-  if (!weapon || (Number(kart.ammo) || 0) <= 0 || kart.fireCd > 1e-8) return;
+  if (!W[weapon] || (Number(kart.ammo) || 0) <= 0 || kart.fireCd > 1e-8) return;
   const geometry = SHOT_WEAPONS.includes(weapon)
     ? fireMount(state,{...start,angle:start.angle??kart.angle},weapon,fireGeometry) : null;
   if (geometry?.blocked) return;
@@ -574,11 +555,11 @@ function tryFire(state, kart, start, connected, fireGeometry) {
     return true;
   }
   if(weapon==='blades'){kart.bladesT=W.blades.duration;kart.bladesAge=0;kart.bladesVolley=volley;kart.bladesHits=new Map();kart.shield=0;kart.ammo=0;kart.weapon=null;pushEvent(state,'fire',kart.pid,undefined,'blades');return true;}
-  if (weapon === 'machinegun' || weapon === 'cannon' || weapon === 'laser' || weapon === 'bouncer' || weapon === 'boomerang') {
+  if (weapon === 'machinegun' || weapon === 'cannon' || weapon === 'laser' || weapon === 'bouncer') {
     if (state.zaps.length + 1 > MAX_ZAPS) return;
     kart.shield = 0;
     // A Boomerang curves to the side it was not last thrown toward.
-    const extra = weapon === 'boomerang' ? {age:0,curve:(kart.ammo%2?1:-1)} : weapon === 'bouncer' ? {bounces:0} : null;
+    const extra = weapon === 'bouncer' ? {bounces:0} : null;
     launchZap(state, kart, start, kart.angle, weapon,volley,geometry,extra);
     kart.ammo -= 1;
     pushEvent(state, 'fire', kart.pid, undefined, weapon,geometry?{position:geometry.muzzle,direction:geometry.direction}:undefined);
@@ -586,7 +567,7 @@ function tryFire(state, kart, start, connected, fireGeometry) {
     if (state.zaps.length + SCATTER_FAN.length > MAX_ZAPS) return;
     kart.shield = 0;
     for(const off of SCATTER_FAN){const ray=geometry?fireMount(state,start,'trishot',fireGeometry,off):null;if(!ray?.blocked)launchZap(state,kart,start,kart.angle+off,'trishot',volley,ray);}
-    kart.ammo -= 1;
+    kart.ammo -= 3;
     pushEvent(state, 'fire', kart.pid, undefined, 'trishot',geometry?{position:geometry.muzzle,direction:geometry.direction}:undefined);
   } else if (weapon === 'missile') {
     if (state.zaps.length + 1 > MAX_ZAPS) return;
@@ -597,24 +578,13 @@ function tryFire(state, kart, start, connected, fireGeometry) {
     launchZap(state,kart,start,kart.angle,'missile',volley,geometry,{targetId:lock?.pid??null,targetLife:lock?(lock.spawnSeq||0):null,acquired:true});
     kart.ammo -= 1;
     pushEvent(state,'fire',kart.pid,undefined,'missile',{...(geometry?{position:geometry.muzzle,direction:geometry.direction}:{}),...(lock?{targetId:lock.pid}:{})});
-  } else if (weapon === 'thunder') {
-    kart.shield = 0;
-    const from = geometry ? geometry.muzzle : {x:start.x,y:0,z:start.z};
-    const target = thunderTarget(state,kart,start,geometry?.direction,connected);
-    const fx=geometry?.direction.x??Math.sin(kart.angle),fz=geometry?.direction.z??Math.cos(kart.angle),fn=Math.hypot(fx,fz)||1;
-    const point = target ? (target.physicalPose ? physicalHullCenter(target) : {x:target.x,y:0,z:target.z})
-      : {x:start.x+fx/fn*18,y:fireGeometry?.groundAt?.(start.x+fx/fn*18,start.z+fz/fn*18)||0,z:start.z+fz/fn*18};
-    kart.ammo -= 1;
-    pushEvent(state, 'fire', kart.pid, undefined, 'thunder',geometry?{position:geometry.muzzle,direction:geometry.direction}:undefined);
-    pushEvent(state, 'blast', kart.pid, target?target.pid:undefined, 'thunder', {x:+point.x.toFixed(2),z:+point.z.toFixed(2),position:point});
-    if (target) damage(state,target,kart.pid,'thunder',connected,econOf(state),volley);
   } else if (weapon === 'ram') {
     kart.shield = 0;
     kart.rammingT = RAM_TIME;
     kart.ramVolley = volley;
     kart.ammo -= 1;
     pushEvent(state, 'fire', kart.pid, undefined, 'ram');
-  } else if (weapon === 'mine' || weapon === 'proximity' || weapon === 'oil') {
+  } else if (weapon === 'mine' || weapon === 'proximity') {
     if (state.mines.length >= MAX_MINES) return;
     const payload=payloads.get(kart);
     if(payload&&!payload.started){
@@ -628,13 +598,13 @@ function tryFire(state, kart, start, connected, fireGeometry) {
     state.mines.push({
       id: 'm' + state.mineSeq,
       owner: kart.pid,
-      ...(weapon === 'proximity' || weapon === 'oil' ? {kind:weapon} : {}),
+      ...(weapon === 'proximity' ? {kind:weapon} : {}),
       x: spot.x,
       z: spot.z,
       ...(spot.physical ? {physical:true,y:spot.y} : {}),
-      armT: weapon === 'oil' ? W.oil.armTime : MINE_ARM,
+      armT: MINE_ARM,
       armed: false,
-      ttl: weapon === 'oil' ? W.oil.lifetime : MINE_TTL,
+      ttl: MINE_TTL,
     });
     kart.ammo -= 1;
     pushEvent(state, weapon === 'mine' ? 'mine' : 'fire', kart.pid, undefined, weapon,spot.physical?{position:{x:spot.x,y:spot.y,z:spot.z}}:undefined);
@@ -766,7 +736,7 @@ function boxInterval(from, to, box) {
 function zapSpeed(zap) {
   if (!zap) return PULSE_SPEED;
   if (zap.kind === 'laser') return LASER_SPEED;
-  if (zap.kind === 'boomerang') return BOOMERANG_SPEED;
+
   if (zap.kind === 'bouncer') return BOUNCER_SPEED;
   if (zap.kind === 'trishot') return SCATTER_SPEED;
   if (zap.kind === 'cannon') return ROCKET_SPEED;
@@ -839,34 +809,26 @@ function minePathBlocked(bx, bz, px, pz, blocks) {
 }
 
 /* Rockets and seekers: the direct victim and every nearby visible victim
- * lose the weapon's hearts once per volley. The splash respects 3D cover,
+ * take smooth radial HP damage. The splash respects 3D cover,
  * ownership, protection and active lives. */
-function detonateRocket(state, zap, ix, iz, connected, econ, direct=null, position=null, fireGeometry=null) {
-  const weapon=zap.kind==='missile'?'missile':'cannon',radius2=weapon==='missile'?SEEKER_SPLASH_R**2:ROCKET_SPLASH_R2;
-  pushEvent(state,'blast',zap.owner,null,weapon,{x:ix,z:iz,position:position||{x:ix,y:-PHYSICS.chassis.modelOriginY+PHYSICS.combat.rocketMuzzle.y,z:iz}});
-  const hit=new Set();
-  if(direct&&damage(state,direct,zap.owner,weapon,connected,econ,zap.volley))hit.add(direct.pid);
-  for (const kart of state.karts) {
-    if (kart.pid === zap.owner) continue;
-    if (!connected.has(kart.pid)) continue;
-    if ((Number(kart.respawn) || 0) > 0) continue;
-    if ((Number(kart.shield) || 0) > 0) continue;
-    if(zap.physical&&position&&fireGeometry?.sweepStatic){
-      const center=physicalHullCenter(kart),dx=center.x-position.x,dy=center.y-position.y,dz=center.z-position.z;
-      const distance=Math.hypot(dx,dy,dz);
-      if(distance*distance>=radius2)continue;
-      if(distance>1e-6){
-        const nudge=Math.min(.03,distance*.5)/distance;
-        const from={x:position.x+dx*nudge,y:position.y+dy*nudge,z:position.z+dz*nudge};
-        if(fireGeometry.sweepStatic(from,center))continue;
-      }
-    }else{
-      const dx=kart.x-ix,dz=kart.z-iz;
-      if(dx*dx+dz*dz>=radius2)continue;
-      if(splashBlocked(ix,iz,kart.x,kart.z,state.blocks))continue;
-    }
-    if(!hit.has(kart.pid))damage(state,kart,zap.owner,weapon,connected,econ,zap.volley,weapon==='cannon'?1:null);
+function detonateArea(state,origin,owner,weapon,connected,econ,volley=null,geometry=null,direct=null,directAmount=null) {
+  const radius=W[weapon].splashRadius;
+  pushEvent(state,'blast',owner,null,weapon,{x:origin.x,z:origin.z,position:origin,radius});
+  for(const kart of state.karts){
+    if(kart===direct){damage(state,kart,owner,weapon,connected,econ,volley,directAmount);continue;}
+    const p=kart.physicalPose?physicalHullCenter(kart):{x:kart.x,y:0,z:kart.z};
+    const d=Math.hypot(p.x-origin.x,p.y-origin.y,p.z-origin.z),amount=blastDamage(weapon,d,radius);
+    if(!(amount>0))continue;
+    if(kart.physicalPose&&geometry?.sweepStatic){
+      const n=d>1e-6?Math.min(.03,d*.5)/d:0;
+      if(geometry.sweepStatic({x:origin.x+(p.x-origin.x)*n,y:origin.y+(p.y-origin.y)*n,z:origin.z+(p.z-origin.z)*n},p))continue;
+    }else if(splashBlocked(origin.x,origin.z,p.x,p.z,state.blocks))continue;
+    damage(state,kart,owner,weapon,connected,econ,volley,amount);
   }
+}
+function detonateRocket(state,zap,ix,iz,connected,econ,direct=null,position=null,fireGeometry=null){
+ const weapon=zap.kind==='missile'?'missile':'cannon';
+ detonateArea(state,position||{x:ix,y:0,z:iz},zap.owner,weapon,connected,econ,zap.volley,fireGeometry,direct);
 }
 
 /* Turn a missile toward its locked rival by at most SEEKER_TURN*dt. A lock
@@ -904,36 +866,9 @@ function steerSeeker(state, zap, connected, dt, geometry) {
 
 /* Boomerang flight: curve out to one side for outTime, then home on the
  * thrower's hull. With no live thrower it keeps circling until its TTL. */
-function steerBoomerang(state, zap, connected, dt) {
-  const B = W.boomerang;
-  zap.age = (Number(zap.age) || 0) + Math.max(0, dt);
-  const physical = zap.physical === true;
-  const heading = physical ? Math.atan2(zap.vx, zap.vz) : zap.angle;
-  let turn = (zap.curve || 1) * B.curveRate * dt;
-  if (zap.age > B.outTime) {
-    const owner = state.karts.find((k) => k.pid === zap.owner);
-    if (owner && connected.has(owner.pid) && !((Number(owner.respawn) || 0) > 0)) {
-      const to = physical && owner.physicalPose ? physicalHullCenter(owner) : {x: owner.x, y: 0, z: owner.z};
-      const want = Math.atan2(to.x - zap.x, to.z - zap.z);
-      const delta = Math.atan2(Math.sin(want - heading), Math.cos(want - heading));
-      turn = clampNum(delta, -B.returnTurn * dt, B.returnTurn * dt);
-      if (physical) zap.vy = clampNum((to.y - zap.y) * 3, -6, 6);
-    } else turn = (zap.curve || 1) * B.returnTurn * .5 * dt;
-  }
-  zap.angle = heading + turn;if(!physical){zap.vx=Math.sin(zap.angle)*BOOMERANG_SPEED;zap.vz=Math.cos(zap.angle)*BOOMERANG_SPEED;}
-  if (physical) {
-    const speed = Math.hypot(zap.vx, zap.vz) || B.speed;
-    zap.vx = Math.sin(zap.angle) * speed; zap.vz = Math.cos(zap.angle) * speed;
-  }
-}
 
-function boomerangCaught(state, zap, connected) {
-  if (!((Number(zap.age) || 0) > W.boomerang.outTime)) return false;
-  const owner = state.karts.find((k) => k.pid === zap.owner);
-  if (!owner || !connected.has(owner.pid) || (Number(owner.respawn) || 0) > 0) return false;
-  const to = zap.physical === true && owner.physicalPose ? physicalHullCenter(owner) : {x: owner.x, y: zap.y || 0, z: owner.z};
-  return Math.hypot(to.x - zap.x, (to.y - (zap.y || 0)) * (zap.physical === true ? 1 : 0), to.z - zap.z) < W.boomerang.catchRadius;
-}
+
+
 
 /* Outward planar normal at a wall/cover contact point. */
 function planarNormal(p, bound, blocks, vx, vz) {
@@ -950,7 +885,7 @@ function planarNormal(p, bound, blocks, vx, vz) {
 }
 
 /* Proximity charge: one blast at the charge, every vulnerable rival within
- * 5.5u with line of sight loses 2 hearts once. */
+ * 5.5u with line of sight follows the legacy mine alias. */
 function detonateCharge(state, mine, connected, econ, fireGeometry) {
   const position = mine.physical ? {x:mine.x,y:mine.y+.4,z:mine.z} : {x:mine.x,y:.4,z:mine.z};
   pushEvent(state, 'blast', mine.owner, undefined, 'proximity', {x:+mine.x.toFixed(2),z:+mine.z.toFixed(2),position});
@@ -1130,39 +1065,19 @@ function stepGrenadeSub(g, h, blocks, bound) {
 }
 
 /* Detonate a Nuke at its fuse-end position: EVERY vulnerable victim
- * within 14u with line-of-sight loses all hearts exactly once (a Shield
- * pickup still soaks it). Owner, spawn-protected, KO'd, and offline karts
+ * within 14u takes smooth radial damage, up to 120 HP at the centre.
+ * Supernova blocks it. Owner, spawn-protected, KO'd, and offline karts
  * are immune. One bounded 'blast' record marks the point even when nobody
  * falls, so the blast is never silent. The flying body itself never
  * scores on contact: splash at fuse only. */
-function detonateGrenade(state, g, connected, econ, fireGeometry) {
-  const ix = g.x;
-  const iz = g.z;
-  const lob = LOBBED[g.kind] || LOBBED.nuke, weapon = lob.weapon, radius = lob.radius;
-  pushEvent(state, 'blast', g.owner, undefined, weapon,
-    { x: +ix.toFixed(2), z: +iz.toFixed(2), ...(g.physical?{position:{x:ix,y:g.y+GRENADE_R,z:iz}}:{}) });
-  for (const kart of state.karts) {
-    if (!kart || kart.pid === g.owner) continue;
-    if (!connected.has(kart.pid)) continue;
-    if ((Number(kart.respawn) || 0) > 0) continue;
-    if ((Number(kart.shield) || 0) > 0) continue;
-    if (g.physical && fireGeometry?.sweepStatic) {
-      const from={x:ix,y:g.y+GRENADE_R,z:iz},target=physicalHullCenter(kart);
-      if (Math.hypot(target.x-from.x,target.y-from.y,target.z-from.z)>=radius) continue;
-      if (fireGeometry.sweepStatic(from,target)) continue;
-    } else {
-      const dx = kart.x - ix;
-      const dz = kart.z - iz;
-      if (dx * dx + dz * dz >= radius * radius) continue;
-      if (splashBlocked(ix, iz, kart.x, kart.z, state.blocks)) continue;
-    }
-    damage(state,kart,g.owner,weapon,connected,econ,weapon==='nuke'?null:g.volley||null);
-  }
+function detonateGrenade(state,g,connected,econ,fireGeometry){
+ const weapon=(LOBbed=>LOBbed?.weapon||'nuke')(LOBBED[g.kind]);
+ detonateArea(state,{x:g.x,y:g.physical?g.y+GRENADE_R:0,z:g.z},g.owner,weapon,connected,econ,g.volley||null,fireGeometry);
 }
 
 /* Cluster burst: the canister pops (no damage) into bomblets that trishot
  * on a fixed fan and go off one after another. Bomblets share the pickup's
- * volley, so the whole Cluster takes at most one heart from each rival. */
+ * volley. Retained for already-created legacy canisters only. */
 function burstCluster(state, g, keptG) {
   pushEvent(state, 'burst', g.owner, undefined, 'cluster', {x: +g.x.toFixed(2), z: +g.z.toFixed(2), ...(g.physical ? {position: {x: g.x, y: g.y + GRENADE_R, z: g.z}} : {})});
   // The canister reserved its bomblets' room at launch; never exceed the cap.
@@ -1199,8 +1114,8 @@ module.exports = {
     GRENADE_GROUND_FRICTION, GRENADE_MAX_BOUNCES, GRENADE_REST_VY,
     GRENADE_R, GRENADE_YMAX, GRENADE_VMAX, GRENADE_STEP, MAX_GRENADES,
     WEAPON_ORDER, WEAPON_WEIGHTS,
-    LASER_SPEED, LASER_TTL, BOOMERANG_SPEED, BOOMERANG_TTL, BOUNCER_SPEED, BOUNCER_TTL, BOUNCER_BOUNCES,
-    THUNDER_RANGE, THUNDER_HALF_ANGLE, OIL_R2, SPIN_TIME, SPIN_KICK, FROST_TIME, RAM_TIME, RAM_REACH,
+    LASER_SPEED, LASER_TTL, BOUNCER_SPEED, BOUNCER_TTL, BOUNCER_BOUNCES,
+    SPIN_TIME, SPIN_KICK, FROST_TIME, RAM_TIME, RAM_REACH,
     BOMBLET_FUSE, BOMBLET_STAGGER, BOMBLET_SPEED, BOMBLET_VY,
     FIRE_CD, SPAWN_SHIELD, RESPAWN_TIME, RESPAWN_CLEAR,
     COIN_KO, COIN_PICKUP,
@@ -1294,6 +1209,7 @@ module.exports = {
         const nearGround = !kart.physicalPose || !fireGeometry?.groundAt ||
           Math.abs(kart.physicalPose.position.y-fireGeometry.groundAt(crate.x,crate.z)) < 2.4;
         if (dx * dx + dz * dz < PICKUP_R2 && nearGround && !kart.weapon && !payloads.has(kart)) {
+          const collectedId=crate.id;
           const weapon = rollWeapon(state);
           kart.weapon = weapon;
           state.volleySeq = (Number(state.volleySeq) || 0) + 1;
@@ -1304,7 +1220,7 @@ module.exports = {
           crate.id = 'c' + state.crateSeq;
           crate.x = spot.x;
           crate.z = spot.z;
-          pushEvent(state, 'pickup', kart.pid, undefined, weapon);
+          pushEvent(state, 'pickup', kart.pid, undefined, weapon,{crateId:collectedId});
           if (econ && typeof econ.award === 'function') {
             try { econ.award(kart.pid, COIN_PICKUP); } catch { /* economy never breaks the tick */ }
           }
@@ -1327,7 +1243,7 @@ module.exports = {
       const shotDt=Math.min(dt,zap.stepDt??dt);delete zap.stepDt;
       if(zap.kind==='missile'){zap.age=(zap.age||0)+shotDt;if(zap.age>W.missile.lockDelay)steerSeeker(state,zap,connected,shotDt,fireGeometry);}
       if(zap.kind==='cannon')zap.vy=(zap.vy||0)-W.cannon.gravity*shotDt;
-      if (zap.kind === 'boomerang') steerBoomerang(state, zap, connected, shotDt);
+
       const speed = zapSpeed(zap);
       const physical = zap.physical===true && fireGeometry?.sweepStatic;
       const from = { x: zap.x, z: zap.z, ...(physical?{y:zap.y}:{}) };
@@ -1355,14 +1271,13 @@ module.exports = {
       }
       let victim = null;
       // A Boomerang blade passes through every rival it cuts this tick.
-      const pierce = zap.kind === 'boomerang', pierced = [];
+
       for (const kart of state.karts) {
         if (kart.pid === zap.owner) continue; // never self-hit
         if (!connected.has(kart.pid)) continue; // offline karts are immune
         if ((Number(kart.respawn) || 0) > 0) continue; // KO'd: no duplicate KO
         const before = previousKarts?.get(kart.pid) || kart;
         const time = physical?physicalHullImpact(from,to,before,kart):hullImpact(from, to, before, kart);
-        if (pierce) { if ((zap.age||0)<=W.boomerang.outTime && time !== null && time < stop) pierced.push({kart, time}); continue; }
         if (time !== null && time < stop) {
           stop = time;
           victim = kart;
@@ -1370,11 +1285,6 @@ module.exports = {
         }
       }
       const isRocket = zap.kind === 'cannon' || zap.kind === 'missile';
-      // A fresh cut (not a rival this pickup already hurt) sparks once.
-      for (const {kart, time} of pierced) {
-        if ((Number(kart.shield) || 0) > 0 || !damage(state,kart,zap.owner,'boomerang',connected,econ,zap.volley) || !physical) continue;
-        pushEvent(state,'impact',zap.owner,kart.pid,'boomerang',{position:{x:from.x+(to.x-from.x)*time,y:from.y+(to.y-from.y)*time,z:from.z+(to.z-from.z)*time},from});
-      }
       // A Bounce Ball ricochets off walls and cover up to its bounce budget.
       const bounce = zap.kind === 'bouncer' && !victim && stop <= 1 && (impact === 'wall' || impact === 'block') && (Number(zap.bounces) || 0) < BOUNCER_BOUNCES;
       if(physical&&stop<=1&&impact!=='ttl'&&impact!=='void'&&!bounce){
@@ -1390,7 +1300,7 @@ module.exports = {
           // A shield consumes the shot (no KO); the first KO freezes the
           // victim out, so later pellets this tick skip them — one KO max
           // per victim however many shots connect at once.
-          damage(state,victim,zap.owner,zap.kind||'machinegun',connected,econ,zap.volley);
+          damage(state,victim,zap.owner,zap.kind||'machinegun',connected,econ,zap.volley,null,zap.id);
         }
       } else if (bounce) {
         const p = {x: from.x + (to.x - from.x) * stop, y: physical ? from.y + (to.y - from.y) * stop : 0, z: from.z + (to.z - from.z) * stop};
@@ -1413,7 +1323,7 @@ module.exports = {
         if (zap.ttl > 0) alive.push(zap);
       } else if (stop > 1) {
         zap.x = to.x; zap.z = to.z; if(physical)zap.y=to.y; zap.ttl -= shotDt;
-        if (!(zap.kind === 'boomerang' && boomerangCaught(state, zap, connected))) alive.push(zap);
+        alive.push(zap);
       } else if (isRocket && (impact === 'wall' || impact === 'block')) {
         const ix = from.x + (to.x - from.x) * stop;
         const iz = from.z + (to.z - from.z) * stop;
@@ -1473,7 +1383,7 @@ module.exports = {
       }
       let victim = null;
       let bestT = Infinity;
-      const triggerR2 = mine.kind === 'proximity' ? PROXIMITY_R2 : mine.kind === 'oil' ? OIL_R2 : MINE_R2;
+      const triggerR2 = mine.kind === 'proximity' ? PROXIMITY_R2 : MINE_R2;
       if (live) {
         const maxTravel = 40 * Math.max(0, dt) + 3;
         for (const kart of state.karts) {
@@ -1515,13 +1425,15 @@ module.exports = {
       }
       if (victim && mine.kind === 'proximity') detonateCharge(state,mine,connected,econ,fireGeometry);
       else if (victim) {
-        damage(state,victim,mine.owner,mine.kind === 'oil' ? 'oil' : 'mine',connected,econ);
-        if (mine.kind === 'oil') pushEvent(state, 'splat', mine.owner, victim.pid, 'oil', {x: +mine.x.toFixed(2), z: +mine.z.toFixed(2), ...(mine.physical ? {position: {x: mine.x, y: mine.y, z: mine.z}} : {})});
+        const before=previousKarts?.get(victim.pid)||victim,physical=mine.physical&&victim.physicalPose;
+        const a=physical?physicalHullCenter(before):{x:before.x,y:0,z:before.z},b=physical?physicalHullCenter(victim):{x:victim.x,y:0,z:victim.z};
+        const d=Math.hypot(a.x+(b.x-a.x)*bestT-mine.x,a.y+(b.y-a.y)*bestT-(physical?mine.y:0),a.z+(b.z-a.z)*bestT-mine.z);
+        detonateArea(state,{x:mine.x,y:physical?mine.y:0,z:mine.z},mine.owner,'mine',connected,econ,null,fireGeometry,victim,blastDamage('mine',d));
       }
       else if (!expired) kept.push(mine);
     }
     state.mines = kept;
-    // Turbo Ram: while it runs, touching a rival takes one heart, once per
+    // Turbo Ram: while it runs, touching a rival takes 100 HP, once per
     // rival per pickup. A frozen or KO'd rammer pauses; respawn ends it.
     for (const kart of state.karts) {
       if (!((Number(kart.rammingT) || 0) > 0)) continue;
@@ -1531,7 +1443,7 @@ module.exports = {
       for (const other of state.karts) {
         if (other === kart || !connected.has(other.pid) || (Number(other.respawn) || 0) > 0 || (Number(other.shield) || 0) > 0) continue;
         const o = other.physicalPose ? physicalHullCenter(other) : {x: other.x, y: 0, z: other.z};
-        if (Math.hypot(o.x - me.x, o.z - me.z) < RAM_REACH && Math.abs(o.y - me.y) < 1.6)
+        if (Math.hypot(o.x - me.x, o.z - me.z) < RAM_REACH && Math.abs(o.y - me.y) < 1.6 && !fireGeometry?.sweepStatic?.(me,o) && !splashBlocked(me.x,me.z,o.x,o.z,state.blocks))
           damage(state, other, kart.pid, 'ram', connected, econ, kart.ramVolley);
       }
       if (kart.rammingT <= 0) kart.ramVolley = null;

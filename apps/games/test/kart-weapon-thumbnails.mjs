@@ -8,7 +8,7 @@ globalThis.Image=class {
 const thumbnails=await import('../public/js/engines/kart-assets.mjs?thumbnail-readiness');
 let completed=false;
 const ready=thumbnails.loadKartWeaponThumbnails().then(()=>{completed=true;});
-const KEPT=['machinegun','trishot','missile','cannon','blades','supernova','mine','oil','frost','thunder','boomerang','ram','nuke'];
+const KEPT=['machinegun','trishot','missile','cannon','blades','supernova','mine','frost','ram','nuke'];
 const N=KEPT.length;
 assert.equal(requests.length,N,'Every selectable weapon has a decoded thumbnail barrier');
 assert.deepEqual(requests.map(r=>Object.keys(weaponImages).find(kind=>weaponImages[kind]===r.url)).sort(),[...KEPT].sort(),'Exactly the kept weapons have thumbnails');

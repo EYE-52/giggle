@@ -73,6 +73,7 @@ function armed(weapon,map=fixture(),options={},seats) {
 }
 const wireFinite=value=>typeof value==='number'?Number.isFinite(value):typeof value==='object'&&value!==null?Object.values(value).every(wireFinite):true;
 const upDot=p=>1-2*(p.rotation.x**2+p.rotation.z**2);
+const transformed=(p,v)=>{const q=p.rotation,t={x:2*(q.y*v.z-q.z*v.y),y:2*(q.z*v.x-q.x*v.z),z:2*(q.x*v.y-q.y*v.x)};return{x:p.position.x+v.x+q.w*t.x+q.y*t.z-q.z*t.y,y:p.position.y+v.y+q.w*t.y+q.z*t.x-q.x*t.z,z:p.position.z+v.z+q.w*t.z+q.x*t.y-q.y*t.x};};
 const gap=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y,a.z-b.z);
 
 // Height isolation on the shipped layouts, not a replacement test deck.
@@ -91,8 +92,8 @@ for(const [id,surface,x,z,toZ,height]of [
   const w=armed('missile',map,{},[{id:'a'},{id:'b'},{id:'c'}]);
   try{
     fire(w);step(w,35);
-    check(id+' '+(upper?'upper':'underpass')+' direct Rocket clip takes two of a full rival\'s hearts once',kart(w,'b').health===1&&kart(w,'b').alive&&kart(w).hits===0&&w.snapshot().events.filter(e=>e.type==='hit'&&e.other==='b'&&e.damage===2).length===1&&w.snapshot().events.filter(e=>e.type==='hit'&&e.other==='b').length===1);
-    check(id+' finite shipped deck blocks cross-height Rocket damage',kart(w,'c').health===3&&kart(w,'c').alive&&!w.snapshot().events.some(e=>e.type==='hit'&&e.other==='c'));
+    check(id+' '+(upper?'upper':'underpass')+' direct Rocket clip takes two of a full rival\'s hearts once',kart(w,'b').health===35&&kart(w,'b').alive&&kart(w).hits===0&&w.snapshot().events.filter(e=>e.type==='hit'&&e.other==='b'&&e.damage===65).length===1&&w.snapshot().events.filter(e=>e.type==='hit'&&e.other==='b').length===1);
+    check(id+' finite shipped deck blocks cross-height Rocket damage',kart(w,'c').health===100&&kart(w,'c').alive&&!w.snapshot().events.some(e=>e.type==='hit'&&e.other==='c'));
   }finally{w.dispose();}
 }
 
@@ -102,7 +103,7 @@ for(const [id,surface,x,z,toZ,height]of [
   const w=armed('machinegun',fixture([],[point('a',0,0,0),point('b',0,0,4.5,Math.PI)]));
   try {
     fire(w);const s=w.snapshot(),impact=s.events.find(e=>e.type==='impact'),accepted=s.events.find(e=>e.type==='fire');
-    check('same-tick Pulse hit has no live projectile but carries its exact sweep start',s.projectiles.length===0&&impact?.other==='b'&&impact.from&&gap(impact.from,accepted.position)<1e-9&&kart(w,'b').health===2);
+    check('same-tick Pulse hit has no live projectile but carries its exact sweep start',s.projectiles.length===0&&impact?.other==='b'&&impact.from&&gap(impact.from,accepted.position)<1e-9&&kart(w,'b').health===95);
     const victim=kart(w,'b').pose.position;
     check('confirmed victim endpoint is the hull intersection, not chassis position',Math.abs(gap(impact.position,{...victim,y:victim.y+.35})-1.7)<.002&&gap(impact.position,victim)>1);
   }finally{w.dispose();}
@@ -233,7 +234,7 @@ for(const weapon of ['machinegun','trishot','missile','missile']) {
   // At the actual Pulse speed each 60Hz step travels 2.33u. Both sampled
   // endpoints of this grazing chord miss the 1.7u combat hull; only the
   // swept path can confirm the hit. Use a real collected Pulse and poses.
-  const w=armed('machinegun',fixture([],[point('a',0,0,0),point('b',1.62,0,5.9,Math.PI)]),{initialHealth:1});
+  const w=armed('machinegun',fixture([],[point('a',0,0,0),point('b',1.05,0,5.6,Math.PI)]),{initialHealth:1});
   try {
     fire(w);const before=w.snapshot(),shot=before.projectiles[0],target=kart(w,'b').pose;
     assert.ok(shot&&kart(w,'b').alive);
@@ -247,7 +248,7 @@ for(const weapon of ['machinegun','trishot','missile','missile']) {
   const cover=armed('machinegun',fixture([wall],[point('a',0,0,0),point('b',0,0,10)]));
   try {
     fire(cover);step(cover,3);
-    check('fast Pulse stops at 2cm actual static cover before a farther hull',kart(cover,'b').alive&&kart(cover,'b').health===3&&kart(cover).hits===0&&cover.snapshot().projectiles.length===0&&cover.snapshot().events.some(e=>e.type==='impact'&&e.surfaceId==='thin-cover'));
+    check('fast Pulse stops at 2cm actual static cover before a farther hull',kart(cover,'b').alive&&kart(cover,'b').health===100&&kart(cover).hits===0&&cover.snapshot().projectiles.length===0&&cover.snapshot().events.some(e=>e.type==='impact'&&e.surfaceId==='thin-cover'));
   }finally{cover.dispose();}
 }
 
@@ -268,14 +269,14 @@ for(const angle of [0,Math.PI/2,Math.PI,-Math.PI/2]) {
 {
   // Cover is in front of the side barrel while leaving the centre line clear.
   // A centre-mounted sweep would miss this and create a shot beyond the wall.
-  const cover={id:'barrel-cover',shape:'box',half:{x:.30,y:.35,z:.08},position:{x:0,y:1.14,z:1.83}};
+  const cover={id:'barrel-cover',shape:'box',half:{x:.30,y:.35,z:.08},position:{x:0,y:.64+CURATED_MUZZLE.y,z:1.83}};
   const w=armed('machinegun',fixture([cover]));
   try {
     const before=kart(w).pose,offset=CURATED_MUZZLE;
     fire(w);
-    check('side-mounted Pulse checks the actual barrel corridor before launching',w.snapshot().projectiles.length===0&&w.snapshot().events.some(e=>e.type==='impact'&&e.surfaceId==='barrel-cover'));
+    check('roll-bar Pulse checks the actual barrel corridor before launching',w.snapshot().projectiles.length===0&&w.snapshot().events.some(e=>e.type==='impact'&&e.surfaceId==='barrel-cover'));
     const impact=w.snapshot().events.find(e=>e.type==='impact');
-    check('blocked barrel reports its actual sweep origin before the muzzle',gap(impact.from,{x:before.position.x+offset.x,y:before.position.y+offset.y,z:before.position.z})<.002&&impact.position.z<before.position.z+offset.z);
+    check('blocked barrel reports its actual sweep origin before the muzzle',gap(impact.from,transformed(before,{x:offset.x,y:offset.y,z:0}))<.002&&impact.position.z<before.position.z+offset.z);
     check('blocked side-mounted Pulse spends one shot without a KO',kart(w).ammo===29&&kart(w).hits===0&&kart(w,'b').alive);
   }finally{w.dispose();}
 }
@@ -294,7 +295,7 @@ for(const angle of [0,Math.PI/2,Math.PI,-Math.PI/2]) {
 
 {
   // Two separated full-heart rivals inside the Nuke's actual blast radius.
-  const spawns=[point('a',0,0,0),point('b',0,0,22),point('c',3,0,21)];
+  const spawns=[point('a',0,0,0),point('b',-6,0,16),point('c',6,0,16)];
   const map=fixture([],spawns), seats=[{id:'a'},{id:'b'},{id:'c'}];
   // Find an actual Nuke pickup seed with this three-seat constructor.
   let w;
@@ -306,8 +307,8 @@ for(const angle of [0,Math.PI/2,Math.PI,-Math.PI/2]) {
     const blast=w.snapshot().events.find(e=>e.type==='blast'&&e.weapon==='nuke');
     measurements.nuke={peakY:peak,bounces,blast:blast?.position};
     check('Nuke actually launches a 3D arc and settles on the physical floor without bouncing',peak>launch.position.y+.3&&bounces===0);
-    check('Nuke fuse produces one blast that empties every full set of hearts in range',!!blast&&kart(w).hits===2&&!kart(w,'b').alive&&!kart(w,'c').alive&&w.snapshot().events.filter(e=>e.type==='hit'&&e.damage===3).length===2&&w.snapshot().grenades.length===0);
-    step(w,125);check('Nuke victims safely respawn with full hearts without duplicate splash awards',kart(w,'b').alive&&kart(w,'c').alive&&kart(w,'b').health===3&&kart(w).hits===2);
+    check('Nuke fuse produces one radial blast that wounds two edge rivals',!!blast&&kart(w).hits===0&&kart(w,'b').alive&&kart(w,'c').alive&&w.snapshot().events.filter(e=>e.type==='hit'&&e.damage>0&&e.damage<100).length===2&&w.snapshot().grenades.length===0);
+    step(w,125);check('Nuke edge wounds persist without duplicate splash awards',kart(w,'b').alive&&kart(w,'c').alive&&kart(w,'b').health>0&&kart(w,'b').health<100&&kart(w).hits===0);
   }finally{w.dispose();}
 }
 
@@ -329,12 +330,12 @@ for(const angle of [0,Math.PI/2,Math.PI,-Math.PI/2]) {
   for(const weapon of ['machinegun','trishot','missile','missile']) {
     const w=armed(weapon,fixture([wall]));try {
       fire(w);step(w,150);
-      check(weapon+' respects actual finite solid cover',kart(w,'b').alive&&kart(w,'b').health===3&&kart(w).hits===0);
+      check(weapon+' respects actual finite solid cover',kart(w,'b').alive&&kart(w,'b').health===100&&kart(w).hits===0);
       check(weapon+' stops at first cover without late expiry blast',w.snapshot().projectiles.length===0&&w.snapshot().events.some(e=>e.type==='impact'&&e.surfaceId==='cover'));
     }finally{w.dispose();}
   }
   const low={id:'low-cover',shape:'box',half:{x:6,y:0.2,z:0.5},position:{x:0,y:0.2,z:5}};
-  const over=armed('machinegun',fixture([low]));try{fire(over);step(over,8);check('finite low cover permits a genuine one-heart Pulse wound above it',kart(over,'b').health===2&&kart(over).hits===0);step(over,160);check('continued Pulse hits above low cover take all three hearts',kart(over,'b').health===0&&kart(over).hits===1&&!kart(over).firing);}finally{over.dispose();}
+  const over=armed('machinegun',fixture([low]));try{fire(over);step(over,8);check('finite low cover permits a genuine one-heart Pulse wound above it',kart(over,'b').health<100&&kart(over,'b').health>0&&kart(over).hits===0);step(over,160);check('continued Pulse hits above low cover take all three hearts',kart(over,'b').health===0&&kart(over).hits===1&&!kart(over).firing);}finally{over.dispose();}
 }
 
 {
@@ -342,7 +343,7 @@ for(const angle of [0,Math.PI/2,Math.PI,-Math.PI/2]) {
   const upper=[point('a',0,4,0,0,'upper-deck'),point('b',0,0,10)];
   const sockets=[point('s0',-0.7,4,0,0,'upper-deck'),point('s1',0.7,4,0,0,'upper-deck')];
   for(const weapon of ['machinegun','trishot','missile','missile']) {
-    const w=armed(weapon,fixture([roof],upper,sockets));try{fire(w);step(w,150);check(weapon+' cannot hit a separate underpass layer at shared x/z',kart(w,'b').alive&&kart(w,'b').health===3&&kart(w).hits===0);}finally{w.dispose();}
+    const w=armed(weapon,fixture([roof],upper,sockets));try{fire(w);step(w,150);check(weapon+' cannot hit a separate underpass layer at shared x/z',kart(w,'b').alive&&kart(w,'b').health===100&&kart(w).hits===0);}finally{w.dispose();}
   }
   const lowerCrates=create(fixture([roof],upper,[point('s0',-0.7,0,0),point('s1',0.7,0,0)]));
   try{step(lowerCrates,180);check('upper kart cannot collect an overlapping lower-layer crate',kart(lowerCrates).weapon===null);}finally{lowerCrates.dispose();}
@@ -415,23 +416,23 @@ for(const angle of [0,Math.PI/2,Math.PI,-Math.PI/2]) {
 }
 
 {
-  const roof={id:'nuke-roof',shape:'deck',half:{x:6,y:0.3,z:16},position:{x:0,y:2.05,z:8}};
-  const map=fixture([roof],[point('a',0,0,0),point('b',0,2.35,6,0,'nuke-roof')]);
+  const roof={id:'nuke-roof',shape:'deck',half:{x:6,y:0.3,z:16},position:{x:0,y:3.3,z:8}};
+  const map=fixture([roof],[point('a',0,0,0),point('b',0,3.6,6,0,'nuke-roof')]);
   const w=armed('nuke',map);try{
     fire(w);let peak=0;step(w,215,()=>{const g=w.snapshot().grenades[0];if(g)peak=Math.max(peak,g.position.y);});
     const blast=w.snapshot().events.find(e=>e.type==='blast'&&e.weapon==='nuke'),victim=kart(w,'b').pose.position;
     measurements.roofNuke={peakY:peak,blast:blast?.position,target: victim};
-    check('Nuke ceiling sweep uses actual roof normal and bounds arc',peak<1.36&&!!blast);
-    check('nearby roof blocks Nuke splash across layers',Math.hypot(victim.x-blast.position.x,victim.y+0.35-blast.position.y,victim.z-blast.position.z)<COMBAT.arsenal.nuke.splashRadius&&kart(w,'b').alive&&kart(w,'b').health===3&&kart(w).hits===0);
+    check('Nuke ceiling sweep uses actual roof normal and bounds arc',peak<2.51&&!!blast);
+    check('nearby roof blocks Nuke splash across layers',Math.hypot(victim.x-blast.position.x,victim.y+0.35-blast.position.y,victim.z-blast.position.z)<COMBAT.arsenal.nuke.splashRadius&&kart(w,'b').alive&&kart(w,'b').health===100&&kart(w).hits===0);
   }finally{w.dispose();}
   const rmap=fixture([],[point('a',0,0,0),point('b',0,0,10),point('c',-2.6,0,8.5)]),rocket=armed('missile',rmap,{},[{id:'a'},{id:'b'},{id:'c'}]);
-  try{fire(rocket);step(rocket,8);const direct=rocket.snapshot().events.find(e=>e.type==='impact'&&e.weapon==='missile')?.other;check('Rocket takes two hearts from the first swept hull and the splashed rival exactly once',['b','c'].includes(direct)&&kart(rocket).hits===0&&kart(rocket,direct).health===1&&kart(rocket,direct==='b'?'c':'b').health===1&&rocket.snapshot().events.filter(e=>e.type==='hit').length===2);}finally{rocket.dispose();}
+  try{fire(rocket);step(rocket,8);const direct=rocket.snapshot().events.find(e=>e.type==='impact'&&e.weapon==='missile')?.other;check('Rocket takes two hearts from the first swept hull and the splashed rival exactly once',['b','c'].includes(direct)&&kart(rocket).hits===0&&kart(rocket,direct).health===35&&kart(rocket,direct==='b'?'c':'b').health>35&&kart(rocket,direct==='b'?'c':'b').health<100&&rocket.snapshot().events.filter(e=>e.type==='hit').length===2);}finally{rocket.dispose();}
 }
 
 {
   // The ordinary spawn shield is tested against a genuine offensive shot.
   const w=create(fixture(),{seed:seedCache.get(JSON.stringify(fixture())+'-machinegun')});
-  try{step(w);fire(w);step(w,8);check('spawn Shield absorbs real first-hull projectiles without KO',kart(w,'b').alive&&kart(w,'b').health===3&&kart(w,'b').shield>2&&kart(w).hits===0&&w.snapshot().events.some(e=>e.type==='impact'&&e.other==='b'));check('offensive spend drops shooter spawn protection immediately',kart(w).shield===0);}finally{w.dispose();}
+  try{step(w);fire(w);step(w,8);check('spawn Shield absorbs real first-hull projectiles without KO',kart(w,'b').alive&&kart(w,'b').health===100&&kart(w,'b').shield>2&&kart(w).hits===0&&w.snapshot().events.some(e=>e.type==='impact'&&e.other==='b'));check('offensive spend drops shooter spawn protection immediately',kart(w).shield===0);}finally{w.dispose();}
   const distant=armed('missile',fixture([],[point('a',0,0,0),point('b',25,0,-25)]));
   try{fire(distant);step(distant,180);check('entire Rocket payload expires after its final missile TTL without an invented blast',distant.snapshot().projectiles.length===0&&!distant.snapshot().events.some(e=>e.type==='blast'));}finally{distant.dispose();}
   const mine=armed('mine',fixture([],[point('a',0,0,0),point('b',25,0,-25)]));

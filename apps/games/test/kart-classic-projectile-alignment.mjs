@@ -31,7 +31,7 @@ const placement=source.slice(source.indexOf('liveZ.clear();'),source.indexOf('fo
 const freshness=source.slice(source.indexOf('function ordnanceFresh('),source.indexOf('/* Calibrated server time'));
 assert(freshness.includes('lastSnapshotArrival')&&freshness.includes('connected'));
 assert(preparation.includes('projectileContactInset')&&placement.includes('radius-(c.tipZ||0)-c.contactInset'));
-const radii=combatConfig.config.staticSweepRadii,kinds=['machinegun','trishot','missile','cannon','boomerang'],point=new THREE.Vector3(),results=[],measurements=[];
+const radii=combatConfig.config.staticSweepRadii,kinds=['machinegun','trishot','missile','cannon'],point=new THREE.Vector3(),results=[],measurements=[];
 const check=(ok,label)=>{assert.ok(ok,label);results.push(label);};
 function packet(raw){return battle.viewExtra({zaps:[raw],crates:[],mines:[],grenades:[],events:[]}).zaps[0];}
 function vertices(object,visit){object.updateWorldMatrix(true,true);object.traverse(o=>{if(!o.isMesh)return;const p=o.geometry.attributes.position;for(let i=0;i<p.count;i++)visit(point.fromBufferAttribute(p,i).applyMatrix4(o.matrixWorld),o);});}

@@ -78,11 +78,11 @@ function main() {
     'fetchKartWasm(new URL("./rapier.wasm",import.meta.url))'));
   fs.copyFileSync(path.join(rapierSrc,'LICENSE'),path.join(rapierDest,'LICENSE'));
   fs.writeFileSync(path.join(rapierDest,'VERSION'),'@dimforge/rapier3d-compat@0.21.0; wasm extracted unchanged for streaming; regenerate with npm run vendor.\n');
-  // One small module replaces thirteen competing thumbnail requests. These
+  // One small module replaces ten competing thumbnail requests. These
   // are the exact shipped image bytes, with the same image decoding path.
   const thumbnails = {};
-  for (const kind of ['machinegun','trishot','missile','cannon','blades','supernova','mine','oil','frost','thunder','boomerang','ram','nuke']) {
-    const ext = ['machinegun','trishot','missile','cannon','blades','supernova'].includes(kind) ? 'svg' : 'png';
+  for (const kind of ['machinegun','trishot','missile','cannon','blades','supernova','mine','frost','ram','nuke']) {
+    const ext = 'svg';
     const bytes = fs.readFileSync(path.join(ROOT,'public/assets/karts/weapon-thumbnails',kind+'.'+ext));
     thumbnails[kind] = 'data:image/'+(ext==='svg'?'svg+xml':'png')+';base64,'+bytes.toString('base64');
   }

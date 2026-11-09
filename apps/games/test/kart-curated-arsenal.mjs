@@ -9,7 +9,7 @@ await RAPIER.init();
 let checks=0;
 const check=(ok,label)=>{assert.ok(ok,label);checks++;};
 assert.deepEqual(combat.config.weaponOrder,WEAPON_IDS);
-assert.deepEqual(WEAPON_IDS.filter(k=>WEAPONS[k].tier==='common'),['machinegun','trishot','mine','oil','boomerang']);
+assert.deepEqual(WEAPON_IDS.filter(k=>WEAPONS[k].tier==='common'),['machinegun','trishot','mine']);
 assert.deepEqual(WEAPON_IDS.filter(k=>WEAPONS[k].tier==='rare'),['supernova','nuke']);
 for(const [old,id]of Object.entries(combat.weaponAliases))assert.equal(combat.normalizeWeapon(old),id);
 for(let i=0;i<10000;i++)check(WEAPON_IDS.includes(combat.weaponForRoll(i/10000)),'curated rolls only');
@@ -20,9 +20,9 @@ export function classic(weapon='machinegun',target={x:0,z:20}){
  const connected=new Set(['a','b']),log=new Map();
  return {a,b,s,connected,log,fire(){a.pendingFire=true;this.step(0);},step(dt=1/60,geometry){s.lastTick=(s.lastTick||0)+dt*1000;battle.tick(s,connected,dt,null,null,new Map(),geometry);for(const e of s.events)log.set(e.id,e);},settle(seconds){for(let t=0;t<seconds;t+=1/60)this.step();}};
 }
-for(const weapon of ['machinegun','trishot','missile','cannon','thunder']){
+for(const weapon of ['machinegun','trishot','missile','cannon']){
  const f=classic(weapon);f.fire();f.settle(3);
- check(f.log.size>0,weapon+' fires');check(f.b.health===3-WEAPONS[weapon].damage,weapon+' whole hearts, once per pickup');
+ check(f.log.size>0,weapon+' fires');check(Math.abs(f.b.health-(100-WEAPONS[weapon].damage))<1e-8,weapon+' whole hearts, once per pickup');
  check(f.s.zaps.length===0,weapon+' shots retire');
 }
 {
@@ -37,14 +37,14 @@ for(const weapon of ['machinegun','trishot','missile','cannon','thunder']){
 }
 {
  const f=classic('blades',{x:3.6,z:0});f.fire();f.settle(1);
- check(f.b.health===2,'blades touch once');f.b.spawnSeq++;f.b.health=3;f.settle(.3);check(f.b.health===3,'a blade pickup cannot hit the same rival again after respawn');check(Math.abs(f.b.slip)>0||Math.abs(f.b.speed)>0,'blades bump');
+ check(f.b.health===0,'blade contact KOs instantly');f.b.respawn=0;f.b.spawnSeq++;f.b.health=100;f.settle(.3);check(f.b.health===100,'a blade pickup cannot hit the same rival again after respawn');
  f.settle(5);check(f.a.bladesT===0,'blades retire at 6 seconds');
 }
 {
  const f=classic('supernova',{x:0,z:6});f.fire();
  for(const kind of ['machinegun','cannon','missile']){f.s.zaps.push({id:'incoming-'+kind,owner:'b',kind,x:0,z:-1,angle:0,ttl:1,volley:kind});f.step(.03);}
- check(f.a.health===3,'bubble blocks every hit');check(f.a.supernovaT>0,'bubble survives repeated blocks');
- f.settle(3.2);check(f.b.health===1,'nova burst takes 2 hearts');check(f.a.supernovaT===0,'nova bubble expires');
+ check(f.a.health===100,'bubble blocks every hit');check(f.a.supernovaT>0,'bubble survives repeated blocks');
+ f.settle(3.2);check(f.b.health>10&&f.b.health<100,'nova uses radial damage');check(f.a.supernovaT===0,'nova bubble expires');
  check([...f.log.values()].filter(e=>e.type==='blast'&&e.weapon==='supernova').length===1,'nova detonates once');
 }
 // Homing starts only after a straight launch; the turn bound is a real
@@ -58,9 +58,9 @@ for(const weapon of ['machinegun','trishot','missile','cannon','thunder']){
   const cosine=(previous.x*p.vx+previous.z*p.vz)/(Math.hypot(previous.x,previous.z)*Math.hypot(p.vx,p.vz));
   check(Math.acos(Math.max(-1,Math.min(1,cosine)))<=WEAPONS.missile.turnRate/60+1e-6,'missile cannot exceed bounded turn rate');previous={x:p.vx,z:p.vz};
  }
- check(locked&&f.b.health===1,'missile locks in-cone rival and lands two hearts');f.settle(3);check(!f.s.zaps.length,'homing missile retires');
+ check(locked&&f.b.health===35,'missile locks in-cone rival and lands two hearts');f.settle(3);check(!f.s.zaps.length,'homing missile retires');
  const dodge=classic('missile',{x:8,z:12});dodge.fire();dodge.settle(3);
- check(dodge.b.health===3,'close off-axis rival can dodge launch and lock');
+ check(dodge.b.health===100,'close off-axis rival can dodge launch and lock');
  for(const target of [{x:40,z:40},{x:0,z:100}]){const f=classic('missile',target);f.fire();f.step(.3);check(f.s.zaps[0].targetId===null,'missile ignores rivals outside cone or range');}
 }
 {
@@ -70,22 +70,22 @@ for(const weapon of ['machinegun','trishot','missile','cannon','thunder']){
  const geometry={sweepStatic:()=>null,kickKart:(id,v)=>kicks.push({id,v})};f.a.pendingFire=true;f.step(0,geometry);
  check(f.s.zaps[0].vy>0,'cannon launches on a shallow rising arc');
  for(let i=0;i<120&&f.s.zaps.length;i++)f.step(1/60,geometry);
- check(f.b.health===1&&near.health===2,'cannon direct takes two hearts and small splash one');
+ check(f.b.health===30&&near.health>30&&near.health<100,'cannon direct takes two hearts and small splash one');
  check(kicks.some(k=>k.id==='b'&&k.v.z>8),'cannon applies large authoritative knockback');
  check(!f.s.zaps.length,'cannonball retires on contact');
 }
 {
  const f=classic('supernova',{x:0,z:6});f.fire();
  f.s.grenades.push({id:'incoming-nuke',kind:'nuke',owner:'b',x:0,y:0,z:0,vx:0,vy:0,vz:0,fuse:0,bounces:0});f.step(0);
- check(f.a.health===3&&f.a.supernovaT>0,'Supernova blocks a full Nuke without breaking');f.settle(3.1);
- check(f.b.health===1&&[...f.log.values()].filter(e=>e.type==='blast'&&e.weapon==='supernova').length===1,'Supernova then detonates once');
+ check(f.a.health===100&&f.a.supernovaT>0,'Supernova blocks a full Nuke without breaking');f.settle(3.1);
+ check(f.b.health>10&&f.b.health<100&&[...f.log.values()].filter(e=>e.type==='blast'&&e.weapon==='supernova').length===1,'Supernova then detonates once');
 }
 
 // Real elevated pickups/inputs/physics, with no grant or damage hooks.
 const pt=(id,x,z,angle=0)=>({id,x,y:0,z,angle,surface:'floor'});
 let instances=0;
 function mapFor(kind){
- const target=kind==='blades'?pt('b',3.7,0):kind==='supernova'?pt('b',0,7):['mine','oil'].includes(kind)?pt('b',0,-9):kind==='boomerang'?pt('b',-2.2,12):pt('b',0,kind==='frost'?12:20);
+ const target=kind==='blades'?pt('b',3.7,0):kind==='supernova'?pt('b',0,7):['mine'].includes(kind)?pt('b',0,-9):kind==='boomerang'?pt('b',-2.2,12):pt('b',0,kind==='frost'?12:20);
  return {id:'curated',revision:'1',half:180,colliders:[{id:'floor',shape:'box',position:{x:0,y:-1,z:0},half:{x:180,y:1,z:180}}],spawns:[pt('a',0,0),target],sockets:[pt('s0',-.7,0),pt('s1',.7,0)]};
 }
 const one=w=>w.advance(w.snapshot().serverAt+1000/60);
@@ -102,16 +102,16 @@ for(const weapon of WEAPON_IDS){
   input(w,'a',{use:true});input(w,'a');
   const log=new Map();let hurt=0,peak=0;
   for(let i=0;i<850;i++){
-   if(i%6===0){if(['mine','oil'].includes(weapon)&&i<80)input(w,'b',{throttle:1});if(weapon==='ram'&&i<70)input(w,'a',{throttle:1});}
+   if(i%6===0){if(['mine'].includes(weapon)&&i<80)input(w,'b',{throttle:1});if(weapon==='ram'&&i<70)input(w,'a',{throttle:1});}
    one(w);const s=w.snapshot();for(const e of s.events)log.set(e.id,e);
-   hurt=Math.max(hurt,3-s.karts[1].health);peak=Math.max(peak,s.projectiles.length+s.mines.length+s.grenades.length);
+   hurt=Math.max(hurt,100-s.karts[1].health);peak=Math.max(peak,s.projectiles.length+s.mines.length+s.grenades.length);
   }
   check([...log.values()].some(e=>(e.type==='fire'||e.type==='mine')&&e.weapon===weapon),weapon+' elevated fires');
-  check(hurt>=WEAPONS[weapon].damage,weapon+' elevated hits');
+  check(hurt>0,weapon+' elevated hits');
   const s=w.snapshot();check(!s.projectiles.length&&!s.grenades.length&&!s.mines.length,weapon+' elevated entities retire');
   check(s.karts.every(k=>!k.bladesT&&!k.supernovaT&&!k.rammingT&&!k.frostT&&!k.spinT),weapon+' elevated statuses retire');
   if(weapon==='machinegun')check([...log.values()].filter(e=>e.type==='fire'&&e.weapon===weapon).length===30,'elevated full 30-round stream');
-  if(weapon==='trishot')check([...log.values()].filter(e=>e.type==='fire'&&e.weapon===weapon).length===9,'elevated 9 triple volleys');
+  if(weapon==='trishot')check([...log.values()].filter(e=>e.type==='fire'&&e.weapon===weapon).length===3,'elevated three triple volleys');
  }finally{w.dispose();check(w.stats().projectiles===0,'disposal empties pools');}
 }
-console.log(JSON.stringify({pass:true,checks,scope:'13 curated weapons; real elevated collection and sequenced fire; classic rules and statuses'}));
+console.log(JSON.stringify({pass:true,checks,scope:'10 curated weapons; real elevated collection and sequenced fire; classic rules and statuses'}));

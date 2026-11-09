@@ -59,7 +59,7 @@ function armed(kind,m=map(),opts={}) {
  const w=armed('nuke',map([point('a',0,0),point('b',-6,16),point('c',6,16)]));try {
   fire(w);check('nuke has delayed larger physical warhead',w.snapshot().grenades[0].weapon==='nuke'&&w.snapshot().grenades[0].radius===.5&&w.snapshot().grenades[0].fuse>3.4);
   step(w,110);check('nuke cannot detonate early',kart(w).hits===0&&w.snapshot().grenades.length===1);
-  step(w,105);check('nuke creates one large blast that takes every heart from each kart in range',kart(w).hits===2&&['b','c'].every(id=>kart(w,id).health===0&&!kart(w,id).alive)&&w.snapshot().events.filter(e=>e.type==='hit'&&e.weapon==='nuke').every(e=>e.damage===3)&&w.snapshot().events.filter(e=>e.type==='blast'&&e.weapon==='nuke').length===1&&kart(w).alive);
+  step(w,105);check('nuke creates one large blast that takes every heart from each kart in range',kart(w).hits===0&&['b','c'].every(id=>kart(w,id).health>0&&kart(w,id).health<100&&kart(w,id).alive)&&w.snapshot().events.filter(e=>e.type==='hit'&&e.weapon==='nuke').every(e=>e.damage>0&&e.damage<100)&&w.snapshot().events.filter(e=>e.type==='blast'&&e.weapon==='nuke').length===1&&kart(w).alive);
  }finally{w.dispose();}
 }
 const art=createKartCombatArt(THREE);

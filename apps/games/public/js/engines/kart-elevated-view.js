@@ -1,3 +1,4 @@
+import {createKartPickupPrediction} from './kart-pickup-prediction.mjs';
 import {setKartText,setKartAttribute,setKartFlag} from './kart-hud-write.mjs';
 import {waitKartPreparation} from './kart-warmup-scheduler.mjs';
 import {createKartLod} from './kart-lod.mjs';
@@ -7,7 +8,7 @@ import {createRaisedCameraQuery} from './kart-raised-camera.mjs';
 import {createRaisedShadows,disableRaisedStaticShadows} from './kart-raised-shadows.mjs';
 import {kartLightTier} from './kart-festive-lights.mjs';
 import {controlsPickerHtml,wirePickers,syncPickers} from '../pickers.js';
-import {WEAPON_IDS} from './kart-weapon-contract.mjs';
+import {WEAPON_IDS,CURATED_MUZZLE,weaponForward} from './kart-weapon-contract.mjs';
 import {paintKartWeapon,createKartWeaponRoulette} from './kart-weapon-hud.mjs';
 import {paintKartHearts,createKartHitFeedback,landedText,kartEventCue} from './kart-hearts.mjs';
 import {createKartImpactFX} from './kart-impact-fx.mjs';
@@ -52,15 +53,12 @@ const ICONS={
   shield:'<path d="m15 3 11 4v10c0 7-11 12-11 12S4 24 4 17V7l11-4Z" fill="#45c6e8"/><path d="m10 16 4 4 7-9" stroke="#fff"/>',
   seeker:'<path d="M16 3c-5 4-7 10-7 17h14c0-7-2-13-7-17Z" fill="#91d451"/><path d="m9 18-5 8 7-3m12-5 5 8-7-3" fill="#e5f0f5"/><circle cx="16" cy="11" r="3" fill="#1c3539"/>',
   laser:'<rect x="3" y="12" width="13" height="8" rx="3.5" fill="#fff6e8"/><path d="M15 16h14" stroke="#8ff8ff" stroke-width="3.5"/><circle cx="8" cy="16" r="2" fill="#35d5ff"/>',
-  thunder:'<path d="M19 2 7 18h8l-2 12 12-17h-8z" fill="#ffcb44" stroke="#25354b" stroke-width="1.5"/>',
-  boomerang:'<path d="M5 6c7 0 14 6 21 18l-4 3C17 17 11 13 5 13z" fill="#ff8a3c"/><path d="M5 6c7 0 14 6 21 18" stroke="#2fe8b0"/>',
-  oil:'<path d="M4 22c0-4 5-5 12-5s12 1 12 5-5 6-12 6-12-2-12-6Z" fill="#1d1530"/><ellipse cx="19" cy="21" rx="5" ry="2" fill="#8e6cff"/><path d="M16 3c3 4 4.5 6.5 4.5 9a4.5 4.5 0 0 1-9 0C11.5 9.5 13 7 16 3Z" fill="#1d1530"/>',
   frost:'<circle cx="16" cy="16" r="8.5" fill="#a8ecff"/><path d="M16 3v26M5 9.5l22 13M5 22.5l22-13" stroke="#fff6e8"/>',
   cluster:'<circle cx="16" cy="18" r="9" fill="#f2545b"/><circle cx="9.5" cy="12.5" r="3" fill="#ffcb44"/><circle cx="22.5" cy="12.5" r="3" fill="#ffcb44"/><circle cx="16" cy="24.5" r="3" fill="#ffcb44"/><rect x="14" y="3" width="4" height="5" rx="1.5" fill="#25354b"/>',
   bouncer:'<circle cx="16" cy="13" r="9" fill="#ff6ad5"/><path d="M7.2 12c4.8 2.6 12.8 2.6 17.6 0" stroke="#ffcb44"/><path d="M9 28h14" stroke="#8e6cff"/>',
   ram:'<path d="M4 9h12l9 7-9 7H4z" fill="#c3cdd8"/><path d="m25 16-9-7v14z" fill="#ffb347"/><path d="M2 13h4m-4 6h4" stroke="#ff8a3c"/>',
 };
-Object.assign(ICONS,{machinegun:ICONS.pulse,trishot:ICONS.scatter,missile:ICONS.seeker,cannon:ICONS.rocket,blades:ICONS.boomerang,supernova:ICONS.shield});
+Object.assign(ICONS,{machinegun:ICONS.pulse,trishot:ICONS.scatter,missile:ICONS.seeker,cannon:ICONS.rocket,blades:ICONS.shield,supernova:ICONS.shield});
 const svg=(path)=>`<svg viewBox="0 0 32 32" aria-hidden="true" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${path}</svg>`;
 const NITRO=svg('<path d="m18 2-12 16h9l-2 12 12-18h-9l2-10Z" fill="#83ebff"/>');
 const DRIFT=svg('<path d="M22 4c4 1 7 4 9 8M25 2c3 1 5 3 7 6" stroke="#f5f8ff" stroke-width="2"/><circle cx="13" cy="20" r="9" fill="#141a26" stroke="#9fb2c8" stroke-width="2"/><circle cx="13" cy="20" r="3" fill="#9fb2c8"/>');
@@ -75,6 +73,8 @@ export function createElevatedKartView() {
   let sceneReady,shellAudioReady,rendererWarmup,startAudio,lastSnapshotArrival=null,snapshotOffset=null,prediction=null,predicted=null;
   const timeline=createElevatedTimeline();
   const roulette=createKartWeaponRoulette({now:()=>performance.now(),reducedMotion:()=>globalThis.matchMedia?.('(prefers-reduced-motion: reduce)').matches===true});
+  const pickupPrediction=createKartPickupPrediction({onPredict:c=>{roulette.predict();audio?.cue('pickup');newEvents.push({event:{type:'pickup',pid:S.you,position:c.position},at:performance.now()});paint();},onReject:()=>{roulette.skip();paint();}});
+  let localUseHeld=false;const localFires=[];
   const listeners=[],keys=new Set(),pointers=new Map(),seen=new Set(),newEvents=[],nodes=new Map();
   const on=(target,type,fn,opts)=>{target.addEventListener(type,fn,opts);listeners.push([target,type,fn,opts]);};
   const $=name=>nodes.get(name)||root?.querySelector('[data-'+name+']');
@@ -93,6 +93,13 @@ export function createElevatedKartView() {
     if(!S||!api)return;
     const value=intent(),key=JSON.stringify(value),time=performance.now();
     if(value.use&&roulette.skip())paint();
+    if(value.use&&!localUseHeld&&self()?.weapon&&!self()?.firing&&!localFires.some(f=>f.weapon===self()?.weapon&&time-f.at<800)&&S.phase==='live'){
+      const k=self(),p=predicted?.pose||k.pose,q=p.rotation,v=CURATED_MUZZLE;
+      const t={x:2*(q.y*v.z-q.z*v.y),y:2*(q.z*v.x-q.x*v.z),z:2*(q.x*v.y-q.y*v.x)};
+      const position={x:p.position.x+v.x+q.w*t.x+q.y*t.z-q.z*t.y,y:p.position.y+v.y+q.w*t.y+q.z*t.x-q.x*t.z,z:p.position.z+v.z+q.w*t.z+q.x*t.y-q.y*t.x};
+      localFires.push({weapon:k.weapon,at:time});audio?.cue(k.weapon);newEvents.push({event:{type:'fire',pid:S.you,weapon:k.weapon,position,direction:weaponForward(q),local:true},at:time});
+    }
+    localUseHeld=value.use;
     if(!force&&time-lastSend<40){
       if(key!==lastKey&&!inputTimer)inputTimer=setTimeout(()=>{inputTimer=0;send();},40-(time-lastSend));
       return;
@@ -226,7 +233,7 @@ export function createElevatedKartView() {
       // Prepare shot materials/geometries and particle buffers while the loading
       // screen is still up. Firing reuses these objects rather than uploading
       // a new InstancedMesh or calibrating the complete arsenal in a live frame.
-      const rigPools=new Map(WEAPON_IDS.map(kind=>[kind,Array.from({length:8},()=>art.weapon(kind))]));
+      const rigPools=new Map(WEAPON_IDS.map(kind=>[kind,Array.from({length:Math.max(8,S.karts.length)},()=>art.weapon(kind))]));
       const pools=new Map(),warm=[],warmFrustum=new Map(),contactInsets=new Map();
       function projectile(kind){
         const object=art.projectile(kind),radius=S.projectileRadii?.[kind];
@@ -237,7 +244,7 @@ export function createElevatedKartView() {
         }
         return object;
       }
-      const shotKinds=['machinegun','trishot','missile','cannon','nuke','boomerang'];
+      const shotKinds=['machinegun','trishot','missile','cannon','nuke'];
       const poolKey=(prefix,value)=>prefix==='mine:'?prefix+(value.weapon||'mine')+':'+(value.owner===S.you):prefix+value.weapon;
       for(const kind of shotKinds){const pool=[];for(let i=0;i<64;i++){const object=projectile(kind);object.visible=false;scene.add(object);pool.push(object);}pools.set('shot:'+kind,pool);if(kind==='nuke'){const grenades=[];for(let i=0;i<12;i++){const object=art.projectile(kind);object.visible=false;scene.add(object);grenades.push(object);}pools.set('grenade:'+kind,grenades);}warm.push(pool[0]);}
       // Confirmed final sweeps remain readable when the shot itself never
@@ -256,13 +263,12 @@ export function createElevatedKartView() {
         confirmedPools.set(kind,pool);warm.push(pool[0].object);
       }
       for(const kind of ['frost']){const grenades=[];for(let i=0;i<12;i++){const object=art.projectile(kind);object.visible=false;scene.add(object);grenades.push(object);}pools.set('grenade:'+kind,grenades);warm.push(grenades[0]);}
-      for(const kind of ['mine','oil'])for(const own of [false,true]){
-        const pool=[];for(let i=0;i<16;i++){const object=art.mine(own,kind==='oil'?'oil':undefined);object.visible=false;scene.add(object);pool.push(object);}pools.set('mine:'+kind+':'+own,pool);warm.push(pool[0]);
+      for(const kind of ['mine'])for(const own of [false,true]){
+        const pool=[];for(let i=0;i<16;i++){const object=art.mine(own,undefined);object.visible=false;scene.add(object);pool.push(object);}pools.set('mine:'+kind+':'+own,pool);warm.push(pool[0]);
       }
       const warningGeometry=new THREE.RingGeometry(13.4,14,64);warningGeometry.rotateX(-Math.PI/2);
       const warningMaterial=new THREE.MeshBasicMaterial({color:0xff8c45,transparent:true,opacity:.65,depthWrite:false,side:THREE.DoubleSide});
       const warnings=[];for(let i=0;i<12;i++){const object=new THREE.Mesh(warningGeometry,warningMaterial);object.name='NukeWarningRing';object.visible=false;scene.add(object);warnings.push(object);}pools.set('warning:nuke',warnings);warm.push(warnings[0]);
-      {const object=art.mine(true,'oil');scene.add(object);warm.push(object);}
       warm.push(...arsenalFX.objects());
       const statusDummy=new THREE.Group();arsenalFX.warmStatus(statusDummy);scene.add(statusDummy);warm.push(statusDummy);
       for(const pool of rigPools.values()){scene.add(pool[0]);warm.push(pool[0]);}
@@ -282,9 +288,10 @@ export function createElevatedKartView() {
       shadows.update();
       const warmLibrary=createKartWarmupLibrary(THREE,scene,assets,art);
       // State/countdown paint signals can expire while this arena still lives.
-      // Scope required GPU preparation to its generation, with its own bounded
-      // six seconds. Never resume this queue after handing off the scene.
+      // Scope required GPU preparation to its generation. Then allow six
+      // seconds for other bindings; no queue resumes after scene handoff.
       warmup=await warmKartRenderer(THREE,renderer,scene,camera,{isAlive:()=>gen===generation,
+        requiredRoots:[...warm,warmLibrary,scene.getObjectByName('KartImpactFX')],
         budgetMs:6000,priorityRoots:[world.group,...models.values(),pickups.mesh,drivingFX.particles,drivingFX.speedLines],
         onProgress:({completed,total})=>{if(gen===generation){const loading=$('loading'),text=`Preparing graphics… ${Math.round(completed/total*100)}%`;if(loading&&loading.textContent!==text)loading.textContent=text;}},
         roots:[...warm,warmLibrary,arena.root,drivingFX.particles,drivingFX.speedLines,scene.getObjectByName('KartSkidMarks'),
@@ -312,8 +319,8 @@ export function createElevatedKartView() {
             cue.age=age;direction.multiplyScalar(1/length);const visibleLength=Math.min(length,1.25);cue.object.position.copy(e.position).addScaledVector(direction,-visibleLength*.5);cue.object.quaternion.setFromUnitVectors(forward,direction);cue.object.scale.set(1,1,visibleLength/cue.length);cue.object.visible=age<.09;
           }
         }
-        if(e.type==='fire')art.recoil(rigs.get(e.pid)?.object);
-        if(e.type==='fire'&&e.direction&&['machinegun','trishot','missile','cannon','nuke','boomerang','frost'].includes(e.weapon)){
+        if(e.type==='fire'){const model=models.get(e.pid);if(model){model.userData.fireKind=e.weapon;model.userData.fireUntil=performance.now()+160;}art.recoil(rigs.get(e.pid)?.object);}
+        if(e.type==='fire'&&e.direction&&['machinegun','trishot','missile','cannon','nuke','frost'].includes(e.weapon)){
           const f=flashes.find(f=>!f.mesh.visible)||flashes[0];f.mesh.visible=age<.09;f.age=age;f.mesh.position.copy(e.position);f.mesh.quaternion.setFromUnitVectors(forward,direction.copy(e.direction).normalize());f.mesh.scale.setScalar(e.weapon==='cannon'||e.weapon==='missile'||e.weapon==='nuke'?1.6:1);return;
         }
         if(e.type==='hit'&&e.other===S.you)hitFx?.hurt();
@@ -322,7 +329,7 @@ export function createElevatedKartView() {
         if(e.type==='ko'&&e.pid===S.you&&e.other&&e.other!==S.you)hitFx?.knockout(api.name?.(e.other)||e.other);
         if(e.type==='ko'&&e.other)wrecks.set(e.other,{age:0,at:performance.now()/1000,position:{...e.position},life:S.karts.find(k=>k.id===e.other)?.spawnSeq});
         if(e.type==='blast'||e.type==='impact')return;
-        if(!['ko','collision','landing','hit'].includes(e.type))return;
+        if(!['ko','collision','landing','hit','pickup'].includes(e.type))return;
         const strength=e.impulse===undefined?1:Math.max(.12,Math.min(1,e.impulse/1000));
         if((e.pid===S.you||e.other===S.you)&&!helper.reducedMotion())cameraKick=Math.max(cameraKick,(e.type==='collision'?.10:e.type==='ko'?.16:.05)*strength);
         if(e.type==='landing'||e.type==='collision'||helper.reducedMotion())return;
@@ -354,7 +361,7 @@ export function createElevatedKartView() {
           const exploding=wrecks.get(k.id);model.visible=!k.out&&(k.alive||!!exploding);model.scale.setScalar(1);
           model.userData.poseEpoch=p.epoch;model.position.copy(p.position);model.quaternion.set(p.rotation.x,p.rotation.y,p.rotation.z,p.rotation.w);model.userData.kart.inner.position.y=CONFIG.chassis.modelOriginY;
           if(exploding){model.position.copy(exploding.position);if(!helper.reducedMotion()){model.position.y+=Math.sin(exploding.age/.65*Math.PI)*.8;model.rotateZ(exploding.age*1.6);model.scale.setScalar(Math.max(.15,1-exploding.age/.65));}}
-          healthBars.update(k.id,k,model.position);
+          healthBars.update(k.id,k,model.position,!S.youDrive||k.id!==S.you);
           {const q=model.quaternion;skidGround=model.position.y+CONFIG.chassis.modelOriginY;slidePose.angle=Math.atan2(2*(q.w*q.y+q.x*q.z),1-2*(q.x*q.x+q.y*q.y));slidePose.physicalPose.linearVelocity=p.linearVelocity;slidePose.physicalPose.grounded=p.grounded!==false;
             const sliding=k.alive&&kartSliding(moving,slidePose,k.id===S.you&&intent().brake>0),surface=surfaceProfile(moving.surface);
             skids.track(k.id,model.position.x,model.position.z,slidePose.angle,sliding,surface);
@@ -363,7 +370,7 @@ export function createElevatedKartView() {
           statusOptions.time=time;statusOptions.elapsed=Math.max(0,(performance.now()-(lastSnapshotArrival??performance.now()))/1000);arsenalFX.status(model,k.alive?k:null,statusOptions);
           const featureKart=model.userData.featureKart||(model.userData.featureKart={pid:k.id});featureKart.respawn=k.respawn;featureKart.out=k.out;featureKart.spawnSeq=k.spawnSeq;
           arena.dressKart(featureKart,model,moving.flight);
-          const rig=rigs.get(k.id);if(rig?.kind!==k.weapon){if(rig){rig.object.removeFromParent();rigPools.get(rig.kind)?.push(rig.object);}rigs.delete(k.id);if(k.weapon){const object=rigPools.get(k.weapon)?.pop()||art.weapon(k.weapon);object.position.set(...object.userData.combat.mount);model.userData.kart.inner.add(object);rigs.set(k.id,{kind:k.weapon,object});}}
+          const equipped=k.alive?(k.ammo>0?k.weapon:k.bladesT>0?'blades':k.supernovaT>0?'supernova':k.rammingT>0?'ram':performance.now()<(model.userData.fireUntil||0)?model.userData.fireKind:null):null;const rig=rigs.get(k.id);if(rig?.kind!==equipped){if(rig){rig.object.removeFromParent();rigPools.get(rig.kind)?.push(rig.object);}rigs.delete(k.id);if(equipped){const object=rigPools.get(equipped)?.pop();if(!object)continue;object.position.set(...object.userData.combat.mount);model.userData.kart.inner.add(object);rigs.set(k.id,{kind:equipped,object});}}
         }
       }
       const syncIds=new Set();
@@ -480,7 +487,8 @@ export function createElevatedKartView() {
         const predictionTime=performance.now(),predictionDt=lastPredictionTime===null?dt:Math.max(0,(predictionTime-lastPredictionTime)/1000);lastPredictionTime=predictionTime;
         predicted=prediction?.frame(S,intent(),predictionDt,predictionTime,now())||null;
         const playback=timeline.frame(performance.now());
-        shadows.update();pickups.update(S.crates,time);
+        pickupPrediction.update(self(),predicted?.pose?.position||self()?.pose?.position,S.crates,S.phase==='live'&&S.youDrive&&api?.context?.().connected!==false);
+        shadows.update();pickups.update(S.crates,time,id=>pickupPrediction.hidden(id));
         world.animate(dt,time,sky);scene.fog.color.copy(world.lighting.fogColor);
         // Camera/physics dt is clipped by the renderer. Presentation lifetime
         // uses elapsed monotonic time so a stalled/hidden frame cannot stretch
@@ -644,9 +652,9 @@ export function createElevatedKartView() {
     const style=document.createElement('link');style.rel='stylesheet';style.href='/css/kart-elevated.css';style.dataset.elevatedKart='';document.head.append(style);listeners.push([style,'owned-style',null]);
     root.innerHTML=`<div data-stage class="pke-stage"></div><div data-loading class="pke-loading" role="status">Loading arena…</div>
       <div class="pke-top"><details data-menu class="pke-menu"><summary aria-label="Game menu">☰</summary><div class="pke-panel"><h2 data-arena></h2><p data-goal>Most knockouts wins.</p>${controlsPickerHtml('pke-controls',preference,'data-controls')}<p>WASD / arrows · drive<br>Space · weapon &nbsp; N · Nitro<br>Shift · hold in a turn to drift; release coloured sparks for turbo<br>Bright cannons climb; paired rings cross levels</p><button data-resume>Resume</button></div></details><span class="pke-score" data-score>0 KOs</span><time data-clock>Loading</time><span data-protection class="pke-protection" title="Spawn protection">${svg(ICONS.shield)}</span></div>
-      <div data-health class="pke-health kart-hearts" role="img" aria-label="3 of 3 hearts"></div>
+      <div data-health class="pke-health kart-hp" role="img" aria-label="100 of 100 HP"></div>
       <p data-notice class="pke-notice" role="status" hidden></p><div class="pke-bottom"><div data-weapon class="kart-item" role="group" aria-label="Weapon"></div><div class="pke-instruments"><span class="pke-speed"><b data-speed>0</b><small>km/h</small><i data-gear class="kart-gear" role="img" aria-label="Gear 1">1</i></span><span data-charge class="pke-charge" role="img" aria-label="Nitro charge">${NITRO}</span></div><span data-drift class="pke-drift" role="status" hidden></span></div>
-      <div data-touch class="pke-touch" hidden><div data-stick class="pke-stick" role="group" aria-label="Drive stick"><span></span></div><div class="pke-actions"><button data-gas aria-label="Hold to accelerate">${svg('<path d="m10 21 6-11 6 11" stroke="#f3f9ff" stroke-width="3"/>')}</button><button data-reverse aria-label="Hold to reverse">${svg('<path d="m10 11 6 11 6-11" stroke="#f3f9ff" stroke-width="3"/>')}</button><button data-brake aria-label="Hold in a turn to drift; release for turbo">${DRIFT}</button><button data-nitro aria-label="Hold for Nitro">${NITRO}</button><button data-use aria-label="Use weapon"><span data-use-icon>${TARGET}</span><b data-use-ammo hidden></b></button></div></div>
+      <div data-touch class="pke-touch" hidden><div data-stick class="pke-stick" role="group" aria-label="Drive stick"><span></span></div><div class="pke-actions"><button data-gas aria-label="Hold to accelerate">${svg('<path d="m10 21 6-11 6 11" stroke="#f3f9ff" stroke-width="3"/>')}</button><button data-reverse aria-label="Hold to reverse">${svg('<path d="m10 11 6 11 6-11" stroke="#f3f9ff" stroke-width="3"/>')}</button><button data-brake aria-label="Hold in a turn to drift; release for turbo">${DRIFT}</button><button data-nitro aria-label="Hold for Nitro">${NITRO}</button><button data-use aria-label="Use weapon"><span data-use-icon>${TARGET}</span><b data-use-ammo hidden></b><span class="kart-fire-label" aria-hidden="true">Fire</span></button></div></div>
       <aside data-result class="pke-result pk-final" role="status" hidden></aside>`;
     for(const node of root.querySelectorAll('*'))for(const attr of node.attributes)if(attr.name.startsWith('data-'))nodes.set(attr.name.slice(5),node);
     hitFx=createKartHitFeedback(root,{reducedMotion:()=>matchMedia?.('(prefers-reduced-motion: reduce)').matches===true});
@@ -692,15 +700,18 @@ export function createElevatedKartView() {
       }else lastSnapshotArrival=arrival;
     }
     const key=`${snapshot.instanceId}:${snapshot.inputAck?.life}:${snapshot.inputAck?.controlEpoch}`;
-    if(key!==epoch){stop(false);feedbackEpoch++;newEvents.length=0;epoch=key;sequence=snapshot.inputAck?.receivedSeq||0;timeline.reset();}
-    S=snapshot;if(!S.preparing)startAudio?.();prediction?.ingest(S,arrival,now());roulette.sync(S.instanceId,S.inputAck?.life);if(S.audioBaseline||gap||S.phase==='done')roulette.skip();if(S.audioBaseline||gap){firstEvents=true;newEvents.length=0;timeline.reset();feedbackEpoch++;}timeline.ingest(S,arrival);sequence=Math.max(sequence,S.inputAck?.receivedSeq||0);updateAudio();
+    if(key!==epoch){localFires.length=0;localUseHeld=false;stop(false);feedbackEpoch++;newEvents.length=0;epoch=key;sequence=snapshot.inputAck?.receivedSeq||0;timeline.reset();}
+    S=snapshot;if(!S.preparing)startAudio?.();prediction?.ingest(S,arrival,now());roulette.sync(S.instanceId,S.inputAck?.life);pickupPrediction.sync(S.instanceId,S.inputAck?.life);if(S.audioBaseline||gap||S.phase==='done'){roulette.skip();localFires.length=0;localUseHeld=false;pickupPrediction.reset();}if(S.audioBaseline||gap){firstEvents=true;newEvents.length=0;timeline.reset();feedbackEpoch++;}timeline.ingest(S,arrival);sequence=Math.max(sequence,S.inputAck?.receivedSeq||0);updateAudio();
     if(was?.instanceId!==S.instanceId){seen.clear();newEvents.length=0;firstEvents=true;feedbackEpoch++;}
     for(const e of S.events||[]){
       if(seen.has(e.id))continue;
       seen.add(e.id);
       if(firstEvents||!gfxReady)continue;
       if(S.phase==='done'&&was?.phase==='done')continue;
+      const predictedPickup=e.type==='pickup'&&e.pid===S.you&&pickupPrediction.accept(e.crateId);
       if(e.type==='pickup'&&e.pid===S.you)roulette.begin(e.weapon);
+      while(localFires.length&&arrival-localFires[0].at>800)localFires.shift();
+      if(e.type==='fire'&&e.pid===S.you){const i=localFires.findIndex(f=>f.weapon===e.weapon);if(i>=0){localFires.splice(i,1);continue;}}
       const eventAge=Number.isFinite(e.tick)&&Number.isFinite(S.simTick)?Math.max(0,S.simTick-e.tick)*CONFIG.fixedDt*1000:0;
       newEvents.push({event:e,at:(lastSnapshotArrival??arrival)-eventAge});if(newEvents.length>32)newEvents.shift();
       const pose=(self()||S.karts[0])?.pose;
@@ -711,7 +722,7 @@ export function createElevatedKartView() {
       const rotation=pose.rotation,rightX=1-2*(rotation.y*rotation.y+rotation.z*rotation.z),rightZ=2*(rotation.x*rotation.z-rotation.w*rotation.y);
       if(e.type==='hit'&&e.pid===S.you&&e.weapon==='ram')audio?.cue('hitDing');
       if(['launch','land','warp'].includes(e.type)){audio?.arenaCue?.(e.type,{gain:Math.max(0,1-distance/50)});continue;}
-      const cue=kartEventCue(e,S.you);if(!cue)continue;
+      const cue=kartEventCue(e,S.you);if(!cue||predictedPickup)continue;
       audio?.cue(cue,{strength:e.impulse?Math.min(1,e.impulse/1000):1,
         gain:Math.pow(Math.max(0,1-Math.max(0,distance-8)/42),2),
         pan:distance>2?Math.max(-.85,Math.min(.85,(dx*rightX+dz*rightZ)/distance)):0});

@@ -1122,11 +1122,6 @@ export function createKartAudio(opts) {
  * single onended cleanup never cuts a tail short.
  *
  *   laser        charged whine rising into a sharp zap
- *   thunder      electric crackle (the strike's charge-up)
- *   thunderClap  the clap: noise sweeping down with a low boom
- *   boomerang    whooshing flutter that swells and fades as it passes
- *   oil          gloopy splat as the slick is dropped
- *   oilSkid      squelch then a tyre skid when a kart hits the slick
  *   frost        glassy tink-thunk as the bomb is lobbed
  *   frostShatter crystalline shatter of ice pings and fizz
  *   cluster      hollow mortar thunk
@@ -1137,7 +1132,7 @@ export function createKartAudio(opts) {
  *   ramClang     heavy metallic clang on impact
  */
 
-export const SYNTH_CUE_NAMES = Object.freeze(['hitDing','machinegun','trishot','missile','cannon','blades','supernova','nuke','mine','cannonBoom','missileBlast','novaBlast','nukeBlast','laser', 'thunder', 'thunderClap', 'boomerang', 'oil', 'oilSkid', 'frost', 'frostShatter',
+export const SYNTH_CUE_NAMES = Object.freeze(['hitDing','machinegun','trishot','missile','cannon','blades','supernova','nuke','mine','cannonBoom','missileBlast','novaBlast','nukeBlast','laser', 'frost', 'frostShatter',
   'cluster', 'clusterPop', 'bouncer', 'boing', 'ram', 'ramClang']);
 
 // Peak level and length (seconds) per cue; the cue bus and master
@@ -1145,7 +1140,7 @@ export const SYNTH_CUE_NAMES = Object.freeze(['hitDing','machinegun','trishot','
 export const SYNTH_CUE_SPEC = Object.freeze({
  hitDing:[.24,.19],machinegun:[.22,.08],trishot:[.26,.15],missile:[.25,.45],cannon:[.32,.5],blades:[.22,.8],supernova:[.22,.9],
  nuke:[.25,1.1],mine:[.2,.2],cannonBoom:[.35,.7],missileBlast:[.3,.6],novaBlast:[.3,.9],nukeBlast:[.4,1.8],
-  laser: [.26, .24], thunder: [.24, .3], thunderClap: [.38, 1.25], boomerang: [.34, .95], oil: [.3, .3], oilSkid: [.26, .6],
+  laser: [.26, .24],
   frost: [.24, .22], frostShatter: [.28, .6], cluster: [.32, .22], clusterPop: [.26, .1], bouncer: [.24, .22], boing: [.24, .38],
   ram: [.26, 1.05], ramClang: [.32, .7],
 });
@@ -1217,42 +1212,6 @@ export function createSynthCues({ ctx, bus, track, stealIfFull }) {
       v.tone('square', 3400, 160, t0 + .12, .09, .5);
       v.hiss('highpass', 5000, 2500, .7, t0 + .12, .06, .6);
       v.tone('triangle', 1800, 900, t0 + .12, .1, .35);
-    },
-    thunder(v) { // electric crackle: a burst of sharp, irregular snaps
-      const n = v.hiss('bandpass', 3200, 2200, 1.4, v.t0, .28, .1);
-      if (n) for (let i = 0; i < 11; i++) { const at = v.t0 + (i * i * .0023 + (i % 3) * .009); v.set(n.g.gain, i % 2 ? .25 : 1, at); v.set(n.g.gain, .06, at + .012); }
-      v.tone('sawtooth', 220, 180, v.t0, .25, .12, 'lin');
-    },
-    thunderClap(v) { // sharp crack, then a rolling low boom
-      const t = v.t0 + .04;
-      v.hiss('lowpass', 7000, 260, .8, t, 1.15, 1);
-      v.hiss('highpass', 3000, 1800, .6, t, .09, .8);
-      v.tone('sine', 85, 34, t + .02, 1.05, .9);
-      v.tone('triangle', 140, 50, t, .5, .35);
-    },
-    boomerang(v) { // spinning blade: flutter AM on a whoosh that rises then falls
-      const n = v.hiss('bandpass', 650, 650, 3, v.t0, .92, .8);
-      if (n?.filter) { v.set(n.filter.frequency, 600, v.t0); v.exp(n.filter.frequency, 1500, v.t0 + .4); v.exp(n.filter.frequency, 520, v.t0 + .9); }
-      if (n && typeof ctx.createOscillator === 'function') {
-        const lfo = ctx.createOscillator(), depth = ctx.createGain();
-        lfo.type = 'square'; v.set(lfo.frequency, 16, v.t0); v.exp(lfo.frequency, 9, v.t0 + .9);
-        v.set(depth.gain, .45, v.t0); v.link(lfo, depth); v.link(depth, n.g.gain);
-        v.sources.push(lfo); v.nodes.push(lfo, depth);
-        // Swell: quiet start, loud pass, quiet return.
-        v.set(n.g.gain, .15, v.t0); v.lin(n.g.gain, .55, v.t0 + .38); v.exp(n.g.gain, .02, v.t0 + .92);
-      }
-      v.tone('triangle', 260, 340, v.t0, .9, .12, 'lin');
-    },
-    oil(v) { // two gloopy bloops over a wet splash
-      v.tone('sine', 190, 55, v.t0, .2, .9);
-      v.tone('sine', 280, 90, v.t0 + .08, .16, .6);
-      v.hiss('lowpass', 900, 250, 1.2, v.t0, .14, .5);
-    },
-    oilSkid(v) { // squelch sweep, then a wavering tyre squeal
-      v.hiss('bandpass', 380, 1700, 7, v.t0, .13, .9);
-      const s = v.tone('sawtooth', 980, 720, v.t0 + .1, .48, .22, 'lin');
-      if (s) for (let i = 0; i < 8; i++) v.set(s.frequency, 900 - (i % 2) * 120 - i * 18, v.t0 + .1 + i * .055);
-      v.hiss('bandpass', 2200, 1800, 3, v.t0 + .1, .48, .35);
     },
     frost(v) { // muffled launch thunk with a glassy tink on top
       v.tone('sine', 160, 70, v.t0, .14, .7);

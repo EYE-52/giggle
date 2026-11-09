@@ -184,12 +184,12 @@ export function createKartImpactFX(THREE,scene,{reducedMotion=false}={}){
   return true;
  }
  // Distance/time gates bound emission. The GPU ages and moves each dot;
- // boomerang breadcrumbs show its accepted outward AND returning path.
+ // breadcrumbs follow accepted projectile positions.
  function trail(object,dt,position=object.position){
   if(disposed)return;
   const c=object.userData.combat;if(!c||!object.visible)return;
   if(typeof reducedMotion==='function'?reducedMotion():reducedMotion)return;
-  const boom=c.kind==='boomerang',missile=c.kind==='missile',icy=c.kind==='frost',bullet=c.kind==='machinegun'||c.kind==='trishot';if(!boom&&!missile&&!icy&&!bullet)return;
+  const missile=c.kind==='missile',icy=c.kind==='frost',bullet=c.kind==='machinegun'||c.kind==='trishot';if(!missile&&!icy&&!bullet)return;
   c.trailClock=(c.trailClock||0)+dt;if(c.trailClock<.025)return;
   const p=position;if(Math.abs(p.x-(c.trailX??Infinity))+Math.abs(p.y-(c.trailY??Infinity))+Math.abs(p.z-(c.trailZ??Infinity))<.3)return;
   c.trailClock=0;c.trailX=p.x;c.trailY=p.y;c.trailZ=p.z;
@@ -198,7 +198,7 @@ export function createKartImpactFX(THREE,scene,{reducedMotion=false}={}){
   if(bullet){const q=object.quaternion,x=2*(q.x*q.z+q.w*q.y),y=2*(q.y*q.z-q.w*q.x),z=1-2*(q.x*q.x+q.y*q.y);particle(trails,p.x-x,p.y-y,p.z-z,x,y,z,.08,.55,.25,c.kind==='machinegun'?4:2,4,object);return;}
   if(missile){particle(smoke,p.x,p.y,p.z,0,.7,0,.12,.7,1.8,1,0,object);particle(fire,p.x,p.y,p.z,0,0,0,.12,1.25,.25,0,0,object);}
   if(icy)particle(smoke,p.x,p.y,p.z,0,.5,0,.12,.9,1.8,1,3,object);
-  particle(trails,p.x,p.y,p.z,0,0,0,TRAIL_FX_BUDGET,boom?1.7:icy?1.8:1.1,.15,boom?((c.trailColor=(c.trailColor||0)+1)%3):icy?3:2,0,object);
+  particle(trails,p.x,p.y,p.z,0,0,0,TRAIL_FX_BUDGET,icy?1.8:1.1,.15,icy?3:2,0,object);
  }
  // Retire a shot's world-space trail before its mesh returns to a pool.
  // Other live shots and accepted impact sparks keep their own slots.

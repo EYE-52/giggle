@@ -26,6 +26,7 @@ const groundMarkers=await import('../public/js/engines/kart-ground-markers.mjs')
 const {createKartCameraCollision}=await import('../public/js/engines/kart-camera-collision.mjs');
 const {classicStatics}=await import('../public/js/engines/kart-classic-motion.mjs');
 const {weaponThumbnailArt}=await import('../public/js/engines/kart-assets.mjs');
+const {createKartPickupPrediction}=await import('../public/js/engines/kart-pickup-prediction.mjs');
 const {paintKartWeapon,createKartWeaponRoulette}=await import('../public/js/engines/kart-weapon-hud.mjs');
 const {kartResultView}=await import('../public/js/engines/kart-results.mjs');
 const {kartGarageHtml,createKartGarageUI,garagePreviewKey}=await import('../public/js/engines/kart-garage-ui.mjs');
@@ -104,7 +105,7 @@ const context = vm.createContext({...hudWrites,createKartPickupPool,...require('
   createKartAudio: () => {const audio={cues:[],active:true,muted:false,preps:0,prep(){this.preps++},ready(){return this.readyWait||Promise.resolve(true)},unlock(){},setMuted(value){this.muted=value},update(frame){this.active=frame.active},cue(name){if(this.active&&!this.muted)this.cues.push(name)},dispose(){}};audios.push(audio);return audio;},
   createPoseStore: () => ({}), resetPoseStore() {}, ingestSnapshot() {}, framePoses: () => new Map(),
   forwardOf: () => ({x:0,z:1}), canvasNoseRotation: () => 0,
-  waitKartPreparation,kartGarageHtml,createKartGarageUI,garagePreviewKey,createGarageThumbnail,intentFromKeys,createMobileStick,readInputCapabilities,touchControlsFor,createKartFeedback,weaponThumbnailArt,paintKartWeapon,kartResultView,createGearbox,paintGear,CLASSIC_MAX_FORWARD,createKartArenaFeatures,drawArenaFeatures2d,createKartLod,crowdColor,createKartArenaStructures,drawArenaRoads2d,drawArenaStructures2d,createKartWeaponRoulette});
+  waitKartPreparation,kartGarageHtml,createKartGarageUI,garagePreviewKey,createGarageThumbnail,intentFromKeys,createMobileStick,readInputCapabilities,touchControlsFor,createKartFeedback,weaponThumbnailArt,paintKartWeapon,kartResultView,createGearbox,paintGear,CLASSIC_MAX_FORWARD,createKartArenaFeatures,drawArenaFeatures2d,createKartLod,crowdColor,createKartArenaStructures,drawArenaRoads2d,drawArenaStructures2d,createKartWeaponRoulette,createKartPickupPrediction});
 // The hearts HUD runs against this fake DOM, so it loads into the same context.
 vm.runInContext(fs.readFileSync(require.resolve('../public/js/pickers.js'),'utf8').replace(/^export /gm,''),context);
 vm.runInContext(fs.readFileSync(require.resolve('../public/js/engines/kart-hearts.mjs'),'utf8').replace(/^export /gm,''),context);
@@ -161,14 +162,12 @@ assert.equal(main.querySelector('#pk-handling').hidden,true,'quiet driving keeps
   view.update(main,state('drive'),api);
 }
 {
-  const hearts=main.querySelector('#pk-health'),hurt=state('drive');
-  Object.assign(hurt.karts[0],{health:3,maxHealth:3,spawnSeq:1});view.update(main,hurt,api);
-  assert.equal(hearts.hidden,false,'battle driver sees the hearts HUD');
-  assert.equal(hearts.children.length,3,'classic HUD paints one heart per authority heart');
-  hurt.karts[0].health=2;hurt.karts[0].guard=true;view.update(main,hurt,api);
-  assert.deepEqual(hearts.children.map(h=>h.dataset.full),['true','true','false'],'classic HUD empties the lost heart');
-  assert.equal(hearts.getAttribute('aria-label'),'2 of 3 hearts, shield ready','classic hearts are named with the guard state');
-  assert.equal(hearts.dataset.guard,'true');
+  const health=main.querySelector('#pk-health'),hurt=state('drive');
+  Object.assign(hurt.karts[0],{health:100,maxHealth:100,spawnSeq:1});view.update(main,hurt,api);
+  assert.equal(health.hidden,false,'battle driver sees HP');
+  hurt.karts[0].health=65;hurt.karts[0].guard=true;view.update(main,hurt,api);
+  assert.equal(health.getAttribute('aria-label'),'65 of 100 HP, shield ready');assert.equal(health.dataset.hp,'65');
+  assert.equal(health.querySelector('.kart-hp-fill').style.transform,'scaleX(0.65)');
   view.update(main,state('drive'),api);
 }
 {
@@ -194,7 +193,7 @@ for (const [weapon,label] of [['machinegun','Machine Gun'],['trishot','Tri-Shot'
   assert.equal(main.querySelector('#pk-speed').textContent,'36','telemetry shows exact speed');
 }
 {
-  for (const [weapon,label,detail] of [['machinegun','Machine Gun','Firing'],['mine','Mine','Deploying'],['oil','Oil Slick','Deploying']]) {
+  for (const [weapon,label,detail] of [['machinegun','Machine Gun','Firing'],['mine','Mine','Deploying']]) {
     const busy=state('drive');Object.assign(busy.karts[0],{weapon,ammo:2,firing:true});view.update(main,busy,api);
     const slot=main.querySelector('#pk-boost');
     assert.equal(slot.dataset.state,'firing','committed payload retains the equipped item presentation');
@@ -795,7 +794,7 @@ const nitro=main.querySelector('#pk-tn');
   assert.equal(main.querySelector('#pk-boost').querySelector('.kart-item-count').textContent,'×7','same-tick inventory metadata is admitted');
   view.update(main,{...base,simTick:11,simAt:550,inputAck:{life:2,controlEpoch:2},events:[{id:'retained',type:'fire',pid:'one',weapon:'machinegun'},{id:'respawn-fresh',type:'respawn',pid:'one'}]},api);
   assert.equal(audio.cues.length,start+1,'fresh normal respawn cue plays without replaying retained fire');
-  assert.equal(spoken.at(-1),'Back in with full hearts','normal respawn retains accessible feedback');
+  assert.equal(spoken.at(-1),'Back in with full HP','normal respawn retains accessible feedback');
   const next={...base,instanceId:'new-ordered-match',simTick:1,simAt:50,events:[{id:'retained',type:'fire',pid:'one',weapon:'machinegun'}]};
   view.update(main,next,api);assert.equal(audio.cues.length,start+1,'new instance clocks and history start quietly');
   view.update(main,{...next,simTick:2,simAt:100,events:[{id:'respawn-fresh',type:'fire',pid:'one',weapon:'machinegun'}]},api);
@@ -960,17 +959,23 @@ for (const [t,fns] of window.screen.orientation.events) assert.equal(fns.length,
   for(const [key,file]of [['kart','giggle-kart.meshopt'],['star','giggle-star'],['crate','giggle-crate.meshopt'],['combat','combat/combat.meshopt']]){
     const b=fs.readFileSync(require.resolve('../public/assets/karts/'+file+'.glb'));assets[key]=(await new GLTFLoader().setMeshoptDecoder(MeshoptDecoder).parseAsync(b.buffer.slice(b.byteOffset,b.byteOffset+b.byteLength),'')).scene;
   }
-  let build;const geometries=new Set(),materials=new Set();let compiles=0,warmFrames=0,worldRetired=0,warmupCancels=0;
+  let build;const assetSelections=[];const geometries=new Set(),materials=new Set();let compiles=0,warmFrames=0,worldRetired=0,warmupCancels=0;
   const encounter=root=>{if(!root.visible)return;if(root.isMesh||root.isLine){if(root.geometry)geometries.add(root.geometry);for(const m of Array.isArray(root.material)?root.material:[root.material])if(m)materials.add(m);}for(const child of root.children)encounter(child);};
   const renderer={async compileAsync(scene){compiles++;encounter(scene);},render(scene){warmFrames++;encounter(scene);}};
   const {matchKartDrivers}=await import('../public/js/engines/kart-assets.mjs');
-  Object.assign(context,models,flight,groundMarkers,{matchKartDrivers,createKartCameraCollision,classicStatics,createKartWarmupLibrary,warmKartRenderer:async(T,r,s,c,o)=>{const handle=await warmKartRenderer(T,r,s,c,{...o,budgetMs:Infinity,yieldTask:async()=>{}}),cancel=handle.cancel;handle.cancel=()=>{warmupCancels++;cancel();};return handle;},createKartCombatArt,createKartHealthBars,createKartImpactFX,createKartDrivingFX,loadKartAssets:async(T,scene)=>{const library=new T.Group();library.visible=false;scene.add(library);for(const asset of Object.values(assets))library.add(asset);return assets;},
+  Object.assign(context,models,flight,groundMarkers,{matchKartDrivers,createKartCameraCollision,classicStatics,createKartWarmupLibrary,warmKartRenderer:async(T,r,s,c,o)=>{const handle=await warmKartRenderer(T,r,s,c,{...o,budgetMs:Infinity,yieldTask:async()=>{}}),cancel=handle.cancel;handle.cancel=()=>{warmupCancels++;cancel();};return handle;},createKartCombatArt,createKartHealthBars,createKartImpactFX,createKartDrivingFX,loadKartAssets:async(T,scene,selection)=>{assetSelections.push(selection);const library=new T.Group();library.visible=false;scene.add(library);for(const asset of Object.values(assets))library.add(asset);return assets;},
     createKartWorld:T=>({group:new T.Group(),palette:{horizon:0xd8f3ff},syncMap(){},dispose(){worldRetired++;}}),createKartLighting:()=>()=>{},
     createThreeView:(el,hooks)=>{build=hooks.build;return new Promise(()=>{});}});
   const live=context.makeView({}),el=new Node(),s={...state('drive'),simAt:clock,events:[],zaps:[],grenades:[],mines:[],crates:[],stars:[]};
   Object.assign(s.karts[0],{x:0,z:0,angle:0,speed:0,weapon:null,ammo:0});
-  live.mount(el,api);live.update(el,s,api);
-  const built=await build(THREE,{renderer:()=>renderer,disposeObject(){}});
+  live.mount(el,api);
+  const pendingBuild=build(THREE,{renderer:()=>renderer,disposeObject(){}});
+  await Promise.resolve();await Promise.resolve();
+  assert.equal(assetSelections.length,0,'early scene build waits for the first snapshot instead of loading a full library');
+  live.update(el,s,api);
+  const built=await pendingBuild;
+  assert.equal(assetSelections.length,1,'first snapshot releases one scene asset selection');
+  assert.equal(assetSelections[0].map,s.map,'scene selection uses the accepted map');
   assert.equal(warmupCancels,1,'classic warm-up closes before handing the scene to the render loop');
   assert.ok(compiles>1,'compatibility combat shaders compile in separate small batches');
   assert.equal(warmFrames,compiles,'compatibility combat geometry/effect buffers render before readiness');
@@ -1002,22 +1007,26 @@ for (const [t,fns] of window.screen.orientation.events) assert.equal(fns.length,
   // Resume the graphics fixture at fresh clocks after the explicit stall.
   s.simAt=clock;s.simTick=14;live.update(el,s,api);
   const bar=built.scene.getObjectByName('KartHealth:one');
-  assert(bar&&!bar.visible,'classic full-health player has a prepared hidden scene health bar');
-  const wounded=structuredClone(s);wounded.karts[0].health=1;wounded.karts[0].maxHealth=3;
+  assert(bar,'classic player has a prepared scene HP bar');built.frame(1/60,clock/1000);assert(!bar.visible,'own HP is shown in the HUD, not over the driving line');
+  const wounded=structuredClone(s);wounded.you='watcher';wounded.youDrive=false;wounded.karts[0].health=35;wounded.karts[0].maxHealth=100;
   live.update(el,wounded,api);built.frame(1/60,clock/1000);
   const [full,...lost]=bar.children;
-  assert(bar.visible&&bar.children.length===3&&lost.every(h=>h.material!==full.material)&&lost[0].material===lost[1].material,'classic damaged kart shows one full and two empty hearts of three');
-  assert(Math.abs(bar.children[0].position.x+bar.children[2].position.x)<1e-9&&bar.children[1].position.x===0,'classic heart pips sit centred over the kart');
+  assert(bar.visible&&bar.children.length===2&&bar.children[1].scale.x===.35,'classic spectator sees the exact remote HP fill');
+  assert(Math.abs(bar.children[1].position.x+1.2*.65)<1e-9,'classic HP fill drains from right to left');
   assert.equal(bar.position.y,3,'classic bar stays above the player, independent of chassis yaw');
   assert(bar.quaternion.equals(built.camera.quaternion),'classic bar faces the current chase camera');
   assert(bar.children.every(o=>o.material.depthTest&&!o.material.depthWrite&&!o.material.map),'classic scene bars are occluded meshes without per-frame texture work');
   encounter(built.scene);assert.equal(geometries.size,geometryCount,'first damage uses prepared bar geometry');assert.equal(materials.size,materialCount,'first damage uses prepared bar materials');
-  for(const patch of [{health:3},{health:0,respawn:2},{health:1,connected:false}]) {const next=structuredClone(wounded);Object.assign(next.karts[0],patch);live.update(el,next,api);built.frame(1/60,clock/1000);assert(!bar.visible,'classic hides full, KO and disconnected scene health');}
+  for(const patch of [{health:0,respawn:2},{health:1,connected:false}]) {const next=structuredClone(wounded);Object.assign(next.karts[0],patch);live.update(el,next,api);built.frame(1/60,clock/1000);assert(!bar.visible,'classic hides full, KO and disconnected scene health');}
   const offline=structuredClone(wounded);offline.players=[{id:'one',connected:false}];live.update(el,offline,api);built.frame(1/60,clock/1000);assert(!bar.visible,'actual classic Room roster disconnection hides the bar');
   const watcher=structuredClone(wounded);watcher.you='watcher';watcher.youDrive=false;live.update(el,watcher,api);built.frame(1/60,clock/1000);assert(bar.visible,'classic spectator sees wounded players without a personal HUD');
   live.update(el,{...watcher,karts:[]},api);built.frame(1/60,clock/1000);assert.equal(bar.parent,null,'retired classic player detaches its bar');
   live.dispose();built.dispose();assert.equal(built.scene.getObjectByName('KartHealth:one'),undefined,'classic scene disposal removes health bars');
   assert.equal(worldRetired,1,'classic scene disposal retires pending world image loads');
+  const cancelled=context.makeView({});cancelled.mount(new Node(),api);
+  const cancelledBuild=build(THREE,{renderer:()=>renderer,disposeObject(){}});cancelled.dispose();
+  await assert.rejects(cancelledBuild,/Retired kart scene/);
+  assert.equal(assetSelections.length,1,'dispose before the first snapshot releases the build without fetching assets');
 }
 // Delayed renderer initialization must not expose countdown/GO or running time.
 {

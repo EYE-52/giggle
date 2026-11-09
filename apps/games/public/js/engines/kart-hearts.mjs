@@ -1,16 +1,15 @@
-/* Hearts HUD and hit feedback shared by both kart renderers. Authority
- * hearts only: the server's health is painted, never predicted. Every
+/* HP HUD and hit feedback shared by both kart renderers. Authority
+ * HP only: the server's health is painted, never predicted. Every
  * effect is a CSS animation that ends on its own (animationend never
  * needs to fire), and the shake is a bounded camera offset the view adds
  * after its own camera update and removes before the next one. */
 
-const HEART = '<svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 28 4.6 16.6C-1.4 10.2 6.4 1.4 16 9.2c9.6-7.8 17.4 1 11.4 7.4Z"/></svg>';
 export const SHAKE_MS = 260;
 export const BANNER_MS = 1600;
 
 function restart(element, name) {
   // Rewind the existing CSS animation without synchronously laying out the
-  // whole game between every heart, hit marker and toast in a damage burst.
+  // whole game between every HP change, hit marker and toast in a damage burst.
   if(element.getAnimations){
     element.setAttribute(name,'');
     for(const animation of element.getAnimations()){animation.currentTime=0;animation.play();}
@@ -20,30 +19,20 @@ function restart(element, name) {
   element.setAttribute(name, '');
 }
 
-// Paint whole hearts into `element`; returns how many were lost since the
-// previous paint of the same life (0 after a respawn refill).
-export function paintKartHearts(element, kart) {
-  element.classList?.add('kart-hearts');
-  const max = Math.max(1, Math.min(6, Math.round(Number(kart?.maxHealth) || 3)));
-  const hearts = Math.max(0, Math.min(max, Math.round(Number(kart?.health ?? max))));
-  if (element.childElementCount !== max) {
-    element.innerHTML = Array.from({ length: max }, () => `<i class="kart-heart">${HEART}</i>`).join('');
-    delete element.dataset.hearts;
-  }
-  const life = String(kart?.spawnSeq ?? 0), before = Number(element.dataset.hearts);
-  const sameLife = element.dataset.life === life && Number.isFinite(before);
-  const lost = sameLife ? Math.max(0, before - hearts) : 0;
-  [...element.children].forEach((heart, i) => {
-    heart.dataset.full = String(i < hearts);
-    if (lost && i >= hearts && i < before) restart(heart, 'data-pop');
-  });
-  if(lost)restart(element,'data-shake');
-  element.dataset.hearts = String(hearts);
-  element.dataset.life = life;
-  element.dataset.low = String(hearts <= 1);
-  element.dataset.guard = String(kart?.guard === true);
-  element.setAttribute('aria-label', `${hearts} of ${max} hearts${kart?.guard ? ', shield ready' : ''}`);
-  return { hearts, max, lost };
+// Authority HP only. Reuse the same track/fill/number for the whole life.
+export function paintKartHearts(element,kart){
+ element.classList?.add('kart-hp');
+ const max=Math.max(1,Number(kart?.maxHealth)||100),hp=Math.max(0,Math.min(max,Number(kart?.health??max)));
+ if(!element.children.length)element.innerHTML='<i class="kart-hp-track"><i class="kart-hp-fill"></i></i><b class="kart-hp-value"></b>';
+ const life=String(kart?.spawnSeq??0),before=Number(element.dataset.hp),lost=element.dataset.life===life&&Number.isFinite(before)?Math.max(0,before-hp):0;
+ const fill=element.querySelector?.('.kart-hp-fill')||element.children[0]?.children[0];
+ if(fill)fill.style.transform=`scaleX(${hp/max})`;
+ const number=element.querySelector?.('.kart-hp-value')||element.children[1];if(number)number.textContent=`${Math.ceil(hp)} HP`;
+ if(lost)restart(element,'data-shake');
+ element.dataset.hp=String(hp);element.dataset.life=life;element.dataset.low=String(hp<=max*.3);element.dataset.guard=String(kart?.guard===true);
+ element.setAttribute('role','meter');element.setAttribute('aria-valuemin','0');element.setAttribute('aria-valuemax',String(max));element.setAttribute('aria-valuenow',String(Math.ceil(hp)));
+ element.setAttribute('aria-label',`${Math.ceil(hp)} of ${max} HP${kart?.guard?', shield ready':''}`);
+ return {hp,max,lost};
 }
 
 // Screen-edge flash, hit marker and "+1" toast layered over the arena.
@@ -103,11 +92,11 @@ export function createKartHitFeedback(host, { reducedMotion = () => false } = {}
 export function landedText(event) {
   if (event.type === 'block') return 'Blocked';
   if (event.type === 'ko') return 'KO!';
-  return `+${Math.max(1, Math.round(event.damage || 1))}`;
+  return `−${Math.max(1, Math.round(event.damage || 1))} HP`;
 }
 
-// Blasts of the second eight weapons each have their own synthesized cue.
-const BLAST_CUES = {cannon:'cannonBoom',missile:'missileBlast',supernova:'novaBlast', nuke: 'nukeBlast', proximity: 'bombBlast', thunder: 'thunderClap', frost: 'frostShatter', cluster: 'clusterPop' };
+// Blast weapons each have their own synthesized cue.
+const BLAST_CUES = {cannon:'cannonBoom',missile:'missileBlast',supernova:'novaBlast', nuke: 'nukeBlast', proximity: 'bombBlast', frost: 'frostShatter', cluster: 'clusterPop' };
 // One authoritative event to one audio cue (null when it has none).
 export function kartEventCue(event, you) {
   if (event.type === 'blast') return BLAST_CUES[event.weapon] || 'rocketBlast';
@@ -117,6 +106,5 @@ export function kartEventCue(event, you) {
   if (event.type === 'hit') return event.other === you ? 'hurt' : event.pid === you ? 'hitDing' : null;
   if (event.type === 'bounce') return 'boing';
   if (event.type === 'burst') return 'clusterPop';
-  if (event.type === 'splat') return 'oilSkid';
   return event.type;
 }

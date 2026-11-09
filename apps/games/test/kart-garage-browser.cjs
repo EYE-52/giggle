@@ -47,14 +47,15 @@ async function run() {
   let server,browser;const report={pass:false,cases:[],scope:'Chromium emulation; real production view, GLBs and classic server garage actions; seeded finished-match wallet and levels.'};
   try {
     let url=process.env.GARAGE_TEST_URL;
-    if(!url){server=await createFixture();await new Promise(r=>server.listen(Number(process.env.KART_BROWSER_PORT)||0,'127.0.0.1',r));url='http://127.0.0.1:'+server.address().port;}
-    browser=await chromium.launch({headless:true,...(process.env.KART_BROWSER?{executablePath:process.env.KART_BROWSER}:{channel:'chromium'})});report.browser=browser.version();console.log('GARAGE_BROWSER_STARTED',report.browser);
+    if(!url){server=await createFixture();await new Promise(r=>server.listen(Number(process.env.GARAGE_TEST_PORT||process.env.KART_BROWSER_PORT)||0,'127.0.0.1',r));url='http://127.0.0.1:'+server.address().port;}
+    browser=await chromium.launch({headless:true,executablePath:process.env.KART_BROWSER||process.env.KART32_BROWSER||'/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',args:['--use-gl=angle','--use-angle=metal']});report.browser=browser.version();console.log('GARAGE_BROWSER_STARTED',report.browser);
     for(const theme of ['day','night'])for(const viewport of [{width:1280,height:800},{width:768,height:1024},{width:390,height:844},{width:320,height:740},{width:430,height:932}]) {
       const label=`${viewport.width}x${viewport.height}-${theme}`;
       if(process.env.GARAGE_TEST_CASE && process.env.GARAGE_TEST_CASE!==label)continue;
       const context=await browser.newContext({viewport,isMobile:viewport.width<860,hasTouch:viewport.width<860,deviceScaleFactor:1});
       const page=await context.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));
       page.on('console',m=>{if(m.type()==='error'&&!m.text().includes('404'))errors.push(m.text());});
+      await context.route('**/js/renderers/three-view.js',async route=>{const r=await route.fetch();await route.fulfill({response:r,body:(await r.text()).replace("  } catch (e) {\n    signal?.removeEventListener('abort', releaseRenderer);","  } catch (e) {\n    console.error('Garage fixture build failed',e.stack);\n    signal?.removeEventListener('abort', releaseRenderer);")});});
       await page.addInitScript(theme=>document.addEventListener('DOMContentLoaded',()=>document.documentElement.dataset.theme=theme),theme);
       await page.goto(url);await page.waitForFunction(()=>window.garageReady);await page.evaluate(()=>document.fonts.ready);
       await page.waitForFunction(()=>document.querySelector('.pk-garage-thumbnail')?.src.startsWith('data:image/png')&&!document.querySelector('.pk-garage-thumbnail').hidden,{},{timeout:30000}).catch(async error=>{

@@ -1,6 +1,6 @@
 'use strict';
 // Optional practice battle regression with real Chrome/WebGL and screenshots. All game
-// code is shipped code; test-only server hooks grant each of the 13 pickups in
+// code is shipped code; test-only server hooks grant each of the ten pickups in
 // order so coverage does not depend on luck. Input, payloads, physics, audio,
 // HUD and transport still run normally. Needs Playwright and hardware WebGL.
 const fs = require('node:fs'), path = require('node:path');
@@ -9,12 +9,12 @@ if (process.env.KART_PERF_SERVER === '1') {
   const Module = require('node:module'), compile = Module.prototype._compile;
   Module.prototype._compile = function (source, file) {
     if (file.endsWith('/kart-elevated-combat.js')) source = source.replace('function dispose() {', `global.__perfGive = weapon => {
-      const k = [...karts.values()][0]; if (!k?.alive) return false;
+      const k = [...karts.values()][0]; if (!k?.alive || !COMBAT.weapons[weapon]) return false;
       clean(k); k.weapon = weapon; k.ammo = COMBAT.weapons[weapon].ammo || 1; k.fireCd = 0;
       emit('pickup', k.id, { weapon, position: physics.pose(k.id).position }); return true;
     }; function dispose() {`);
     if (file.endsWith('/kart-rules-battle.js')) source += `\nmodule.exports.__perfGive = (state, weapon) => {
-      const k = state.karts[0]; if (k.respawn > 0) return false;
+      const k = state.karts[0]; if (k.respawn > 0 || !COMBAT.weapons[weapon]) return false;
       k.weapon = weapon; k.ammo = COMBAT.weapons[weapon].ammo || 1; k.fireCd = 0; k.prevAction = false;
       pushEvent(state, 'pickup', k.pid, undefined, weapon); return true;
     };`;
@@ -55,11 +55,12 @@ async function main() {
         const response = await route.fetch();
         await route.fulfill({ response, body: (await response.text()).replace("case 'state': {", "case 'state': { window.__latestShotState=msg; if(window.__shotDropUntil>performance.now())break; window.__perfObserve?.(msg);") });
       });
-      await context.route('**/js/renderers/three-view.js', async route => {
-        const response=await route.fetch();await route.fulfill({response,body:(await response.text()).replace('built = await hooks.build(THREE, helper);','built = await hooks.build(THREE, helper);window.__shotBuilt=built;')});
+      const {installKartGalleryBundle}=require('./helpers/kart-gallery-bundle.cjs');
+      await installKartGalleryBundle(context,{
+        'three-view.js':code=>code.replace('built = await hooks.build(THREE, helper);','built = await hooks.build(THREE, helper);window.__shotBuilt=built;'),
+        'kart-view.js':code=>code.replace('const currentZ=(ordnanceFresh()?S.zaps:[])||[];', 'window.__shotObjects={zaps,grenades,mines};window.__shotFrame={fresh:ordnanceFresh(),arrival:lastSnapshotArrival,clock:nowMs(),simAt:S.simAt,grenades:S.grenades?.length};const currentZ=(ordnanceFresh()?S.zaps:[])||[];'),
+        'kart-elevated-view.js':code=>code.replace('const itemSnapshot=playback?.current.snapshot||S;','window.__shotObjects=objects;const itemSnapshot=playback?.current.snapshot||S;'),
       });
-      await context.route('**/js/engines/kart-view.js',async route=>{const response=await route.fetch();await route.fulfill({response,body:(await response.text()).replace('const currentZ=(ordnanceFresh()?S.zaps:[])||[];', 'window.__shotObjects={zaps,grenades,mines};window.__shotFrame={fresh:ordnanceFresh(),arrival:lastSnapshotArrival,clock:nowMs(),simAt:S.simAt,grenades:S.grenades?.length};const currentZ=(ordnanceFresh()?S.zaps:[])||[];')});});
-      await context.route('**/js/engines/kart-elevated-view.js',async route=>{const response=await route.fetch();await route.fulfill({response,body:(await response.text()).replace("const itemSnapshot=playback?.current.snapshot||S;","window.__shotObjects=objects;const itemSnapshot=playback?.current.snapshot||S;")});});
       await context.addInitScript(({ map, bots }) => {
         const marks = [], gaps = [], longTasks = [],retirements=[];const ended=new Map(),trackedObjects=new Map();let maxStale=0,observations=0,observedBodies=0,registeredBodies=0,snapshotBodies=0;const shotSamples=[];window.__shotRetirements=retirements;
         let ready = 0, last = 0, frame = 0, prevPhase, prevPreparing, events = new Set();
@@ -136,16 +137,20 @@ async function main() {
       await host.locator('.pk-stage canvas,.pke-stage canvas').click({ force: true });
       await page.keyboard.down('ArrowUp'); await page.keyboard.down('n');
       await sleep(800);await page.keyboard.up('ArrowUp');await page.keyboard.up('n');
-      const weapons = (process.env.KART_SHOT_WEAPONS||'machinegun,trishot,missile,cannon,blades,supernova,mine,oil,frost,thunder,boomerang,ram,nuke').split(',');
+      const weapons = (process.env.KART_SHOT_WEAPONS||'machinegun,trishot,missile,cannon,blades,supernova,mine,frost,ram,nuke').split(',');
       let next = 0, id = 0,windowFreeze=false;
       const seconds = Number(process.env.KART_PERF_SECONDS || 104);
       while (Date.now() - readyWall < seconds * 1000) {
         const age = Date.now() - readyWall;
         if (next < weapons.length && age >= Number(process.env.KART_SHOT_DELAY||12000) + next * Number(process.env.KART_SHOT_INTERVAL||6500)) {
           const weapon = weapons[next++], request = ++id;
-          const ok = await new Promise(resolve => {
-            const receive = m => { if (m.id === request) { server.off('message', receive); resolve(m.ok); } };
-            server.on('message', receive); server.send({ weapon, id: request });
+          const ok = await new Promise((resolve,reject) => {
+            const cleanup=()=>{clearTimeout(timeout);server.off('message',receive);server.off('exit',exited);};
+            const exited=()=>{cleanup();reject(Error('Test server exited while granting '+weapon));};
+            const receive=m=>{if(m.id===request){cleanup();resolve(m.ok);}};
+            const timeout=setTimeout(()=>{cleanup();reject(Error('Test grant timed out: '+weapon));},5000);
+            server.on('message',receive);server.once('exit',exited);
+            server.send({weapon,id:request},error=>{if(error){cleanup();reject(error);}});
           });
           if (!ok) throw Error('Could not grant ' + weapon);
           await host.evaluate(w => window.__perfMark('grant:' + w), weapon);

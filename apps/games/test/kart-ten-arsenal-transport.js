@@ -23,13 +23,13 @@ async function pickupSeeds(){
       if(!w.snapshot().crates.some(c=>c.position.x===-64&&c.position.z===-50))continue;
       for(let n=0;n<480;n++){
         const s=w.snapshot('p0'),k=s.karts[0];
-        if(k.weapon){if(['missile','oil'].includes(k.weapon)&&result[k.weapon]===undefined)result[k.weapon]=seed;break;}
+        if(k.weapon){if(['missile','mine'].includes(k.weapon)&&result[k.weapon]===undefined)result[k.weapon]=seed;break;}
         if(n%6===0)assert.ok(w.input('p0',{instance:s.instance,seq:s.you.receivedSeq+1,life:s.you.life,controlEpoch:s.you.controlEpoch,brake:0,nitro:false,use:false,...toward(k.pose,{x:-64,z:-49})},s.serverAt).ok);
         w.advance(s.serverAt+config.fixedDt*1000);
       }
     }finally{w.dispose();}
   }
-  ok(result.missile!==undefined&&result.oil!==undefined,'bounded seeds use actual authored-spawn crate collection for both new items');
+  ok(result.missile!==undefined&&result.mine!==undefined,'bounded seeds use actual authored-spawn crate collection for both new items');
   return result;
 }
 
@@ -40,7 +40,7 @@ const physicsFactory=P.createKartPhysics,references=new Map();let lastWorld;
 require.cache[require.resolve(${JSON.stringify(path.join(ROOT,'games/engines/kart-physics.js'))})].exports={...P,createKartPhysics:function(...args){const world=physicsFactory.apply(this,args),entry={world,config:args[1],disposed:false};lastWorld=entry;return Object.freeze({...world,dispose(){entry.disposed=true;return world.dispose();}});}};
 const C=require(${JSON.stringify(path.join(ROOT,'games/engines/kart-elevated-combat.js'))});
 const inspectSeeker=${inspectSeeker.toString()};
-const original=C.createElevatedCombat,records=[],fixed=${JSON.stringify([seeds.missile,seeds.oil,seeds.oil])};
+const original=C.createElevatedCombat,records=[],fixed=${JSON.stringify([seeds.missile,seeds.mine,seeds.mine])};
 function capture(record,view){record.phase=view.phase;record.snapshots.push({simTick:view.simTick,simAt:view.simAt,karts:view.karts,phase:view.phase,projectiles:view.projectiles,grenades:view.grenades,mines:view.mines,events:view.events});if(record.snapshots.length>120)record.snapshots.shift();}
 C.createElevatedCombat=(R,config,map,seats,options)=>{
   const index=records.length,match=original(R,config,map,seats,{...options,seed:fixed[index]??fixed[0]});
@@ -199,15 +199,15 @@ async function main(){
     ok(second.instanceId!==first.instanceId,'host rematch creates a new instance');eq(second.inputAck.receivedSeq,0,'rematch starts neutral sequence');eq(second.totals,total1,'rematch does not replay previous Room awards');eq(second.mapId,'harbor','host rematch retains normal Harbor settings');
     action(a,{throttle:1,use:true},{i:first.instanceId,w:done1.w});await sleep(150);eq(a.state.inputAck.receivedSeq,0,'previous instance Use cannot spend in a fresh round');
     let records=await evidence(server),retired=records.find(r=>r.instance===first.instanceId);eq(retired.disposals,1,'Room rematch consumes one authority disposal');ok(retired.stats.physics.disposed&&retired.stats.physics.karts===0&&retired.stats.physics.statics===0,'retired world releases actual Rapier resources');
-    await until(()=>clients.every(c=>c.state.phase==='live'),'second production countdown',4500);await collect(a,'oil');eq(kart(a).weapon,'oil','Oil Slick inventory survives normal transport');
-    action(a,{use:true,brake:1});action(a,{use:false,brake:1});await until(()=>frames(a).some(f=>f.instanceId===second.instanceId&&f.mines.some(m=>m.weapon==='oil')),'real oil trap wire body');
-    const trapFrame=frames(a).find(f=>f.instanceId===second.instanceId&&f.mines.some(m=>m.weapon==='oil'));await compare(server,a,trapFrame,'mines');
-    await until(()=>frames(a).some(f=>f.instanceId===second.instanceId&&f.mines.some(m=>m.weapon==='oil'&&m.armed)),'real oil trap completes arming',3000);
-    const armed=frames(a).find(f=>f.instanceId===second.instanceId&&f.mines.some(m=>m.weapon==='oil'&&m.armed));await compare(server,a,armed,'mines');
-    await until(()=>frames(watcher).some(f=>f.instanceId===armed.instanceId&&f.simTick===armed.simTick),'watcher armed oil tick');eq(frames(watcher).find(f=>f.instanceId===armed.instanceId&&f.simTick===armed.simTick).mines,armed.mines,'watcher receives identical public oil bodies');
-    await until(()=>a.state.mines.length===0,'unused oil expires within bounded lifetime',13000);
-    eq(new Set(frames(a).flatMap(f=>f.instanceId===second.instanceId?f.events.filter(e=>e.type==='blast'&&e.weapon==='oil').map(e=>e.id):[])).size,0,'unused oil never fabricates a blast');
-    metrics.oil={instance:second.instanceId,initialTick:trapFrame.simTick,armedTick:armed.simTick,expiredQuietly:true};
+    await until(()=>clients.every(c=>c.state.phase==='live'),'second production countdown',4500);await collect(a,'mine');eq(kart(a).weapon,'mine','Mine inventory survives normal transport');
+    action(a,{use:true,brake:1});action(a,{use:false,brake:1});await until(()=>frames(a).some(f=>f.instanceId===second.instanceId&&f.mines.some(m=>(m.weapon||'mine')==='mine')),'real mine trap wire body');
+    const trapFrame=frames(a).find(f=>f.instanceId===second.instanceId&&f.mines.some(m=>(m.weapon||'mine')==='mine'));await compare(server,a,trapFrame,'mines');
+    await until(()=>frames(a).some(f=>f.instanceId===second.instanceId&&f.mines.some(m=>(m.weapon||'mine')==='mine'&&m.armed)),'real mine trap completes arming',3000);
+    const armed=frames(a).find(f=>f.instanceId===second.instanceId&&f.mines.some(m=>(m.weapon||'mine')==='mine'&&m.armed));await compare(server,a,armed,'mines');
+    await until(()=>frames(watcher).some(f=>f.instanceId===armed.instanceId&&f.simTick===armed.simTick),'watcher armed mine tick');eq(frames(watcher).find(f=>f.instanceId===armed.instanceId&&f.simTick===armed.simTick).mines,armed.mines,'watcher receives identical public mine bodies');
+    await until(()=>a.state.mines.length===0,'unused mine expires within bounded lifetime',13000);
+    eq(new Set(frames(a).flatMap(f=>f.instanceId===second.instanceId?f.events.filter(e=>e.type==='blast'&&e.weapon==='mine').map(e=>e.id):[])).size,0,'unused mine never fabricates a blast');
+    metrics.mine={instance:second.instanceId,initialTick:trapFrame.simTick,armedTick:armed.simTick,expiredQuietly:true};
     await until(()=>clients.every(c=>c.state.phase==='done'),'full second production 60 s deadline',64000);eq(a.state.result.endedAt,second.deadline,'second result remains clock anchored');const total2={...a.state.totals};await sleep(150);eq(a.state.totals,total2,'second terminal result consumes awards once');
     await start(clients);eq(a.state.totals,total2,'second rematch cannot replay totals');send(a,{t:'lobby'});
     await until(async()=>{const r=await evidence(server);return r.length===3&&r.every(v=>v.disposals===1);},'explicit lobby retires third authority exactly once');
