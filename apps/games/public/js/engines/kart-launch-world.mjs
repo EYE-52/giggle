@@ -19,12 +19,13 @@ export function createKartLaunchWorld(THREE,{scene,map,palette='Daybreak',lighti
  M.ice=mat(new THREE.MeshStandardMaterial({color:0x9fd9ed,roughness:.24,metalness:.12,map:deckTexture}));
  M.road.map=roadTexture;M.deck.map=deckTexture;M.cover.map=deckTexture;
  const tierMaterials=map.levels.slice(1).map(l=>{if(map.artId==='ring')return M.deck;const m=material('deck-'+l.id,new THREE.Color(colors.deck).lerp(new THREE.Color(l.color),.48));m.map=deckTexture;return m;});
+ M.pink=material('pink',0xf387c8);
  const glow=mat(new THREE.MeshLambertMaterial({color:0xc9f4ef,emissive:0x70d6d5,emissiveIntensity:.8}));
  const unit=geo(new THREE.BoxGeometry(1,1,1));
  function add(parent,g,m,p=[0,0,0],scale=[1,1,1],rotation=[0,0,0]){const mesh=new THREE.Mesh(g,m);mesh.position.set(...p);mesh.scale.set(...scale);mesh.rotation.set(...rotation);mesh.receiveShadow=true;mesh.castShadow=false;parent.add(mesh);return mesh;}
  for(const d of map.colliders.flatMap(d=>d.parts||[d])){
   const g=new THREE.Group();g.name=d.id;g.position.copy(d.position);if(d.rotation)g.quaternion.copy(d.rotation);solids.add(g);
-  const m=d.material==='ice'?M.ice:d.material==='fountain'?M.fountain:d.material==='fountain-core'?M.yellow:d.material==='hedge'?M.green:d.material==='pillar'?(map.artId==='garden'?M.fountain:M.dark):d.material==='barrier'?M.dark:d.material==='toy-blue'?M.blue:d.shape==='deck'||d.shape==='wedge'?tierMaterials[Math.max(0,map.levels.slice(1).findIndex(l=>l.y>=d.position.y+d.half.y-.1))]||M.deck:d.id.startsWith('floor')?M.road:M.cover;
+  const m=d.material==='market-pink'?M.pink:d.material==='market-cyan'?M.blue:d.material==='ice'?M.ice:d.material==='fountain'?M.fountain:d.material==='fountain-core'?M.yellow:d.material==='hedge'?M.green:d.material==='pillar'?(map.artId==='garden'?M.fountain:M.dark):d.material==='barrier'?M.dark:d.material==='toy-blue'?M.blue:d.shape==='deck'||d.shape==='wedge'?tierMaterials[Math.max(0,map.levels.slice(1).findIndex(l=>l.y>=d.position.y+d.half.y-.1))]||M.deck:d.id.startsWith('floor')?M.road:M.cover;
   let skin;if(d.shape==='trimesh'){skin=new THREE.BufferGeometry();skin.setAttribute('position',new THREE.BufferAttribute(d.vertices,3));skin.setIndex(new THREE.BufferAttribute(d.indices,1));skin=skin.toNonIndexed();skin.computeVertexNormals();skin.setAttribute('uv',new THREE.BufferAttribute(new Float32Array(skin.attributes.position.count*2),2));}
   const geometry=geo(skin||(d.id.startsWith('floor')?new THREE.BoxGeometry(d.half.x*2,d.half.y*2,d.half.z*2):solidGeometry(THREE,d)));
   // Bake metre-scale UVs before merging. No per-mesh shader or draw call.

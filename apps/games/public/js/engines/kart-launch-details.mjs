@@ -61,4 +61,23 @@ export function addLaunchDetails(THREE,{map,soft,scenery,geo,add,M,glow,unit}){
   const snow=geo(new THREE.IcosahedronGeometry(3,0));for(const side of[-1,1])for(let i=0;i<4;i++)add(scenery,snow,M.white,[side*(map.playBounds.halfX+8),-.6,-30+i*20],[1.5,.65,1]);
  }
 
+ if(map.artId==='neon'){
+  // Shuttered market stalls: patterned awnings and insets remain inside each
+  // physical cover mass. Colour and glyphs identify opposite route choices.
+  for(const d of map.colliders.filter(d=>d.material?.startsWith('market-'))){const {x,y,z}=d.position,h=d.half,paint=d.material==='market-pink'?M.pink:M.blue;
+   for(const side of[-1,1]){add(soft,unit,M.dark,[x,y-.2,z+side*(h.z-.01)],[h.x*1.8,h.y*1.4,.02]);for(let dx=-h.x+.6;dx<h.x;dx+=.8)add(soft,unit,paint,[x+dx,y+h.y-.3,z+side*(h.z-.02)],[.45,.5,.03]);
+    for(let yy=-h.y+.35;yy<h.y-.6;yy+=.4)add(soft,unit,M.blue,[x,y+yy,z+side*(h.z-.005)],[h.x*1.65,.06,.02]);
+    add(soft,unit,glow,[x,y+h.y-.06,z+side*(h.z-.005)],[h.x*1.8,.1,.02]);}
+   for(let dx=-h.x+.45;dx<h.x;dx+=.9)add(soft,unit,paint,[x+dx,y+h.y-.025,z],[.48,.035,h.z*1.9]);
+  }
+  // Off-arena illuminated billboards are landmarks, never hidden collision.
+  for(const side of[-1,1]){const x=side*(map.playBounds.halfX+5),z=-side*15,paint=side<0?M.blue:M.pink;
+   add(scenery,unit,M.dark,[x,5,z],[1.5,14,1.5]);add(scenery,unit,paint,[x,12,z],[9,5,.7]);add(scenery,unit,M.dark,[x,12,z+.36],[8.2,4.2,.03]);
+   const glyph=glyphs[side<0?'A':'B'];for(let row=0;row<7;row++)for(let col=0;col<5;col++)if(glyph[row][col]==='1')add(scenery,unit,glow,[x+(col-2)*.52,12+(3-row)*.52,z+.39],[.44,.44,.04]);
+   for(let dx=-3;dx<=3;dx+=1.5)add(scenery,unit,M.white,[x+dx,9.7,z+.38],[.65,.1,.03]);
+  }
+  // Signal lamps and road studs use emissive batches, without point lights.
+  for(const d of map.colliders.filter(d=>d.shape==='deck')){const y=d.position.y+d.half.y+.02;for(let x=-d.half.x+3;x<d.half.x-2;x+=6)add(soft,flat,glow,[d.position.x+x,y,d.position.z],[.25,1,.7]);}
+ }
+
 }
