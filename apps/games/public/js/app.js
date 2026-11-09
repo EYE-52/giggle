@@ -1538,7 +1538,8 @@ function liveCats() {
   if (games.some(g => g.communication === 'video')) cats.push(['camera', 'Camera']);
   for (const c of order) if (seen.has(c)) cats.push([c, catLabel(c)]);
   for (const c of [...seen].sort()) {
-    if (!order.includes(c)) cats.push([c, catLabel(c)]);
+    // 'camera' may already be listed from the video check above; never show a chip twice.
+    if (!order.includes(c) && !cats.some(([k]) => k === c)) cats.push([c, catLabel(c)]);
   }
   return cats;
 }

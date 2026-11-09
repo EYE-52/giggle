@@ -2395,3 +2395,18 @@ body.game-playing[data-game] { --ink-dim:color-mix(in srgb,var(--ink) 82%,var(--
 .picker-controls .picker-control-cards button:focus-visible{outline:var(--focus-ring);outline-offset:var(--focus-offset)}
 @media(hover:hover){.picker-controls .picker-control-cards button:hover:not(:disabled){transform:translateY(calc(-1 * var(--lift-sm)))}}
 @media(prefers-reduced-motion:reduce){.picker-controls .picker-control-cards button{transition:none;transform:none}}
+
+/* Inside Giggle Meet: the call's own panel already says "Game night", so the
+ * games shell drops its brand and keeps one quiet toolbar. Fewer nested boxes:
+ * no header rule, icon-only utilities, search + categories only. */
+body.is-embed .topbar { position: absolute; top: 6px; right: 8px; left: auto; margin: 0; padding: 0; background: none; border: 0; z-index: 30; }
+body.is-embed .topbar .brand { display: none; }
+body.is-embed .topbar .hbtn .hlabel { display: none; }
+body.is-embed .topbar .btn.ghost, body.is-embed .topbar .report-icon { min-height: 36px; min-width: 36px; padding: 6px; border-color: transparent; background: transparent; }
+body.is-embed .lobby { padding-top: 6px; gap: 16px; }
+body.is-embed .catbar .catpick, body.is-embed .catbar #custTog { display: none; }
+body.is-embed .catbar { flex-wrap: nowrap; }
+body.is-embed .catbar #q { flex: 1 1 auto; max-width: 420px; }
+body.is-embed .catchips { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
+body.is-embed .catchips::-webkit-scrollbar { display: none; }
+body.is-embed .partystrip { box-shadow: none; }
