@@ -519,7 +519,7 @@ for(const missingDrivers of [['bunny'],['fox','bunny','panda','raccoon']]){
   r.render(pelletSnapshot);r.advance(100);r.frame(.1);check('repeated pellet receipt cannot renew expired strokes',cues.every(o=>!o.visible));
   r.render({...base(),simTick:40,simAt:r.api.now(),events:[{id:'blocked-barrel',type:'impact',weapon:'machinegun',pid:'a',surfaceId:'barrel-cover',from:{x:.95,y:1.14,z:0},position:{x:.95,y:1.14,z:1.6}}]});r.frame(.1);
   const blockedCue=cues.find(o=>o.visible),blockedBounds=blockedCue&&new THREE.Box3().setFromObject(blockedCue);
-  check('blocked barrel feedback starts at the supplied corridor origin and stops at cover before the muzzle',blockedBounds&&Math.abs(blockedBounds.min.z)<1e-6&&Math.abs(blockedBounds.max.z-1.6)<1e-6);
+  check('blocked barrel feedback stays short and ends at cover before the muzzle',blockedBounds&&Math.abs(blockedBounds.min.z-.35)<1e-6&&Math.abs(blockedBounds.max.z-1.6)<1e-6);
   r.advance(100);r.frame(.1);
   // A buffered projectile may be present before a hitch delivers its impact.
   r.render({...base(),simTick:41,simAt:r.api.now(),projectiles:[{id:'short',weapon:'machinegun',position:from,velocity:{x:0,y:0,z:140}}]});r.frame();

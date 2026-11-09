@@ -208,7 +208,7 @@ export function createElevatedKartView() {
       let skidGround=0;skids=createKartSkids(THREE,scene,{groundAt:()=>skidGround});
       drivingFX=createKartDrivingFX(THREE,scene,camera,{groundAt:()=>skidGround,reducedMotion:helper.reducedMotion()});
       threats=createKartThreats(THREE,scene,root,{reducedMotion:()=>helper.reducedMotion(),beep:level=>audio?.beep?.(level)});
-      const statusOptions={time:0,elapsed:0};
+      const statusOptions={time:0,elapsed:0},absentStatusOptions={elapsed:Infinity};
       const cameraTarget=new THREE.Vector3(),cameraPosition=new THREE.Vector3(),forward=new THREE.Vector3(0,0,1),up=new THREE.Vector3(0,1,0),hits=[];
       const target=new THREE.Vector3(),desired=new THREE.Vector3(),nose=new THREE.Vector3(),direction=new THREE.Vector3(),ray=new THREE.Raycaster();
       const collisionMeshes=[...world.colliderMeshes.values()].map(value=>value.cameraBody||value.body);
@@ -304,7 +304,7 @@ export function createElevatedKartView() {
           direction.subVectors(e.position,e.from);const length=direction.length();
           if(length>1e-6){
             let cue=pool[0];for(const candidate of pool){if(!candidate.object.visible){cue=candidate;break;}if(candidate.age>cue.age)cue=candidate;}
-            cue.age=age;cue.object.position.copy(e.from).addScaledVector(direction,.5);cue.object.quaternion.setFromUnitVectors(forward,direction.multiplyScalar(1/length));cue.object.scale.set(1,1,length/cue.length);cue.object.visible=age<.09;
+            cue.age=age;direction.multiplyScalar(1/length);const visibleLength=Math.min(length,1.25);cue.object.position.copy(e.position).addScaledVector(direction,-visibleLength*.5);cue.object.quaternion.setFromUnitVectors(forward,direction);cue.object.scale.set(1,1,visibleLength/cue.length);cue.object.visible=age<.09;
           }
         }
         if(e.type==='fire')art.recoil(rigs.get(e.pid)?.object);
@@ -326,7 +326,16 @@ export function createElevatedKartView() {
         normal.copy(e.normal||up);if(normal.lengthSq()<.01)normal.copy(up);normal.normalize();basis.setFromUnitVectors(up,normal);
         for(let j=0;j<f.count;j++){const angle=j*2.39996,speed=(j%3+3)*(.45+.55*strength);f.velocities[j].set(Math.cos(angle)*speed,2+j%4,Math.sin(angle)*speed).applyQuaternion(basis).y+=1.2;f.mesh.setColorAt(j,sparkColor.setHex(small?(j%2?0xffe3a0:0xf5fbff):(j%3?0xff8128:0xffdc68)));}f.mesh.instanceColor.needsUpdate=true;
       }
+      function hideAbsentModel(model,id){
+        // Keep prepared models for reuse, but absence is authoritative too.
+        // A departed player must not leave its last tilted/wreck pose behind.
+        for(let i=0;i<S.karts.length;i++)if(S.karts[i].id===id)return;
+        model.visible=false;model.scale.setScalar(1);model.quaternion.identity();wrecks.delete(id);
+        healthBars.add(id).visible=false;arsenalFX.status(model,null,absentStatusOptions);skids.forget(id);drivingFX.forget(id);
+        const rig=rigs.get(id);if(rig){rig.object.removeFromParent();rigPools.get(rig.kind)?.push(rig.object);rigs.delete(id);}
+      }
       function bodies(dt,time,playback){
+        models.forEach(hideAbsentModel);
         const alpha=playback?.alpha??1;
         for(let index=0;index<S.karts.length;index++){
           const k=S.karts[index];let model=models.get(k.id);

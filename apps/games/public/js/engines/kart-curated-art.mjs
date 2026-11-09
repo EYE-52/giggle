@@ -11,7 +11,8 @@ export function createCuratedArt(THREE){
   const barrel=g(new THREE.CylinderGeometry(.13,.17,1,12));barrel.rotateX(Math.PI/2);
   const ball=g(new THREE.IcosahedronGeometry(1,2)),box=g(new THREE.BoxGeometry(1,1,1)),ring=g(new THREE.TorusGeometry(.32,.075,6,16));
   const nose=g(new THREE.ConeGeometry(.22,.4,10));nose.rotateX(Math.PI/2);
-  const tracer=g(new THREE.BoxGeometry(.24,.24,3.6));
+  // A short round streak, not a 3.6m opaque slab across the road.
+  const tracer=g(new THREE.CapsuleGeometry(.04,.55,2,6));tracer.rotateX(Math.PI/2);
   const finShape=new THREE.Shape();
   [[-.335,-.03],[-.03,-.03],[-.03,-.335],[.03,-.335],[.03,-.03],[.335,-.03],[.335,.03],[.03,.03],[.03,.335],[-.03,.335],[-.03,.03],[-.335,.03]].forEach(([x,y],i)=>i?finShape.lineTo(x,y):finShape.moveTo(x,y));finShape.closePath();
   const fins=g(new THREE.ExtrudeGeometry(finShape,{depth:.32,bevelEnabled:false}));fins.translate(0,0,-.16);
@@ -27,7 +28,7 @@ export function createCuratedArt(THREE){
    c.tail=mesh(inner,K.nose,K.orange,0,0,-.84,.65,.65,-1.1);c.tipZ=.72;c.tailZ=-1.1;
   }else{
    const tri=kind==='trishot';mesh(inner,K.ball,tri?K.gold:K.white,0,0,0,.095,.095,.22);
-   c.tail=mesh(inner,K.tracer,tri?K.tracerGold:K.tracerWhite,0,0,-1.8);c.tail.castShadow=false;c.tipZ=.22;c.tailZ=-3.6;
+   c.tail=mesh(inner,K.tracer,tri?K.tracerGold:K.tracerWhite,0,0,-.42);c.tail.name='KartBulletStreak';c.tail.castShadow=false;c.tipZ=.22;c.tailZ=-.735;
   }return outer;
  }
  function weapon(kind){const K=build(),{outer,inner,c}=base('weapon',kind);

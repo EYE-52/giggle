@@ -60,7 +60,7 @@ async function main() {
       });
       await context.route('**/js/engines/kart-view.js',async route=>{const response=await route.fetch();await route.fulfill({response,body:(await response.text()).replace('const currentZ=(ordnanceFresh()?S.zaps:[])||[];', 'window.__shotObjects={zaps,grenades,mines};window.__shotFrame={fresh:ordnanceFresh(),arrival:lastSnapshotArrival,clock:nowMs(),simAt:S.simAt,grenades:S.grenades?.length};const currentZ=(ordnanceFresh()?S.zaps:[])||[];')});});
       await context.route('**/js/engines/kart-elevated-view.js',async route=>{const response=await route.fetch();await route.fulfill({response,body:(await response.text()).replace("const itemSnapshot=playback?.current.snapshot||S;","window.__shotObjects=objects;const itemSnapshot=playback?.current.snapshot||S;")});});
-      await context.addInitScript(({ map }) => {
+      await context.addInitScript(({ map, bots }) => {
         const marks = [], gaps = [], longTasks = [],retirements=[];const ended=new Map(),trackedObjects=new Map();let maxStale=0,observations=0,observedBodies=0,registeredBodies=0,snapshotBodies=0;const shotSamples=[];window.__shotRetirements=retirements;
         let ready = 0, last = 0, frame = 0, prevPhase, prevPreparing, events = new Set();
         const mark = name => { const at = performance.now(); marks.push({ name, at }); performance.mark('kart:' + name); };
@@ -71,6 +71,21 @@ async function main() {
               const m = JSON.parse(data);
               if (m.t === 'start') { m.settings = { ...m.settings, map, mode: 'Zap Battle', winRule: 'Time limit', roundSeconds: 180 }; data = JSON.stringify(m); }
               if (m.t === 'game-ready' && !ready) { ready = performance.now(); mark('ready'); }
+              // Optional practice bots use each real view's existing input
+              // sequence/ACKs. No production AI or state mutation is added.
+              if(bots && new URL(location.href).searchParams.get('seat') !== '1' && m.t==='action'){
+                const s=window.__latestShotState,k=s?.karts.find(k=>(k.id||k.pid)===s.you);
+                if(k&&['drive','live'].includes(s.phase)){
+                  const p=k.pose?.position||k,choices=k.weapon?s.karts.filter(o=>(o.id||o.pid)!==s.you&&(o.alive??!(o.respawn>0))):(s.crates||[]).filter(o=>o.available!==false&&!(o.respawn>0));
+                  let nearest=null,distance=Infinity;
+                  for(const item of choices){const q=item.pose?.position||item.position||item,d=Math.hypot(q.x-p.x,q.z-p.z);if(d<distance){distance=d;nearest=q;}}
+                  const q=k.pose?.rotation,yaw=q?Math.atan2(2*(q.x*q.z+q.w*q.y),1-2*(q.x*q.x+q.y*q.y)):k.angle;
+                  const goal=nearest?Math.atan2(nearest.x-p.x,nearest.z-p.z):yaw+.5,delta=Math.atan2(Math.sin(goal-yaw),Math.cos(goal-yaw));
+                  const input={steer:Math.max(-1,Math.min(1,-delta*2)),throttle:distance<3&&k.weapon?0:1,nitro:false},fire=!!k.weapon&&Math.floor(performance.now()/200)%2===0;
+                  m.a=s.profile?{...m.a,...input,brake:0,use:fire}:{...m.a,input:{...input,boost:fire,drift:false}};
+                  data=JSON.stringify(m);window.__botInputs=(window.__botInputs||0)+1;
+                }
+              }
             } catch { /* binary or unrelated */ }
             return super.send(data);
           }
@@ -99,7 +114,7 @@ async function main() {
         requestAnimationFrame(tick);
         window.__perfResult = () => ({ ready, frames: frame, marks, gaps, longTasks, origin: performance.timeOrigin,maxStale,retirements,observations,observedBodies,registeredBodies,snapshotBodies,shotSamples });
         window.__perfMark = mark;
-      }, { map });
+      }, { map, bots: process.env.KART_SHOT_BOTS==='1' });
       const cdp = await context.newCDPSession(page);
       const traced = process.env.KART_PERF_TRACE === '1';
       if (traced) {
@@ -134,7 +149,10 @@ async function main() {
           });
           if (!ok) throw Error('Could not grant ' + weapon);
           await host.evaluate(w => window.__perfMark('grant:' + w), weapon);
-          await sleep(700); await page.keyboard.press('Space', { delay: 150 });
+          await sleep(700);
+          await page.keyboard.down('Space');
+          try{await sleep(50);if(weapon==='trishot')await host.locator('.pk-stage canvas,.pke-stage canvas').screenshot({path:path.join(out,slug+'-trishot.png')});await sleep(100);}
+          finally{await page.keyboard.up('Space');}
         }
         // An initial drive/nitro burst tests GO. Release before the wall so
         // every projectile has a clear launch, rather than a blocked muzzle.
@@ -151,7 +169,8 @@ async function main() {
       await host.evaluate(()=>{delete document.hidden;document.dispatchEvent(new Event('visibilitychange'));});await sleep(200);
       await host.locator('.pk-stage canvas,.pke-stage canvas').screenshot({path:path.join(out,slug+'-resumed.png')});
       const finalKarts = await host.evaluate(() => window.__perfState.karts.map(k=>({id:k.pid||k.id,x:k.x,z:k.z,pose:k.pose?.position,weapon:k.weapon})));
-      const result = { map, traced, seconds, finalKarts,visibility:await host.evaluate(()=>window.__shotVisibility||[]), ...await host.evaluate(() => window.__perfResult()), errors };
+      const botInputs=await Promise.all(page.frames().map(f=>f.evaluate(()=>window.__botInputs||0)));
+      const result = { map, traced, seconds, finalKarts,botInputs,visibility:await host.evaluate(()=>window.__shotVisibility||[]), ...await host.evaluate(() => window.__perfResult()), errors };
       result.weaponsFired = [...new Set(result.marks.filter(m => /^(fire|mine):/.test(m.name)).map(m => m.name.split(':')[1]))];
       if (traced) {
         const { profile } = await cdp.send('Profiler.stop'); fs.writeFileSync(path.join(out, slug + '.cpuprofile'), JSON.stringify(profile));

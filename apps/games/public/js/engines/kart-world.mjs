@@ -1768,9 +1768,8 @@ export function createKartWorld(THREE, options) {
   }
   layout.landmark={identity,kind:quarry?'quarry-crane':theme==='frost'?'ski-lift':theme==='neon'?'port-crane':'summit-watchtower'};
 
-  // Scenery stays outside the authoritative fence. A park lake and a
-  // bounded city skyline give the worlds different silhouettes as well as
-  // floor paint; neither is an invisible obstacle inside the arena.
+  // Scenery stays outside the authoritative fence. The park lake is
+  // decorative and never an invisible obstacle inside the arena.
   if (theme === 'garden') {
     const water = new THREE.Mesh(new THREE.CircleGeometry(1, 32), std(0x51bfc6, { roughness:.35, metalness:.15 }));
     water.name='garden-lake'; water.rotation.x=-Math.PI/2;
@@ -1778,30 +1777,9 @@ export function createKartWorld(THREE, options) {
     const bank = new THREE.Mesh(new THREE.RingGeometry(.98,1.07,32),std(0xd7d7ac,{roughness:1}));
     bank.name='garden-lake-bank';bank.rotation.x=-Math.PI/2;bank.scale.set(24,12,1);bank.position.copy(water.position);bank.position.y=.03;root.add(bank);
   }
-  if (theme === 'neon') {
-    const geo=new THREE.BoxGeometry(1,1,1),mat=std(0x242237,{roughness:.9});
-    const blocks=new THREE.InstancedMesh(geo,mat,14),roofs=new THREE.InstancedMesh(geo,mat,14);
-    const windows=new THREE.InstancedMesh(geo,basic(0xffffff),252);
-    blocks.name='neon-city';roofs.name='neon-city-roofs';windows.name='neon-city-windows';
-    const matrix=new THREE.Matrix4(),light=new THREE.Color();let count=0;
-    for(let i=0;i<14;i++){const angle=i/14*Math.PI*2,dist=half+25,height=12+(i%4)*8,width=10+(i%3)*3;
-      let x=Math.sin(angle)*dist,z=Math.cos(angle)*dist;
-      // Keep the whole building footprint beyond the fence, including
-      // diagonal buildings whose centre alone would be a misleading test.
-      if(Math.abs(x)>=Math.abs(z))x=Math.sign(x)*Math.max(Math.abs(x),sceneryMin+width/2+3);
-      else z=Math.sign(z)*Math.max(Math.abs(z),sceneryMin+8);
-      matrix.makeScale(width,height,10);matrix.setPosition(x,height/2,z);blocks.setMatrixAt(i,matrix);
-      matrix.makeScale(width*.6,4+(i%3)*2,7);matrix.setPosition(x,height+2+(i%3),z);roofs.setMatrixAt(i,matrix);
-      const faceX=Math.abs(x)>Math.abs(z),sign=faceX?(x>0?-1:1):(z>0?-1:1);
-      for(let row=0;row<9&&row*3+2.5<height-1.5;row++)for(const side of [-1,1]){
-        matrix.makeScale(faceX?.08:1.4,.6,faceX?1.4:.08);
-        matrix.setPosition(x+(faceX?sign*(width/2+.05):side*2),row*3+2.5,z+(faceX?side*2:sign*5.05));
-        windows.setMatrixAt(count,matrix);light.setHex((i+row)%3?0x62dce5:0xdf6bd5);windows.setColorAt(count++,light);
-      }
-    }
-    windows.count=count;for(const m of [blocks,roofs,windows]){m.instanceMatrix.needsUpdate=true;root.add(m);}
-
-  }
+  // Harbor buildings/cranes already belong to the painted panorama. The
+  // old 12-36m opaque city boxes sat between the fence and that artwork,
+  // turning corner views into blank dark walls with windows on another face.
 
   /* ---- sky: procedural gradient dome, sun disk, restrained haze ---- */
   const domeR = 200 + Math.max(0, half - WORLD_HALF_DEFAULT) * 2;
