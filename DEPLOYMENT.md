@@ -34,6 +34,7 @@ Last verified: **4 October 2026 (Asia/Kolkata)**. This section records the live 
 | Vercel fallback URL | [giggle-meet.vercel.app](https://giggle-meet.vercel.app/) |
 | API and realtime hosting | Railway workspace **Divyansh's Projects**, project **`giggle`**, environment **`production`**, service **`giggle-server`** ([dashboard](https://railway.com/project/2e301782-c882-4553-94e4-61b898d98f1f/service/7874f27b-f974-4fb4-9523-fb3043c38f31?environmentId=bd367c27-b9f2-4715-a40c-842f19a1f66c)) |
 | API URL | `https://giggle-server-production.up.railway.app` |
+| Regions (since 10 Nov 2026) | Railway `giggle-server` and `giggle-redis` run in **Southeast Asia (Singapore, `asia-southeast1-eqsg3a`)**, next to MongoDB Atlas in **Mumbai**; Games (`giggle-play`) also runs in Singapore. Vercel `giggle-meet` functions run in **Mumbai (`bom1`)**. Moving the API away from Mumbai/Singapore makes every database query cross an ocean (joining took 2–4 s from US West). |
 | Health check | [API /health](https://giggle-server-production.up.railway.app/health), reports API, MongoDB and Redis status |
 | Redis | Existing Railway service **`giggle-redis`** in the same project/environment |
 | MongoDB | Existing database configured through Railway `MONGODB_URI`; its provider/account was not audited during this deployment |
