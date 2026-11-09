@@ -61,11 +61,11 @@
 .b5-game [role="button"][aria-disabled="true"] { cursor: default; }
 .b5-game [role="button"]:focus-visible { outline: none; }
 .b5-game [role="button"]:focus-visible > :first-child { stroke: var(--fam); stroke-width: 4; }
-.b5-game .b5-die { width: 64px; height: 64px; flex: none; display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; padding: 10px; border: 2px solid #e1c9a5; border-radius: 16px; background: #fff7e5; box-shadow: 0 5px 0 #b7996a; }
-.b5-game .b5-die i { border-radius: 50%; }
-.b5-game .b5-die .is-pip { background: #493735; box-shadow: inset 0 1px 1px #0003; }
-.b5-game .b5-die.is-rolling { animation: b5-roll var(--dur-slow) var(--ease); }
-@keyframes b5-roll { 0% { transform: rotate(-18deg) scale(.85); } 50% { transform: rotate(15deg) translateY(-12px); } 100% { transform: rotate(0) scale(1); } }
+.b5-game .b5-die { display: block; width: 64px; height: 64px; flex: none; overflow: visible; }
+.b5-game .b5-die-face { fill: #fff7e5; stroke: #e1c9a5; stroke-width: 1.5; }
+.b5-game .b5-die-lip { fill: #b7996a; }
+.b5-game .b5-pip { fill: #493735; }
+.b5-game [data-roll]:active { transform: translateY(var(--lift)); box-shadow: none; }
 @media (hover: hover) { .b5-game [role="button"][aria-disabled="false"]:hover > :first-child { stroke: var(--fam); stroke-width: 3; } }
 .b5-game [role="button"][aria-disabled="false"]:active { opacity: .7; }
 @media (min-width: 760px) {
@@ -193,4 +193,13 @@
   .b5-game .bk-player .bk-stat { width: auto !important; min-width: 3ch !important; height: auto !important; padding: 2px 8px !important; }
   .b5-game .bk-player .bk-stat-label { display: none; }
   .b5-game .bk-player .bk-side { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+}
+
+@media (max-width: 759px) {
+  /* Two-line race seats fit their reserved 44px row, including the score. */
+  .b5-game:is(.pd-game, .sl-game) .bk-player .bk-stat {
+    height: 14px; min-width: 0; width: auto; padding: 0; border: 0;
+    border-radius: 0; background: none;
+  }
+  .b5-game:is(.pd-game, .sl-game) .bk-stat-value { min-height: 0; }
 }
