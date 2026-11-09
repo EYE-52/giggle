@@ -187,3 +187,11 @@ Loading the same panel before the server answers:
 ### Pocket Karts garage
 
 `--kart-garage-w` (880px) caps the results parts bench; `--kart-garage-preview-w` (224px) reserves its desktop display column; `--kart-garage-preview-h` (208px) reserves the thumbnail area before the model is ready. Cards use the existing spacing, type, colour, radius, control and motion tokens.
+
+### App panels and board workspace
+
+`app-panels.css` and `app-panels.js` keep secondary views in the browser's top layer. At 600px and above they anchor to their launcher; below that they are bottom sheets. Both use the existing card, ink, rim, radius, shadow, spacing and motion tokens. Chess moves dock into a quiet side panel at 1000px. Primary castle grids and the one-device catalogue are permanent regions.
+
+`board-app.css` gives the board the remaining viewport after the title, compact player bars, fixed status and single toolbar. More holds resign/draw; Rules and Flip use labelled icons. Fleet selection uses the same panel while Place/Fire remain visible. SVG chess pieces use their own art palette; UI controls keep the shared tokens.
+
+Meet chrome uses `--app-embed-bg`, `--app-embed-card`, `--app-embed-well`, `--app-embed-ink` and `--app-embed-dim`, defined on `body.is-embed`. These aliases preserve Meet's existing dark palette when a game's standalone skin changes the page colour.

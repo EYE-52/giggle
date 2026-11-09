@@ -134,9 +134,9 @@
   .practice-page button:hover, .practice-page button:active, .practice-back:active, .practice-info summary:active { transform: none; }
 }
 
-/* A visible host label replaces the unexplained, floating status speck. */
+/* Host status stays in the accessible tab label and its tooltip. */
 .practice-tabs .is-host::after { content: none; }
-.practice-tabs .is-host { text-decoration: underline; text-underline-offset: var(--space-4); }
+.practice-tabs .is-host { text-decoration:none; }
 .practice-actions .practice-stop { background: var(--danger-soft); border-color: var(--danger); }
 @media (max-width: 600px) {
   .practice-page.is-running .practice-back { display: grid; }
@@ -148,3 +148,23 @@
 
 .practice-page.is-running .practice-tabs::-webkit-scrollbar { display: block; height: var(--space-4); }
 .practice-page.is-running .practice-tabs::-webkit-scrollbar-thumb { background: var(--line-strong); border-radius: var(--radius-pill); }
+
+/* Practice behaves like an app's segmented workspace switcher. */
+.practice-page .practice-bar { min-height:var(--control-h-lg); padding:var(--space-4) var(--space-8); gap:var(--space-8); box-shadow:none; border-bottom:var(--outline-w) solid var(--line); }
+.practice-page .practice-controls { gap:var(--space-8); }
+.practice-page .practice-tabs { padding:var(--space-4); margin:0; gap:0; border:0; border-radius:var(--radius-md); background:var(--well); }
+.practice-page .practice-tabs button { border:0; border-radius:var(--radius-sm); background:transparent; color:var(--ink-dim); padding:0 var(--space-12); min-height:var(--space-40); }
+.practice-page .practice-tabs button[aria-selected="true"] { background:var(--card); color:var(--ink); box-shadow:var(--shadow-sm); }
+.practice-page .practice-tabs .is-host::after { content:none; }
+.practice-page .practice-actions { gap:var(--space-4); }
+.practice-page .practice-actions button,.practice-page .practice-info summary { width:var(--control-h-sm); min-width:var(--control-h-sm); padding:0; border:0; border-radius:var(--radius-md); background:transparent; box-shadow:none; }
+.practice-page .practice-actions .practice-stop { color:var(--ink-dim); }
+.practice-page .practice-back { color:var(--ink); border-radius:var(--radius-md); }
+@media(max-width:599px) {
+ .practice-page.is-running .practice-bar { flex-wrap:nowrap; }
+ .practice-page .practice-tabs button { padding:0 var(--space-12); }
+ .practice-page .practice-tabs .seat-long { display:none; }
+ .practice-page .practice-tabs .seat-short { display:inline; }
+ .practice-page .practice-controls { min-width:0; }
+ .practice-page .practice-info { margin-left:0; }
+}

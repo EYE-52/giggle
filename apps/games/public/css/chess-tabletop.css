@@ -127,3 +127,24 @@
  .ch-tabletop .chhist-wrap>summary { min-height:var(--control-h-sm); }
 }
 .ch-tabletop .bk-primary { background:color-mix(in srgb,var(--fam) 80%,var(--ink)); }
+
+/* App board: clear Staunton silhouettes and a quiet tournament surface.
+ * SVG pieces remain crisp at every board size. Coordinates sit inside the
+ * squares; a slim rim gives the pieces all available space. */
+.bk-game.ch-tabletop { background:var(--bg); --ch-light:#e9e4d4; --ch-dark:#7c9686; --ch-frame:#465f50; --ch-coord-light:#4c6253; --ch-coord-dark:#f4f4e8; }
+.bk-game.ch-tabletop.theme-harbor { --ch-light:#e3eaf0; --ch-dark:#7492aa; --ch-frame:#3c566c; --ch-coord-light:#405d73; }
+.bk-game.ch-tabletop.theme-fern { --ch-light:#e7ead6; --ch-dark:#7e9b71; --ch-frame:#47613d; --ch-coord-light:#4b653f; }
+[data-theme="night"] .bk-game.ch-tabletop { --ch-light:#b9c4b5; --ch-dark:#526b5c; --ch-frame:#344c3d; --ch-coord-light:#344b3b; --ch-coord-dark:#edf2e8; --card:var(--bg-card,#232e28); --well:#303c34; }
+.bk-game.ch-tabletop .ch-frame { padding:var(--space-8); border-radius:var(--radius-md); background:var(--ch-frame); box-shadow:0 var(--space-4) 0 color-mix(in srgb,var(--ch-frame) 80%,var(--ink)); }
+.bk-game.ch-tabletop .chboard { border-radius:var(--radius-sm); overflow:hidden; box-shadow:none; }
+.bk-game.ch-tabletop .chboard .sq { background:var(--ch-dark); }
+.bk-game.ch-tabletop .chboard .sq.light { background:var(--ch-light); }
+.bk-game.ch-tabletop .ch-piece-slot .ch-piece { width:94%; height:94%; margin:3%; filter:none; }
+.bk-game.ch-tabletop .ch-chip .ch-piece { filter:none; }
+.bk-game.ch-tabletop .chboard .sq :is(.ch-rank,.ch-file) { display:block; width:auto; height:auto; background:transparent; color:var(--ch-coord-dark); font:var(--text-caption); font-size:11px; line-height:1; transform:none; padding:0; z-index:3; }
+.bk-game.ch-tabletop .chboard .sq.light :is(.ch-rank,.ch-file) { color:var(--ch-coord-light); }
+.bk-game.ch-tabletop .chboard .sq .ch-rank { top:var(--space-4); left:var(--space-4); }
+.bk-game.ch-tabletop .chboard .sq .ch-file { bottom:var(--space-4); right:var(--space-4); left:auto; }
+@media(max-width:599px) { .bk-game.ch-tabletop .chboard .sq :is(.ch-rank,.ch-file) { font-size:9px; } }
+[data-theme="night"] .bk-game.ch-tabletop.theme-mono,body.is-embed .bk-game.ch-tabletop.theme-mono { --ch-light:#b9c4b5; --ch-dark:#526b5c; --ch-frame:#344c3d; --ch-coord-light:#344b3b; --ch-coord-dark:#edf2e8; }
+body.is-embed .bk-game.ch-tabletop { --card:var(--app-embed-card); --well:var(--app-embed-well); }

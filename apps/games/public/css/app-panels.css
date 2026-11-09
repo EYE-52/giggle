@@ -1,0 +1,51 @@
+/* Floating layers never take space from the game. Native dialog provides
+ * top-layer painting, inert background, focus containment and Escape. */
+.app-disclosure.app-disclosure { position:relative; min-width:0; }
+.app-disclosure.app-disclosure:not(.app-docked) { padding-block:0; }
+.app-disclosure > summary { list-style:none; cursor:pointer; min-height:var(--control-h-sm); }
+.app-disclosure > summary::-webkit-details-marker { display:none; }
+.app-disclosure.app-disclosure > summary::after { content:none; }
+.app-disclosure.app-disclosure > summary::before { content:none; }
+.app-disclosure > summary:focus-visible { outline:var(--focus-ring); outline-offset:var(--focus-offset); }
+.app-panel.app-panel { box-sizing:border-box; position:fixed; inset:auto; margin:0; width:min(400px,calc(100vw - var(--space-32))); max-width:none; max-height:calc(100dvh - var(--space-32)); padding:var(--space-16); overflow:auto; overscroll-behavior:contain; border:var(--outline-w) solid var(--line-strong); border-radius:var(--radius-lg); background:var(--card); color:var(--ink); box-shadow:var(--shadow-card); font:var(--text-body); line-height:1.5; text-align:left; }
+.app-panel::backdrop { background:color-mix(in srgb,var(--ink) 16%,transparent); }
+.app-panel[open] { animation:app-panel-in var(--dur-quick) var(--ease); }
+.app-panel .app-panel-head { display:flex; align-items:center; justify-content:space-between; gap:var(--space-16); margin:0 0 var(--space-12); padding:0; }
+.app-panel .app-panel-title { margin:0; font:var(--text-title); color:var(--ink); text-wrap:balance; }
+.app-panel [data-app-close] { display:grid; place-items:center; flex:none; width:var(--control-h-sm); height:var(--control-h-sm); padding:0; border:0; border-radius:var(--radius-md); background:var(--well); color:var(--ink); box-shadow:none; cursor:pointer; }
+.app-panel [data-app-close] svg { width:var(--space-24); height:var(--space-24); fill:none; stroke:currentColor; stroke-width:2; }
+.app-panel :is(button,a,input,textarea,select):focus-visible { outline:var(--focus-ring); outline-offset:var(--focus-offset); }
+.app-panel .app-panel-body { min-width:0; }
+/* Old popup wrappers are now just the body of the shared floating layer. */
+.app-panel-body > :is(.bk-help-body,.practice-info-card,.ks-extra-content,.pke-panel,.qrpop-card,.pk-standings,.room-members,.chhist,.bs-help>div,.bs-view>div) { position:static!important; inset:auto!important; width:auto!important; max-width:none!important; max-height:none; margin:0; padding:0; transform:none!important; border:0; border-radius:0; background:transparent; box-shadow:none; }
+.app-panel-body p { margin:0 0 var(--space-12); }
+.app-panel-body p:last-child { margin-bottom:0; }
+.app-panel-body textarea { box-sizing:border-box; width:100%; max-width:100%; }
+.app-panel-body .bk-actions { height:auto!important; min-height:0!important; }
+.app-panel-body :is(.bk-row-confirm,.bk-row-offer) { position:static!important; padding:0!important; border:0!important; box-shadow:none!important; background:transparent!important; }
+.app-panel-body .bk-ask { position:static!important; clip-path:none!important; width:auto!important; height:auto!important; display:block!important; }
+.app-panel.app-panel.is-sheet { left:0; right:0; bottom:0; top:auto; width:100%; max-height:85dvh; padding:var(--space-16) max(var(--space-16),env(safe-area-inset-right)) max(var(--space-24),env(safe-area-inset-bottom)) max(var(--space-16),env(safe-area-inset-left)); border-radius:var(--radius-xl) var(--radius-xl) 0 0; animation-name:app-sheet-in; }
+.app-docked.app-docked > summary { cursor:default; }
+.app-docked.app-docked > .app-panel { display:block; position:static; width:100%; max-height:none; border:0; border-radius:0; margin:0; padding:var(--space-12) 0; box-shadow:none; background:transparent; animation:none; }
+.app-docked > .app-panel > .app-panel-head { display:none; }
+@keyframes app-panel-in { from { opacity:0; transform:translateY(var(--space-4)); } to { opacity:1; transform:none; } }
+@keyframes app-sheet-in { from { opacity:0; transform:translateY(var(--space-24)); } to { opacity:1; transform:none; } }
+@media(hover:hover) { .app-panel [data-app-close]:hover { background:var(--line); } }
+.app-panel [data-app-close]:active { transform:scale(.96); }
+@media(prefers-reduced-motion:reduce) { .app-panel[open] { animation:none; } }
+.sr-game-picker > .app-panel { width:min(720px,calc(100vw - var(--space-32))); }
+.app-panel-body > :is(.pk-helpbody,.pk-standpanel) { position:static!important; inset:auto!important; width:auto!important; max-width:none!important; max-height:none; transform:none!important; border:0; border-radius:0; background:transparent; box-shadow:none; }
+/* Legacy open-state chrome must not resize or relocate the launcher. */
+.partystrip .room-manage.app-disclosure { flex:0 0 auto; border:0; padding:0; }
+.specwhy.app-disclosure { flex:0 0 auto; }
+#gbody .cc-intel.app-disclosure { padding-block:0; }
+#gbody .cc-intel.app-disclosure > summary { display:flex; }
+:is(#gbody,#play) .cr-rules.app-disclosure { position:relative; inset:auto; max-width:none; max-height:none; overflow:visible; padding:0; border:0; border-radius:0; background:transparent; box-shadow:none; }
+:is(#gbody,#play) .cr-rules.app-disclosure > summary { width:auto; padding:0 var(--space-12); margin:0; font:var(--text-button-sm); }
+.app-panel-body > pre { max-width:100%; overflow:auto; }
+@media(max-width:759px) and (min-height:501px),(max-width:559px) {
+ :is(#gbody,#play) .cr-rules.app-disclosure { position:absolute; top:0; right:0; }
+}
+@media(max-width:599px) { .partystrip .room-manage.app-disclosure { flex-basis:100%; } }
+:is(#gbody,#play) .cr-rules.app-disclosure > summary::before { content:none; }
+#gbody .cc-castle > h3 { cursor:default; }

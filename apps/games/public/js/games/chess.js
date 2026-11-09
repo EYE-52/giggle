@@ -55,8 +55,8 @@ let pendingMove = false, pendingTimer = 0, moveRetry = false, settledEffect = nu
 
 function reduced() { return typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches; }
 // Warm all twelve sprites once, so a slow phone never shows an empty board while pieces load.
-const spriteCache = typeof Image === 'function' ? [...'wb'].flatMap(c => [...'pnbrqk'].map(t => { const img = new Image(); img.src = `/assets/boards/chess/${c}${t}.webp`; img.decode?.().catch(() => {}); return img; })) : [];
-function sprite(side, type, extra = '') { return `<img class="ch-piece ${extra}" src="/assets/boards/chess/${side}${type}.webp" width="256" height="256" alt="" draggable="false" aria-hidden="true">`; }
+const spriteCache = typeof Image === 'function' ? [...'wb'].flatMap(c => [...'pnbrqk'].map(t => { const img = new Image(); img.src = `/assets/boards/chess/${c}${t}.svg`; img.decode?.().catch(() => {}); return img; })) : [];
+function sprite(side, type, extra = '') { return `<img class="ch-piece ${extra}" src="/assets/boards/chess/${side}${type}.svg" width="256" height="256" alt="" draggable="false" aria-hidden="true">`; }
 function captureTray(S, side) {
   const remaining = {p:8,n:2,b:2,r:2,q:1,k:1};
   for (const [i, san] of (S.history || []).entries()) {
@@ -316,7 +316,7 @@ export default {
     const host = bkHost(api);
     const histOpen = root.querySelector('.chhist-wrap')?.open === true;
     const helpOpen = root.querySelector('.bk-help')?.open === true;
-    const histHtml = `<details class="chhist-wrap"${histOpen ? ' open' : ''}><summary>Moves & captures${hist.length ? ` · ${Math.ceil(hist.length / 2)}` : ''}</summary><div class="ch-capture-rail"><div><small>Taken from Black</small>${captureTray(shownForCaptures,'b')}</div><div><small>Taken from White</small>${captureTray(shownForCaptures,'w')}</div></div><div class="chhist" id="ch-hist" aria-label="Move history" tabindex="0">${movesHtml || '<span class="muted">No moves yet.</span>'}</div></details>`;
+    const histHtml = `<details class="chhist-wrap"${histOpen ? ' open' : ''}><summary><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 6h12M8 12h12M8 18h12M3 6h.01M3 12h.01M3 18h.01"/></svg><span>Moves & captures${hist.length ? ` · ${Math.ceil(hist.length / 2)}` : ''}</span></summary><div class="ch-capture-rail"><div><small>Taken from Black</small>${captureTray(shownForCaptures,'b')}</div><div><small>Taken from White</small>${captureTray(shownForCaptures,'w')}</div></div><div class="chhist" id="ch-hist" aria-label="Move history" tabindex="0">${movesHtml || '<span class="muted">No moves yet.</span>'}</div></details>`;
     const extra = histHtml;
     moveTimerInfo = bkTimer(S, api);
     const final = done ? {
@@ -334,6 +334,7 @@ export default {
       players: ['b', 'w'].map(side => ({
         name: nameOf(S, side === 'w' ? S.white : S.black), side: side === 'w' ? 'White' : 'Black', color: side === 'w' ? '#bdb49b' : '#41444d',
         chip: `<span class="ch-chip">${sprite(side, 'p')}</span>`,
+        captures: capturedCount(shownForCaptures, side === 'w' ? 'b' : 'w') ? captureTray(shownForCaptures, side === 'w' ? 'b' : 'w') : '',
         stat: capturedCount(shownForCaptures, side === 'w' ? 'b' : 'w'), statLabel: 'captures',
         clock: S.clocks ? fmtClock(S.clocks[side]) : null, statId: S.clocks ? `ch-clock-${side}` : null,
         turn: S.phase === 'play' && S.turn === side && !moveMotion, you: S.youAre === side && !S.spectator,
@@ -348,6 +349,7 @@ export default {
     const boardHtml = `<div class="bk-stage chboard-col ${turnCls}"${final?.headline ? ` data-bk-result="${esc(final.headline)}"` : ''}><div class="ch-frame"><div class="chboard" role="group" aria-label="Chess board">${squares}</div></div>${promoHtml}</div>`;
     for (const cls of ['theme-mono', 'theme-harbor', 'theme-fern']) root.classList.toggle(cls, cls === themeCls);
     root.innerHTML = boardHtml + panelHtml;
+    root.setAttribute?.('data-board-flipped', String(flipped));
 
     // Listeners are re-wired per snapshot: drop the previous snapshot's
     // tracked listeners first (their nodes are discarded with innerHTML, but

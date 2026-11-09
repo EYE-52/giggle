@@ -306,7 +306,7 @@
 #gbody .pl-live .party-more, #gbody .pl-live .wg-more { margin: 0; padding: 0; border: 0; }
 #gbody .pl-live :is(.party-more, .wg-more) > summary { min-height: var(--control-h-sm); padding: 0 var(--space-12); }
 #gbody .pl-live :is(.party-more, .wg-more) > summary::after { content: none; }
-#gbody .pl-live :is(.party-more, .wg-more)[open] > :not(summary) {
+#gbody .pl-live :is(.party-more, .wg-more)[open] > :not(summary):not(.app-panel) {
   position: absolute; z-index: 3; left: 0; right: 0; bottom: calc(100% + var(--space-8)); margin: 0;
   padding: var(--space-16); background: var(--card); color: var(--ink);
   border: var(--outline-w) solid var(--outline); border-radius: var(--radius-lg); box-shadow: var(--shadow-card);

@@ -2458,9 +2458,9 @@ function renderRoomMembers() {
  * cumulative awards and host controls out of the game's live objective. */
 function gameRoomMenu(g, context, floating = false) {
   return `<details class="room-menu${floating ? ' room-menu-floating' : ''}" id="roomMenu">
-    <summary aria-label="Room controls"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16M4 12h16M4 19h16"/></svg><span>${EMBED.enabled ? 'Squad' : 'Room'}</span></summary>
+    <summary aria-label="Room controls" aria-haspopup="dialog" aria-expanded="false" aria-controls="roomMenuPanel"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16M4 12h16M4 19h16"/></svg><span>${EMBED.enabled ? 'Squad' : 'Room'}</span></summary>
     <button type="button" class="room-menu-scrim" id="bRoomScrim" tabindex="-1" aria-label="Close room menu"></button>
-    <div class="room-menu-panel" role="dialog" aria-modal="true" aria-labelledby="roomMenuTitle">
+    <div class="room-menu-panel" id="roomMenuPanel" role="dialog" aria-modal="true" aria-labelledby="roomMenuTitle">
       <div class="room-menu-head"><span class="room-menu-kicker">${EMBED.enabled ? 'YOUR SQUAD' : `ROOM ${esc(room?.code || '')}`}</span><button type="button" class="room-close" id="bRoomClose" aria-label="Close room menu">×</button></div>
       <h2 id="roomMenuTitle">${esc(gameName(gameId))}</h2>
       <p id="gContext">${context}</p>
@@ -2544,6 +2544,7 @@ function wireGameRoom() {
     if (b) b.onclick = () => { menu.open = false; menu.querySelector('summary')?.focus({ preventScroll: true }); };
   }
   if (menu) menu.addEventListener('toggle', () => {
+    menu.querySelector('summary')?.setAttribute('aria-expanded', String(menu.open));
     if (menu.open && !isHowtoOpen()) menu.querySelector('#bRoomResume')?.focus({ preventScroll: true });
     else if (menuConfirm) { menuConfirm = null; paintMenuConfirm(); }
   });

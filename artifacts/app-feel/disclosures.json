@@ -1,0 +1,1002 @@
+[
+  {
+    "file": "public/fixtures/castle-blocks.html",
+    "line": 1,
+    "cls": "room-menu",
+    "label": "Room",
+    "replacement": "Existing fixed room layer, now anchored on desktop and bottom sheet on phones",
+    "retired": false
+  },
+  {
+    "file": "public/games/backronyms/index.html",
+    "line": 52,
+    "cls": "gp-rules",
+    "label": "All rules",
+    "replacement": "Shared native dialog: anchored popover at 600px+, bottom sheet below 600px",
+    "retired": false
+  },
+  {
+    "file": "public/games/ballpark/index.html",
+    "line": 52,
+    "cls": "gp-rules",
+    "label": "All rules",
+    "replacement": "Shared native dialog: anchored popover at 600px+, bottom sheet below 600px",
+    "retired": false
+  },
+  {
+    "file": "public/games/banned-words/index.html",
+    "line": 54,
+    "cls": "gp-rules",
+    "label": "All rules",
+    "replacement": "Shared native dialog: anchored popover at 600px+, bottom sheet below 600px",
+    "retired": false
+  },
+  {
+    "file": "public/games/block-stack/index.html",
+    "line": 57,
+    "cls": "gp-rules",
+    "label": "All rules",
+    "replacement": "Shared native dialog: anchored popover at 600px+, bottom sheet below 600px",
+    "retired": false
+  },
+  {
+    "file": "public/games/bluff/index.html",
+    "line": 57,
+    "cls": "gp-rules",
+    "label": "All rules",
+    "replacement": "Shared native dialog: anchored popover at 600px+, bottom sheet below 600px",
+    "retired": false
+  },
+  {
+    "file": "public/games/chain-reaction/index.html",
+    "line": 58,
+    "cls": "gp-rules",
+    "label": "All rules",
+    "replacement": "Shared native dialog: anchored popover at 600px+, bottom sheet below 600px",
+    "retired": false
+  },
+  {
+    "file": "public/games/charades/index.html",
+    "line": 57,
+    "cls": "gp-rules",
+    "label": "All rules",
+    "replacement": "Shared native dialog: anchored popover at 600px+, bottom sheet below 600px",
+    "retired": false
+  },
+  {
+    "file": "public/games/checkers/index.html",
+    "line": 58,
+    "cls": "gp-rules",
+    "label": "All rules",
+    "replacement": "Shared native dialog: anchored popover at 600px+, bottom sheet below 600px",
+    "retired": false
+  },
+  {
+    "file": "public/games/chess/index.html",
+    "line": 59,
+    "cls": "gp-rules",
+    "label": "All rules",
+    "replacement": "Shared native dialog: anchored popover at 600px+, bottom sheet below 600px",
+    "retired": false
+  },
+  {
+    "file": "public/games/clue-grid/index.html",
+    "line": 54,
+    "cls": "gp-rules",
+    "label": "All rules",
+    "replacement": "Shared native dialog: anchored popover at 600px+, bottom sheet below 600px",
+    "retired": false
+  },
+  {
+    "file": "public/games/color-clash/index.html",
+    "line": 53,
+    "cls": "gp-rules",
+    "label": "All rules",
+    "replacement": "Shared native dialog: anchored popover at 600px+, bottom sheet below 600px",
+    "retired": false
+  },
+  {
+    "file": "public/games/compliment-battle/index.html",
+    "line": 53,
+    "cls": "gp-rules",
+    "label": "All rules",
+    "replacement": "Shared native dialog: anchored popover at 600px+, bottom sheet below 600px",
+    "retired": false
+  },
+  {
+    "file": "public/games/countdown-word/index.html",
+    "line": 57,
+    "cls": "gp-rules",
+    "label": "All rules",
+    "replacement": "Shared native dialog: anchored popover at 600px+, bottom sheet below 600px",
+    "retired": false
+  },
+  {
+    "file": "public/games/dare-roulette/index.html",
+    "line": 54,
+    "cls": "gp-rules",
+    "label": "All rules",
+    "replacement": "Shared native dialog: anchored popover at 600px+, bottom sheet below 600px",
+    "retired": false
+  },
+  {
+    "file": "public/games/dial-in/index.html",
+    "line": 52,
+    "cls": "gp-rules",
+    "label": "All rules",
+    "replacement": "Shared native dialog: anchored popover at 600px+, bottom sheet below 600px",
+    "retired": false
+  },
+  {
+    "file": "public/games/dice-fibs/index.html",
+    "line": 53,
+    "cls": "gp-rules",
+    "label": "All rules",
+    "replacement": "Shared native dialog: anchored popover at 600px+, bottom sheet below 600px",
+    "retired": false
+  },
+  {
+    "file": "public/games/doodle-guess/index.html",
+    "line": 60,
+    "cls": "gp-rules",
+    "label": "All rules",
+    "replacement": "Shared native dialog: anchored popover at 600px+, bottom sheet below 600px",
+    "retired": false
+  },
+  {
+    "file": "public/games/dots-boxes/index.html",
+    "line": 55,
+    "cls": "gp-rules",
+    "label": "All rules",
+    "replacement": "Shared native dialog: anchored popover at 600px+, bottom sheet below 600px",
+    "retired": false
+  },
+  {
+    "file": "public/games/draw-off/index.html",
+    "line": 54,
+    "cls": "gp-rules",
+    "label": "All rules",
+    "replacement": "Shared native dialog: anchored popover at 600px+, bottom sheet below 600px",
+    "retired": false
+  },
+  {
+    "file": "public/games/draw-phone/index.html",
+    "line": 58,
+    "cls": "gp-rules",
+    "label": "All rules",
+    "replacement": "Shared native dialog: anchored popover at 600px+, bottom sheet below 600px",
+    "retired": false
+  },
+  {
+    "file": "public/games/echo-pads/index.html",
+    "line": 52,
+    "cls": "gp-rules",
+    "label": "All rules",
+    "replacement": "Shared native dialog: anchored popover at 600px+, bottom sheet below 600px",
+    "retired": false
+  },
+  {
+    "file": "public/games/emoji-spotter/index.html",
+    "line": 52,
+    "cls": "gp-rules",
+    "label": "All rules",
+    "replacement": "Shared native dialog: anchored popover at 600px+, bottom sheet below 600px",
+    "retired": false
+  },
+  {
+    "file": "public/games/emoji-story/index.html",
+    "line": 56,
+    "cls": "gp-rules",
+    "label": "All rules",
+    "replacement": "Shared native dialog: anchored popover at 600px+, bottom sheet below 600px",
+    "retired": false
+  },
+  {
+    "file": "public/games/five-row/index.html",
+    "line": 55,
+    "cls": "gp-rules",
+    "label": "All rules",
+    "replacement": "Shared native dialog: anchored popover at 600px+, bottom sheet below 600px",
+    "retired": false
+  },
+  {
+    "file": "public/games/five-second/index.html",
+    "line": 55,
+    "cls": "gp-rules",
+    "label": "All rules",
+    "replacement": "Shared native dialog: anchored popover at 600px+, bottom sheet below 600px",
+    "retired": false
+  },
+  {
+    "file": "public/games/fleet-duel/index.html",
+    "line": 58,
+    "cls": "gp-rules",
+    "label": "All rules",
+    "replacement": "Shared native dialog: anchored popover at 600px+, bottom sheet below 600px",
+    "retired": false
+  },
+  {
+    "file": "public/games/four-in-a-row/index.html",
+    "line": 57,
+    "cls": "gp-rules",
+    "label": "All rules",
+    "replacement": "Shared native dialog: anchored popover at 600px+, bottom sheet below 600px",
+    "retired": false
+  },
+  {
+    "file": "public/games/funny-answer/index.html",
+    "line": 56,
+    "cls": "gp-rules",
+    "label": "All rules",
+    "replacement": "Shared native dialog: anchored popover at 600px+, bottom sheet below 600px",
+    "retired": false
+  },
+  {
+    "file": "public/games/hot-potato/index.html",
+    "line": 53,
+    "cls": "gp-rules",
+    "label": "All rules",
+    "replacement": "Shared native dialog: anchored popover at 600px+, bottom sheet below 600px",
+    "retired": false
+  },
+  {
+    "file": "public/games/hot-takes/index.html",
+    "line": 54,
+    "cls": "gp-rules",
+    "label": "All rules",
+    "replacement": "Shared native dialog: anchored popover at 600px+, bottom sheet below 600px",
+    "retired": false
+  },
+  {
+    "file": "public/games/kalah/index.html",
+    "line": 58,
+    "cls": "gp-rules",
+    "label": "All rules",
+    "replacement": "Shared native dialog: anchored popover at 600px+, bottom sheet below 600px",
+    "retired": false
+  },
+  {
+    "file": "public/games/know-me/index.html",
+    "line": 52,
+    "cls": "gp-rules",
+    "label": "All rules",
+    "replacement": "Shared native dialog: anchored popover at 600px+, bottom sheet below 600px",
+    "retired": false
+  },
+  {
+    "file": "public/games/letter-lock/index.html",
+    "line": 53,
+    "cls": "gp-rules",
+    "label": "All rules",
+    "replacement": "Shared native dialog: anchored popover at 600px+, bottom sheet below 600px",
+    "retired": false
+  },
+  {
+    "file": "public/games/ludo/index.html",
+    "line": 57,
+    "cls": "gp-rules",
+    "label": "All rules",
+    "replacement": "Shared native dialog: anchored popover at 600px+, bottom sheet below 600px",
+    "retired": false
+  },
+  {
+    "file": "public/games/lyric-fill/index.html",
+    "line": 55,
+    "cls": "gp-rules",
+    "label": "All rules",
+    "replacement": "Shared native dialog: anchored popover at 600px+, bottom sheet below 600px",
+    "retired": false
+  },
+  {
+    "file": "public/games/math-dash/index.html",
+    "line": 53,
+    "cls": "gp-rules",
+    "label": "All rules",
+    "replacement": "Shared native dialog: anchored popover at 600px+, bottom sheet below 600px",
+    "retired": false
+  },
+  {
+    "file": "public/games/mega-tic-tac-toe/index.html",
+    "line": 55,
+    "cls": "gp-rules",
+    "label": "All rules",
+    "replacement": "Shared native dialog: anchored popover at 600px+, bottom sheet below 600px",
+    "retired": false
+  },
+  {
+    "file": "public/games/memory-tray/index.html",
+    "line": 53,
+    "cls": "gp-rules",
+    "label": "All rules",
+    "replacement": "Shared native dialog: anchored popover at 600px+, bottom sheet below 600px",
+    "retired": false
+  },
+  {
+    "file": "public/games/moonlit-village/index.html",
+    "line": 53,
+    "cls": "gp-rules",
+    "label": "All rules",
+    "replacement": "Shared native dialog: anchored popover at 600px+, bottom sheet below 600px",
+    "retired": false
+  },
+  {
+    "file": "public/games/most-likely/index.html",
+    "line": 53,
+    "cls": "gp-rules",
+    "label": "All rules",
+    "replacement": "Shared native dialog: anchored popover at 600px+, bottom sheet below 600px",
+    "retired": false
+  },
+  {
+    "file": "public/games/never-ever/index.html",
+    "line": 53,
+    "cls": "gp-rules",
+    "label": "All rules",
+    "replacement": "Shared native dialog: anchored popover at 600px+, bottom sheet below 600px",
+    "retired": false
+  },
+  {
+    "file": "public/games/number-hunt/index.html",
+    "line": 55,
+    "cls": "gp-rules",
+    "label": "All rules",
+    "replacement": "Shared native dialog: anchored popover at 600px+, bottom sheet below 600px",
+    "retired": false
+  },
+  {
+    "file": "public/games/odd-one-out/index.html",
+    "line": 53,
+    "cls": "gp-rules",
+    "label": "All rules",
+    "replacement": "Shared native dialog: anchored popover at 600px+, bottom sheet below 600px",
+    "retired": false
+  },
+  {
+    "file": "public/games/penalty-kicks/index.html",
+    "line": 55,
+    "cls": "gp-rules",
+    "label": "All rules",
+    "replacement": "Shared native dialog: anchored popover at 600px+, bottom sheet below 600px",
+    "retired": false
+  },
+  {
+    "file": "public/games/pick-one/index.html",
+    "line": 53,
+    "cls": "gp-rules",
+    "label": "All rules",
+    "replacement": "Shared native dialog: anchored popover at 600px+, bottom sheet below 600px",
+    "retired": false
+  },
+  {
+    "file": "public/games/pig-dice/index.html",
+    "line": 55,
+    "cls": "gp-rules",
+    "label": "All rules",
+    "replacement": "Shared native dialog: anchored popover at 600px+, bottom sheet below 600px",
+    "retired": false
+  },
+  {
+    "file": "public/games/pocket-karts/index.html",
+    "line": 61,
+    "cls": "gp-rules",
+    "label": "All rules",
+    "replacement": "Shared native dialog: anchored popover at 600px+, bottom sheet below 600px",
+    "retired": false
+  },
+  {
+    "file": "public/games/pose-party/index.html",
+    "line": 55,
+    "cls": "gp-rules",
+    "label": "All rules",
+    "replacement": "Shared native dialog: anchored popover at 600px+, bottom sheet below 600px",
+    "retired": false
+  },
+  {
+    "file": "public/games/rank-it/index.html",
+    "line": 56,
+    "cls": "gp-rules",
+    "label": "All rules",
+    "replacement": "Shared native dialog: anchored popover at 600px+, bottom sheet below 600px",
+    "retired": false
+  },
+  {
+    "file": "public/games/rapid-polls/index.html",
+    "line": 53,
+    "cls": "gp-rules",
+    "label": "All rules",
+    "replacement": "Shared native dialog: anchored popover at 600px+, bottom sheet below 600px",
+    "retired": false
+  },
+  {
+    "file": "public/games/reaction-tap/index.html",
+    "line": 57,
+    "cls": "gp-rules",
+    "label": "All rules",
+    "replacement": "Shared native dialog: anchored popover at 600px+, bottom sheet below 600px",
+    "retired": false
+  },
+  {
+    "file": "public/games/read-my-lips/index.html",
+    "line": 54,
+    "cls": "gp-rules",
+    "label": "All rules",
+    "replacement": "Shared native dialog: anchored popover at 600px+, bottom sheet below 600px",
+    "retired": false
+  },
+  {
+    "file": "public/games/reversi/index.html",
+    "line": 57,
+    "cls": "gp-rules",
+    "label": "All rules",
+    "replacement": "Shared native dialog: anchored popover at 600px+, bottom sheet below 600px",
+    "retired": false
+  },
+  {
+    "file": "public/games/roast-toast/index.html",
+    "line": 54,
+    "cls": "gp-rules",
+    "label": "All rules",
+    "replacement": "Shared native dialog: anchored popover at 600px+, bottom sheet below 600px",
+    "retired": false
+  },
+  {
+    "file": "public/games/scattergories/index.html",
+    "line": 56,
+    "cls": "gp-rules",
+    "label": "All rules",
+    "replacement": "Shared native dialog: anchored popover at 600px+, bottom sheet below 600px",
+    "retired": false
+  },
+  {
+    "file": "public/games/show-and-go/index.html",
+    "line": 55,
+    "cls": "gp-rules",
+    "label": "All rules",
+    "replacement": "Shared native dialog: anchored popover at 600px+, bottom sheet below 600px",
+    "retired": false
+  },
+  {
+    "file": "public/games/sketchy-impostor/index.html",
+    "line": 54,
+    "cls": "gp-rules",
+    "label": "All rules",
+    "replacement": "Shared native dialog: anchored popover at 600px+, bottom sheet below 600px",
+    "retired": false
+  },
+  {
+    "file": "public/games/snakes-ladders/index.html",
+    "line": 55,
+    "cls": "gp-rules",
+    "label": "All rules",
+    "replacement": "Shared native dialog: anchored popover at 600px+, bottom sheet below 600px",
+    "retired": false
+  },
+  {
+    "file": "public/games/story-builder/index.html",
+    "line": 56,
+    "cls": "gp-rules",
+    "label": "All rules",
+    "replacement": "Shared native dialog: anchored popover at 600px+, bottom sheet below 600px",
+    "retired": false
+  },
+  {
+    "file": "public/games/think-alike/index.html",
+    "line": 52,
+    "cls": "gp-rules",
+    "label": "All rules",
+    "replacement": "Shared native dialog: anchored popover at 600px+, bottom sheet below 600px",
+    "retired": false
+  },
+  {
+    "file": "public/games/trivia/index.html",
+    "line": 52,
+    "cls": "gp-rules",
+    "label": "All rules",
+    "replacement": "Shared native dialog: anchored popover at 600px+, bottom sheet below 600px",
+    "retired": false
+  },
+  {
+    "file": "public/games/truth-dare/index.html",
+    "line": 54,
+    "cls": "gp-rules",
+    "label": "All rules",
+    "replacement": "Shared native dialog: anchored popover at 600px+, bottom sheet below 600px",
+    "retired": false
+  },
+  {
+    "file": "public/games/twenty-questions/index.html",
+    "line": 57,
+    "cls": "gp-rules",
+    "label": "All rules",
+    "replacement": "Shared native dialog: anchored popover at 600px+, bottom sheet below 600px",
+    "retired": false
+  },
+  {
+    "file": "public/games/two-truths/index.html",
+    "line": 57,
+    "cls": "gp-rules",
+    "label": "All rules",
+    "replacement": "Shared native dialog: anchored popover at 600px+, bottom sheet below 600px",
+    "retired": false
+  },
+  {
+    "file": "public/games/typing-race/index.html",
+    "line": 55,
+    "cls": "gp-rules",
+    "label": "All rules",
+    "replacement": "Shared native dialog: anchored popover at 600px+, bottom sheet below 600px",
+    "retired": false
+  },
+  {
+    "file": "public/games/undercover/index.html",
+    "line": 52,
+    "cls": "gp-rules",
+    "label": "All rules",
+    "replacement": "Shared native dialog: anchored popover at 600px+, bottom sheet below 600px",
+    "retired": false
+  },
+  {
+    "file": "public/games/warm-words/index.html",
+    "line": 55,
+    "cls": "gp-rules",
+    "label": "All rules",
+    "replacement": "Shared native dialog: anchored popover at 600px+, bottom sheet below 600px",
+    "retired": false
+  },
+  {
+    "file": "public/games/whisper/index.html",
+    "line": 52,
+    "cls": "gp-rules",
+    "label": "All rules",
+    "replacement": "Shared native dialog: anchored popover at 600px+, bottom sheet below 600px",
+    "retired": false
+  },
+  {
+    "file": "public/games/who-wrote/index.html",
+    "line": 52,
+    "cls": "gp-rules",
+    "label": "All rules",
+    "replacement": "Shared native dialog: anchored popover at 600px+, bottom sheet below 600px",
+    "retired": false
+  },
+  {
+    "file": "public/games/word-chain/index.html",
+    "line": 57,
+    "cls": "gp-rules",
+    "label": "All rules",
+    "replacement": "Shared native dialog: anchored popover at 600px+, bottom sheet below 600px",
+    "retired": false
+  },
+  {
+    "file": "public/games/word-grid/index.html",
+    "line": 53,
+    "cls": "gp-rules",
+    "label": "All rules",
+    "replacement": "Shared native dialog: anchored popover at 600px+, bottom sheet below 600px",
+    "retired": false
+  },
+  {
+    "file": "public/games/would-you-rather/index.html",
+    "line": 53,
+    "cls": "gp-rules",
+    "label": "All rules",
+    "replacement": "Shared native dialog: anchored popover at 600px+, bottom sheet below 600px",
+    "retired": false
+  },
+  {
+    "file": "public/js/app.js",
+    "line": 1926,
+    "cls": "sharefold qrpop",
+    "label": "QR code",
+    "replacement": "Shared native dialog: anchored popover at 600px+, bottom sheet below 600px",
+    "retired": false
+  },
+  {
+    "file": "public/js/app.js",
+    "line": 1945,
+    "cls": "room-manage",
+    "label": "Manage players",
+    "replacement": "Shared native dialog: anchored popover at 600px+, bottom sheet below 600px",
+    "retired": false
+  },
+  {
+    "file": "public/js/app.js",
+    "line": 2460,
+    "cls": "room-menu${floating ? ' room-menu-floating' : ''}",
+    "label": "Room controls",
+    "replacement": "Existing fixed room layer, now anchored on desktop and bottom sheet on phones",
+    "retired": false
+  },
+  {
+    "file": "public/js/app.js",
+    "line": 2697,
+    "cls": "specwhy",
+    "label": "Why?",
+    "replacement": "Shared native dialog: anchored popover at 600px+, bottom sheet below 600px",
+    "retired": false
+  },
+  {
+    "file": "public/js/customize.js",
+    "line": 348,
+    "cls": "ks-extra gm-fold",
+    "label": "Saved setups on this device",
+    "replacement": "Shared native dialog: anchored popover at 600px+, bottom sheet below 600px",
+    "retired": false
+  },
+  {
+    "file": "public/js/engines/kart-elevated-view.js",
+    "line": 654,
+    "cls": "pke-menu",
+    "label": "Game menu",
+    "replacement": "Shared native dialog: anchored popover at 600px+, bottom sheet below 600px",
+    "retired": false
+  },
+  {
+    "file": "public/js/engines/kart-runtime.mjs",
+    "line": 191,
+    "cls": "pk-board",
+    "label": "Leaderboard standings, expand for full timing",
+    "replacement": "Shared native dialog: anchored popover at 600px+, bottom sheet below 600px",
+    "retired": false
+  },
+  {
+    "file": "public/js/engines/kart-runtime.mjs",
+    "line": 205,
+    "cls": "pk-help",
+    "label": "Driving controls help",
+    "replacement": "Shared native dialog: anchored popover at 600px+, bottom sheet below 600px",
+    "retired": false
+  },
+  {
+    "file": "public/js/engines/kart-runtime.mjs",
+    "line": 300,
+    "cls": "pke-menu",
+    "label": "Game menu",
+    "replacement": "Shared native dialog: anchored popover at 600px+, bottom sheet below 600px",
+    "retired": false
+  },
+  {
+    "file": "public/js/engines/kart-view.js",
+    "line": 600,
+    "cls": "pk-board",
+    "label": "Leaderboard standings, expand for full timing",
+    "replacement": "Shared native dialog: anchored popover at 600px+, bottom sheet below 600px",
+    "retired": false
+  },
+  {
+    "file": "public/js/engines/kart-view.js",
+    "line": 614,
+    "cls": "pk-help",
+    "label": "Driving controls help",
+    "replacement": "Shared native dialog: anchored popover at 600px+, bottom sheet below 600px",
+    "retired": false
+  },
+  {
+    "file": "public/js/games/board-kit.js",
+    "line": 58,
+    "cls": "bk-help",
+    "label": "How to play",
+    "replacement": "Shared native dialog: anchored popover at 600px+, bottom sheet below 600px",
+    "retired": false
+  },
+  {
+    "file": "public/js/games/board-kit.js",
+    "line": 58,
+    "cls": "bk-match",
+    "label": "Match actions",
+    "replacement": "Shared native dialog: anchored popover at 600px+, bottom sheet below 600px",
+    "retired": false
+  },
+  {
+    "file": "public/js/games/board-kit.js",
+    "line": 334,
+    "cls": "bk-help",
+    "label": "How to play",
+    "replacement": "Shared native dialog: anchored popover at 600px+, bottom sheet below 600px",
+    "retired": false
+  },
+  {
+    "file": "public/js/games/board-kit.js",
+    "line": 334,
+    "cls": "bk-match",
+    "label": "Match actions",
+    "replacement": "Shared native dialog: anchored popover at 600px+, bottom sheet below 600px",
+    "retired": false
+  },
+  {
+    "file": "public/js/games/castle-clash-2d.js",
+    "line": 372,
+    "cls": "cc-intel",
+    "label": "Teams &amp; Core defenses",
+    "replacement": "Shared native dialog: anchored popover at 600px+, bottom sheet below 600px",
+    "retired": false
+  },
+  {
+    "file": "public/js/games/castle-clash-2d.js",
+    "line": 388,
+    "cls": "cc-rules",
+    "label": "Core defense &amp; scoring",
+    "replacement": "Shared native dialog: anchored popover at 600px+, bottom sheet below 600px",
+    "retired": false
+  },
+  {
+    "file": "public/js/games/castle-clash.js",
+    "line": 108,
+    "cls": "bs-view",
+    "label": "Camera controls",
+    "replacement": "Shared native dialog: anchored popover at 600px+, bottom sheet below 600px",
+    "retired": false
+  },
+  {
+    "file": "public/js/games/castle-clash.js",
+    "line": 109,
+    "cls": "bs-help",
+    "label": "Help",
+    "replacement": "Shared native dialog: anchored popover at 600px+, bottom sheet below 600px",
+    "retired": false
+  },
+  {
+    "file": "public/js/games/chain-reaction.js",
+    "line": 853,
+    "cls": "cr-rules",
+    "label": "Help",
+    "replacement": "Shared native dialog: anchored popover at 600px+, bottom sheet below 600px",
+    "retired": false
+  },
+  {
+    "file": "public/js/games/chess.js",
+    "line": 319,
+    "cls": "chhist-wrap",
+    "label": "Moves & captures(count)` : ''}",
+    "replacement": "Docked move panel at 1000px+, floating sheet below 600px, popover between",
+    "retired": false
+  },
+  {
+    "file": "public/js/games/countdown-word.js",
+    "line": 197,
+    "cls": "wg-more cw-rules",
+    "label": "Rules",
+    "replacement": "Shared native dialog: anchored popover at 600px+, bottom sheet below 600px",
+    "retired": false
+  },
+  {
+    "file": "public/js/games/fleet-duel.js",
+    "line": 93,
+    "cls": "fl-ships-menu",
+    "label": "Ships",
+    "replacement": "Shared native dialog: anchored popover at 600px+, bottom sheet below 600px",
+    "retired": false
+  },
+  {
+    "file": "public/js/games/hot-takes.js",
+    "line": 133,
+    "cls": "party-more",
+    "label": "Scoring",
+    "replacement": "Shared native dialog: anchored popover at 600px+, bottom sheet below 600px",
+    "retired": false
+  },
+  {
+    "file": "public/js/games/letter-lock.js",
+    "line": 72,
+    "cls": "wp-detail ll-others",
+    "label": "wp-detail ll-others",
+    "replacement": "Shared native dialog: anchored popover at 600px+, bottom sheet below 600px",
+    "retired": false
+  },
+  {
+    "file": "public/js/games/most-likely.js",
+    "line": 98,
+    "cls": "party-more",
+    "label": "Scoring",
+    "replacement": "Shared native dialog: anchored popover at 600px+, bottom sheet below 600px",
+    "retired": false
+  },
+  {
+    "file": "public/js/games/never-ever.js",
+    "line": 60,
+    "cls": "party-more",
+    "label": "Scoring",
+    "replacement": "Shared native dialog: anchored popover at 600px+, bottom sheet below 600px",
+    "retired": false
+  },
+  {
+    "file": "public/js/games/pick-one.js",
+    "line": 75,
+    "cls": "party-more",
+    "label": "Scoring",
+    "replacement": "Shared native dialog: anchored popover at 600px+, bottom sheet below 600px",
+    "retired": false
+  },
+  {
+    "file": "public/js/games/rank-it.js",
+    "line": 187,
+    "cls": "party-more rank-points",
+    "label": "Round points",
+    "replacement": "Shared native dialog: anchored popover at 600px+, bottom sheet below 600px",
+    "retired": false
+  },
+  {
+    "file": "public/js/games/rapid-polls.js",
+    "line": 219,
+    "cls": "rp-extra",
+    "label": "+Add answers C and D",
+    "replacement": "Shared native dialog: anchored popover at 600px+, bottom sheet below 600px",
+    "retired": false
+  },
+  {
+    "file": "public/js/games/scattergories.js",
+    "line": 88,
+    "cls": "wg-more sg-cat",
+    "label": "(count)",
+    "replacement": "Shared native dialog: anchored popover at 600px+, bottom sheet below 600px",
+    "retired": false
+  },
+  {
+    "file": "public/js/games/scattergories.js",
+    "line": 140,
+    "cls": "wg-more sc-rules",
+    "label": "Rules",
+    "replacement": "Shared native dialog: anchored popover at 600px+, bottom sheet below 600px",
+    "retired": false
+  },
+  {
+    "file": "public/js/games/trivia.js",
+    "line": 149,
+    "cls": "wg-more",
+    "label": "Scoring",
+    "replacement": "Shared native dialog: anchored popover at 600px+, bottom sheet below 600px",
+    "retired": false
+  },
+  {
+    "file": "public/js/games/twenty-questions.js",
+    "line": 167,
+    "cls": "tq-hints",
+    "label": "Letter hints",
+    "replacement": "Shared native dialog: anchored popover at 600px+, bottom sheet below 600px",
+    "retired": false
+  },
+  {
+    "file": "public/js/games/two-truths.js",
+    "line": 115,
+    "cls": "tt-idea truths-idea",
+    "label": "Need an idea?",
+    "replacement": "Shared native dialog: anchored popover at 600px+, bottom sheet below 600px",
+    "retired": false
+  },
+  {
+    "file": "public/js/games/warm-words.js",
+    "line": 164,
+    "cls": "wg-more ww-rules",
+    "label": "Rules",
+    "replacement": "Shared native dialog: anchored popover at 600px+, bottom sheet below 600px",
+    "retired": false
+  },
+  {
+    "file": "public/js/games/word-chain.js",
+    "line": 77,
+    "cls": "wg-more wc-archive",
+    "label": "(count)",
+    "replacement": "Shared native dialog: anchored popover at 600px+, bottom sheet below 600px",
+    "retired": false
+  },
+  {
+    "file": "public/js/games/word-chain.js",
+    "line": 159,
+    "cls": "wg-more wc-archive",
+    "label": "(count)",
+    "replacement": "Shared native dialog: anchored popover at 600px+, bottom sheet below 600px",
+    "retired": false
+  },
+  {
+    "file": "public/js/games/word-chain.js",
+    "line": 160,
+    "cls": "wg-more wc-help",
+    "label": "Rules",
+    "replacement": "Shared native dialog: anchored popover at 600px+, bottom sheet below 600px",
+    "retired": false
+  },
+  {
+    "file": "public/js/games/word-grid.js",
+    "line": 147,
+    "cls": "wp-detail wg3-words",
+    "label": "wp-detail wg3-words",
+    "replacement": "Shared native dialog: anchored popover at 600px+, bottom sheet below 600px",
+    "retired": false
+  },
+  {
+    "file": "public/js/games/would-you-rather.js",
+    "line": 45,
+    "cls": "party-more",
+    "label": "Scoring",
+    "replacement": "Shared native dialog: anchored popover at 600px+, bottom sheet below 600px",
+    "retired": false
+  },
+  {
+    "file": "public/js/howto.js",
+    "line": 82,
+    "cls": "howto-all",
+    "label": "howto-all",
+    "replacement": "Shared native dialog: anchored popover at 600px+, bottom sheet below 600px",
+    "retired": false
+  },
+  {
+    "file": "public/js/kart-setup.js",
+    "line": 101,
+    "cls": "ks-extra",
+    "label": "Lighting",
+    "replacement": "Shared native dialog: anchored popover at 600px+, bottom sheet below 600px",
+    "retired": false
+  },
+  {
+    "file": "public/js/report-inbox.js",
+    "line": 32,
+    "cls": "report-diagnostics",
+    "label": "report-diagnostics",
+    "replacement": "Shared native dialog: anchored popover at 600px+, bottom sheet below 600px",
+    "retired": false
+  },
+  {
+    "file": "public/js/report-issue.js",
+    "line": 39,
+    "cls": "issue-steps",
+    "label": "Add steps to reproduce Optional",
+    "replacement": "Shared native dialog: anchored popover at 600px+, bottom sheet below 600px",
+    "retired": false
+  },
+  {
+    "file": "public/js/report-issue.js",
+    "line": 41,
+    "cls": "issue-diagnostics",
+    "label": "Run diagnostics",
+    "replacement": "Shared native dialog: anchored popover at 600px+, bottom sheet below 600px",
+    "retired": false
+  },
+  {
+    "file": "public/js/same-room.js",
+    "line": 69,
+    "cls": "sr-game-picker",
+    "label": "Choose a game",
+    "replacement": "Game chooser popover / bottom sheet; full catalogue scrolls inside the panel",
+    "retired": false
+  },
+  {
+    "file": "public/practice/index.html",
+    "line": 40,
+    "cls": "practice-info",
+    "label": "About practice",
+    "replacement": "Shared native dialog: anchored popover at 600px+, bottom sheet below 600px",
+    "retired": false
+  },
+  {
+    "file": "games/castle-clash/home/index.html",
+    "line": 357,
+    "cls": "fold",
+    "label": "Build menu shared bricks, own half only",
+    "replacement": "Retired source: Castle Clash is excluded by registry.js and this page is not exported or served",
+    "retired": true
+  },
+  {
+    "file": "games/castle-clash/home/index.html",
+    "line": 372,
+    "cls": "fold",
+    "label": "Siege weapons tap a foe to fire",
+    "replacement": "Retired source: Castle Clash is excluded by registry.js and this page is not exported or served",
+    "retired": true
+  },
+  {
+    "file": "games/castle-clash/home/index.html",
+    "line": 386,
+    "cls": "fold",
+    "label": "House rules host controls",
+    "replacement": "Retired source: Castle Clash is excluded by registry.js and this page is not exported or served",
+    "retired": true
+  },
+  {
+    "file": "scripts/build-game-pages.js",
+    "line": 132,
+    "cls": "gp-rules",
+    "label": "All rules",
+    "replacement": "Shared native dialog: anchored popover at 600px+, bottom sheet below 600px",
+    "retired": false
+  }
+]

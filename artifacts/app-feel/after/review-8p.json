@@ -1,0 +1,1834 @@
+{
+  "baselineRef": "6e91b6b626ce350538f19ff6154d34f229678cc6",
+  "cases": [
+    {
+      "game": "snakes-ladders",
+      "width": 1440,
+      "height": 900,
+      "theme": "day",
+      "embed": false,
+      "viewport": [
+        1440,
+        900
+      ],
+      "stage": {
+        "x": 240,
+        "y": 120,
+        "w": 656,
+        "h": 656,
+        "bottom": 776,
+        "right": 896
+      },
+      "tools": {
+        "x": 240,
+        "y": 848,
+        "w": 656,
+        "h": 44,
+        "bottom": 892,
+        "right": 896
+      },
+      "status": {
+        "x": 240,
+        "y": 792,
+        "w": 656,
+        "h": 48,
+        "bottom": 840,
+        "right": 896
+      },
+      "extra": {
+        "x": 920,
+        "y": 64,
+        "w": 280,
+        "h": 828,
+        "bottom": 892,
+        "right": 1200
+      },
+      "players": [
+        {
+          "y": 64,
+          "bottom": 112
+        },
+        {
+          "y": 64,
+          "bottom": 112
+        },
+        {
+          "y": 64,
+          "bottom": 112
+        },
+        {
+          "y": 64,
+          "bottom": 112
+        },
+        {
+          "y": 64,
+          "bottom": 112
+        },
+        {
+          "y": 64,
+          "bottom": 112
+        }
+      ],
+      "unhandled": [],
+      "scrollWidth": 1440,
+      "scrollHeight": 900
+    },
+    {
+      "game": "snakes-ladders",
+      "width": 1440,
+      "height": 900,
+      "theme": "night",
+      "embed": false,
+      "viewport": [
+        1440,
+        900
+      ],
+      "stage": {
+        "x": 240,
+        "y": 120,
+        "w": 656,
+        "h": 656,
+        "bottom": 776,
+        "right": 896
+      },
+      "tools": {
+        "x": 240,
+        "y": 848,
+        "w": 656,
+        "h": 44,
+        "bottom": 892,
+        "right": 896
+      },
+      "status": {
+        "x": 240,
+        "y": 792,
+        "w": 656,
+        "h": 48,
+        "bottom": 840,
+        "right": 896
+      },
+      "extra": {
+        "x": 920,
+        "y": 64,
+        "w": 280,
+        "h": 828,
+        "bottom": 892,
+        "right": 1200
+      },
+      "players": [
+        {
+          "y": 64,
+          "bottom": 112
+        },
+        {
+          "y": 64,
+          "bottom": 112
+        },
+        {
+          "y": 64,
+          "bottom": 112
+        },
+        {
+          "y": 64,
+          "bottom": 112
+        },
+        {
+          "y": 64,
+          "bottom": 112
+        },
+        {
+          "y": 64,
+          "bottom": 112
+        }
+      ],
+      "unhandled": [],
+      "scrollWidth": 1440,
+      "scrollHeight": 900
+    },
+    {
+      "game": "snakes-ladders",
+      "width": 1024,
+      "height": 768,
+      "theme": "day",
+      "embed": false,
+      "viewport": [
+        1024,
+        768
+      ],
+      "stage": {
+        "x": 98,
+        "y": 120,
+        "w": 524,
+        "h": 524,
+        "bottom": 644,
+        "right": 622
+      },
+      "tools": {
+        "x": 98,
+        "y": 716,
+        "w": 524,
+        "h": 44,
+        "bottom": 760,
+        "right": 622
+      },
+      "status": {
+        "x": 98,
+        "y": 660,
+        "w": 524,
+        "h": 48,
+        "bottom": 708,
+        "right": 622
+      },
+      "extra": {
+        "x": 646,
+        "y": 64,
+        "w": 280,
+        "h": 696,
+        "bottom": 760,
+        "right": 926
+      },
+      "players": [
+        {
+          "y": 64,
+          "bottom": 112
+        },
+        {
+          "y": 64,
+          "bottom": 112
+        },
+        {
+          "y": 64,
+          "bottom": 112
+        },
+        {
+          "y": 64,
+          "bottom": 112
+        },
+        {
+          "y": 64,
+          "bottom": 112
+        },
+        {
+          "y": 64,
+          "bottom": 112
+        }
+      ],
+      "unhandled": [],
+      "scrollWidth": 1024,
+      "scrollHeight": 768
+    },
+    {
+      "game": "snakes-ladders",
+      "width": 1024,
+      "height": 768,
+      "theme": "night",
+      "embed": false,
+      "viewport": [
+        1024,
+        768
+      ],
+      "stage": {
+        "x": 98,
+        "y": 120,
+        "w": 524,
+        "h": 524,
+        "bottom": 644,
+        "right": 622
+      },
+      "tools": {
+        "x": 98,
+        "y": 716,
+        "w": 524,
+        "h": 44,
+        "bottom": 760,
+        "right": 622
+      },
+      "status": {
+        "x": 98,
+        "y": 660,
+        "w": 524,
+        "h": 48,
+        "bottom": 708,
+        "right": 622
+      },
+      "extra": {
+        "x": 646,
+        "y": 64,
+        "w": 280,
+        "h": 696,
+        "bottom": 760,
+        "right": 926
+      },
+      "players": [
+        {
+          "y": 64,
+          "bottom": 112
+        },
+        {
+          "y": 64,
+          "bottom": 112
+        },
+        {
+          "y": 64,
+          "bottom": 112
+        },
+        {
+          "y": 64,
+          "bottom": 112
+        },
+        {
+          "y": 64,
+          "bottom": 112
+        },
+        {
+          "y": 64,
+          "bottom": 112
+        }
+      ],
+      "unhandled": [],
+      "scrollWidth": 1024,
+      "scrollHeight": 768
+    },
+    {
+      "game": "snakes-ladders",
+      "width": 768,
+      "height": 1024,
+      "theme": "day",
+      "embed": false,
+      "viewport": [
+        768,
+        1024
+      ],
+      "stage": {
+        "x": 42,
+        "y": 120,
+        "w": 684,
+        "h": 684,
+        "bottom": 804,
+        "right": 726
+      },
+      "tools": {
+        "x": 42,
+        "y": 972,
+        "w": 684,
+        "h": 44,
+        "bottom": 1016,
+        "right": 726
+      },
+      "status": {
+        "x": 42,
+        "y": 820,
+        "w": 684,
+        "h": 48,
+        "bottom": 868,
+        "right": 726
+      },
+      "extra": {
+        "x": 42,
+        "y": 876,
+        "w": 684,
+        "h": 90.1875,
+        "bottom": 966.1875,
+        "right": 726
+      },
+      "players": [
+        {
+          "y": 64,
+          "bottom": 112
+        },
+        {
+          "y": 64,
+          "bottom": 112
+        },
+        {
+          "y": 64,
+          "bottom": 112
+        },
+        {
+          "y": 64,
+          "bottom": 112
+        },
+        {
+          "y": 64,
+          "bottom": 112
+        },
+        {
+          "y": 64,
+          "bottom": 112
+        }
+      ],
+      "unhandled": [],
+      "scrollWidth": 768,
+      "scrollHeight": 1024
+    },
+    {
+      "game": "snakes-ladders",
+      "width": 768,
+      "height": 1024,
+      "theme": "night",
+      "embed": false,
+      "viewport": [
+        768,
+        1024
+      ],
+      "stage": {
+        "x": 42,
+        "y": 120,
+        "w": 684,
+        "h": 684,
+        "bottom": 804,
+        "right": 726
+      },
+      "tools": {
+        "x": 42,
+        "y": 972,
+        "w": 684,
+        "h": 44,
+        "bottom": 1016,
+        "right": 726
+      },
+      "status": {
+        "x": 42,
+        "y": 820,
+        "w": 684,
+        "h": 48,
+        "bottom": 868,
+        "right": 726
+      },
+      "extra": {
+        "x": 42,
+        "y": 876,
+        "w": 684,
+        "h": 90.1875,
+        "bottom": 966.1875,
+        "right": 726
+      },
+      "players": [
+        {
+          "y": 64,
+          "bottom": 112
+        },
+        {
+          "y": 64,
+          "bottom": 112
+        },
+        {
+          "y": 64,
+          "bottom": 112
+        },
+        {
+          "y": 64,
+          "bottom": 112
+        },
+        {
+          "y": 64,
+          "bottom": 112
+        },
+        {
+          "y": 64,
+          "bottom": 112
+        }
+      ],
+      "unhandled": [],
+      "scrollWidth": 768,
+      "scrollHeight": 1024
+    },
+    {
+      "game": "snakes-ladders",
+      "width": 390,
+      "height": 844,
+      "theme": "day",
+      "embed": false,
+      "viewport": [
+        390,
+        844
+      ],
+      "stage": {
+        "x": 16,
+        "y": 120,
+        "w": 358,
+        "h": 358,
+        "bottom": 478,
+        "right": 374
+      },
+      "tools": {
+        "x": 16,
+        "y": 646,
+        "w": 358,
+        "h": 44,
+        "bottom": 690,
+        "right": 374
+      },
+      "status": {
+        "x": 16,
+        "y": 494,
+        "w": 358,
+        "h": 48,
+        "bottom": 542,
+        "right": 374
+      },
+      "extra": {
+        "x": 16,
+        "y": 550,
+        "w": 358,
+        "h": 86.1875,
+        "bottom": 636.1875,
+        "right": 374
+      },
+      "players": [
+        {
+          "y": 64,
+          "bottom": 112
+        },
+        {
+          "y": 64,
+          "bottom": 112
+        },
+        {
+          "y": 64,
+          "bottom": 112
+        },
+        {
+          "y": 64,
+          "bottom": 112
+        },
+        {
+          "y": 64,
+          "bottom": 112
+        },
+        {
+          "y": 64,
+          "bottom": 112
+        }
+      ],
+      "unhandled": [],
+      "scrollWidth": 390,
+      "scrollHeight": 844
+    },
+    {
+      "game": "snakes-ladders",
+      "width": 390,
+      "height": 844,
+      "theme": "night",
+      "embed": false,
+      "viewport": [
+        390,
+        844
+      ],
+      "stage": {
+        "x": 16,
+        "y": 120,
+        "w": 358,
+        "h": 358,
+        "bottom": 478,
+        "right": 374
+      },
+      "tools": {
+        "x": 16,
+        "y": 646,
+        "w": 358,
+        "h": 44,
+        "bottom": 690,
+        "right": 374
+      },
+      "status": {
+        "x": 16,
+        "y": 494,
+        "w": 358,
+        "h": 48,
+        "bottom": 542,
+        "right": 374
+      },
+      "extra": {
+        "x": 16,
+        "y": 550,
+        "w": 358,
+        "h": 86.1875,
+        "bottom": 636.1875,
+        "right": 374
+      },
+      "players": [
+        {
+          "y": 64,
+          "bottom": 112
+        },
+        {
+          "y": 64,
+          "bottom": 112
+        },
+        {
+          "y": 64,
+          "bottom": 112
+        },
+        {
+          "y": 64,
+          "bottom": 112
+        },
+        {
+          "y": 64,
+          "bottom": 112
+        },
+        {
+          "y": 64,
+          "bottom": 112
+        }
+      ],
+      "unhandled": [],
+      "scrollWidth": 390,
+      "scrollHeight": 844
+    },
+    {
+      "game": "snakes-ladders",
+      "width": 420,
+      "height": 700,
+      "theme": "day",
+      "embed": true,
+      "viewport": [
+        420,
+        700
+      ],
+      "stage": {
+        "x": 30,
+        "y": 120,
+        "w": 360,
+        "h": 360,
+        "bottom": 480,
+        "right": 390
+      },
+      "tools": {
+        "x": 30,
+        "y": 648,
+        "w": 360,
+        "h": 44,
+        "bottom": 692,
+        "right": 390
+      },
+      "status": {
+        "x": 30,
+        "y": 496,
+        "w": 360,
+        "h": 48,
+        "bottom": 544,
+        "right": 390
+      },
+      "extra": {
+        "x": 30,
+        "y": 552,
+        "w": 360,
+        "h": 86.1875,
+        "bottom": 638.1875,
+        "right": 390
+      },
+      "players": [
+        {
+          "y": 64,
+          "bottom": 112
+        },
+        {
+          "y": 64,
+          "bottom": 112
+        },
+        {
+          "y": 64,
+          "bottom": 112
+        },
+        {
+          "y": 64,
+          "bottom": 112
+        },
+        {
+          "y": 64,
+          "bottom": 112
+        },
+        {
+          "y": 64,
+          "bottom": 112
+        }
+      ],
+      "unhandled": [],
+      "scrollWidth": 420,
+      "scrollHeight": 700
+    },
+    {
+      "game": "snakes-ladders",
+      "width": 420,
+      "height": 700,
+      "theme": "night",
+      "embed": true,
+      "viewport": [
+        420,
+        700
+      ],
+      "stage": {
+        "x": 30,
+        "y": 120,
+        "w": 360,
+        "h": 360,
+        "bottom": 480,
+        "right": 390
+      },
+      "tools": {
+        "x": 30,
+        "y": 648,
+        "w": 360,
+        "h": 44,
+        "bottom": 692,
+        "right": 390
+      },
+      "status": {
+        "x": 30,
+        "y": 496,
+        "w": 360,
+        "h": 48,
+        "bottom": 544,
+        "right": 390
+      },
+      "extra": {
+        "x": 30,
+        "y": 552,
+        "w": 360,
+        "h": 86.1875,
+        "bottom": 638.1875,
+        "right": 390
+      },
+      "players": [
+        {
+          "y": 64,
+          "bottom": 112
+        },
+        {
+          "y": 64,
+          "bottom": 112
+        },
+        {
+          "y": 64,
+          "bottom": 112
+        },
+        {
+          "y": 64,
+          "bottom": 112
+        },
+        {
+          "y": 64,
+          "bottom": 112
+        },
+        {
+          "y": 64,
+          "bottom": 112
+        }
+      ],
+      "unhandled": [],
+      "scrollWidth": 420,
+      "scrollHeight": 700
+    },
+    {
+      "game": "snakes-ladders",
+      "width": 560,
+      "height": 760,
+      "theme": "day",
+      "embed": true,
+      "viewport": [
+        560,
+        760
+      ],
+      "stage": {
+        "x": 70,
+        "y": 120,
+        "w": 420,
+        "h": 420,
+        "bottom": 540,
+        "right": 490
+      },
+      "tools": {
+        "x": 70,
+        "y": 708,
+        "w": 420,
+        "h": 44,
+        "bottom": 752,
+        "right": 490
+      },
+      "status": {
+        "x": 70,
+        "y": 556,
+        "w": 420,
+        "h": 48,
+        "bottom": 604,
+        "right": 490
+      },
+      "extra": {
+        "x": 70,
+        "y": 612,
+        "w": 420,
+        "h": 86.1875,
+        "bottom": 698.1875,
+        "right": 490
+      },
+      "players": [
+        {
+          "y": 64,
+          "bottom": 112
+        },
+        {
+          "y": 64,
+          "bottom": 112
+        },
+        {
+          "y": 64,
+          "bottom": 112
+        },
+        {
+          "y": 64,
+          "bottom": 112
+        },
+        {
+          "y": 64,
+          "bottom": 112
+        },
+        {
+          "y": 64,
+          "bottom": 112
+        }
+      ],
+      "unhandled": [],
+      "scrollWidth": 560,
+      "scrollHeight": 760
+    },
+    {
+      "game": "snakes-ladders",
+      "width": 560,
+      "height": 760,
+      "theme": "night",
+      "embed": true,
+      "viewport": [
+        560,
+        760
+      ],
+      "stage": {
+        "x": 70,
+        "y": 120,
+        "w": 420,
+        "h": 420,
+        "bottom": 540,
+        "right": 490
+      },
+      "tools": {
+        "x": 70,
+        "y": 708,
+        "w": 420,
+        "h": 44,
+        "bottom": 752,
+        "right": 490
+      },
+      "status": {
+        "x": 70,
+        "y": 556,
+        "w": 420,
+        "h": 48,
+        "bottom": 604,
+        "right": 490
+      },
+      "extra": {
+        "x": 70,
+        "y": 612,
+        "w": 420,
+        "h": 86.1875,
+        "bottom": 698.1875,
+        "right": 490
+      },
+      "players": [
+        {
+          "y": 64,
+          "bottom": 112
+        },
+        {
+          "y": 64,
+          "bottom": 112
+        },
+        {
+          "y": 64,
+          "bottom": 112
+        },
+        {
+          "y": 64,
+          "bottom": 112
+        },
+        {
+          "y": 64,
+          "bottom": 112
+        },
+        {
+          "y": 64,
+          "bottom": 112
+        }
+      ],
+      "unhandled": [],
+      "scrollWidth": 560,
+      "scrollHeight": 760
+    },
+    {
+      "game": "pig-dice",
+      "width": 1440,
+      "height": 900,
+      "theme": "day",
+      "embed": false,
+      "viewport": [
+        1440,
+        900
+      ],
+      "stage": {
+        "x": 305.59375,
+        "y": 120,
+        "w": 524.796875,
+        "h": 656,
+        "bottom": 776,
+        "right": 830.390625
+      },
+      "tools": {
+        "x": 305.59375,
+        "y": 848,
+        "w": 524.796875,
+        "h": 44,
+        "bottom": 892,
+        "right": 830.390625
+      },
+      "status": {
+        "x": 305.59375,
+        "y": 792,
+        "w": 524.796875,
+        "h": 48,
+        "bottom": 840,
+        "right": 830.390625
+      },
+      "extra": {
+        "x": 0,
+        "y": 0,
+        "w": 0,
+        "h": 0,
+        "bottom": 0,
+        "right": 0
+      },
+      "players": [
+        {
+          "y": 64,
+          "bottom": 112
+        },
+        {
+          "y": 64,
+          "bottom": 112
+        },
+        {
+          "y": 64,
+          "bottom": 112
+        },
+        {
+          "y": 64,
+          "bottom": 112
+        },
+        {
+          "y": 64,
+          "bottom": 112
+        },
+        {
+          "y": 64,
+          "bottom": 112
+        },
+        {
+          "y": 64,
+          "bottom": 112
+        },
+        {
+          "y": 64,
+          "bottom": 112
+        }
+      ],
+      "unhandled": [],
+      "scrollWidth": 1440,
+      "scrollHeight": 900
+    },
+    {
+      "game": "pig-dice",
+      "width": 1440,
+      "height": 900,
+      "theme": "night",
+      "embed": false,
+      "viewport": [
+        1440,
+        900
+      ],
+      "stage": {
+        "x": 305.59375,
+        "y": 120,
+        "w": 524.796875,
+        "h": 656,
+        "bottom": 776,
+        "right": 830.390625
+      },
+      "tools": {
+        "x": 305.59375,
+        "y": 848,
+        "w": 524.796875,
+        "h": 44,
+        "bottom": 892,
+        "right": 830.390625
+      },
+      "status": {
+        "x": 305.59375,
+        "y": 792,
+        "w": 524.796875,
+        "h": 48,
+        "bottom": 840,
+        "right": 830.390625
+      },
+      "extra": {
+        "x": 0,
+        "y": 0,
+        "w": 0,
+        "h": 0,
+        "bottom": 0,
+        "right": 0
+      },
+      "players": [
+        {
+          "y": 64,
+          "bottom": 112
+        },
+        {
+          "y": 64,
+          "bottom": 112
+        },
+        {
+          "y": 64,
+          "bottom": 112
+        },
+        {
+          "y": 64,
+          "bottom": 112
+        },
+        {
+          "y": 64,
+          "bottom": 112
+        },
+        {
+          "y": 64,
+          "bottom": 112
+        },
+        {
+          "y": 64,
+          "bottom": 112
+        },
+        {
+          "y": 64,
+          "bottom": 112
+        }
+      ],
+      "unhandled": [],
+      "scrollWidth": 1440,
+      "scrollHeight": 900
+    },
+    {
+      "game": "pig-dice",
+      "width": 1024,
+      "height": 768,
+      "theme": "day",
+      "embed": false,
+      "viewport": [
+        1024,
+        768
+      ],
+      "stage": {
+        "x": 150.40625,
+        "y": 120,
+        "w": 419.1875,
+        "h": 524,
+        "bottom": 644,
+        "right": 569.59375
+      },
+      "tools": {
+        "x": 150.40625,
+        "y": 716,
+        "w": 419.1875,
+        "h": 44,
+        "bottom": 760,
+        "right": 569.59375
+      },
+      "status": {
+        "x": 150.40625,
+        "y": 660,
+        "w": 419.1875,
+        "h": 48,
+        "bottom": 708,
+        "right": 569.59375
+      },
+      "extra": {
+        "x": 0,
+        "y": 0,
+        "w": 0,
+        "h": 0,
+        "bottom": 0,
+        "right": 0
+      },
+      "players": [
+        {
+          "y": 64,
+          "bottom": 112
+        },
+        {
+          "y": 64,
+          "bottom": 112
+        },
+        {
+          "y": 64,
+          "bottom": 112
+        },
+        {
+          "y": 64,
+          "bottom": 112
+        },
+        {
+          "y": 64,
+          "bottom": 112
+        },
+        {
+          "y": 64,
+          "bottom": 112
+        },
+        {
+          "y": 64,
+          "bottom": 112
+        },
+        {
+          "y": 64,
+          "bottom": 112
+        }
+      ],
+      "unhandled": [],
+      "scrollWidth": 1024,
+      "scrollHeight": 768
+    },
+    {
+      "game": "pig-dice",
+      "width": 1024,
+      "height": 768,
+      "theme": "night",
+      "embed": false,
+      "viewport": [
+        1024,
+        768
+      ],
+      "stage": {
+        "x": 150.40625,
+        "y": 120,
+        "w": 419.1875,
+        "h": 524,
+        "bottom": 644,
+        "right": 569.59375
+      },
+      "tools": {
+        "x": 150.40625,
+        "y": 716,
+        "w": 419.1875,
+        "h": 44,
+        "bottom": 760,
+        "right": 569.59375
+      },
+      "status": {
+        "x": 150.40625,
+        "y": 660,
+        "w": 419.1875,
+        "h": 48,
+        "bottom": 708,
+        "right": 569.59375
+      },
+      "extra": {
+        "x": 0,
+        "y": 0,
+        "w": 0,
+        "h": 0,
+        "bottom": 0,
+        "right": 0
+      },
+      "players": [
+        {
+          "y": 64,
+          "bottom": 112
+        },
+        {
+          "y": 64,
+          "bottom": 112
+        },
+        {
+          "y": 64,
+          "bottom": 112
+        },
+        {
+          "y": 64,
+          "bottom": 112
+        },
+        {
+          "y": 64,
+          "bottom": 112
+        },
+        {
+          "y": 64,
+          "bottom": 112
+        },
+        {
+          "y": 64,
+          "bottom": 112
+        },
+        {
+          "y": 64,
+          "bottom": 112
+        }
+      ],
+      "unhandled": [],
+      "scrollWidth": 1024,
+      "scrollHeight": 768
+    },
+    {
+      "game": "pig-dice",
+      "width": 768,
+      "height": 1024,
+      "theme": "day",
+      "embed": false,
+      "viewport": [
+        768,
+        1024
+      ],
+      "stage": {
+        "x": 72,
+        "y": 120,
+        "w": 624,
+        "h": 780,
+        "bottom": 900,
+        "right": 696
+      },
+      "tools": {
+        "x": 72,
+        "y": 972,
+        "w": 624,
+        "h": 44,
+        "bottom": 1016,
+        "right": 696
+      },
+      "status": {
+        "x": 72,
+        "y": 916,
+        "w": 624,
+        "h": 48,
+        "bottom": 964,
+        "right": 696
+      },
+      "extra": {
+        "x": 0,
+        "y": 0,
+        "w": 0,
+        "h": 0,
+        "bottom": 0,
+        "right": 0
+      },
+      "players": [
+        {
+          "y": 64,
+          "bottom": 112
+        },
+        {
+          "y": 64,
+          "bottom": 112
+        },
+        {
+          "y": 64,
+          "bottom": 112
+        },
+        {
+          "y": 64,
+          "bottom": 112
+        },
+        {
+          "y": 64,
+          "bottom": 112
+        },
+        {
+          "y": 64,
+          "bottom": 112
+        },
+        {
+          "y": 64,
+          "bottom": 112
+        },
+        {
+          "y": 64,
+          "bottom": 112
+        }
+      ],
+      "unhandled": [],
+      "scrollWidth": 768,
+      "scrollHeight": 1024
+    },
+    {
+      "game": "pig-dice",
+      "width": 768,
+      "height": 1024,
+      "theme": "night",
+      "embed": false,
+      "viewport": [
+        768,
+        1024
+      ],
+      "stage": {
+        "x": 72,
+        "y": 120,
+        "w": 624,
+        "h": 780,
+        "bottom": 900,
+        "right": 696
+      },
+      "tools": {
+        "x": 72,
+        "y": 972,
+        "w": 624,
+        "h": 44,
+        "bottom": 1016,
+        "right": 696
+      },
+      "status": {
+        "x": 72,
+        "y": 916,
+        "w": 624,
+        "h": 48,
+        "bottom": 964,
+        "right": 696
+      },
+      "extra": {
+        "x": 0,
+        "y": 0,
+        "w": 0,
+        "h": 0,
+        "bottom": 0,
+        "right": 0
+      },
+      "players": [
+        {
+          "y": 64,
+          "bottom": 112
+        },
+        {
+          "y": 64,
+          "bottom": 112
+        },
+        {
+          "y": 64,
+          "bottom": 112
+        },
+        {
+          "y": 64,
+          "bottom": 112
+        },
+        {
+          "y": 64,
+          "bottom": 112
+        },
+        {
+          "y": 64,
+          "bottom": 112
+        },
+        {
+          "y": 64,
+          "bottom": 112
+        },
+        {
+          "y": 64,
+          "bottom": 112
+        }
+      ],
+      "unhandled": [],
+      "scrollWidth": 768,
+      "scrollHeight": 1024
+    },
+    {
+      "game": "pig-dice",
+      "width": 390,
+      "height": 844,
+      "theme": "day",
+      "embed": false,
+      "viewport": [
+        390,
+        844
+      ],
+      "stage": {
+        "x": 16,
+        "y": 120,
+        "w": 358,
+        "h": 447.5,
+        "bottom": 567.5,
+        "right": 374
+      },
+      "tools": {
+        "x": 16,
+        "y": 639.5,
+        "w": 358,
+        "h": 44,
+        "bottom": 683.5,
+        "right": 374
+      },
+      "status": {
+        "x": 16,
+        "y": 583.5,
+        "w": 358,
+        "h": 48,
+        "bottom": 631.5,
+        "right": 374
+      },
+      "extra": {
+        "x": 0,
+        "y": 0,
+        "w": 0,
+        "h": 0,
+        "bottom": 0,
+        "right": 0
+      },
+      "players": [
+        {
+          "y": 64,
+          "bottom": 112
+        },
+        {
+          "y": 64,
+          "bottom": 112
+        },
+        {
+          "y": 64,
+          "bottom": 112
+        },
+        {
+          "y": 64,
+          "bottom": 112
+        },
+        {
+          "y": 64,
+          "bottom": 112
+        },
+        {
+          "y": 64,
+          "bottom": 112
+        },
+        {
+          "y": 64,
+          "bottom": 112
+        },
+        {
+          "y": 64,
+          "bottom": 112
+        }
+      ],
+      "unhandled": [],
+      "scrollWidth": 390,
+      "scrollHeight": 844
+    },
+    {
+      "game": "pig-dice",
+      "width": 390,
+      "height": 844,
+      "theme": "night",
+      "embed": false,
+      "viewport": [
+        390,
+        844
+      ],
+      "stage": {
+        "x": 16,
+        "y": 120,
+        "w": 358,
+        "h": 447.5,
+        "bottom": 567.5,
+        "right": 374
+      },
+      "tools": {
+        "x": 16,
+        "y": 639.5,
+        "w": 358,
+        "h": 44,
+        "bottom": 683.5,
+        "right": 374
+      },
+      "status": {
+        "x": 16,
+        "y": 583.5,
+        "w": 358,
+        "h": 48,
+        "bottom": 631.5,
+        "right": 374
+      },
+      "extra": {
+        "x": 0,
+        "y": 0,
+        "w": 0,
+        "h": 0,
+        "bottom": 0,
+        "right": 0
+      },
+      "players": [
+        {
+          "y": 64,
+          "bottom": 112
+        },
+        {
+          "y": 64,
+          "bottom": 112
+        },
+        {
+          "y": 64,
+          "bottom": 112
+        },
+        {
+          "y": 64,
+          "bottom": 112
+        },
+        {
+          "y": 64,
+          "bottom": 112
+        },
+        {
+          "y": 64,
+          "bottom": 112
+        },
+        {
+          "y": 64,
+          "bottom": 112
+        },
+        {
+          "y": 64,
+          "bottom": 112
+        }
+      ],
+      "unhandled": [],
+      "scrollWidth": 390,
+      "scrollHeight": 844
+    },
+    {
+      "game": "pig-dice",
+      "width": 420,
+      "height": 700,
+      "theme": "day",
+      "embed": true,
+      "viewport": [
+        420,
+        700
+      ],
+      "stage": {
+        "x": 27.59375,
+        "y": 120,
+        "w": 364.796875,
+        "h": 456,
+        "bottom": 576,
+        "right": 392.390625
+      },
+      "tools": {
+        "x": 27.59375,
+        "y": 648,
+        "w": 364.796875,
+        "h": 44,
+        "bottom": 692,
+        "right": 392.390625
+      },
+      "status": {
+        "x": 27.59375,
+        "y": 592,
+        "w": 364.796875,
+        "h": 48,
+        "bottom": 640,
+        "right": 392.390625
+      },
+      "extra": {
+        "x": 0,
+        "y": 0,
+        "w": 0,
+        "h": 0,
+        "bottom": 0,
+        "right": 0
+      },
+      "players": [
+        {
+          "y": 64,
+          "bottom": 112
+        },
+        {
+          "y": 64,
+          "bottom": 112
+        },
+        {
+          "y": 64,
+          "bottom": 112
+        },
+        {
+          "y": 64,
+          "bottom": 112
+        },
+        {
+          "y": 64,
+          "bottom": 112
+        },
+        {
+          "y": 64,
+          "bottom": 112
+        },
+        {
+          "y": 64,
+          "bottom": 112
+        },
+        {
+          "y": 64,
+          "bottom": 112
+        }
+      ],
+      "unhandled": [],
+      "scrollWidth": 420,
+      "scrollHeight": 700
+    },
+    {
+      "game": "pig-dice",
+      "width": 420,
+      "height": 700,
+      "theme": "night",
+      "embed": true,
+      "viewport": [
+        420,
+        700
+      ],
+      "stage": {
+        "x": 27.59375,
+        "y": 120,
+        "w": 364.796875,
+        "h": 456,
+        "bottom": 576,
+        "right": 392.390625
+      },
+      "tools": {
+        "x": 27.59375,
+        "y": 648,
+        "w": 364.796875,
+        "h": 44,
+        "bottom": 692,
+        "right": 392.390625
+      },
+      "status": {
+        "x": 27.59375,
+        "y": 592,
+        "w": 364.796875,
+        "h": 48,
+        "bottom": 640,
+        "right": 392.390625
+      },
+      "extra": {
+        "x": 0,
+        "y": 0,
+        "w": 0,
+        "h": 0,
+        "bottom": 0,
+        "right": 0
+      },
+      "players": [
+        {
+          "y": 64,
+          "bottom": 112
+        },
+        {
+          "y": 64,
+          "bottom": 112
+        },
+        {
+          "y": 64,
+          "bottom": 112
+        },
+        {
+          "y": 64,
+          "bottom": 112
+        },
+        {
+          "y": 64,
+          "bottom": 112
+        },
+        {
+          "y": 64,
+          "bottom": 112
+        },
+        {
+          "y": 64,
+          "bottom": 112
+        },
+        {
+          "y": 64,
+          "bottom": 112
+        }
+      ],
+      "unhandled": [],
+      "scrollWidth": 420,
+      "scrollHeight": 700
+    },
+    {
+      "game": "pig-dice",
+      "width": 560,
+      "height": 760,
+      "theme": "day",
+      "embed": true,
+      "viewport": [
+        560,
+        760
+      ],
+      "stage": {
+        "x": 73.59375,
+        "y": 120,
+        "w": 412.796875,
+        "h": 516,
+        "bottom": 636,
+        "right": 486.390625
+      },
+      "tools": {
+        "x": 73.59375,
+        "y": 708,
+        "w": 412.796875,
+        "h": 44,
+        "bottom": 752,
+        "right": 486.390625
+      },
+      "status": {
+        "x": 73.59375,
+        "y": 652,
+        "w": 412.796875,
+        "h": 48,
+        "bottom": 700,
+        "right": 486.390625
+      },
+      "extra": {
+        "x": 0,
+        "y": 0,
+        "w": 0,
+        "h": 0,
+        "bottom": 0,
+        "right": 0
+      },
+      "players": [
+        {
+          "y": 64,
+          "bottom": 112
+        },
+        {
+          "y": 64,
+          "bottom": 112
+        },
+        {
+          "y": 64,
+          "bottom": 112
+        },
+        {
+          "y": 64,
+          "bottom": 112
+        },
+        {
+          "y": 64,
+          "bottom": 112
+        },
+        {
+          "y": 64,
+          "bottom": 112
+        },
+        {
+          "y": 64,
+          "bottom": 112
+        },
+        {
+          "y": 64,
+          "bottom": 112
+        }
+      ],
+      "unhandled": [],
+      "scrollWidth": 560,
+      "scrollHeight": 760
+    },
+    {
+      "game": "pig-dice",
+      "width": 560,
+      "height": 760,
+      "theme": "night",
+      "embed": true,
+      "viewport": [
+        560,
+        760
+      ],
+      "stage": {
+        "x": 73.59375,
+        "y": 120,
+        "w": 412.796875,
+        "h": 516,
+        "bottom": 636,
+        "right": 486.390625
+      },
+      "tools": {
+        "x": 73.59375,
+        "y": 708,
+        "w": 412.796875,
+        "h": 44,
+        "bottom": 752,
+        "right": 486.390625
+      },
+      "status": {
+        "x": 73.59375,
+        "y": 652,
+        "w": 412.796875,
+        "h": 48,
+        "bottom": 700,
+        "right": 486.390625
+      },
+      "extra": {
+        "x": 0,
+        "y": 0,
+        "w": 0,
+        "h": 0,
+        "bottom": 0,
+        "right": 0
+      },
+      "players": [
+        {
+          "y": 64,
+          "bottom": 112
+        },
+        {
+          "y": 64,
+          "bottom": 112
+        },
+        {
+          "y": 64,
+          "bottom": 112
+        },
+        {
+          "y": 64,
+          "bottom": 112
+        },
+        {
+          "y": 64,
+          "bottom": 112
+        },
+        {
+          "y": 64,
+          "bottom": 112
+        },
+        {
+          "y": 64,
+          "bottom": 112
+        },
+        {
+          "y": 64,
+          "bottom": 112
+        }
+      ],
+      "unhandled": [],
+      "scrollWidth": 560,
+      "scrollHeight": 760
+    }
+  ],
+  "errors": [],
+  "interactions": [],
+  "pass": true,
+  "video": "video/eight-players.mp4",
+  "videoPathBase": "artifacts/app-feel"
+}

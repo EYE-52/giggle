@@ -29,7 +29,7 @@ function report(item) {
   card.append(node('div', `${new Date(item.createdAt).toLocaleString()} · ${item.category} · ${item.impact} · v${item.version}`, 'inbox-meta'));
   card.append(node('p', item.description));
   if (item.steps) { card.append(node('strong', 'Steps to repeat'), node('p', item.steps)); }
-  const details = node('details', ''); details.append(node('summary', 'Device and game performance'), node('pre', JSON.stringify(item.context, null, 2)));
+  const details = node('details', '', 'report-diagnostics'); details.id = `report-context-${item.id}`; details.append(node('summary', 'Device and game performance'), node('pre', JSON.stringify(item.context, null, 2)));
   card.append(details, node('div', `Report ${item.id}`, 'inbox-meta'));
   const states = node('div', '', 'inbox-state');
   for (const status of ['new', 'triaged', 'resolved']) {

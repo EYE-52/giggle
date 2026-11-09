@@ -185,6 +185,8 @@ function renderPage(g, publicDir) {
 <link rel="preload" href="/fonts/baloo2-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="/fonts/nunito-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/css/style.css">
+<link rel="stylesheet" href="/css/app-panels.css">
+<script defer src="/js/app-panels.js"></script>
 <link rel="stylesheet" href="/css/game-page.css">
 <script>try{var t=localStorage.getItem('pb_theme');if(t==='night'||t==='dark'||t==='arcade')document.documentElement.dataset.theme='night';}catch(e){}</script>
 </head>

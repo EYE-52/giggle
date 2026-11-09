@@ -1,0 +1,8036 @@
+{
+  "baselineRef": "6e91b6b626ce350538f19ff6154d34f229678cc6",
+  "cases": [
+    {
+      "game": "chess",
+      "width": 1440,
+      "height": 900,
+      "theme": "day",
+      "embed": false,
+      "viewport": [
+        1440,
+        900
+      ],
+      "scrollWidth": 1440,
+      "scrollHeight": 912,
+      "stage": {
+        "x": 178,
+        "y": 124,
+        "w": 756,
+        "h": 756,
+        "bottom": 880,
+        "right": 934
+      },
+      "tools": {
+        "x": 966,
+        "y": 643.640625,
+        "w": 296,
+        "h": 44,
+        "bottom": 687.640625,
+        "right": 1262
+      },
+      "status": {
+        "x": 966,
+        "y": 479.640625,
+        "w": 296,
+        "h": 96,
+        "bottom": 575.640625,
+        "right": 1262
+      },
+      "extra": {
+        "x": 966,
+        "y": 587.640625,
+        "w": 296,
+        "h": 44,
+        "bottom": 631.640625,
+        "right": 1262
+      },
+      "players": [
+        {
+          "y": 331.640625,
+          "bottom": 395.640625
+        },
+        {
+          "y": 403.640625,
+          "bottom": 467.640625
+        }
+      ],
+      "unhandled": [
+        "chhist-wrap",
+        "bk-help"
+      ]
+    },
+    {
+      "game": "chess",
+      "width": 1440,
+      "height": 900,
+      "theme": "night",
+      "embed": false,
+      "viewport": [
+        1440,
+        900
+      ],
+      "scrollWidth": 1440,
+      "scrollHeight": 912,
+      "stage": {
+        "x": 178,
+        "y": 124,
+        "w": 756,
+        "h": 756,
+        "bottom": 880,
+        "right": 934
+      },
+      "tools": {
+        "x": 966,
+        "y": 643.640625,
+        "w": 296,
+        "h": 44,
+        "bottom": 687.640625,
+        "right": 1262
+      },
+      "status": {
+        "x": 966,
+        "y": 479.640625,
+        "w": 296,
+        "h": 96,
+        "bottom": 575.640625,
+        "right": 1262
+      },
+      "extra": {
+        "x": 966,
+        "y": 587.640625,
+        "w": 296,
+        "h": 44,
+        "bottom": 631.640625,
+        "right": 1262
+      },
+      "players": [
+        {
+          "y": 331.640625,
+          "bottom": 395.640625
+        },
+        {
+          "y": 403.640625,
+          "bottom": 467.640625
+        }
+      ],
+      "unhandled": [
+        "chhist-wrap",
+        "bk-help"
+      ]
+    },
+    {
+      "game": "chess",
+      "width": 1024,
+      "height": 768,
+      "theme": "day",
+      "embed": false,
+      "viewport": [
+        1024,
+        768
+      ],
+      "scrollWidth": 1024,
+      "scrollHeight": 780,
+      "stage": {
+        "x": 36,
+        "y": 124,
+        "w": 624,
+        "h": 624,
+        "bottom": 748,
+        "right": 660
+      },
+      "tools": {
+        "x": 692,
+        "y": 576.921875,
+        "w": 296,
+        "h": 44,
+        "bottom": 620.921875,
+        "right": 988
+      },
+      "status": {
+        "x": 692,
+        "y": 412.921875,
+        "w": 296,
+        "h": 96,
+        "bottom": 508.921875,
+        "right": 988
+      },
+      "extra": {
+        "x": 692,
+        "y": 520.921875,
+        "w": 296,
+        "h": 44,
+        "bottom": 564.921875,
+        "right": 988
+      },
+      "players": [
+        {
+          "y": 264.921875,
+          "bottom": 328.921875
+        },
+        {
+          "y": 336.921875,
+          "bottom": 400.921875
+        }
+      ],
+      "unhandled": [
+        "chhist-wrap",
+        "bk-help"
+      ]
+    },
+    {
+      "game": "chess",
+      "width": 1024,
+      "height": 768,
+      "theme": "night",
+      "embed": false,
+      "viewport": [
+        1024,
+        768
+      ],
+      "scrollWidth": 1024,
+      "scrollHeight": 780,
+      "stage": {
+        "x": 36,
+        "y": 124,
+        "w": 624,
+        "h": 624,
+        "bottom": 748,
+        "right": 660
+      },
+      "tools": {
+        "x": 692,
+        "y": 576.921875,
+        "w": 296,
+        "h": 44,
+        "bottom": 620.921875,
+        "right": 988
+      },
+      "status": {
+        "x": 692,
+        "y": 412.921875,
+        "w": 296,
+        "h": 96,
+        "bottom": 508.921875,
+        "right": 988
+      },
+      "extra": {
+        "x": 692,
+        "y": 520.921875,
+        "w": 296,
+        "h": 44,
+        "bottom": 564.921875,
+        "right": 988
+      },
+      "players": [
+        {
+          "y": 264.921875,
+          "bottom": 328.921875
+        },
+        {
+          "y": 336.921875,
+          "bottom": 400.921875
+        }
+      ],
+      "unhandled": [
+        "chhist-wrap",
+        "bk-help"
+      ]
+    },
+    {
+      "game": "chess",
+      "width": 768,
+      "height": 1024,
+      "theme": "day",
+      "embed": false,
+      "viewport": [
+        768,
+        1024
+      ],
+      "scrollWidth": 768,
+      "scrollHeight": 1036,
+      "stage": {
+        "x": 20,
+        "y": 364,
+        "w": 400,
+        "h": 400,
+        "bottom": 764,
+        "right": 420
+      },
+      "tools": {
+        "x": 452,
+        "y": 701.03125,
+        "w": 296,
+        "h": 44,
+        "bottom": 745.03125,
+        "right": 748
+      },
+      "status": {
+        "x": 452,
+        "y": 537.03125,
+        "w": 296,
+        "h": 96,
+        "bottom": 633.03125,
+        "right": 748
+      },
+      "extra": {
+        "x": 452,
+        "y": 645.03125,
+        "w": 296,
+        "h": 44,
+        "bottom": 689.03125,
+        "right": 748
+      },
+      "players": [
+        {
+          "y": 389.03125,
+          "bottom": 453.03125
+        },
+        {
+          "y": 461.03125,
+          "bottom": 525.03125
+        }
+      ],
+      "unhandled": [
+        "chhist-wrap",
+        "bk-help"
+      ]
+    },
+    {
+      "game": "chess",
+      "width": 768,
+      "height": 1024,
+      "theme": "night",
+      "embed": false,
+      "viewport": [
+        768,
+        1024
+      ],
+      "scrollWidth": 768,
+      "scrollHeight": 1036,
+      "stage": {
+        "x": 20,
+        "y": 364,
+        "w": 400,
+        "h": 400,
+        "bottom": 764,
+        "right": 420
+      },
+      "tools": {
+        "x": 452,
+        "y": 701.03125,
+        "w": 296,
+        "h": 44,
+        "bottom": 745.03125,
+        "right": 748
+      },
+      "status": {
+        "x": 452,
+        "y": 537.03125,
+        "w": 296,
+        "h": 96,
+        "bottom": 633.03125,
+        "right": 748
+      },
+      "extra": {
+        "x": 452,
+        "y": 645.03125,
+        "w": 296,
+        "h": 44,
+        "bottom": 689.03125,
+        "right": 748
+      },
+      "players": [
+        {
+          "y": 389.03125,
+          "bottom": 453.03125
+        },
+        {
+          "y": 461.03125,
+          "bottom": 525.03125
+        }
+      ],
+      "unhandled": [
+        "chhist-wrap",
+        "bk-help"
+      ]
+    },
+    {
+      "game": "chess",
+      "width": 390,
+      "height": 844,
+      "theme": "day",
+      "embed": false,
+      "viewport": [
+        390,
+        844
+      ],
+      "scrollWidth": 390,
+      "scrollHeight": 844,
+      "stage": {
+        "x": 15,
+        "y": 202.078125,
+        "w": 360,
+        "h": 360,
+        "bottom": 562.078125,
+        "right": 375
+      },
+      "tools": {
+        "x": 12,
+        "y": 746.078125,
+        "w": 366,
+        "h": 44,
+        "bottom": 790.078125,
+        "right": 378
+      },
+      "status": {
+        "x": 12,
+        "y": 570.078125,
+        "w": 366,
+        "h": 64,
+        "bottom": 634.078125,
+        "right": 378
+      },
+      "extra": {
+        "x": 12,
+        "y": 642.078125,
+        "w": 366,
+        "h": 44,
+        "bottom": 686.078125,
+        "right": 378
+      },
+      "players": [
+        {
+          "y": 130.078125,
+          "bottom": 194.078125
+        },
+        {
+          "y": 130.078125,
+          "bottom": 194.078125
+        }
+      ],
+      "unhandled": [
+        "chhist-wrap",
+        "bk-help"
+      ]
+    },
+    {
+      "game": "chess",
+      "width": 390,
+      "height": 844,
+      "theme": "night",
+      "embed": false,
+      "viewport": [
+        390,
+        844
+      ],
+      "scrollWidth": 390,
+      "scrollHeight": 844,
+      "stage": {
+        "x": 15,
+        "y": 202.078125,
+        "w": 360,
+        "h": 360,
+        "bottom": 562.078125,
+        "right": 375
+      },
+      "tools": {
+        "x": 12,
+        "y": 746.078125,
+        "w": 366,
+        "h": 44,
+        "bottom": 790.078125,
+        "right": 378
+      },
+      "status": {
+        "x": 12,
+        "y": 570.078125,
+        "w": 366,
+        "h": 64,
+        "bottom": 634.078125,
+        "right": 378
+      },
+      "extra": {
+        "x": 12,
+        "y": 642.078125,
+        "w": 366,
+        "h": 44,
+        "bottom": 686.078125,
+        "right": 378
+      },
+      "players": [
+        {
+          "y": 130.078125,
+          "bottom": 194.078125
+        },
+        {
+          "y": 130.078125,
+          "bottom": 194.078125
+        }
+      ],
+      "unhandled": [
+        "chhist-wrap",
+        "bk-help"
+      ]
+    },
+    {
+      "game": "chess",
+      "width": 420,
+      "height": 700,
+      "theme": "day",
+      "embed": true,
+      "viewport": [
+        420,
+        700
+      ],
+      "scrollWidth": 420,
+      "scrollHeight": 700,
+      "stage": {
+        "x": 102,
+        "y": 202.078125,
+        "w": 216,
+        "h": 216,
+        "bottom": 418.078125,
+        "right": 318
+      },
+      "tools": {
+        "x": 12,
+        "y": 602.078125,
+        "w": 396,
+        "h": 44,
+        "bottom": 646.078125,
+        "right": 408
+      },
+      "status": {
+        "x": 12,
+        "y": 426.078125,
+        "w": 396,
+        "h": 64,
+        "bottom": 490.078125,
+        "right": 408
+      },
+      "extra": {
+        "x": 12,
+        "y": 498.078125,
+        "w": 396,
+        "h": 44,
+        "bottom": 542.078125,
+        "right": 408
+      },
+      "players": [
+        {
+          "y": 130.078125,
+          "bottom": 194.078125
+        },
+        {
+          "y": 130.078125,
+          "bottom": 194.078125
+        }
+      ],
+      "unhandled": [
+        "chhist-wrap",
+        "bk-help"
+      ]
+    },
+    {
+      "game": "chess",
+      "width": 420,
+      "height": 700,
+      "theme": "night",
+      "embed": true,
+      "viewport": [
+        420,
+        700
+      ],
+      "scrollWidth": 420,
+      "scrollHeight": 700,
+      "stage": {
+        "x": 102,
+        "y": 202.078125,
+        "w": 216,
+        "h": 216,
+        "bottom": 418.078125,
+        "right": 318
+      },
+      "tools": {
+        "x": 12,
+        "y": 602.078125,
+        "w": 396,
+        "h": 44,
+        "bottom": 646.078125,
+        "right": 408
+      },
+      "status": {
+        "x": 12,
+        "y": 426.078125,
+        "w": 396,
+        "h": 64,
+        "bottom": 490.078125,
+        "right": 408
+      },
+      "extra": {
+        "x": 12,
+        "y": 498.078125,
+        "w": 396,
+        "h": 44,
+        "bottom": 542.078125,
+        "right": 408
+      },
+      "players": [
+        {
+          "y": 130.078125,
+          "bottom": 194.078125
+        },
+        {
+          "y": 130.078125,
+          "bottom": 194.078125
+        }
+      ],
+      "unhandled": [
+        "chhist-wrap",
+        "bk-help"
+      ]
+    },
+    {
+      "game": "chess",
+      "width": 560,
+      "height": 760,
+      "theme": "day",
+      "embed": true,
+      "viewport": [
+        560,
+        760
+      ],
+      "scrollWidth": 560,
+      "scrollHeight": 760,
+      "stage": {
+        "x": 142,
+        "y": 202.078125,
+        "w": 276,
+        "h": 276,
+        "bottom": 478.078125,
+        "right": 418
+      },
+      "tools": {
+        "x": 12,
+        "y": 662.078125,
+        "w": 536,
+        "h": 44,
+        "bottom": 706.078125,
+        "right": 548
+      },
+      "status": {
+        "x": 12,
+        "y": 486.078125,
+        "w": 536,
+        "h": 64,
+        "bottom": 550.078125,
+        "right": 548
+      },
+      "extra": {
+        "x": 12,
+        "y": 558.078125,
+        "w": 536,
+        "h": 44,
+        "bottom": 602.078125,
+        "right": 548
+      },
+      "players": [
+        {
+          "y": 130.078125,
+          "bottom": 194.078125
+        },
+        {
+          "y": 130.078125,
+          "bottom": 194.078125
+        }
+      ],
+      "unhandled": [
+        "chhist-wrap",
+        "bk-help"
+      ]
+    },
+    {
+      "game": "chess",
+      "width": 560,
+      "height": 760,
+      "theme": "night",
+      "embed": true,
+      "viewport": [
+        560,
+        760
+      ],
+      "scrollWidth": 560,
+      "scrollHeight": 760,
+      "stage": {
+        "x": 142,
+        "y": 202.078125,
+        "w": 276,
+        "h": 276,
+        "bottom": 478.078125,
+        "right": 418
+      },
+      "tools": {
+        "x": 12,
+        "y": 662.078125,
+        "w": 536,
+        "h": 44,
+        "bottom": 706.078125,
+        "right": 548
+      },
+      "status": {
+        "x": 12,
+        "y": 486.078125,
+        "w": 536,
+        "h": 64,
+        "bottom": 550.078125,
+        "right": 548
+      },
+      "extra": {
+        "x": 12,
+        "y": 558.078125,
+        "w": 536,
+        "h": 44,
+        "bottom": 602.078125,
+        "right": 548
+      },
+      "players": [
+        {
+          "y": 130.078125,
+          "bottom": 194.078125
+        },
+        {
+          "y": 130.078125,
+          "bottom": 194.078125
+        }
+      ],
+      "unhandled": [
+        "chhist-wrap",
+        "bk-help"
+      ]
+    },
+    {
+      "game": "checkers",
+      "width": 1440,
+      "height": 900,
+      "theme": "day",
+      "embed": false,
+      "viewport": [
+        1440,
+        900
+      ],
+      "scrollWidth": 1440,
+      "scrollHeight": 912,
+      "stage": {
+        "x": 178,
+        "y": 124,
+        "w": 756,
+        "h": 756,
+        "bottom": 880,
+        "right": 934
+      },
+      "tools": {
+        "x": 966,
+        "y": 615.640625,
+        "w": 296,
+        "h": 44,
+        "bottom": 659.640625,
+        "right": 1262
+      },
+      "status": {
+        "x": 966,
+        "y": 507.640625,
+        "w": 296,
+        "h": 96,
+        "bottom": 603.640625,
+        "right": 1262
+      },
+      "extra": null,
+      "players": [
+        {
+          "y": 359.640625,
+          "bottom": 423.640625
+        },
+        {
+          "y": 431.640625,
+          "bottom": 495.640625
+        }
+      ],
+      "unhandled": [
+        "bk-help"
+      ]
+    },
+    {
+      "game": "checkers",
+      "width": 1440,
+      "height": 900,
+      "theme": "night",
+      "embed": false,
+      "viewport": [
+        1440,
+        900
+      ],
+      "scrollWidth": 1440,
+      "scrollHeight": 912,
+      "stage": {
+        "x": 178,
+        "y": 124,
+        "w": 756,
+        "h": 756,
+        "bottom": 880,
+        "right": 934
+      },
+      "tools": {
+        "x": 966,
+        "y": 615.640625,
+        "w": 296,
+        "h": 44,
+        "bottom": 659.640625,
+        "right": 1262
+      },
+      "status": {
+        "x": 966,
+        "y": 507.640625,
+        "w": 296,
+        "h": 96,
+        "bottom": 603.640625,
+        "right": 1262
+      },
+      "extra": null,
+      "players": [
+        {
+          "y": 359.640625,
+          "bottom": 423.640625
+        },
+        {
+          "y": 431.640625,
+          "bottom": 495.640625
+        }
+      ],
+      "unhandled": [
+        "bk-help"
+      ]
+    },
+    {
+      "game": "checkers",
+      "width": 1024,
+      "height": 768,
+      "theme": "day",
+      "embed": false,
+      "viewport": [
+        1024,
+        768
+      ],
+      "scrollWidth": 1024,
+      "scrollHeight": 780,
+      "stage": {
+        "x": 36,
+        "y": 124,
+        "w": 624,
+        "h": 624,
+        "bottom": 748,
+        "right": 660
+      },
+      "tools": {
+        "x": 692,
+        "y": 548.921875,
+        "w": 296,
+        "h": 44,
+        "bottom": 592.921875,
+        "right": 988
+      },
+      "status": {
+        "x": 692,
+        "y": 440.921875,
+        "w": 296,
+        "h": 96,
+        "bottom": 536.921875,
+        "right": 988
+      },
+      "extra": null,
+      "players": [
+        {
+          "y": 292.921875,
+          "bottom": 356.921875
+        },
+        {
+          "y": 364.921875,
+          "bottom": 428.921875
+        }
+      ],
+      "unhandled": [
+        "bk-help"
+      ]
+    },
+    {
+      "game": "checkers",
+      "width": 1024,
+      "height": 768,
+      "theme": "night",
+      "embed": false,
+      "viewport": [
+        1024,
+        768
+      ],
+      "scrollWidth": 1024,
+      "scrollHeight": 780,
+      "stage": {
+        "x": 36,
+        "y": 124,
+        "w": 624,
+        "h": 624,
+        "bottom": 748,
+        "right": 660
+      },
+      "tools": {
+        "x": 692,
+        "y": 548.921875,
+        "w": 296,
+        "h": 44,
+        "bottom": 592.921875,
+        "right": 988
+      },
+      "status": {
+        "x": 692,
+        "y": 440.921875,
+        "w": 296,
+        "h": 96,
+        "bottom": 536.921875,
+        "right": 988
+      },
+      "extra": null,
+      "players": [
+        {
+          "y": 292.921875,
+          "bottom": 356.921875
+        },
+        {
+          "y": 364.921875,
+          "bottom": 428.921875
+        }
+      ],
+      "unhandled": [
+        "bk-help"
+      ]
+    },
+    {
+      "game": "checkers",
+      "width": 768,
+      "height": 1024,
+      "theme": "day",
+      "embed": false,
+      "viewport": [
+        768,
+        1024
+      ],
+      "scrollWidth": 768,
+      "scrollHeight": 1036,
+      "stage": {
+        "x": 20,
+        "y": 364,
+        "w": 400,
+        "h": 400,
+        "bottom": 764,
+        "right": 420
+      },
+      "tools": {
+        "x": 452,
+        "y": 673.03125,
+        "w": 296,
+        "h": 44,
+        "bottom": 717.03125,
+        "right": 748
+      },
+      "status": {
+        "x": 452,
+        "y": 565.03125,
+        "w": 296,
+        "h": 96,
+        "bottom": 661.03125,
+        "right": 748
+      },
+      "extra": null,
+      "players": [
+        {
+          "y": 417.03125,
+          "bottom": 481.03125
+        },
+        {
+          "y": 489.03125,
+          "bottom": 553.03125
+        }
+      ],
+      "unhandled": [
+        "bk-help"
+      ]
+    },
+    {
+      "game": "checkers",
+      "width": 768,
+      "height": 1024,
+      "theme": "night",
+      "embed": false,
+      "viewport": [
+        768,
+        1024
+      ],
+      "scrollWidth": 768,
+      "scrollHeight": 1036,
+      "stage": {
+        "x": 20,
+        "y": 364,
+        "w": 400,
+        "h": 400,
+        "bottom": 764,
+        "right": 420
+      },
+      "tools": {
+        "x": 452,
+        "y": 673.03125,
+        "w": 296,
+        "h": 44,
+        "bottom": 717.03125,
+        "right": 748
+      },
+      "status": {
+        "x": 452,
+        "y": 565.03125,
+        "w": 296,
+        "h": 96,
+        "bottom": 661.03125,
+        "right": 748
+      },
+      "extra": null,
+      "players": [
+        {
+          "y": 417.03125,
+          "bottom": 481.03125
+        },
+        {
+          "y": 489.03125,
+          "bottom": 553.03125
+        }
+      ],
+      "unhandled": [
+        "bk-help"
+      ]
+    },
+    {
+      "game": "checkers",
+      "width": 390,
+      "height": 844,
+      "theme": "day",
+      "embed": false,
+      "viewport": [
+        390,
+        844
+      ],
+      "scrollWidth": 390,
+      "scrollHeight": 844,
+      "stage": {
+        "x": 12,
+        "y": 202.078125,
+        "w": 366,
+        "h": 366,
+        "bottom": 568.078125,
+        "right": 378
+      },
+      "tools": {
+        "x": 12,
+        "y": 700.078125,
+        "w": 366,
+        "h": 44,
+        "bottom": 744.078125,
+        "right": 378
+      },
+      "status": {
+        "x": 12,
+        "y": 576.078125,
+        "w": 366,
+        "h": 64,
+        "bottom": 640.078125,
+        "right": 378
+      },
+      "extra": null,
+      "players": [
+        {
+          "y": 130.078125,
+          "bottom": 194.078125
+        },
+        {
+          "y": 130.078125,
+          "bottom": 194.078125
+        }
+      ],
+      "unhandled": [
+        "bk-help"
+      ]
+    },
+    {
+      "game": "checkers",
+      "width": 390,
+      "height": 844,
+      "theme": "night",
+      "embed": false,
+      "viewport": [
+        390,
+        844
+      ],
+      "scrollWidth": 390,
+      "scrollHeight": 844,
+      "stage": {
+        "x": 12,
+        "y": 202.078125,
+        "w": 366,
+        "h": 366,
+        "bottom": 568.078125,
+        "right": 378
+      },
+      "tools": {
+        "x": 12,
+        "y": 700.078125,
+        "w": 366,
+        "h": 44,
+        "bottom": 744.078125,
+        "right": 378
+      },
+      "status": {
+        "x": 12,
+        "y": 576.078125,
+        "w": 366,
+        "h": 64,
+        "bottom": 640.078125,
+        "right": 378
+      },
+      "extra": null,
+      "players": [
+        {
+          "y": 130.078125,
+          "bottom": 194.078125
+        },
+        {
+          "y": 130.078125,
+          "bottom": 194.078125
+        }
+      ],
+      "unhandled": [
+        "bk-help"
+      ]
+    },
+    {
+      "game": "checkers",
+      "width": 420,
+      "height": 700,
+      "theme": "day",
+      "embed": true,
+      "viewport": [
+        420,
+        700
+      ],
+      "scrollWidth": 420,
+      "scrollHeight": 790,
+      "stage": {
+        "x": 12,
+        "y": 202.078125,
+        "w": 396,
+        "h": 396,
+        "bottom": 598.078125,
+        "right": 408
+      },
+      "tools": {
+        "x": 12,
+        "y": 730.078125,
+        "w": 396,
+        "h": 44,
+        "bottom": 774.078125,
+        "right": 408
+      },
+      "status": {
+        "x": 12,
+        "y": 606.078125,
+        "w": 396,
+        "h": 64,
+        "bottom": 670.078125,
+        "right": 408
+      },
+      "extra": null,
+      "players": [
+        {
+          "y": 130.078125,
+          "bottom": 194.078125
+        },
+        {
+          "y": 130.078125,
+          "bottom": 194.078125
+        }
+      ],
+      "unhandled": [
+        "bk-help"
+      ]
+    },
+    {
+      "game": "checkers",
+      "width": 420,
+      "height": 700,
+      "theme": "night",
+      "embed": true,
+      "viewport": [
+        420,
+        700
+      ],
+      "scrollWidth": 420,
+      "scrollHeight": 790,
+      "stage": {
+        "x": 12,
+        "y": 202.078125,
+        "w": 396,
+        "h": 396,
+        "bottom": 598.078125,
+        "right": 408
+      },
+      "tools": {
+        "x": 12,
+        "y": 730.078125,
+        "w": 396,
+        "h": 44,
+        "bottom": 774.078125,
+        "right": 408
+      },
+      "status": {
+        "x": 12,
+        "y": 606.078125,
+        "w": 396,
+        "h": 64,
+        "bottom": 670.078125,
+        "right": 408
+      },
+      "extra": null,
+      "players": [
+        {
+          "y": 130.078125,
+          "bottom": 194.078125
+        },
+        {
+          "y": 130.078125,
+          "bottom": 194.078125
+        }
+      ],
+      "unhandled": [
+        "bk-help"
+      ]
+    },
+    {
+      "game": "checkers",
+      "width": 560,
+      "height": 760,
+      "theme": "day",
+      "embed": true,
+      "viewport": [
+        560,
+        760
+      ],
+      "scrollWidth": 560,
+      "scrollHeight": 930,
+      "stage": {
+        "x": 12,
+        "y": 202.078125,
+        "w": 536,
+        "h": 536,
+        "bottom": 738.078125,
+        "right": 548
+      },
+      "tools": {
+        "x": 12,
+        "y": 870.078125,
+        "w": 536,
+        "h": 44,
+        "bottom": 914.078125,
+        "right": 548
+      },
+      "status": {
+        "x": 12,
+        "y": 746.078125,
+        "w": 536,
+        "h": 64,
+        "bottom": 810.078125,
+        "right": 548
+      },
+      "extra": null,
+      "players": [
+        {
+          "y": 130.078125,
+          "bottom": 194.078125
+        },
+        {
+          "y": 130.078125,
+          "bottom": 194.078125
+        }
+      ],
+      "unhandled": [
+        "bk-help"
+      ]
+    },
+    {
+      "game": "checkers",
+      "width": 560,
+      "height": 760,
+      "theme": "night",
+      "embed": true,
+      "viewport": [
+        560,
+        760
+      ],
+      "scrollWidth": 560,
+      "scrollHeight": 930,
+      "stage": {
+        "x": 12,
+        "y": 202.078125,
+        "w": 536,
+        "h": 536,
+        "bottom": 738.078125,
+        "right": 548
+      },
+      "tools": {
+        "x": 12,
+        "y": 870.078125,
+        "w": 536,
+        "h": 44,
+        "bottom": 914.078125,
+        "right": 548
+      },
+      "status": {
+        "x": 12,
+        "y": 746.078125,
+        "w": 536,
+        "h": 64,
+        "bottom": 810.078125,
+        "right": 548
+      },
+      "extra": null,
+      "players": [
+        {
+          "y": 130.078125,
+          "bottom": 194.078125
+        },
+        {
+          "y": 130.078125,
+          "bottom": 194.078125
+        }
+      ],
+      "unhandled": [
+        "bk-help"
+      ]
+    },
+    {
+      "game": "reversi",
+      "width": 1440,
+      "height": 900,
+      "theme": "day",
+      "embed": false,
+      "viewport": [
+        1440,
+        900
+      ],
+      "scrollWidth": 1440,
+      "scrollHeight": 912,
+      "stage": {
+        "x": 178,
+        "y": 124,
+        "w": 756,
+        "h": 756,
+        "bottom": 880,
+        "right": 934
+      },
+      "tools": {
+        "x": 966,
+        "y": 605.546875,
+        "w": 296,
+        "h": 44,
+        "bottom": 649.546875,
+        "right": 1262
+      },
+      "status": {
+        "x": 966,
+        "y": 497.546875,
+        "w": 296,
+        "h": 96,
+        "bottom": 593.546875,
+        "right": 1262
+      },
+      "extra": null,
+      "players": [
+        {
+          "y": 349.546875,
+          "bottom": 413.546875
+        },
+        {
+          "y": 421.546875,
+          "bottom": 485.546875
+        }
+      ],
+      "unhandled": [
+        "bk-help"
+      ]
+    },
+    {
+      "game": "reversi",
+      "width": 1440,
+      "height": 900,
+      "theme": "night",
+      "embed": false,
+      "viewport": [
+        1440,
+        900
+      ],
+      "scrollWidth": 1440,
+      "scrollHeight": 912,
+      "stage": {
+        "x": 178,
+        "y": 124,
+        "w": 756,
+        "h": 756,
+        "bottom": 880,
+        "right": 934
+      },
+      "tools": {
+        "x": 966,
+        "y": 605.546875,
+        "w": 296,
+        "h": 44,
+        "bottom": 649.546875,
+        "right": 1262
+      },
+      "status": {
+        "x": 966,
+        "y": 497.546875,
+        "w": 296,
+        "h": 96,
+        "bottom": 593.546875,
+        "right": 1262
+      },
+      "extra": null,
+      "players": [
+        {
+          "y": 349.546875,
+          "bottom": 413.546875
+        },
+        {
+          "y": 421.546875,
+          "bottom": 485.546875
+        }
+      ],
+      "unhandled": [
+        "bk-help"
+      ]
+    },
+    {
+      "game": "reversi",
+      "width": 1024,
+      "height": 768,
+      "theme": "day",
+      "embed": false,
+      "viewport": [
+        1024,
+        768
+      ],
+      "scrollWidth": 1024,
+      "scrollHeight": 780,
+      "stage": {
+        "x": 36,
+        "y": 124,
+        "w": 624,
+        "h": 624,
+        "bottom": 748,
+        "right": 660
+      },
+      "tools": {
+        "x": 692,
+        "y": 538.828125,
+        "w": 296,
+        "h": 44,
+        "bottom": 582.828125,
+        "right": 988
+      },
+      "status": {
+        "x": 692,
+        "y": 430.828125,
+        "w": 296,
+        "h": 96,
+        "bottom": 526.828125,
+        "right": 988
+      },
+      "extra": null,
+      "players": [
+        {
+          "y": 282.828125,
+          "bottom": 346.828125
+        },
+        {
+          "y": 354.828125,
+          "bottom": 418.828125
+        }
+      ],
+      "unhandled": [
+        "bk-help"
+      ]
+    },
+    {
+      "game": "reversi",
+      "width": 1024,
+      "height": 768,
+      "theme": "night",
+      "embed": false,
+      "viewport": [
+        1024,
+        768
+      ],
+      "scrollWidth": 1024,
+      "scrollHeight": 780,
+      "stage": {
+        "x": 36,
+        "y": 124,
+        "w": 624,
+        "h": 624,
+        "bottom": 748,
+        "right": 660
+      },
+      "tools": {
+        "x": 692,
+        "y": 538.828125,
+        "w": 296,
+        "h": 44,
+        "bottom": 582.828125,
+        "right": 988
+      },
+      "status": {
+        "x": 692,
+        "y": 430.828125,
+        "w": 296,
+        "h": 96,
+        "bottom": 526.828125,
+        "right": 988
+      },
+      "extra": null,
+      "players": [
+        {
+          "y": 282.828125,
+          "bottom": 346.828125
+        },
+        {
+          "y": 354.828125,
+          "bottom": 418.828125
+        }
+      ],
+      "unhandled": [
+        "bk-help"
+      ]
+    },
+    {
+      "game": "reversi",
+      "width": 768,
+      "height": 1024,
+      "theme": "day",
+      "embed": false,
+      "viewport": [
+        768,
+        1024
+      ],
+      "scrollWidth": 768,
+      "scrollHeight": 1036,
+      "stage": {
+        "x": 20,
+        "y": 364,
+        "w": 400,
+        "h": 400,
+        "bottom": 764,
+        "right": 420
+      },
+      "tools": {
+        "x": 452,
+        "y": 662.9375,
+        "w": 296,
+        "h": 44,
+        "bottom": 706.9375,
+        "right": 748
+      },
+      "status": {
+        "x": 452,
+        "y": 554.9375,
+        "w": 296,
+        "h": 96,
+        "bottom": 650.9375,
+        "right": 748
+      },
+      "extra": null,
+      "players": [
+        {
+          "y": 406.9375,
+          "bottom": 470.9375
+        },
+        {
+          "y": 478.9375,
+          "bottom": 542.9375
+        }
+      ],
+      "unhandled": [
+        "bk-help"
+      ]
+    },
+    {
+      "game": "reversi",
+      "width": 768,
+      "height": 1024,
+      "theme": "night",
+      "embed": false,
+      "viewport": [
+        768,
+        1024
+      ],
+      "scrollWidth": 768,
+      "scrollHeight": 1036,
+      "stage": {
+        "x": 20,
+        "y": 364,
+        "w": 400,
+        "h": 400,
+        "bottom": 764,
+        "right": 420
+      },
+      "tools": {
+        "x": 452,
+        "y": 662.9375,
+        "w": 296,
+        "h": 44,
+        "bottom": 706.9375,
+        "right": 748
+      },
+      "status": {
+        "x": 452,
+        "y": 554.9375,
+        "w": 296,
+        "h": 96,
+        "bottom": 650.9375,
+        "right": 748
+      },
+      "extra": null,
+      "players": [
+        {
+          "y": 406.9375,
+          "bottom": 470.9375
+        },
+        {
+          "y": 478.9375,
+          "bottom": 542.9375
+        }
+      ],
+      "unhandled": [
+        "bk-help"
+      ]
+    },
+    {
+      "game": "reversi",
+      "width": 390,
+      "height": 844,
+      "theme": "day",
+      "embed": false,
+      "viewport": [
+        390,
+        844
+      ],
+      "scrollWidth": 390,
+      "scrollHeight": 844,
+      "stage": {
+        "x": 12,
+        "y": 200,
+        "w": 366,
+        "h": 366,
+        "bottom": 566,
+        "right": 378
+      },
+      "tools": {
+        "x": 12,
+        "y": 698,
+        "w": 366,
+        "h": 44,
+        "bottom": 742,
+        "right": 378
+      },
+      "status": {
+        "x": 12,
+        "y": 574,
+        "w": 366,
+        "h": 64,
+        "bottom": 638,
+        "right": 378
+      },
+      "extra": null,
+      "players": [
+        {
+          "y": 128,
+          "bottom": 192
+        },
+        {
+          "y": 128,
+          "bottom": 192
+        }
+      ],
+      "unhandled": [
+        "bk-help"
+      ]
+    },
+    {
+      "game": "reversi",
+      "width": 390,
+      "height": 844,
+      "theme": "night",
+      "embed": false,
+      "viewport": [
+        390,
+        844
+      ],
+      "scrollWidth": 390,
+      "scrollHeight": 844,
+      "stage": {
+        "x": 12,
+        "y": 200,
+        "w": 366,
+        "h": 366,
+        "bottom": 566,
+        "right": 378
+      },
+      "tools": {
+        "x": 12,
+        "y": 698,
+        "w": 366,
+        "h": 44,
+        "bottom": 742,
+        "right": 378
+      },
+      "status": {
+        "x": 12,
+        "y": 574,
+        "w": 366,
+        "h": 64,
+        "bottom": 638,
+        "right": 378
+      },
+      "extra": null,
+      "players": [
+        {
+          "y": 128,
+          "bottom": 192
+        },
+        {
+          "y": 128,
+          "bottom": 192
+        }
+      ],
+      "unhandled": [
+        "bk-help"
+      ]
+    },
+    {
+      "game": "reversi",
+      "width": 420,
+      "height": 700,
+      "theme": "day",
+      "embed": true,
+      "viewport": [
+        420,
+        700
+      ],
+      "scrollWidth": 420,
+      "scrollHeight": 788,
+      "stage": {
+        "x": 12,
+        "y": 200,
+        "w": 396,
+        "h": 396,
+        "bottom": 596,
+        "right": 408
+      },
+      "tools": {
+        "x": 12,
+        "y": 728,
+        "w": 396,
+        "h": 44,
+        "bottom": 772,
+        "right": 408
+      },
+      "status": {
+        "x": 12,
+        "y": 604,
+        "w": 396,
+        "h": 64,
+        "bottom": 668,
+        "right": 408
+      },
+      "extra": null,
+      "players": [
+        {
+          "y": 128,
+          "bottom": 192
+        },
+        {
+          "y": 128,
+          "bottom": 192
+        }
+      ],
+      "unhandled": [
+        "bk-help"
+      ]
+    },
+    {
+      "game": "reversi",
+      "width": 420,
+      "height": 700,
+      "theme": "night",
+      "embed": true,
+      "viewport": [
+        420,
+        700
+      ],
+      "scrollWidth": 420,
+      "scrollHeight": 788,
+      "stage": {
+        "x": 12,
+        "y": 200,
+        "w": 396,
+        "h": 396,
+        "bottom": 596,
+        "right": 408
+      },
+      "tools": {
+        "x": 12,
+        "y": 728,
+        "w": 396,
+        "h": 44,
+        "bottom": 772,
+        "right": 408
+      },
+      "status": {
+        "x": 12,
+        "y": 604,
+        "w": 396,
+        "h": 64,
+        "bottom": 668,
+        "right": 408
+      },
+      "extra": null,
+      "players": [
+        {
+          "y": 128,
+          "bottom": 192
+        },
+        {
+          "y": 128,
+          "bottom": 192
+        }
+      ],
+      "unhandled": [
+        "bk-help"
+      ]
+    },
+    {
+      "game": "reversi",
+      "width": 560,
+      "height": 760,
+      "theme": "day",
+      "embed": true,
+      "viewport": [
+        560,
+        760
+      ],
+      "scrollWidth": 560,
+      "scrollHeight": 928,
+      "stage": {
+        "x": 12,
+        "y": 200,
+        "w": 536,
+        "h": 536,
+        "bottom": 736,
+        "right": 548
+      },
+      "tools": {
+        "x": 12,
+        "y": 868,
+        "w": 536,
+        "h": 44,
+        "bottom": 912,
+        "right": 548
+      },
+      "status": {
+        "x": 12,
+        "y": 744,
+        "w": 536,
+        "h": 64,
+        "bottom": 808,
+        "right": 548
+      },
+      "extra": null,
+      "players": [
+        {
+          "y": 128,
+          "bottom": 192
+        },
+        {
+          "y": 128,
+          "bottom": 192
+        }
+      ],
+      "unhandled": [
+        "bk-help"
+      ]
+    },
+    {
+      "game": "reversi",
+      "width": 560,
+      "height": 760,
+      "theme": "night",
+      "embed": true,
+      "viewport": [
+        560,
+        760
+      ],
+      "scrollWidth": 560,
+      "scrollHeight": 928,
+      "stage": {
+        "x": 12,
+        "y": 200,
+        "w": 536,
+        "h": 536,
+        "bottom": 736,
+        "right": 548
+      },
+      "tools": {
+        "x": 12,
+        "y": 868,
+        "w": 536,
+        "h": 44,
+        "bottom": 912,
+        "right": 548
+      },
+      "status": {
+        "x": 12,
+        "y": 744,
+        "w": 536,
+        "h": 64,
+        "bottom": 808,
+        "right": 548
+      },
+      "extra": null,
+      "players": [
+        {
+          "y": 128,
+          "bottom": 192
+        },
+        {
+          "y": 128,
+          "bottom": 192
+        }
+      ],
+      "unhandled": [
+        "bk-help"
+      ]
+    },
+    {
+      "game": "kalah",
+      "width": 1440,
+      "height": 900,
+      "theme": "day",
+      "embed": false,
+      "viewport": [
+        1440,
+        900
+      ],
+      "scrollWidth": 1440,
+      "scrollHeight": 912,
+      "stage": {
+        "x": 20,
+        "y": 272.28125,
+        "w": 1072,
+        "h": 459.421875,
+        "bottom": 731.703125,
+        "right": 1092
+      },
+      "tools": {
+        "x": 1124,
+        "y": 615.640625,
+        "w": 296,
+        "h": 44,
+        "bottom": 659.640625,
+        "right": 1420
+      },
+      "status": {
+        "x": 1124,
+        "y": 507.640625,
+        "w": 296,
+        "h": 96,
+        "bottom": 603.640625,
+        "right": 1420
+      },
+      "extra": null,
+      "players": [
+        {
+          "y": 359.640625,
+          "bottom": 423.640625
+        },
+        {
+          "y": 431.640625,
+          "bottom": 495.640625
+        }
+      ],
+      "unhandled": [
+        "bk-help"
+      ]
+    },
+    {
+      "game": "kalah",
+      "width": 1440,
+      "height": 900,
+      "theme": "night",
+      "embed": false,
+      "viewport": [
+        1440,
+        900
+      ],
+      "scrollWidth": 1440,
+      "scrollHeight": 912,
+      "stage": {
+        "x": 20,
+        "y": 272.28125,
+        "w": 1072,
+        "h": 459.421875,
+        "bottom": 731.703125,
+        "right": 1092
+      },
+      "tools": {
+        "x": 1124,
+        "y": 615.640625,
+        "w": 296,
+        "h": 44,
+        "bottom": 659.640625,
+        "right": 1420
+      },
+      "status": {
+        "x": 1124,
+        "y": 507.640625,
+        "w": 296,
+        "h": 96,
+        "bottom": 603.640625,
+        "right": 1420
+      },
+      "extra": null,
+      "players": [
+        {
+          "y": 359.640625,
+          "bottom": 423.640625
+        },
+        {
+          "y": 431.640625,
+          "bottom": 495.640625
+        }
+      ],
+      "unhandled": [
+        "bk-help"
+      ]
+    },
+    {
+      "game": "kalah",
+      "width": 1024,
+      "height": 768,
+      "theme": "day",
+      "embed": false,
+      "viewport": [
+        1024,
+        768
+      ],
+      "scrollWidth": 1024,
+      "scrollHeight": 780,
+      "stage": {
+        "x": 20,
+        "y": 295.421875,
+        "w": 656,
+        "h": 281.140625,
+        "bottom": 576.5625,
+        "right": 676
+      },
+      "tools": {
+        "x": 708,
+        "y": 548.921875,
+        "w": 296,
+        "h": 44,
+        "bottom": 592.921875,
+        "right": 1004
+      },
+      "status": {
+        "x": 708,
+        "y": 440.921875,
+        "w": 296,
+        "h": 96,
+        "bottom": 536.921875,
+        "right": 1004
+      },
+      "extra": null,
+      "players": [
+        {
+          "y": 292.921875,
+          "bottom": 356.921875
+        },
+        {
+          "y": 364.921875,
+          "bottom": 428.921875
+        }
+      ],
+      "unhandled": [
+        "bk-help"
+      ]
+    },
+    {
+      "game": "kalah",
+      "width": 1024,
+      "height": 768,
+      "theme": "night",
+      "embed": false,
+      "viewport": [
+        1024,
+        768
+      ],
+      "scrollWidth": 1024,
+      "scrollHeight": 780,
+      "stage": {
+        "x": 20,
+        "y": 295.421875,
+        "w": 656,
+        "h": 281.140625,
+        "bottom": 576.5625,
+        "right": 676
+      },
+      "tools": {
+        "x": 708,
+        "y": 548.921875,
+        "w": 296,
+        "h": 44,
+        "bottom": 592.921875,
+        "right": 1004
+      },
+      "status": {
+        "x": 708,
+        "y": 440.921875,
+        "w": 296,
+        "h": 96,
+        "bottom": 536.921875,
+        "right": 1004
+      },
+      "extra": null,
+      "players": [
+        {
+          "y": 292.921875,
+          "bottom": 356.921875
+        },
+        {
+          "y": 364.921875,
+          "bottom": 428.921875
+        }
+      ],
+      "unhandled": [
+        "bk-help"
+      ]
+    },
+    {
+      "game": "kalah",
+      "width": 768,
+      "height": 1024,
+      "theme": "day",
+      "embed": false,
+      "viewport": [
+        768,
+        1024
+      ],
+      "scrollWidth": 768,
+      "scrollHeight": 1036,
+      "stage": {
+        "x": 20,
+        "y": 324,
+        "w": 400,
+        "h": 480,
+        "bottom": 804,
+        "right": 420
+      },
+      "tools": {
+        "x": 452,
+        "y": 673.03125,
+        "w": 296,
+        "h": 44,
+        "bottom": 717.03125,
+        "right": 748
+      },
+      "status": {
+        "x": 452,
+        "y": 565.03125,
+        "w": 296,
+        "h": 96,
+        "bottom": 661.03125,
+        "right": 748
+      },
+      "extra": null,
+      "players": [
+        {
+          "y": 417.03125,
+          "bottom": 481.03125
+        },
+        {
+          "y": 489.03125,
+          "bottom": 553.03125
+        }
+      ],
+      "unhandled": [
+        "bk-help"
+      ]
+    },
+    {
+      "game": "kalah",
+      "width": 768,
+      "height": 1024,
+      "theme": "night",
+      "embed": false,
+      "viewport": [
+        768,
+        1024
+      ],
+      "scrollWidth": 768,
+      "scrollHeight": 1036,
+      "stage": {
+        "x": 20,
+        "y": 324,
+        "w": 400,
+        "h": 480,
+        "bottom": 804,
+        "right": 420
+      },
+      "tools": {
+        "x": 452,
+        "y": 673.03125,
+        "w": 296,
+        "h": 44,
+        "bottom": 717.03125,
+        "right": 748
+      },
+      "status": {
+        "x": 452,
+        "y": 565.03125,
+        "w": 296,
+        "h": 96,
+        "bottom": 661.03125,
+        "right": 748
+      },
+      "extra": null,
+      "players": [
+        {
+          "y": 417.03125,
+          "bottom": 481.03125
+        },
+        {
+          "y": 489.03125,
+          "bottom": 553.03125
+        }
+      ],
+      "unhandled": [
+        "bk-help"
+      ]
+    },
+    {
+      "game": "kalah",
+      "width": 390,
+      "height": 844,
+      "theme": "day",
+      "embed": false,
+      "viewport": [
+        390,
+        844
+      ],
+      "scrollWidth": 390,
+      "scrollHeight": 844,
+      "stage": {
+        "x": 12,
+        "y": 274.078125,
+        "w": 366,
+        "h": 439.1875,
+        "bottom": 713.265625,
+        "right": 378
+      },
+      "tools": {
+        "x": 12,
+        "y": 773.265625,
+        "w": 366,
+        "h": 44,
+        "bottom": 817.265625,
+        "right": 378
+      },
+      "status": {
+        "x": 12,
+        "y": 202.078125,
+        "w": 366,
+        "h": 64,
+        "bottom": 266.078125,
+        "right": 378
+      },
+      "extra": null,
+      "players": [
+        {
+          "y": 130.078125,
+          "bottom": 194.078125
+        },
+        {
+          "y": 130.078125,
+          "bottom": 194.078125
+        }
+      ],
+      "unhandled": [
+        "bk-help"
+      ]
+    },
+    {
+      "game": "kalah",
+      "width": 390,
+      "height": 844,
+      "theme": "night",
+      "embed": false,
+      "viewport": [
+        390,
+        844
+      ],
+      "scrollWidth": 390,
+      "scrollHeight": 844,
+      "stage": {
+        "x": 12,
+        "y": 274.078125,
+        "w": 366,
+        "h": 439.1875,
+        "bottom": 713.265625,
+        "right": 378
+      },
+      "tools": {
+        "x": 12,
+        "y": 773.265625,
+        "w": 366,
+        "h": 44,
+        "bottom": 817.265625,
+        "right": 378
+      },
+      "status": {
+        "x": 12,
+        "y": 202.078125,
+        "w": 366,
+        "h": 64,
+        "bottom": 266.078125,
+        "right": 378
+      },
+      "extra": null,
+      "players": [
+        {
+          "y": 130.078125,
+          "bottom": 194.078125
+        },
+        {
+          "y": 130.078125,
+          "bottom": 194.078125
+        }
+      ],
+      "unhandled": [
+        "bk-help"
+      ]
+    },
+    {
+      "game": "kalah",
+      "width": 420,
+      "height": 700,
+      "theme": "day",
+      "embed": true,
+      "viewport": [
+        420,
+        700
+      ],
+      "scrollWidth": 420,
+      "scrollHeight": 700,
+      "stage": {
+        "x": 86.71875,
+        "y": 274.078125,
+        "w": 246.5625,
+        "h": 295.875,
+        "bottom": 569.953125,
+        "right": 333.28125
+      },
+      "tools": {
+        "x": 12,
+        "y": 629.953125,
+        "w": 396,
+        "h": 44,
+        "bottom": 673.953125,
+        "right": 408
+      },
+      "status": {
+        "x": 12,
+        "y": 202.078125,
+        "w": 396,
+        "h": 64,
+        "bottom": 266.078125,
+        "right": 408
+      },
+      "extra": null,
+      "players": [
+        {
+          "y": 130.078125,
+          "bottom": 194.078125
+        },
+        {
+          "y": 130.078125,
+          "bottom": 194.078125
+        }
+      ],
+      "unhandled": [
+        "bk-help"
+      ]
+    },
+    {
+      "game": "kalah",
+      "width": 420,
+      "height": 700,
+      "theme": "night",
+      "embed": true,
+      "viewport": [
+        420,
+        700
+      ],
+      "scrollWidth": 420,
+      "scrollHeight": 700,
+      "stage": {
+        "x": 86.71875,
+        "y": 274.078125,
+        "w": 246.5625,
+        "h": 295.875,
+        "bottom": 569.953125,
+        "right": 333.28125
+      },
+      "tools": {
+        "x": 12,
+        "y": 629.953125,
+        "w": 396,
+        "h": 44,
+        "bottom": 673.953125,
+        "right": 408
+      },
+      "status": {
+        "x": 12,
+        "y": 202.078125,
+        "w": 396,
+        "h": 64,
+        "bottom": 266.078125,
+        "right": 408
+      },
+      "extra": null,
+      "players": [
+        {
+          "y": 130.078125,
+          "bottom": 194.078125
+        },
+        {
+          "y": 130.078125,
+          "bottom": 194.078125
+        }
+      ],
+      "unhandled": [
+        "bk-help"
+      ]
+    },
+    {
+      "game": "kalah",
+      "width": 560,
+      "height": 760,
+      "theme": "day",
+      "embed": true,
+      "viewport": [
+        560,
+        760
+      ],
+      "scrollWidth": 560,
+      "scrollHeight": 760,
+      "stage": {
+        "x": 131.71875,
+        "y": 274.078125,
+        "w": 296.546875,
+        "h": 355.84375,
+        "bottom": 629.921875,
+        "right": 428.265625
+      },
+      "tools": {
+        "x": 12,
+        "y": 689.921875,
+        "w": 536,
+        "h": 44,
+        "bottom": 733.921875,
+        "right": 548
+      },
+      "status": {
+        "x": 12,
+        "y": 202.078125,
+        "w": 536,
+        "h": 64,
+        "bottom": 266.078125,
+        "right": 548
+      },
+      "extra": null,
+      "players": [
+        {
+          "y": 130.078125,
+          "bottom": 194.078125
+        },
+        {
+          "y": 130.078125,
+          "bottom": 194.078125
+        }
+      ],
+      "unhandled": [
+        "bk-help"
+      ]
+    },
+    {
+      "game": "kalah",
+      "width": 560,
+      "height": 760,
+      "theme": "night",
+      "embed": true,
+      "viewport": [
+        560,
+        760
+      ],
+      "scrollWidth": 560,
+      "scrollHeight": 760,
+      "stage": {
+        "x": 131.71875,
+        "y": 274.078125,
+        "w": 296.546875,
+        "h": 355.84375,
+        "bottom": 629.921875,
+        "right": 428.265625
+      },
+      "tools": {
+        "x": 12,
+        "y": 689.921875,
+        "w": 536,
+        "h": 44,
+        "bottom": 733.921875,
+        "right": 548
+      },
+      "status": {
+        "x": 12,
+        "y": 202.078125,
+        "w": 536,
+        "h": 64,
+        "bottom": 266.078125,
+        "right": 548
+      },
+      "extra": null,
+      "players": [
+        {
+          "y": 130.078125,
+          "bottom": 194.078125
+        },
+        {
+          "y": 130.078125,
+          "bottom": 194.078125
+        }
+      ],
+      "unhandled": [
+        "bk-help"
+      ]
+    },
+    {
+      "game": "four-in-a-row",
+      "width": 1440,
+      "height": 900,
+      "theme": "day",
+      "embed": false,
+      "viewport": [
+        1440,
+        900
+      ],
+      "scrollWidth": 1440,
+      "scrollHeight": 912,
+      "stage": {
+        "x": 171.953125,
+        "y": 124,
+        "w": 768.09375,
+        "h": 756.265625,
+        "bottom": 880.265625,
+        "right": 940.046875
+      },
+      "tools": {
+        "x": 972.046875,
+        "y": 605.671875,
+        "w": 296,
+        "h": 44,
+        "bottom": 649.671875,
+        "right": 1268.046875
+      },
+      "status": {
+        "x": 972.046875,
+        "y": 497.671875,
+        "w": 296,
+        "h": 96,
+        "bottom": 593.671875,
+        "right": 1268.046875
+      },
+      "extra": null,
+      "players": [
+        {
+          "y": 349.671875,
+          "bottom": 413.671875
+        },
+        {
+          "y": 421.671875,
+          "bottom": 485.671875
+        }
+      ],
+      "unhandled": [
+        "bk-help"
+      ]
+    },
+    {
+      "game": "four-in-a-row",
+      "width": 1440,
+      "height": 900,
+      "theme": "night",
+      "embed": false,
+      "viewport": [
+        1440,
+        900
+      ],
+      "scrollWidth": 1440,
+      "scrollHeight": 912,
+      "stage": {
+        "x": 171.953125,
+        "y": 124,
+        "w": 768.09375,
+        "h": 756.265625,
+        "bottom": 880.265625,
+        "right": 940.046875
+      },
+      "tools": {
+        "x": 972.046875,
+        "y": 605.671875,
+        "w": 296,
+        "h": 44,
+        "bottom": 649.671875,
+        "right": 1268.046875
+      },
+      "status": {
+        "x": 972.046875,
+        "y": 497.671875,
+        "w": 296,
+        "h": 96,
+        "bottom": 593.671875,
+        "right": 1268.046875
+      },
+      "extra": null,
+      "players": [
+        {
+          "y": 349.671875,
+          "bottom": 413.671875
+        },
+        {
+          "y": 421.671875,
+          "bottom": 485.671875
+        }
+      ],
+      "unhandled": [
+        "bk-help"
+      ]
+    },
+    {
+      "game": "four-in-a-row",
+      "width": 1024,
+      "height": 768,
+      "theme": "day",
+      "embed": false,
+      "viewport": [
+        1024,
+        768
+      ],
+      "scrollWidth": 1024,
+      "scrollHeight": 780,
+      "stage": {
+        "x": 31.015625,
+        "y": 124,
+        "w": 633.96875,
+        "h": 624.203125,
+        "bottom": 748.203125,
+        "right": 664.984375
+      },
+      "tools": {
+        "x": 696.984375,
+        "y": 538.9375,
+        "w": 296,
+        "h": 44,
+        "bottom": 582.9375,
+        "right": 992.984375
+      },
+      "status": {
+        "x": 696.984375,
+        "y": 430.9375,
+        "w": 296,
+        "h": 96,
+        "bottom": 526.9375,
+        "right": 992.984375
+      },
+      "extra": null,
+      "players": [
+        {
+          "y": 282.9375,
+          "bottom": 346.9375
+        },
+        {
+          "y": 354.9375,
+          "bottom": 418.9375
+        }
+      ],
+      "unhandled": [
+        "bk-help"
+      ]
+    },
+    {
+      "game": "four-in-a-row",
+      "width": 1024,
+      "height": 768,
+      "theme": "night",
+      "embed": false,
+      "viewport": [
+        1024,
+        768
+      ],
+      "scrollWidth": 1024,
+      "scrollHeight": 780,
+      "stage": {
+        "x": 31.015625,
+        "y": 124,
+        "w": 633.96875,
+        "h": 624.203125,
+        "bottom": 748.203125,
+        "right": 664.984375
+      },
+      "tools": {
+        "x": 696.984375,
+        "y": 538.9375,
+        "w": 296,
+        "h": 44,
+        "bottom": 582.9375,
+        "right": 992.984375
+      },
+      "status": {
+        "x": 696.984375,
+        "y": 430.9375,
+        "w": 296,
+        "h": 96,
+        "bottom": 526.9375,
+        "right": 992.984375
+      },
+      "extra": null,
+      "players": [
+        {
+          "y": 282.9375,
+          "bottom": 346.9375
+        },
+        {
+          "y": 354.9375,
+          "bottom": 418.9375
+        }
+      ],
+      "unhandled": [
+        "bk-help"
+      ]
+    },
+    {
+      "game": "four-in-a-row",
+      "width": 768,
+      "height": 1024,
+      "theme": "day",
+      "embed": false,
+      "viewport": [
+        768,
+        1024
+      ],
+      "scrollWidth": 768,
+      "scrollHeight": 1036,
+      "stage": {
+        "x": 20,
+        "y": 367.078125,
+        "w": 400,
+        "h": 393.84375,
+        "bottom": 760.921875,
+        "right": 420
+      },
+      "tools": {
+        "x": 452,
+        "y": 662.9375,
+        "w": 296,
+        "h": 44,
+        "bottom": 706.9375,
+        "right": 748
+      },
+      "status": {
+        "x": 452,
+        "y": 554.9375,
+        "w": 296,
+        "h": 96,
+        "bottom": 650.9375,
+        "right": 748
+      },
+      "extra": null,
+      "players": [
+        {
+          "y": 406.9375,
+          "bottom": 470.9375
+        },
+        {
+          "y": 478.9375,
+          "bottom": 542.9375
+        }
+      ],
+      "unhandled": [
+        "bk-help"
+      ]
+    },
+    {
+      "game": "four-in-a-row",
+      "width": 768,
+      "height": 1024,
+      "theme": "night",
+      "embed": false,
+      "viewport": [
+        768,
+        1024
+      ],
+      "scrollWidth": 768,
+      "scrollHeight": 1036,
+      "stage": {
+        "x": 20,
+        "y": 367.078125,
+        "w": 400,
+        "h": 393.84375,
+        "bottom": 760.921875,
+        "right": 420
+      },
+      "tools": {
+        "x": 452,
+        "y": 662.9375,
+        "w": 296,
+        "h": 44,
+        "bottom": 706.9375,
+        "right": 748
+      },
+      "status": {
+        "x": 452,
+        "y": 554.9375,
+        "w": 296,
+        "h": 96,
+        "bottom": 650.9375,
+        "right": 748
+      },
+      "extra": null,
+      "players": [
+        {
+          "y": 406.9375,
+          "bottom": 470.9375
+        },
+        {
+          "y": 478.9375,
+          "bottom": 542.9375
+        }
+      ],
+      "unhandled": [
+        "bk-help"
+      ]
+    },
+    {
+      "game": "four-in-a-row",
+      "width": 390,
+      "height": 844,
+      "theme": "day",
+      "embed": false,
+      "viewport": [
+        390,
+        844
+      ],
+      "scrollWidth": 390,
+      "scrollHeight": 844,
+      "stage": {
+        "x": 12,
+        "y": 200,
+        "w": 366,
+        "h": 360.359375,
+        "bottom": 560.359375,
+        "right": 378
+      },
+      "tools": {
+        "x": 12,
+        "y": 692.359375,
+        "w": 366,
+        "h": 44,
+        "bottom": 736.359375,
+        "right": 378
+      },
+      "status": {
+        "x": 12,
+        "y": 568.359375,
+        "w": 366,
+        "h": 64,
+        "bottom": 632.359375,
+        "right": 378
+      },
+      "extra": null,
+      "players": [
+        {
+          "y": 128,
+          "bottom": 192
+        },
+        {
+          "y": 128,
+          "bottom": 192
+        }
+      ],
+      "unhandled": [
+        "bk-help"
+      ]
+    },
+    {
+      "game": "four-in-a-row",
+      "width": 390,
+      "height": 844,
+      "theme": "night",
+      "embed": false,
+      "viewport": [
+        390,
+        844
+      ],
+      "scrollWidth": 390,
+      "scrollHeight": 844,
+      "stage": {
+        "x": 12,
+        "y": 200,
+        "w": 366,
+        "h": 360.359375,
+        "bottom": 560.359375,
+        "right": 378
+      },
+      "tools": {
+        "x": 12,
+        "y": 692.359375,
+        "w": 366,
+        "h": 44,
+        "bottom": 736.359375,
+        "right": 378
+      },
+      "status": {
+        "x": 12,
+        "y": 568.359375,
+        "w": 366,
+        "h": 64,
+        "bottom": 632.359375,
+        "right": 378
+      },
+      "extra": null,
+      "players": [
+        {
+          "y": 128,
+          "bottom": 192
+        },
+        {
+          "y": 128,
+          "bottom": 192
+        }
+      ],
+      "unhandled": [
+        "bk-help"
+      ]
+    },
+    {
+      "game": "four-in-a-row",
+      "width": 420,
+      "height": 700,
+      "theme": "day",
+      "embed": true,
+      "viewport": [
+        420,
+        700
+      ],
+      "scrollWidth": 420,
+      "scrollHeight": 745,
+      "stage": {
+        "x": 12,
+        "y": 200,
+        "w": 396,
+        "h": 353.34375,
+        "bottom": 553.34375,
+        "right": 408
+      },
+      "tools": {
+        "x": 12,
+        "y": 685.34375,
+        "w": 396,
+        "h": 44,
+        "bottom": 729.34375,
+        "right": 408
+      },
+      "status": {
+        "x": 12,
+        "y": 561.34375,
+        "w": 396,
+        "h": 64,
+        "bottom": 625.34375,
+        "right": 408
+      },
+      "extra": null,
+      "players": [
+        {
+          "y": 128,
+          "bottom": 192
+        },
+        {
+          "y": 128,
+          "bottom": 192
+        }
+      ],
+      "unhandled": [
+        "bk-help"
+      ]
+    },
+    {
+      "game": "four-in-a-row",
+      "width": 420,
+      "height": 700,
+      "theme": "night",
+      "embed": true,
+      "viewport": [
+        420,
+        700
+      ],
+      "scrollWidth": 420,
+      "scrollHeight": 745,
+      "stage": {
+        "x": 12,
+        "y": 200,
+        "w": 396,
+        "h": 353.34375,
+        "bottom": 553.34375,
+        "right": 408
+      },
+      "tools": {
+        "x": 12,
+        "y": 685.34375,
+        "w": 396,
+        "h": 44,
+        "bottom": 729.34375,
+        "right": 408
+      },
+      "status": {
+        "x": 12,
+        "y": 561.34375,
+        "w": 396,
+        "h": 64,
+        "bottom": 625.34375,
+        "right": 408
+      },
+      "extra": null,
+      "players": [
+        {
+          "y": 128,
+          "bottom": 192
+        },
+        {
+          "y": 128,
+          "bottom": 192
+        }
+      ],
+      "unhandled": [
+        "bk-help"
+      ]
+    },
+    {
+      "game": "four-in-a-row",
+      "width": 560,
+      "height": 760,
+      "theme": "day",
+      "embed": true,
+      "viewport": [
+        560,
+        760
+      ],
+      "scrollWidth": 560,
+      "scrollHeight": 870,
+      "stage": {
+        "x": 12,
+        "y": 200,
+        "w": 536,
+        "h": 478.265625,
+        "bottom": 678.265625,
+        "right": 548
+      },
+      "tools": {
+        "x": 12,
+        "y": 810.265625,
+        "w": 536,
+        "h": 44,
+        "bottom": 854.265625,
+        "right": 548
+      },
+      "status": {
+        "x": 12,
+        "y": 686.265625,
+        "w": 536,
+        "h": 64,
+        "bottom": 750.265625,
+        "right": 548
+      },
+      "extra": null,
+      "players": [
+        {
+          "y": 128,
+          "bottom": 192
+        },
+        {
+          "y": 128,
+          "bottom": 192
+        }
+      ],
+      "unhandled": [
+        "bk-help"
+      ]
+    },
+    {
+      "game": "four-in-a-row",
+      "width": 560,
+      "height": 760,
+      "theme": "night",
+      "embed": true,
+      "viewport": [
+        560,
+        760
+      ],
+      "scrollWidth": 560,
+      "scrollHeight": 870,
+      "stage": {
+        "x": 12,
+        "y": 200,
+        "w": 536,
+        "h": 478.265625,
+        "bottom": 678.265625,
+        "right": 548
+      },
+      "tools": {
+        "x": 12,
+        "y": 810.265625,
+        "w": 536,
+        "h": 44,
+        "bottom": 854.265625,
+        "right": 548
+      },
+      "status": {
+        "x": 12,
+        "y": 686.265625,
+        "w": 536,
+        "h": 64,
+        "bottom": 750.265625,
+        "right": 548
+      },
+      "extra": null,
+      "players": [
+        {
+          "y": 128,
+          "bottom": 192
+        },
+        {
+          "y": 128,
+          "bottom": 192
+        }
+      ],
+      "unhandled": [
+        "bk-help"
+      ]
+    },
+    {
+      "game": "five-row",
+      "width": 1440,
+      "height": 900,
+      "theme": "day",
+      "embed": false,
+      "viewport": [
+        1440,
+        900
+      ],
+      "scrollWidth": 1440,
+      "scrollHeight": 900,
+      "stage": {
+        "x": 192,
+        "y": 146,
+        "w": 720,
+        "h": 720,
+        "bottom": 866,
+        "right": 912
+      },
+      "tools": {
+        "x": 928,
+        "y": 619.828125,
+        "w": 320,
+        "h": 44,
+        "bottom": 663.828125,
+        "right": 1248
+      },
+      "status": {
+        "x": 928,
+        "y": 431.453125,
+        "w": 320,
+        "h": 88,
+        "bottom": 519.453125,
+        "right": 1248
+      },
+      "extra": {
+        "x": 928,
+        "y": 527.453125,
+        "w": 320,
+        "h": 84.375,
+        "bottom": 611.828125,
+        "right": 1248
+      },
+      "players": [
+        {
+          "y": 303.453125,
+          "bottom": 359.453125
+        },
+        {
+          "y": 367.453125,
+          "bottom": 423.453125
+        }
+      ],
+      "unhandled": [
+        "bk-help"
+      ]
+    },
+    {
+      "game": "five-row",
+      "width": 1440,
+      "height": 900,
+      "theme": "night",
+      "embed": false,
+      "viewport": [
+        1440,
+        900
+      ],
+      "scrollWidth": 1440,
+      "scrollHeight": 900,
+      "stage": {
+        "x": 192,
+        "y": 146,
+        "w": 720,
+        "h": 720,
+        "bottom": 866,
+        "right": 912
+      },
+      "tools": {
+        "x": 928,
+        "y": 619.828125,
+        "w": 320,
+        "h": 44,
+        "bottom": 663.828125,
+        "right": 1248
+      },
+      "status": {
+        "x": 928,
+        "y": 431.453125,
+        "w": 320,
+        "h": 88,
+        "bottom": 519.453125,
+        "right": 1248
+      },
+      "extra": {
+        "x": 928,
+        "y": 527.453125,
+        "w": 320,
+        "h": 84.375,
+        "bottom": 611.828125,
+        "right": 1248
+      },
+      "players": [
+        {
+          "y": 303.453125,
+          "bottom": 359.453125
+        },
+        {
+          "y": 367.453125,
+          "bottom": 423.453125
+        }
+      ],
+      "unhandled": [
+        "bk-help"
+      ]
+    },
+    {
+      "game": "five-row",
+      "width": 1024,
+      "height": 768,
+      "theme": "day",
+      "embed": false,
+      "viewport": [
+        1024,
+        768
+      ],
+      "scrollWidth": 1024,
+      "scrollHeight": 768,
+      "stage": {
+        "x": 50,
+        "y": 146,
+        "w": 588,
+        "h": 588,
+        "bottom": 734,
+        "right": 638
+      },
+      "tools": {
+        "x": 666,
+        "y": 553.109375,
+        "w": 320,
+        "h": 44,
+        "bottom": 597.109375,
+        "right": 986
+      },
+      "status": {
+        "x": 666,
+        "y": 364.734375,
+        "w": 320,
+        "h": 88,
+        "bottom": 452.734375,
+        "right": 986
+      },
+      "extra": {
+        "x": 666,
+        "y": 460.734375,
+        "w": 320,
+        "h": 84.375,
+        "bottom": 545.109375,
+        "right": 986
+      },
+      "players": [
+        {
+          "y": 236.734375,
+          "bottom": 292.734375
+        },
+        {
+          "y": 300.734375,
+          "bottom": 356.734375
+        }
+      ],
+      "unhandled": [
+        "bk-help"
+      ]
+    },
+    {
+      "game": "five-row",
+      "width": 1024,
+      "height": 768,
+      "theme": "night",
+      "embed": false,
+      "viewport": [
+        1024,
+        768
+      ],
+      "scrollWidth": 1024,
+      "scrollHeight": 768,
+      "stage": {
+        "x": 50,
+        "y": 146,
+        "w": 588,
+        "h": 588,
+        "bottom": 734,
+        "right": 638
+      },
+      "tools": {
+        "x": 666,
+        "y": 553.109375,
+        "w": 320,
+        "h": 44,
+        "bottom": 597.109375,
+        "right": 986
+      },
+      "status": {
+        "x": 666,
+        "y": 364.734375,
+        "w": 320,
+        "h": 88,
+        "bottom": 452.734375,
+        "right": 986
+      },
+      "extra": {
+        "x": 666,
+        "y": 460.734375,
+        "w": 320,
+        "h": 84.375,
+        "bottom": 545.109375,
+        "right": 986
+      },
+      "players": [
+        {
+          "y": 236.734375,
+          "bottom": 292.734375
+        },
+        {
+          "y": 300.734375,
+          "bottom": 356.734375
+        }
+      ],
+      "unhandled": [
+        "bk-help"
+      ]
+    },
+    {
+      "game": "five-row",
+      "width": 768,
+      "height": 1024,
+      "theme": "day",
+      "embed": false,
+      "viewport": [
+        768,
+        1024
+      ],
+      "scrollWidth": 768,
+      "scrollHeight": 1024,
+      "stage": {
+        "x": 16,
+        "y": 368,
+        "w": 400,
+        "h": 400,
+        "bottom": 768,
+        "right": 416
+      },
+      "tools": {
+        "x": 432,
+        "y": 677.21875,
+        "w": 320,
+        "h": 44,
+        "bottom": 721.21875,
+        "right": 752
+      },
+      "status": {
+        "x": 432,
+        "y": 488.84375,
+        "w": 320,
+        "h": 88,
+        "bottom": 576.84375,
+        "right": 752
+      },
+      "extra": {
+        "x": 432,
+        "y": 584.84375,
+        "w": 320,
+        "h": 84.375,
+        "bottom": 669.21875,
+        "right": 752
+      },
+      "players": [
+        {
+          "y": 360.84375,
+          "bottom": 416.84375
+        },
+        {
+          "y": 424.84375,
+          "bottom": 480.84375
+        }
+      ],
+      "unhandled": [
+        "bk-help"
+      ]
+    },
+    {
+      "game": "five-row",
+      "width": 768,
+      "height": 1024,
+      "theme": "night",
+      "embed": false,
+      "viewport": [
+        768,
+        1024
+      ],
+      "scrollWidth": 768,
+      "scrollHeight": 1024,
+      "stage": {
+        "x": 16,
+        "y": 368,
+        "w": 400,
+        "h": 400,
+        "bottom": 768,
+        "right": 416
+      },
+      "tools": {
+        "x": 432,
+        "y": 677.21875,
+        "w": 320,
+        "h": 44,
+        "bottom": 721.21875,
+        "right": 752
+      },
+      "status": {
+        "x": 432,
+        "y": 488.84375,
+        "w": 320,
+        "h": 88,
+        "bottom": 576.84375,
+        "right": 752
+      },
+      "extra": {
+        "x": 432,
+        "y": 584.84375,
+        "w": 320,
+        "h": 84.375,
+        "bottom": 669.21875,
+        "right": 752
+      },
+      "players": [
+        {
+          "y": 360.84375,
+          "bottom": 416.84375
+        },
+        {
+          "y": 424.84375,
+          "bottom": 480.84375
+        }
+      ],
+      "unhandled": [
+        "bk-help"
+      ]
+    },
+    {
+      "game": "five-row",
+      "width": 390,
+      "height": 844,
+      "theme": "day",
+      "embed": false,
+      "viewport": [
+        390,
+        844
+      ],
+      "scrollWidth": 390,
+      "scrollHeight": 844,
+      "stage": {
+        "x": 16,
+        "y": 212,
+        "w": 358,
+        "h": 358,
+        "bottom": 570,
+        "right": 374
+      },
+      "tools": {
+        "x": 271.125,
+        "y": 702,
+        "w": 110.875,
+        "h": 44,
+        "bottom": 746,
+        "right": 382
+      },
+      "status": {
+        "x": 8,
+        "y": 578,
+        "w": 374,
+        "h": 64,
+        "bottom": 642,
+        "right": 382
+      },
+      "extra": {
+        "x": 8,
+        "y": 650,
+        "w": 374,
+        "h": 44,
+        "bottom": 694,
+        "right": 382
+      },
+      "players": [
+        {
+          "y": 128,
+          "bottom": 172
+        },
+        {
+          "y": 128,
+          "bottom": 172
+        }
+      ],
+      "unhandled": [
+        "bk-help"
+      ]
+    },
+    {
+      "game": "five-row",
+      "width": 390,
+      "height": 844,
+      "theme": "night",
+      "embed": false,
+      "viewport": [
+        390,
+        844
+      ],
+      "scrollWidth": 390,
+      "scrollHeight": 844,
+      "stage": {
+        "x": 16,
+        "y": 212,
+        "w": 358,
+        "h": 358,
+        "bottom": 570,
+        "right": 374
+      },
+      "tools": {
+        "x": 271.125,
+        "y": 702,
+        "w": 110.875,
+        "h": 44,
+        "bottom": 746,
+        "right": 382
+      },
+      "status": {
+        "x": 8,
+        "y": 578,
+        "w": 374,
+        "h": 64,
+        "bottom": 642,
+        "right": 382
+      },
+      "extra": {
+        "x": 8,
+        "y": 650,
+        "w": 374,
+        "h": 44,
+        "bottom": 694,
+        "right": 382
+      },
+      "players": [
+        {
+          "y": 128,
+          "bottom": 172
+        },
+        {
+          "y": 128,
+          "bottom": 172
+        }
+      ],
+      "unhandled": [
+        "bk-help"
+      ]
+    },
+    {
+      "game": "five-row",
+      "width": 420,
+      "height": 700,
+      "theme": "day",
+      "embed": true,
+      "viewport": [
+        420,
+        700
+      ],
+      "scrollWidth": 420,
+      "scrollHeight": 712,
+      "stage": {
+        "x": 56,
+        "y": 212,
+        "w": 308,
+        "h": 308,
+        "bottom": 520,
+        "right": 364
+      },
+      "tools": {
+        "x": 301.125,
+        "y": 652,
+        "w": 110.875,
+        "h": 44,
+        "bottom": 696,
+        "right": 412
+      },
+      "status": {
+        "x": 8,
+        "y": 528,
+        "w": 404,
+        "h": 64,
+        "bottom": 592,
+        "right": 412
+      },
+      "extra": {
+        "x": 8,
+        "y": 600,
+        "w": 404,
+        "h": 44,
+        "bottom": 644,
+        "right": 412
+      },
+      "players": [
+        {
+          "y": 128,
+          "bottom": 172
+        },
+        {
+          "y": 128,
+          "bottom": 172
+        }
+      ],
+      "unhandled": [
+        "bk-help"
+      ]
+    },
+    {
+      "game": "five-row",
+      "width": 420,
+      "height": 700,
+      "theme": "night",
+      "embed": true,
+      "viewport": [
+        420,
+        700
+      ],
+      "scrollWidth": 420,
+      "scrollHeight": 712,
+      "stage": {
+        "x": 56,
+        "y": 212,
+        "w": 308,
+        "h": 308,
+        "bottom": 520,
+        "right": 364
+      },
+      "tools": {
+        "x": 301.125,
+        "y": 652,
+        "w": 110.875,
+        "h": 44,
+        "bottom": 696,
+        "right": 412
+      },
+      "status": {
+        "x": 8,
+        "y": 528,
+        "w": 404,
+        "h": 64,
+        "bottom": 592,
+        "right": 412
+      },
+      "extra": {
+        "x": 8,
+        "y": 600,
+        "w": 404,
+        "h": 44,
+        "bottom": 644,
+        "right": 412
+      },
+      "players": [
+        {
+          "y": 128,
+          "bottom": 172
+        },
+        {
+          "y": 128,
+          "bottom": 172
+        }
+      ],
+      "unhandled": [
+        "bk-help"
+      ]
+    },
+    {
+      "game": "five-row",
+      "width": 560,
+      "height": 760,
+      "theme": "day",
+      "embed": true,
+      "viewport": [
+        560,
+        760
+      ],
+      "scrollWidth": 560,
+      "scrollHeight": 772,
+      "stage": {
+        "x": 96,
+        "y": 212,
+        "w": 368,
+        "h": 368,
+        "bottom": 580,
+        "right": 464
+      },
+      "tools": {
+        "x": 441.125,
+        "y": 712,
+        "w": 110.875,
+        "h": 44,
+        "bottom": 756,
+        "right": 552
+      },
+      "status": {
+        "x": 8,
+        "y": 588,
+        "w": 544,
+        "h": 64,
+        "bottom": 652,
+        "right": 552
+      },
+      "extra": {
+        "x": 8,
+        "y": 660,
+        "w": 544,
+        "h": 44,
+        "bottom": 704,
+        "right": 552
+      },
+      "players": [
+        {
+          "y": 128,
+          "bottom": 172
+        },
+        {
+          "y": 128,
+          "bottom": 172
+        }
+      ],
+      "unhandled": [
+        "bk-help"
+      ]
+    },
+    {
+      "game": "five-row",
+      "width": 560,
+      "height": 760,
+      "theme": "night",
+      "embed": true,
+      "viewport": [
+        560,
+        760
+      ],
+      "scrollWidth": 560,
+      "scrollHeight": 772,
+      "stage": {
+        "x": 96,
+        "y": 212,
+        "w": 368,
+        "h": 368,
+        "bottom": 580,
+        "right": 464
+      },
+      "tools": {
+        "x": 441.125,
+        "y": 712,
+        "w": 110.875,
+        "h": 44,
+        "bottom": 756,
+        "right": 552
+      },
+      "status": {
+        "x": 8,
+        "y": 588,
+        "w": 544,
+        "h": 64,
+        "bottom": 652,
+        "right": 552
+      },
+      "extra": {
+        "x": 8,
+        "y": 660,
+        "w": 544,
+        "h": 44,
+        "bottom": 704,
+        "right": 552
+      },
+      "players": [
+        {
+          "y": 128,
+          "bottom": 172
+        },
+        {
+          "y": 128,
+          "bottom": 172
+        }
+      ],
+      "unhandled": [
+        "bk-help"
+      ]
+    },
+    {
+      "game": "fleet-duel",
+      "width": 1440,
+      "height": 900,
+      "theme": "day",
+      "embed": false,
+      "viewport": [
+        1440,
+        900
+      ],
+      "scrollWidth": 1440,
+      "scrollHeight": 920,
+      "stage": {
+        "x": 208.234375,
+        "y": 124,
+        "w": 695.515625,
+        "h": 763.515625,
+        "bottom": 887.515625,
+        "right": 903.75
+      },
+      "tools": {
+        "x": 935.75,
+        "y": 784.59375,
+        "w": 296,
+        "h": 44,
+        "bottom": 828.59375,
+        "right": 1231.75
+      },
+      "status": {
+        "x": 935.75,
+        "y": 346.203125,
+        "w": 296,
+        "h": 96,
+        "bottom": 442.203125,
+        "right": 1231.75
+      },
+      "extra": {
+        "x": 935.75,
+        "y": 454.203125,
+        "w": 296,
+        "h": 318.390625,
+        "bottom": 772.59375,
+        "right": 1231.75
+      },
+      "players": [
+        {
+          "y": 198.203125,
+          "bottom": 262.203125
+        },
+        {
+          "y": 270.203125,
+          "bottom": 334.203125
+        }
+      ],
+      "unhandled": [
+        "bk-help"
+      ]
+    },
+    {
+      "game": "fleet-duel",
+      "width": 1440,
+      "height": 900,
+      "theme": "night",
+      "embed": false,
+      "viewport": [
+        1440,
+        900
+      ],
+      "scrollWidth": 1440,
+      "scrollHeight": 920,
+      "stage": {
+        "x": 208.234375,
+        "y": 124,
+        "w": 695.515625,
+        "h": 763.515625,
+        "bottom": 887.515625,
+        "right": 903.75
+      },
+      "tools": {
+        "x": 935.75,
+        "y": 784.59375,
+        "w": 296,
+        "h": 44,
+        "bottom": 828.59375,
+        "right": 1231.75
+      },
+      "status": {
+        "x": 935.75,
+        "y": 346.203125,
+        "w": 296,
+        "h": 96,
+        "bottom": 442.203125,
+        "right": 1231.75
+      },
+      "extra": {
+        "x": 935.75,
+        "y": 454.203125,
+        "w": 296,
+        "h": 318.390625,
+        "bottom": 772.59375,
+        "right": 1231.75
+      },
+      "players": [
+        {
+          "y": 198.203125,
+          "bottom": 262.203125
+        },
+        {
+          "y": 270.203125,
+          "bottom": 334.203125
+        }
+      ],
+      "unhandled": [
+        "bk-help"
+      ]
+    },
+    {
+      "game": "fleet-duel",
+      "width": 1024,
+      "height": 768,
+      "theme": "day",
+      "embed": false,
+      "viewport": [
+        1024,
+        768
+      ],
+      "scrollWidth": 1024,
+      "scrollHeight": 912,
+      "stage": {
+        "x": 60.953125,
+        "y": 181.078125,
+        "w": 574.078125,
+        "h": 642.078125,
+        "bottom": 823.15625,
+        "right": 635.03125
+      },
+      "tools": {
+        "x": 667.03125,
+        "y": 780.25,
+        "w": 296,
+        "h": 44,
+        "bottom": 824.25,
+        "right": 963.03125
+      },
+      "status": {
+        "x": 667.03125,
+        "y": 341.859375,
+        "w": 296,
+        "h": 96,
+        "bottom": 437.859375,
+        "right": 963.03125
+      },
+      "extra": {
+        "x": 667.03125,
+        "y": 449.859375,
+        "w": 296,
+        "h": 318.390625,
+        "bottom": 768.25,
+        "right": 963.03125
+      },
+      "players": [
+        {
+          "y": 193.859375,
+          "bottom": 257.859375
+        },
+        {
+          "y": 265.859375,
+          "bottom": 329.859375
+        }
+      ],
+      "unhandled": [
+        "bk-help"
+      ]
+    },
+    {
+      "game": "fleet-duel",
+      "width": 1024,
+      "height": 768,
+      "theme": "night",
+      "embed": false,
+      "viewport": [
+        1024,
+        768
+      ],
+      "scrollWidth": 1024,
+      "scrollHeight": 912,
+      "stage": {
+        "x": 60.953125,
+        "y": 181.078125,
+        "w": 574.078125,
+        "h": 642.078125,
+        "bottom": 823.15625,
+        "right": 635.03125
+      },
+      "tools": {
+        "x": 667.03125,
+        "y": 780.25,
+        "w": 296,
+        "h": 44,
+        "bottom": 824.25,
+        "right": 963.03125
+      },
+      "status": {
+        "x": 667.03125,
+        "y": 341.859375,
+        "w": 296,
+        "h": 96,
+        "bottom": 437.859375,
+        "right": 963.03125
+      },
+      "extra": {
+        "x": 667.03125,
+        "y": 449.859375,
+        "w": 296,
+        "h": 318.390625,
+        "bottom": 768.25,
+        "right": 963.03125
+      },
+      "players": [
+        {
+          "y": 193.859375,
+          "bottom": 257.859375
+        },
+        {
+          "y": 265.859375,
+          "bottom": 329.859375
+        }
+      ],
+      "unhandled": [
+        "bk-help"
+      ]
+    },
+    {
+      "game": "fleet-duel",
+      "width": 768,
+      "height": 1024,
+      "theme": "day",
+      "embed": false,
+      "viewport": [
+        768,
+        1024
+      ],
+      "scrollWidth": 768,
+      "scrollHeight": 1036,
+      "stage": {
+        "x": 20,
+        "y": 330,
+        "w": 400,
+        "h": 468,
+        "bottom": 798,
+        "right": 420
+      },
+      "tools": {
+        "x": 452,
+        "y": 838.234375,
+        "w": 296,
+        "h": 44,
+        "bottom": 882.234375,
+        "right": 748
+      },
+      "status": {
+        "x": 452,
+        "y": 399.84375,
+        "w": 296,
+        "h": 96,
+        "bottom": 495.84375,
+        "right": 748
+      },
+      "extra": {
+        "x": 452,
+        "y": 507.84375,
+        "w": 296,
+        "h": 318.390625,
+        "bottom": 826.234375,
+        "right": 748
+      },
+      "players": [
+        {
+          "y": 251.84375,
+          "bottom": 315.84375
+        },
+        {
+          "y": 323.84375,
+          "bottom": 387.84375
+        }
+      ],
+      "unhandled": [
+        "bk-help"
+      ]
+    },
+    {
+      "game": "fleet-duel",
+      "width": 768,
+      "height": 1024,
+      "theme": "night",
+      "embed": false,
+      "viewport": [
+        768,
+        1024
+      ],
+      "scrollWidth": 768,
+      "scrollHeight": 1036,
+      "stage": {
+        "x": 20,
+        "y": 330,
+        "w": 400,
+        "h": 468,
+        "bottom": 798,
+        "right": 420
+      },
+      "tools": {
+        "x": 452,
+        "y": 838.234375,
+        "w": 296,
+        "h": 44,
+        "bottom": 882.234375,
+        "right": 748
+      },
+      "status": {
+        "x": 452,
+        "y": 399.84375,
+        "w": 296,
+        "h": 96,
+        "bottom": 495.84375,
+        "right": 748
+      },
+      "extra": {
+        "x": 452,
+        "y": 507.84375,
+        "w": 296,
+        "h": 318.390625,
+        "bottom": 826.234375,
+        "right": 748
+      },
+      "players": [
+        {
+          "y": 251.84375,
+          "bottom": 315.84375
+        },
+        {
+          "y": 323.84375,
+          "bottom": 387.84375
+        }
+      ],
+      "unhandled": [
+        "bk-help"
+      ]
+    },
+    {
+      "game": "fleet-duel",
+      "width": 390,
+      "height": 844,
+      "theme": "day",
+      "embed": false,
+      "viewport": [
+        390,
+        844
+      ],
+      "scrollWidth": 390,
+      "scrollHeight": 894,
+      "stage": {
+        "x": 91,
+        "y": 202.078125,
+        "w": 208,
+        "h": 276,
+        "bottom": 478.078125,
+        "right": 299
+      },
+      "tools": {
+        "x": 12,
+        "y": 834.453125,
+        "w": 366,
+        "h": 44,
+        "bottom": 878.453125,
+        "right": 378
+      },
+      "status": {
+        "x": 12,
+        "y": 486.078125,
+        "w": 366,
+        "h": 48,
+        "bottom": 534.078125,
+        "right": 378
+      },
+      "extra": {
+        "x": 12,
+        "y": 542.078125,
+        "w": 366,
+        "h": 232.375,
+        "bottom": 774.453125,
+        "right": 378
+      },
+      "players": [
+        {
+          "y": 130.078125,
+          "bottom": 194.078125
+        },
+        {
+          "y": 130.078125,
+          "bottom": 194.078125
+        }
+      ],
+      "unhandled": [
+        "bk-help"
+      ]
+    },
+    {
+      "game": "fleet-duel",
+      "width": 390,
+      "height": 844,
+      "theme": "night",
+      "embed": false,
+      "viewport": [
+        390,
+        844
+      ],
+      "scrollWidth": 390,
+      "scrollHeight": 894,
+      "stage": {
+        "x": 91,
+        "y": 202.078125,
+        "w": 208,
+        "h": 276,
+        "bottom": 478.078125,
+        "right": 299
+      },
+      "tools": {
+        "x": 12,
+        "y": 834.453125,
+        "w": 366,
+        "h": 44,
+        "bottom": 878.453125,
+        "right": 378
+      },
+      "status": {
+        "x": 12,
+        "y": 486.078125,
+        "w": 366,
+        "h": 48,
+        "bottom": 534.078125,
+        "right": 378
+      },
+      "extra": {
+        "x": 12,
+        "y": 542.078125,
+        "w": 366,
+        "h": 232.375,
+        "bottom": 774.453125,
+        "right": 378
+      },
+      "players": [
+        {
+          "y": 130.078125,
+          "bottom": 194.078125
+        },
+        {
+          "y": 130.078125,
+          "bottom": 194.078125
+        }
+      ],
+      "unhandled": [
+        "bk-help"
+      ]
+    },
+    {
+      "game": "fleet-duel",
+      "width": 420,
+      "height": 700,
+      "theme": "day",
+      "embed": true,
+      "viewport": [
+        420,
+        700
+      ],
+      "scrollWidth": 420,
+      "scrollHeight": 732,
+      "stage": {
+        "x": 178,
+        "y": 202.078125,
+        "w": 64,
+        "h": 132,
+        "bottom": 334.078125,
+        "right": 242
+      },
+      "tools": {
+        "x": 12,
+        "y": 672.265625,
+        "w": 396,
+        "h": 44,
+        "bottom": 716.265625,
+        "right": 408
+      },
+      "status": {
+        "x": 12,
+        "y": 342.078125,
+        "w": 396,
+        "h": 48,
+        "bottom": 390.078125,
+        "right": 408
+      },
+      "extra": {
+        "x": 12,
+        "y": 398.078125,
+        "w": 396,
+        "h": 214.1875,
+        "bottom": 612.265625,
+        "right": 408
+      },
+      "players": [
+        {
+          "y": 130.078125,
+          "bottom": 194.078125
+        },
+        {
+          "y": 130.078125,
+          "bottom": 194.078125
+        }
+      ],
+      "unhandled": [
+        "bk-help"
+      ]
+    },
+    {
+      "game": "fleet-duel",
+      "width": 420,
+      "height": 700,
+      "theme": "night",
+      "embed": true,
+      "viewport": [
+        420,
+        700
+      ],
+      "scrollWidth": 420,
+      "scrollHeight": 732,
+      "stage": {
+        "x": 178,
+        "y": 202.078125,
+        "w": 64,
+        "h": 132,
+        "bottom": 334.078125,
+        "right": 242
+      },
+      "tools": {
+        "x": 12,
+        "y": 672.265625,
+        "w": 396,
+        "h": 44,
+        "bottom": 716.265625,
+        "right": 408
+      },
+      "status": {
+        "x": 12,
+        "y": 342.078125,
+        "w": 396,
+        "h": 48,
+        "bottom": 390.078125,
+        "right": 408
+      },
+      "extra": {
+        "x": 12,
+        "y": 398.078125,
+        "w": 396,
+        "h": 214.1875,
+        "bottom": 612.265625,
+        "right": 408
+      },
+      "players": [
+        {
+          "y": 130.078125,
+          "bottom": 194.078125
+        },
+        {
+          "y": 130.078125,
+          "bottom": 194.078125
+        }
+      ],
+      "unhandled": [
+        "bk-help"
+      ]
+    },
+    {
+      "game": "fleet-duel",
+      "width": 560,
+      "height": 760,
+      "theme": "day",
+      "embed": true,
+      "viewport": [
+        560,
+        760
+      ],
+      "scrollWidth": 560,
+      "scrollHeight": 792,
+      "stage": {
+        "x": 218,
+        "y": 202.078125,
+        "w": 124,
+        "h": 192,
+        "bottom": 394.078125,
+        "right": 342
+      },
+      "tools": {
+        "x": 12,
+        "y": 732.265625,
+        "w": 536,
+        "h": 44,
+        "bottom": 776.265625,
+        "right": 548
+      },
+      "status": {
+        "x": 12,
+        "y": 402.078125,
+        "w": 536,
+        "h": 48,
+        "bottom": 450.078125,
+        "right": 548
+      },
+      "extra": {
+        "x": 12,
+        "y": 458.078125,
+        "w": 536,
+        "h": 214.1875,
+        "bottom": 672.265625,
+        "right": 548
+      },
+      "players": [
+        {
+          "y": 130.078125,
+          "bottom": 194.078125
+        },
+        {
+          "y": 130.078125,
+          "bottom": 194.078125
+        }
+      ],
+      "unhandled": [
+        "bk-help"
+      ]
+    },
+    {
+      "game": "fleet-duel",
+      "width": 560,
+      "height": 760,
+      "theme": "night",
+      "embed": true,
+      "viewport": [
+        560,
+        760
+      ],
+      "scrollWidth": 560,
+      "scrollHeight": 792,
+      "stage": {
+        "x": 218,
+        "y": 202.078125,
+        "w": 124,
+        "h": 192,
+        "bottom": 394.078125,
+        "right": 342
+      },
+      "tools": {
+        "x": 12,
+        "y": 732.265625,
+        "w": 536,
+        "h": 44,
+        "bottom": 776.265625,
+        "right": 548
+      },
+      "status": {
+        "x": 12,
+        "y": 402.078125,
+        "w": 536,
+        "h": 48,
+        "bottom": 450.078125,
+        "right": 548
+      },
+      "extra": {
+        "x": 12,
+        "y": 458.078125,
+        "w": 536,
+        "h": 214.1875,
+        "bottom": 672.265625,
+        "right": 548
+      },
+      "players": [
+        {
+          "y": 130.078125,
+          "bottom": 194.078125
+        },
+        {
+          "y": 130.078125,
+          "bottom": 194.078125
+        }
+      ],
+      "unhandled": [
+        "bk-help"
+      ]
+    },
+    {
+      "game": "dots-boxes",
+      "width": 1440,
+      "height": 900,
+      "theme": "day",
+      "embed": false,
+      "viewport": [
+        1440,
+        900
+      ],
+      "scrollWidth": 1440,
+      "scrollHeight": 900,
+      "stage": {
+        "x": 192,
+        "y": 146,
+        "w": 720,
+        "h": 720,
+        "bottom": 866,
+        "right": 912
+      },
+      "tools": {
+        "x": 928,
+        "y": 586.734375,
+        "w": 320,
+        "h": 44,
+        "bottom": 630.734375,
+        "right": 1248
+      },
+      "status": {
+        "x": 928,
+        "y": 464.546875,
+        "w": 320,
+        "h": 88,
+        "bottom": 552.546875,
+        "right": 1248
+      },
+      "extra": {
+        "x": 928,
+        "y": 560.546875,
+        "w": 320,
+        "h": 18.1875,
+        "bottom": 578.734375,
+        "right": 1248
+      },
+      "players": [
+        {
+          "y": 336.546875,
+          "bottom": 392.546875
+        },
+        {
+          "y": 400.546875,
+          "bottom": 456.546875
+        }
+      ],
+      "unhandled": [
+        "bk-help"
+      ]
+    },
+    {
+      "game": "dots-boxes",
+      "width": 1440,
+      "height": 900,
+      "theme": "night",
+      "embed": false,
+      "viewport": [
+        1440,
+        900
+      ],
+      "scrollWidth": 1440,
+      "scrollHeight": 900,
+      "stage": {
+        "x": 192,
+        "y": 146,
+        "w": 720,
+        "h": 720,
+        "bottom": 866,
+        "right": 912
+      },
+      "tools": {
+        "x": 928,
+        "y": 586.734375,
+        "w": 320,
+        "h": 44,
+        "bottom": 630.734375,
+        "right": 1248
+      },
+      "status": {
+        "x": 928,
+        "y": 464.546875,
+        "w": 320,
+        "h": 88,
+        "bottom": 552.546875,
+        "right": 1248
+      },
+      "extra": {
+        "x": 928,
+        "y": 560.546875,
+        "w": 320,
+        "h": 18.1875,
+        "bottom": 578.734375,
+        "right": 1248
+      },
+      "players": [
+        {
+          "y": 336.546875,
+          "bottom": 392.546875
+        },
+        {
+          "y": 400.546875,
+          "bottom": 456.546875
+        }
+      ],
+      "unhandled": [
+        "bk-help"
+      ]
+    },
+    {
+      "game": "dots-boxes",
+      "width": 1024,
+      "height": 768,
+      "theme": "day",
+      "embed": false,
+      "viewport": [
+        1024,
+        768
+      ],
+      "scrollWidth": 1024,
+      "scrollHeight": 768,
+      "stage": {
+        "x": 50,
+        "y": 146,
+        "w": 588,
+        "h": 588,
+        "bottom": 734,
+        "right": 638
+      },
+      "tools": {
+        "x": 666,
+        "y": 520.015625,
+        "w": 320,
+        "h": 44,
+        "bottom": 564.015625,
+        "right": 986
+      },
+      "status": {
+        "x": 666,
+        "y": 397.828125,
+        "w": 320,
+        "h": 88,
+        "bottom": 485.828125,
+        "right": 986
+      },
+      "extra": {
+        "x": 666,
+        "y": 493.828125,
+        "w": 320,
+        "h": 18.1875,
+        "bottom": 512.015625,
+        "right": 986
+      },
+      "players": [
+        {
+          "y": 269.828125,
+          "bottom": 325.828125
+        },
+        {
+          "y": 333.828125,
+          "bottom": 389.828125
+        }
+      ],
+      "unhandled": [
+        "bk-help"
+      ]
+    },
+    {
+      "game": "dots-boxes",
+      "width": 1024,
+      "height": 768,
+      "theme": "night",
+      "embed": false,
+      "viewport": [
+        1024,
+        768
+      ],
+      "scrollWidth": 1024,
+      "scrollHeight": 768,
+      "stage": {
+        "x": 50,
+        "y": 146,
+        "w": 588,
+        "h": 588,
+        "bottom": 734,
+        "right": 638
+      },
+      "tools": {
+        "x": 666,
+        "y": 520.015625,
+        "w": 320,
+        "h": 44,
+        "bottom": 564.015625,
+        "right": 986
+      },
+      "status": {
+        "x": 666,
+        "y": 397.828125,
+        "w": 320,
+        "h": 88,
+        "bottom": 485.828125,
+        "right": 986
+      },
+      "extra": {
+        "x": 666,
+        "y": 493.828125,
+        "w": 320,
+        "h": 18.1875,
+        "bottom": 512.015625,
+        "right": 986
+      },
+      "players": [
+        {
+          "y": 269.828125,
+          "bottom": 325.828125
+        },
+        {
+          "y": 333.828125,
+          "bottom": 389.828125
+        }
+      ],
+      "unhandled": [
+        "bk-help"
+      ]
+    },
+    {
+      "game": "dots-boxes",
+      "width": 768,
+      "height": 1024,
+      "theme": "day",
+      "embed": false,
+      "viewport": [
+        768,
+        1024
+      ],
+      "scrollWidth": 768,
+      "scrollHeight": 1024,
+      "stage": {
+        "x": 16,
+        "y": 368,
+        "w": 400,
+        "h": 400,
+        "bottom": 768,
+        "right": 416
+      },
+      "tools": {
+        "x": 432,
+        "y": 644.125,
+        "w": 320,
+        "h": 44,
+        "bottom": 688.125,
+        "right": 752
+      },
+      "status": {
+        "x": 432,
+        "y": 521.9375,
+        "w": 320,
+        "h": 88,
+        "bottom": 609.9375,
+        "right": 752
+      },
+      "extra": {
+        "x": 432,
+        "y": 617.9375,
+        "w": 320,
+        "h": 18.1875,
+        "bottom": 636.125,
+        "right": 752
+      },
+      "players": [
+        {
+          "y": 393.9375,
+          "bottom": 449.9375
+        },
+        {
+          "y": 457.9375,
+          "bottom": 513.9375
+        }
+      ],
+      "unhandled": [
+        "bk-help"
+      ]
+    },
+    {
+      "game": "dots-boxes",
+      "width": 768,
+      "height": 1024,
+      "theme": "night",
+      "embed": false,
+      "viewport": [
+        768,
+        1024
+      ],
+      "scrollWidth": 768,
+      "scrollHeight": 1024,
+      "stage": {
+        "x": 16,
+        "y": 368,
+        "w": 400,
+        "h": 400,
+        "bottom": 768,
+        "right": 416
+      },
+      "tools": {
+        "x": 432,
+        "y": 644.125,
+        "w": 320,
+        "h": 44,
+        "bottom": 688.125,
+        "right": 752
+      },
+      "status": {
+        "x": 432,
+        "y": 521.9375,
+        "w": 320,
+        "h": 88,
+        "bottom": 609.9375,
+        "right": 752
+      },
+      "extra": {
+        "x": 432,
+        "y": 617.9375,
+        "w": 320,
+        "h": 18.1875,
+        "bottom": 636.125,
+        "right": 752
+      },
+      "players": [
+        {
+          "y": 393.9375,
+          "bottom": 449.9375
+        },
+        {
+          "y": 457.9375,
+          "bottom": 513.9375
+        }
+      ],
+      "unhandled": [
+        "bk-help"
+      ]
+    },
+    {
+      "game": "dots-boxes",
+      "width": 390,
+      "height": 844,
+      "theme": "day",
+      "embed": false,
+      "viewport": [
+        390,
+        844
+      ],
+      "scrollWidth": 390,
+      "scrollHeight": 844,
+      "stage": {
+        "x": 16,
+        "y": 212,
+        "w": 358,
+        "h": 358,
+        "bottom": 570,
+        "right": 374
+      },
+      "tools": {
+        "x": 271.125,
+        "y": 658,
+        "w": 110.875,
+        "h": 44,
+        "bottom": 702,
+        "right": 382
+      },
+      "status": {
+        "x": 8,
+        "y": 578,
+        "w": 374,
+        "h": 64,
+        "bottom": 642,
+        "right": 382
+      },
+      "extra": {
+        "x": 8,
+        "y": 650,
+        "w": 374,
+        "h": 0,
+        "bottom": 650,
+        "right": 382
+      },
+      "players": [
+        {
+          "y": 128,
+          "bottom": 172
+        },
+        {
+          "y": 128,
+          "bottom": 172
+        }
+      ],
+      "unhandled": [
+        "bk-help"
+      ]
+    },
+    {
+      "game": "dots-boxes",
+      "width": 390,
+      "height": 844,
+      "theme": "night",
+      "embed": false,
+      "viewport": [
+        390,
+        844
+      ],
+      "scrollWidth": 390,
+      "scrollHeight": 844,
+      "stage": {
+        "x": 16,
+        "y": 212,
+        "w": 358,
+        "h": 358,
+        "bottom": 570,
+        "right": 374
+      },
+      "tools": {
+        "x": 271.125,
+        "y": 658,
+        "w": 110.875,
+        "h": 44,
+        "bottom": 702,
+        "right": 382
+      },
+      "status": {
+        "x": 8,
+        "y": 578,
+        "w": 374,
+        "h": 64,
+        "bottom": 642,
+        "right": 382
+      },
+      "extra": {
+        "x": 8,
+        "y": 650,
+        "w": 374,
+        "h": 0,
+        "bottom": 650,
+        "right": 382
+      },
+      "players": [
+        {
+          "y": 128,
+          "bottom": 172
+        },
+        {
+          "y": 128,
+          "bottom": 172
+        }
+      ],
+      "unhandled": [
+        "bk-help"
+      ]
+    },
+    {
+      "game": "dots-boxes",
+      "width": 420,
+      "height": 700,
+      "theme": "day",
+      "embed": true,
+      "viewport": [
+        420,
+        700
+      ],
+      "scrollWidth": 420,
+      "scrollHeight": 712,
+      "stage": {
+        "x": 34,
+        "y": 212,
+        "w": 352,
+        "h": 352,
+        "bottom": 564,
+        "right": 386
+      },
+      "tools": {
+        "x": 301.125,
+        "y": 652,
+        "w": 110.875,
+        "h": 44,
+        "bottom": 696,
+        "right": 412
+      },
+      "status": {
+        "x": 8,
+        "y": 572,
+        "w": 404,
+        "h": 64,
+        "bottom": 636,
+        "right": 412
+      },
+      "extra": {
+        "x": 8,
+        "y": 644,
+        "w": 404,
+        "h": 0,
+        "bottom": 644,
+        "right": 412
+      },
+      "players": [
+        {
+          "y": 128,
+          "bottom": 172
+        },
+        {
+          "y": 128,
+          "bottom": 172
+        }
+      ],
+      "unhandled": [
+        "bk-help"
+      ]
+    },
+    {
+      "game": "dots-boxes",
+      "width": 420,
+      "height": 700,
+      "theme": "night",
+      "embed": true,
+      "viewport": [
+        420,
+        700
+      ],
+      "scrollWidth": 420,
+      "scrollHeight": 712,
+      "stage": {
+        "x": 34,
+        "y": 212,
+        "w": 352,
+        "h": 352,
+        "bottom": 564,
+        "right": 386
+      },
+      "tools": {
+        "x": 301.125,
+        "y": 652,
+        "w": 110.875,
+        "h": 44,
+        "bottom": 696,
+        "right": 412
+      },
+      "status": {
+        "x": 8,
+        "y": 572,
+        "w": 404,
+        "h": 64,
+        "bottom": 636,
+        "right": 412
+      },
+      "extra": {
+        "x": 8,
+        "y": 644,
+        "w": 404,
+        "h": 0,
+        "bottom": 644,
+        "right": 412
+      },
+      "players": [
+        {
+          "y": 128,
+          "bottom": 172
+        },
+        {
+          "y": 128,
+          "bottom": 172
+        }
+      ],
+      "unhandled": [
+        "bk-help"
+      ]
+    },
+    {
+      "game": "dots-boxes",
+      "width": 560,
+      "height": 760,
+      "theme": "day",
+      "embed": true,
+      "viewport": [
+        560,
+        760
+      ],
+      "scrollWidth": 560,
+      "scrollHeight": 772,
+      "stage": {
+        "x": 74,
+        "y": 212,
+        "w": 412,
+        "h": 412,
+        "bottom": 624,
+        "right": 486
+      },
+      "tools": {
+        "x": 441.125,
+        "y": 712,
+        "w": 110.875,
+        "h": 44,
+        "bottom": 756,
+        "right": 552
+      },
+      "status": {
+        "x": 8,
+        "y": 632,
+        "w": 544,
+        "h": 64,
+        "bottom": 696,
+        "right": 552
+      },
+      "extra": {
+        "x": 8,
+        "y": 704,
+        "w": 544,
+        "h": 0,
+        "bottom": 704,
+        "right": 552
+      },
+      "players": [
+        {
+          "y": 128,
+          "bottom": 172
+        },
+        {
+          "y": 128,
+          "bottom": 172
+        }
+      ],
+      "unhandled": [
+        "bk-help"
+      ]
+    },
+    {
+      "game": "dots-boxes",
+      "width": 560,
+      "height": 760,
+      "theme": "night",
+      "embed": true,
+      "viewport": [
+        560,
+        760
+      ],
+      "scrollWidth": 560,
+      "scrollHeight": 772,
+      "stage": {
+        "x": 74,
+        "y": 212,
+        "w": 412,
+        "h": 412,
+        "bottom": 624,
+        "right": 486
+      },
+      "tools": {
+        "x": 441.125,
+        "y": 712,
+        "w": 110.875,
+        "h": 44,
+        "bottom": 756,
+        "right": 552
+      },
+      "status": {
+        "x": 8,
+        "y": 632,
+        "w": 544,
+        "h": 64,
+        "bottom": 696,
+        "right": 552
+      },
+      "extra": {
+        "x": 8,
+        "y": 704,
+        "w": 544,
+        "h": 0,
+        "bottom": 704,
+        "right": 552
+      },
+      "players": [
+        {
+          "y": 128,
+          "bottom": 172
+        },
+        {
+          "y": 128,
+          "bottom": 172
+        }
+      ],
+      "unhandled": [
+        "bk-help"
+      ]
+    },
+    {
+      "game": "ludo",
+      "width": 1440,
+      "height": 900,
+      "theme": "day",
+      "embed": false,
+      "viewport": [
+        1440,
+        900
+      ],
+      "scrollWidth": 1440,
+      "scrollHeight": 912,
+      "stage": {
+        "x": 178,
+        "y": 124,
+        "w": 756,
+        "h": 756,
+        "bottom": 880,
+        "right": 934
+      },
+      "tools": {
+        "x": 966,
+        "y": 677.640625,
+        "w": 296,
+        "h": 44,
+        "bottom": 721.640625,
+        "right": 1262
+      },
+      "status": {
+        "x": 966,
+        "y": 445.640625,
+        "w": 296,
+        "h": 96,
+        "bottom": 541.640625,
+        "right": 1262
+      },
+      "extra": {
+        "x": 966,
+        "y": 553.640625,
+        "w": 296,
+        "h": 112,
+        "bottom": 665.640625,
+        "right": 1262
+      },
+      "players": [
+        {
+          "y": 297.640625,
+          "bottom": 361.640625
+        },
+        {
+          "y": 369.640625,
+          "bottom": 433.640625
+        }
+      ],
+      "unhandled": [
+        "bk-help"
+      ]
+    },
+    {
+      "game": "ludo",
+      "width": 1440,
+      "height": 900,
+      "theme": "night",
+      "embed": false,
+      "viewport": [
+        1440,
+        900
+      ],
+      "scrollWidth": 1440,
+      "scrollHeight": 912,
+      "stage": {
+        "x": 178,
+        "y": 124,
+        "w": 756,
+        "h": 756,
+        "bottom": 880,
+        "right": 934
+      },
+      "tools": {
+        "x": 966,
+        "y": 677.640625,
+        "w": 296,
+        "h": 44,
+        "bottom": 721.640625,
+        "right": 1262
+      },
+      "status": {
+        "x": 966,
+        "y": 445.640625,
+        "w": 296,
+        "h": 96,
+        "bottom": 541.640625,
+        "right": 1262
+      },
+      "extra": {
+        "x": 966,
+        "y": 553.640625,
+        "w": 296,
+        "h": 112,
+        "bottom": 665.640625,
+        "right": 1262
+      },
+      "players": [
+        {
+          "y": 297.640625,
+          "bottom": 361.640625
+        },
+        {
+          "y": 369.640625,
+          "bottom": 433.640625
+        }
+      ],
+      "unhandled": [
+        "bk-help"
+      ]
+    },
+    {
+      "game": "ludo",
+      "width": 1024,
+      "height": 768,
+      "theme": "day",
+      "embed": false,
+      "viewport": [
+        1024,
+        768
+      ],
+      "scrollWidth": 1024,
+      "scrollHeight": 780,
+      "stage": {
+        "x": 36,
+        "y": 124,
+        "w": 624,
+        "h": 624,
+        "bottom": 748,
+        "right": 660
+      },
+      "tools": {
+        "x": 692,
+        "y": 610.921875,
+        "w": 296,
+        "h": 44,
+        "bottom": 654.921875,
+        "right": 988
+      },
+      "status": {
+        "x": 692,
+        "y": 378.921875,
+        "w": 296,
+        "h": 96,
+        "bottom": 474.921875,
+        "right": 988
+      },
+      "extra": {
+        "x": 692,
+        "y": 486.921875,
+        "w": 296,
+        "h": 112,
+        "bottom": 598.921875,
+        "right": 988
+      },
+      "players": [
+        {
+          "y": 230.921875,
+          "bottom": 294.921875
+        },
+        {
+          "y": 302.921875,
+          "bottom": 366.921875
+        }
+      ],
+      "unhandled": [
+        "bk-help"
+      ]
+    },
+    {
+      "game": "ludo",
+      "width": 1024,
+      "height": 768,
+      "theme": "night",
+      "embed": false,
+      "viewport": [
+        1024,
+        768
+      ],
+      "scrollWidth": 1024,
+      "scrollHeight": 780,
+      "stage": {
+        "x": 36,
+        "y": 124,
+        "w": 624,
+        "h": 624,
+        "bottom": 748,
+        "right": 660
+      },
+      "tools": {
+        "x": 692,
+        "y": 610.921875,
+        "w": 296,
+        "h": 44,
+        "bottom": 654.921875,
+        "right": 988
+      },
+      "status": {
+        "x": 692,
+        "y": 378.921875,
+        "w": 296,
+        "h": 96,
+        "bottom": 474.921875,
+        "right": 988
+      },
+      "extra": {
+        "x": 692,
+        "y": 486.921875,
+        "w": 296,
+        "h": 112,
+        "bottom": 598.921875,
+        "right": 988
+      },
+      "players": [
+        {
+          "y": 230.921875,
+          "bottom": 294.921875
+        },
+        {
+          "y": 302.921875,
+          "bottom": 366.921875
+        }
+      ],
+      "unhandled": [
+        "bk-help"
+      ]
+    },
+    {
+      "game": "ludo",
+      "width": 768,
+      "height": 1024,
+      "theme": "day",
+      "embed": false,
+      "viewport": [
+        768,
+        1024
+      ],
+      "scrollWidth": 768,
+      "scrollHeight": 1036,
+      "stage": {
+        "x": 20,
+        "y": 364,
+        "w": 400,
+        "h": 400,
+        "bottom": 764,
+        "right": 420
+      },
+      "tools": {
+        "x": 452,
+        "y": 735.03125,
+        "w": 296,
+        "h": 44,
+        "bottom": 779.03125,
+        "right": 748
+      },
+      "status": {
+        "x": 452,
+        "y": 503.03125,
+        "w": 296,
+        "h": 96,
+        "bottom": 599.03125,
+        "right": 748
+      },
+      "extra": {
+        "x": 452,
+        "y": 611.03125,
+        "w": 296,
+        "h": 112,
+        "bottom": 723.03125,
+        "right": 748
+      },
+      "players": [
+        {
+          "y": 355.03125,
+          "bottom": 419.03125
+        },
+        {
+          "y": 427.03125,
+          "bottom": 491.03125
+        }
+      ],
+      "unhandled": [
+        "bk-help"
+      ]
+    },
+    {
+      "game": "ludo",
+      "width": 768,
+      "height": 1024,
+      "theme": "night",
+      "embed": false,
+      "viewport": [
+        768,
+        1024
+      ],
+      "scrollWidth": 768,
+      "scrollHeight": 1036,
+      "stage": {
+        "x": 20,
+        "y": 364,
+        "w": 400,
+        "h": 400,
+        "bottom": 764,
+        "right": 420
+      },
+      "tools": {
+        "x": 452,
+        "y": 735.03125,
+        "w": 296,
+        "h": 44,
+        "bottom": 779.03125,
+        "right": 748
+      },
+      "status": {
+        "x": 452,
+        "y": 503.03125,
+        "w": 296,
+        "h": 96,
+        "bottom": 599.03125,
+        "right": 748
+      },
+      "extra": {
+        "x": 452,
+        "y": 611.03125,
+        "w": 296,
+        "h": 112,
+        "bottom": 723.03125,
+        "right": 748
+      },
+      "players": [
+        {
+          "y": 355.03125,
+          "bottom": 419.03125
+        },
+        {
+          "y": 427.03125,
+          "bottom": 491.03125
+        }
+      ],
+      "unhandled": [
+        "bk-help"
+      ]
+    },
+    {
+      "game": "ludo",
+      "width": 390,
+      "height": 844,
+      "theme": "day",
+      "embed": false,
+      "viewport": [
+        390,
+        844
+      ],
+      "scrollWidth": 390,
+      "scrollHeight": 844,
+      "stage": {
+        "x": 19,
+        "y": 304,
+        "w": 352,
+        "h": 352,
+        "bottom": 656,
+        "right": 371
+      },
+      "tools": {
+        "x": 199,
+        "y": 784,
+        "w": 179,
+        "h": 44,
+        "bottom": 828,
+        "right": 378
+      },
+      "status": {
+        "x": 12,
+        "y": 200,
+        "w": 366,
+        "h": 88,
+        "bottom": 288,
+        "right": 378
+      },
+      "extra": {
+        "x": 12,
+        "y": 664,
+        "w": 366,
+        "h": 112,
+        "bottom": 776,
+        "right": 378
+      },
+      "players": [
+        {
+          "y": 128,
+          "bottom": 192
+        },
+        {
+          "y": 128,
+          "bottom": 192
+        }
+      ],
+      "unhandled": [
+        "bk-help"
+      ]
+    },
+    {
+      "game": "ludo",
+      "width": 390,
+      "height": 844,
+      "theme": "night",
+      "embed": false,
+      "viewport": [
+        390,
+        844
+      ],
+      "scrollWidth": 390,
+      "scrollHeight": 844,
+      "stage": {
+        "x": 19,
+        "y": 304,
+        "w": 352,
+        "h": 352,
+        "bottom": 656,
+        "right": 371
+      },
+      "tools": {
+        "x": 199,
+        "y": 784,
+        "w": 179,
+        "h": 44,
+        "bottom": 828,
+        "right": 378
+      },
+      "status": {
+        "x": 12,
+        "y": 200,
+        "w": 366,
+        "h": 88,
+        "bottom": 288,
+        "right": 378
+      },
+      "extra": {
+        "x": 12,
+        "y": 664,
+        "w": 366,
+        "h": 112,
+        "bottom": 776,
+        "right": 378
+      },
+      "players": [
+        {
+          "y": 128,
+          "bottom": 192
+        },
+        {
+          "y": 128,
+          "bottom": 192
+        }
+      ],
+      "unhandled": [
+        "bk-help"
+      ]
+    },
+    {
+      "game": "ludo",
+      "width": 420,
+      "height": 700,
+      "theme": "day",
+      "embed": true,
+      "viewport": [
+        420,
+        700
+      ],
+      "scrollWidth": 420,
+      "scrollHeight": 700,
+      "stage": {
+        "x": 106,
+        "y": 304,
+        "w": 208,
+        "h": 208,
+        "bottom": 512,
+        "right": 314
+      },
+      "tools": {
+        "x": 214,
+        "y": 640,
+        "w": 194,
+        "h": 44,
+        "bottom": 684,
+        "right": 408
+      },
+      "status": {
+        "x": 12,
+        "y": 200,
+        "w": 396,
+        "h": 88,
+        "bottom": 288,
+        "right": 408
+      },
+      "extra": {
+        "x": 12,
+        "y": 520,
+        "w": 396,
+        "h": 112,
+        "bottom": 632,
+        "right": 408
+      },
+      "players": [
+        {
+          "y": 128,
+          "bottom": 192
+        },
+        {
+          "y": 128,
+          "bottom": 192
+        }
+      ],
+      "unhandled": [
+        "bk-help"
+      ]
+    },
+    {
+      "game": "ludo",
+      "width": 420,
+      "height": 700,
+      "theme": "night",
+      "embed": true,
+      "viewport": [
+        420,
+        700
+      ],
+      "scrollWidth": 420,
+      "scrollHeight": 700,
+      "stage": {
+        "x": 106,
+        "y": 304,
+        "w": 208,
+        "h": 208,
+        "bottom": 512,
+        "right": 314
+      },
+      "tools": {
+        "x": 214,
+        "y": 640,
+        "w": 194,
+        "h": 44,
+        "bottom": 684,
+        "right": 408
+      },
+      "status": {
+        "x": 12,
+        "y": 200,
+        "w": 396,
+        "h": 88,
+        "bottom": 288,
+        "right": 408
+      },
+      "extra": {
+        "x": 12,
+        "y": 520,
+        "w": 396,
+        "h": 112,
+        "bottom": 632,
+        "right": 408
+      },
+      "players": [
+        {
+          "y": 128,
+          "bottom": 192
+        },
+        {
+          "y": 128,
+          "bottom": 192
+        }
+      ],
+      "unhandled": [
+        "bk-help"
+      ]
+    },
+    {
+      "game": "ludo",
+      "width": 560,
+      "height": 760,
+      "theme": "day",
+      "embed": true,
+      "viewport": [
+        560,
+        760
+      ],
+      "scrollWidth": 560,
+      "scrollHeight": 760,
+      "stage": {
+        "x": 146,
+        "y": 304,
+        "w": 268,
+        "h": 268,
+        "bottom": 572,
+        "right": 414
+      },
+      "tools": {
+        "x": 284,
+        "y": 700,
+        "w": 264,
+        "h": 44,
+        "bottom": 744,
+        "right": 548
+      },
+      "status": {
+        "x": 12,
+        "y": 200,
+        "w": 536,
+        "h": 88,
+        "bottom": 288,
+        "right": 548
+      },
+      "extra": {
+        "x": 12,
+        "y": 580,
+        "w": 536,
+        "h": 112,
+        "bottom": 692,
+        "right": 548
+      },
+      "players": [
+        {
+          "y": 128,
+          "bottom": 192
+        },
+        {
+          "y": 128,
+          "bottom": 192
+        }
+      ],
+      "unhandled": [
+        "bk-help"
+      ]
+    },
+    {
+      "game": "ludo",
+      "width": 560,
+      "height": 760,
+      "theme": "night",
+      "embed": true,
+      "viewport": [
+        560,
+        760
+      ],
+      "scrollWidth": 560,
+      "scrollHeight": 760,
+      "stage": {
+        "x": 146,
+        "y": 304,
+        "w": 268,
+        "h": 268,
+        "bottom": 572,
+        "right": 414
+      },
+      "tools": {
+        "x": 284,
+        "y": 700,
+        "w": 264,
+        "h": 44,
+        "bottom": 744,
+        "right": 548
+      },
+      "status": {
+        "x": 12,
+        "y": 200,
+        "w": 536,
+        "h": 88,
+        "bottom": 288,
+        "right": 548
+      },
+      "extra": {
+        "x": 12,
+        "y": 580,
+        "w": 536,
+        "h": 112,
+        "bottom": 692,
+        "right": 548
+      },
+      "players": [
+        {
+          "y": 128,
+          "bottom": 192
+        },
+        {
+          "y": 128,
+          "bottom": 192
+        }
+      ],
+      "unhandled": [
+        "bk-help"
+      ]
+    },
+    {
+      "game": "snakes-ladders",
+      "width": 1440,
+      "height": 900,
+      "theme": "day",
+      "embed": false,
+      "viewport": [
+        1440,
+        900
+      ],
+      "scrollWidth": 1440,
+      "scrollHeight": 900,
+      "stage": {
+        "x": 208,
+        "y": 148.90625,
+        "w": 688,
+        "h": 714.1875,
+        "bottom": 863.09375,
+        "right": 896
+      },
+      "tools": {
+        "x": 928,
+        "y": 631.828125,
+        "w": 320,
+        "h": 44,
+        "bottom": 675.828125,
+        "right": 1248
+      },
+      "status": {
+        "x": 928,
+        "y": 419.453125,
+        "w": 320,
+        "h": 88,
+        "bottom": 507.453125,
+        "right": 1248
+      },
+      "extra": {
+        "x": 928,
+        "y": 515.453125,
+        "w": 320,
+        "h": 108.375,
+        "bottom": 623.828125,
+        "right": 1248
+      },
+      "players": [
+        {
+          "y": 291.453125,
+          "bottom": 347.453125
+        },
+        {
+          "y": 355.453125,
+          "bottom": 411.453125
+        }
+      ],
+      "unhandled": [
+        "bk-help"
+      ]
+    },
+    {
+      "game": "snakes-ladders",
+      "width": 1440,
+      "height": 900,
+      "theme": "night",
+      "embed": false,
+      "viewport": [
+        1440,
+        900
+      ],
+      "scrollWidth": 1440,
+      "scrollHeight": 900,
+      "stage": {
+        "x": 208,
+        "y": 148.90625,
+        "w": 688,
+        "h": 714.1875,
+        "bottom": 863.09375,
+        "right": 896
+      },
+      "tools": {
+        "x": 928,
+        "y": 631.828125,
+        "w": 320,
+        "h": 44,
+        "bottom": 675.828125,
+        "right": 1248
+      },
+      "status": {
+        "x": 928,
+        "y": 419.453125,
+        "w": 320,
+        "h": 88,
+        "bottom": 507.453125,
+        "right": 1248
+      },
+      "extra": {
+        "x": 928,
+        "y": 515.453125,
+        "w": 320,
+        "h": 108.375,
+        "bottom": 623.828125,
+        "right": 1248
+      },
+      "players": [
+        {
+          "y": 291.453125,
+          "bottom": 347.453125
+        },
+        {
+          "y": 355.453125,
+          "bottom": 411.453125
+        }
+      ],
+      "unhandled": [
+        "bk-help"
+      ]
+    },
+    {
+      "game": "snakes-ladders",
+      "width": 1024,
+      "height": 768,
+      "theme": "day",
+      "embed": false,
+      "viewport": [
+        1024,
+        768
+      ],
+      "scrollWidth": 1024,
+      "scrollHeight": 768,
+      "stage": {
+        "x": 66,
+        "y": 148.90625,
+        "w": 556,
+        "h": 582.1875,
+        "bottom": 731.09375,
+        "right": 622
+      },
+      "tools": {
+        "x": 666,
+        "y": 565.109375,
+        "w": 320,
+        "h": 44,
+        "bottom": 609.109375,
+        "right": 986
+      },
+      "status": {
+        "x": 666,
+        "y": 352.734375,
+        "w": 320,
+        "h": 88,
+        "bottom": 440.734375,
+        "right": 986
+      },
+      "extra": {
+        "x": 666,
+        "y": 448.734375,
+        "w": 320,
+        "h": 108.375,
+        "bottom": 557.109375,
+        "right": 986
+      },
+      "players": [
+        {
+          "y": 224.734375,
+          "bottom": 280.734375
+        },
+        {
+          "y": 288.734375,
+          "bottom": 344.734375
+        }
+      ],
+      "unhandled": [
+        "bk-help"
+      ]
+    },
+    {
+      "game": "snakes-ladders",
+      "width": 1024,
+      "height": 768,
+      "theme": "night",
+      "embed": false,
+      "viewport": [
+        1024,
+        768
+      ],
+      "scrollWidth": 1024,
+      "scrollHeight": 768,
+      "stage": {
+        "x": 66,
+        "y": 148.90625,
+        "w": 556,
+        "h": 582.1875,
+        "bottom": 731.09375,
+        "right": 622
+      },
+      "tools": {
+        "x": 666,
+        "y": 565.109375,
+        "w": 320,
+        "h": 44,
+        "bottom": 609.109375,
+        "right": 986
+      },
+      "status": {
+        "x": 666,
+        "y": 352.734375,
+        "w": 320,
+        "h": 88,
+        "bottom": 440.734375,
+        "right": 986
+      },
+      "extra": {
+        "x": 666,
+        "y": 448.734375,
+        "w": 320,
+        "h": 108.375,
+        "bottom": 557.109375,
+        "right": 986
+      },
+      "players": [
+        {
+          "y": 224.734375,
+          "bottom": 280.734375
+        },
+        {
+          "y": 288.734375,
+          "bottom": 344.734375
+        }
+      ],
+      "unhandled": [
+        "bk-help"
+      ]
+    },
+    {
+      "game": "snakes-ladders",
+      "width": 768,
+      "height": 1024,
+      "theme": "day",
+      "embed": false,
+      "viewport": [
+        768,
+        1024
+      ],
+      "scrollWidth": 768,
+      "scrollHeight": 1024,
+      "stage": {
+        "x": 16,
+        "y": 354.90625,
+        "w": 400,
+        "h": 426.1875,
+        "bottom": 781.09375,
+        "right": 416
+      },
+      "tools": {
+        "x": 432,
+        "y": 689.21875,
+        "w": 320,
+        "h": 44,
+        "bottom": 733.21875,
+        "right": 752
+      },
+      "status": {
+        "x": 432,
+        "y": 476.84375,
+        "w": 320,
+        "h": 88,
+        "bottom": 564.84375,
+        "right": 752
+      },
+      "extra": {
+        "x": 432,
+        "y": 572.84375,
+        "w": 320,
+        "h": 108.375,
+        "bottom": 681.21875,
+        "right": 752
+      },
+      "players": [
+        {
+          "y": 348.84375,
+          "bottom": 404.84375
+        },
+        {
+          "y": 412.84375,
+          "bottom": 468.84375
+        }
+      ],
+      "unhandled": [
+        "bk-help"
+      ]
+    },
+    {
+      "game": "snakes-ladders",
+      "width": 768,
+      "height": 1024,
+      "theme": "night",
+      "embed": false,
+      "viewport": [
+        768,
+        1024
+      ],
+      "scrollWidth": 768,
+      "scrollHeight": 1024,
+      "stage": {
+        "x": 16,
+        "y": 354.90625,
+        "w": 400,
+        "h": 426.1875,
+        "bottom": 781.09375,
+        "right": 416
+      },
+      "tools": {
+        "x": 432,
+        "y": 689.21875,
+        "w": 320,
+        "h": 44,
+        "bottom": 733.21875,
+        "right": 752
+      },
+      "status": {
+        "x": 432,
+        "y": 476.84375,
+        "w": 320,
+        "h": 88,
+        "bottom": 564.84375,
+        "right": 752
+      },
+      "extra": {
+        "x": 432,
+        "y": 572.84375,
+        "w": 320,
+        "h": 108.375,
+        "bottom": 681.21875,
+        "right": 752
+      },
+      "players": [
+        {
+          "y": 348.84375,
+          "bottom": 404.84375
+        },
+        {
+          "y": 412.84375,
+          "bottom": 468.84375
+        }
+      ],
+      "unhandled": [
+        "bk-help"
+      ]
+    },
+    {
+      "game": "snakes-ladders",
+      "width": 390,
+      "height": 844,
+      "theme": "day",
+      "embed": false,
+      "viewport": [
+        390,
+        844
+      ],
+      "scrollWidth": 390,
+      "scrollHeight": 844,
+      "stage": {
+        "x": 16,
+        "y": 212,
+        "w": 358,
+        "h": 358,
+        "bottom": 570,
+        "right": 374
+      },
+      "tools": {
+        "x": 271.125,
+        "y": 746,
+        "w": 110.875,
+        "h": 44,
+        "bottom": 790,
+        "right": 382
+      },
+      "status": {
+        "x": 8,
+        "y": 578,
+        "w": 374,
+        "h": 64,
+        "bottom": 642,
+        "right": 382
+      },
+      "extra": {
+        "x": 8,
+        "y": 650,
+        "w": 374,
+        "h": 88,
+        "bottom": 738,
+        "right": 382
+      },
+      "players": [
+        {
+          "y": 128,
+          "bottom": 172
+        },
+        {
+          "y": 128,
+          "bottom": 172
+        }
+      ],
+      "unhandled": [
+        "bk-help"
+      ]
+    },
+    {
+      "game": "snakes-ladders",
+      "width": 390,
+      "height": 844,
+      "theme": "night",
+      "embed": false,
+      "viewport": [
+        390,
+        844
+      ],
+      "scrollWidth": 390,
+      "scrollHeight": 844,
+      "stage": {
+        "x": 16,
+        "y": 212,
+        "w": 358,
+        "h": 358,
+        "bottom": 570,
+        "right": 374
+      },
+      "tools": {
+        "x": 271.125,
+        "y": 746,
+        "w": 110.875,
+        "h": 44,
+        "bottom": 790,
+        "right": 382
+      },
+      "status": {
+        "x": 8,
+        "y": 578,
+        "w": 374,
+        "h": 64,
+        "bottom": 642,
+        "right": 382
+      },
+      "extra": {
+        "x": 8,
+        "y": 650,
+        "w": 374,
+        "h": 88,
+        "bottom": 738,
+        "right": 382
+      },
+      "players": [
+        {
+          "y": 128,
+          "bottom": 172
+        },
+        {
+          "y": 128,
+          "bottom": 172
+        }
+      ],
+      "unhandled": [
+        "bk-help"
+      ]
+    },
+    {
+      "game": "snakes-ladders",
+      "width": 420,
+      "height": 700,
+      "theme": "day",
+      "embed": true,
+      "viewport": [
+        420,
+        700
+      ],
+      "scrollWidth": 420,
+      "scrollHeight": 712,
+      "stage": {
+        "x": 78,
+        "y": 212,
+        "w": 264,
+        "h": 264,
+        "bottom": 476,
+        "right": 342
+      },
+      "tools": {
+        "x": 301.125,
+        "y": 652,
+        "w": 110.875,
+        "h": 44,
+        "bottom": 696,
+        "right": 412
+      },
+      "status": {
+        "x": 8,
+        "y": 484,
+        "w": 404,
+        "h": 64,
+        "bottom": 548,
+        "right": 412
+      },
+      "extra": {
+        "x": 8,
+        "y": 556,
+        "w": 404,
+        "h": 88,
+        "bottom": 644,
+        "right": 412
+      },
+      "players": [
+        {
+          "y": 128,
+          "bottom": 172
+        },
+        {
+          "y": 128,
+          "bottom": 172
+        }
+      ],
+      "unhandled": [
+        "bk-help"
+      ]
+    },
+    {
+      "game": "snakes-ladders",
+      "width": 420,
+      "height": 700,
+      "theme": "night",
+      "embed": true,
+      "viewport": [
+        420,
+        700
+      ],
+      "scrollWidth": 420,
+      "scrollHeight": 712,
+      "stage": {
+        "x": 78,
+        "y": 212,
+        "w": 264,
+        "h": 264,
+        "bottom": 476,
+        "right": 342
+      },
+      "tools": {
+        "x": 301.125,
+        "y": 652,
+        "w": 110.875,
+        "h": 44,
+        "bottom": 696,
+        "right": 412
+      },
+      "status": {
+        "x": 8,
+        "y": 484,
+        "w": 404,
+        "h": 64,
+        "bottom": 548,
+        "right": 412
+      },
+      "extra": {
+        "x": 8,
+        "y": 556,
+        "w": 404,
+        "h": 88,
+        "bottom": 644,
+        "right": 412
+      },
+      "players": [
+        {
+          "y": 128,
+          "bottom": 172
+        },
+        {
+          "y": 128,
+          "bottom": 172
+        }
+      ],
+      "unhandled": [
+        "bk-help"
+      ]
+    },
+    {
+      "game": "snakes-ladders",
+      "width": 560,
+      "height": 760,
+      "theme": "day",
+      "embed": true,
+      "viewport": [
+        560,
+        760
+      ],
+      "scrollWidth": 560,
+      "scrollHeight": 772,
+      "stage": {
+        "x": 118,
+        "y": 212,
+        "w": 324,
+        "h": 324,
+        "bottom": 536,
+        "right": 442
+      },
+      "tools": {
+        "x": 441.125,
+        "y": 712,
+        "w": 110.875,
+        "h": 44,
+        "bottom": 756,
+        "right": 552
+      },
+      "status": {
+        "x": 8,
+        "y": 544,
+        "w": 544,
+        "h": 64,
+        "bottom": 608,
+        "right": 552
+      },
+      "extra": {
+        "x": 8,
+        "y": 616,
+        "w": 544,
+        "h": 88,
+        "bottom": 704,
+        "right": 552
+      },
+      "players": [
+        {
+          "y": 128,
+          "bottom": 172
+        },
+        {
+          "y": 128,
+          "bottom": 172
+        }
+      ],
+      "unhandled": [
+        "bk-help"
+      ]
+    },
+    {
+      "game": "snakes-ladders",
+      "width": 560,
+      "height": 760,
+      "theme": "night",
+      "embed": true,
+      "viewport": [
+        560,
+        760
+      ],
+      "scrollWidth": 560,
+      "scrollHeight": 772,
+      "stage": {
+        "x": 118,
+        "y": 212,
+        "w": 324,
+        "h": 324,
+        "bottom": 536,
+        "right": 442
+      },
+      "tools": {
+        "x": 441.125,
+        "y": 712,
+        "w": 110.875,
+        "h": 44,
+        "bottom": 756,
+        "right": 552
+      },
+      "status": {
+        "x": 8,
+        "y": 544,
+        "w": 544,
+        "h": 64,
+        "bottom": 608,
+        "right": 552
+      },
+      "extra": {
+        "x": 8,
+        "y": 616,
+        "w": 544,
+        "h": 88,
+        "bottom": 704,
+        "right": 552
+      },
+      "players": [
+        {
+          "y": 128,
+          "bottom": 172
+        },
+        {
+          "y": 128,
+          "bottom": 172
+        }
+      ],
+      "unhandled": [
+        "bk-help"
+      ]
+    },
+    {
+      "game": "pig-dice",
+      "width": 1440,
+      "height": 900,
+      "theme": "day",
+      "embed": false,
+      "viewport": [
+        1440,
+        900
+      ],
+      "scrollWidth": 1440,
+      "scrollHeight": 900,
+      "stage": {
+        "x": 192,
+        "y": 242.8125,
+        "w": 720,
+        "h": 526.375,
+        "bottom": 769.1875,
+        "right": 912
+      },
+      "tools": {
+        "x": 928,
+        "y": 586.734375,
+        "w": 320,
+        "h": 44,
+        "bottom": 630.734375,
+        "right": 1248
+      },
+      "status": {
+        "x": 928,
+        "y": 464.546875,
+        "w": 320,
+        "h": 88,
+        "bottom": 552.546875,
+        "right": 1248
+      },
+      "extra": {
+        "x": 928,
+        "y": 560.546875,
+        "w": 320,
+        "h": 18.1875,
+        "bottom": 578.734375,
+        "right": 1248
+      },
+      "players": [
+        {
+          "y": 336.546875,
+          "bottom": 392.546875
+        },
+        {
+          "y": 400.546875,
+          "bottom": 456.546875
+        }
+      ],
+      "unhandled": [
+        "bk-help"
+      ]
+    },
+    {
+      "game": "pig-dice",
+      "width": 1440,
+      "height": 900,
+      "theme": "night",
+      "embed": false,
+      "viewport": [
+        1440,
+        900
+      ],
+      "scrollWidth": 1440,
+      "scrollHeight": 900,
+      "stage": {
+        "x": 192,
+        "y": 242.8125,
+        "w": 720,
+        "h": 526.375,
+        "bottom": 769.1875,
+        "right": 912
+      },
+      "tools": {
+        "x": 928,
+        "y": 586.734375,
+        "w": 320,
+        "h": 44,
+        "bottom": 630.734375,
+        "right": 1248
+      },
+      "status": {
+        "x": 928,
+        "y": 464.546875,
+        "w": 320,
+        "h": 88,
+        "bottom": 552.546875,
+        "right": 1248
+      },
+      "extra": {
+        "x": 928,
+        "y": 560.546875,
+        "w": 320,
+        "h": 18.1875,
+        "bottom": 578.734375,
+        "right": 1248
+      },
+      "players": [
+        {
+          "y": 336.546875,
+          "bottom": 392.546875
+        },
+        {
+          "y": 400.546875,
+          "bottom": 456.546875
+        }
+      ],
+      "unhandled": [
+        "bk-help"
+      ]
+    },
+    {
+      "game": "pig-dice",
+      "width": 1024,
+      "height": 768,
+      "theme": "day",
+      "embed": false,
+      "viewport": [
+        1024,
+        768
+      ],
+      "scrollWidth": 1024,
+      "scrollHeight": 768,
+      "stage": {
+        "x": 50,
+        "y": 176.8125,
+        "w": 588,
+        "h": 526.375,
+        "bottom": 703.1875,
+        "right": 638
+      },
+      "tools": {
+        "x": 666,
+        "y": 520.015625,
+        "w": 320,
+        "h": 44,
+        "bottom": 564.015625,
+        "right": 986
+      },
+      "status": {
+        "x": 666,
+        "y": 397.828125,
+        "w": 320,
+        "h": 88,
+        "bottom": 485.828125,
+        "right": 986
+      },
+      "extra": {
+        "x": 666,
+        "y": 493.828125,
+        "w": 320,
+        "h": 18.1875,
+        "bottom": 512.015625,
+        "right": 986
+      },
+      "players": [
+        {
+          "y": 269.828125,
+          "bottom": 325.828125
+        },
+        {
+          "y": 333.828125,
+          "bottom": 389.828125
+        }
+      ],
+      "unhandled": [
+        "bk-help"
+      ]
+    },
+    {
+      "game": "pig-dice",
+      "width": 1024,
+      "height": 768,
+      "theme": "night",
+      "embed": false,
+      "viewport": [
+        1024,
+        768
+      ],
+      "scrollWidth": 1024,
+      "scrollHeight": 768,
+      "stage": {
+        "x": 50,
+        "y": 176.8125,
+        "w": 588,
+        "h": 526.375,
+        "bottom": 703.1875,
+        "right": 638
+      },
+      "tools": {
+        "x": 666,
+        "y": 520.015625,
+        "w": 320,
+        "h": 44,
+        "bottom": 564.015625,
+        "right": 986
+      },
+      "status": {
+        "x": 666,
+        "y": 397.828125,
+        "w": 320,
+        "h": 88,
+        "bottom": 485.828125,
+        "right": 986
+      },
+      "extra": {
+        "x": 666,
+        "y": 493.828125,
+        "w": 320,
+        "h": 18.1875,
+        "bottom": 512.015625,
+        "right": 986
+      },
+      "players": [
+        {
+          "y": 269.828125,
+          "bottom": 325.828125
+        },
+        {
+          "y": 333.828125,
+          "bottom": 389.828125
+        }
+      ],
+      "unhandled": [
+        "bk-help"
+      ]
+    },
+    {
+      "game": "pig-dice",
+      "width": 768,
+      "height": 1024,
+      "theme": "day",
+      "embed": false,
+      "viewport": [
+        768,
+        1024
+      ],
+      "scrollWidth": 768,
+      "scrollHeight": 1024,
+      "stage": {
+        "x": 16,
+        "y": 318,
+        "w": 400,
+        "h": 500,
+        "bottom": 818,
+        "right": 416
+      },
+      "tools": {
+        "x": 432,
+        "y": 644.125,
+        "w": 320,
+        "h": 44,
+        "bottom": 688.125,
+        "right": 752
+      },
+      "status": {
+        "x": 432,
+        "y": 521.9375,
+        "w": 320,
+        "h": 88,
+        "bottom": 609.9375,
+        "right": 752
+      },
+      "extra": {
+        "x": 432,
+        "y": 617.9375,
+        "w": 320,
+        "h": 18.1875,
+        "bottom": 636.125,
+        "right": 752
+      },
+      "players": [
+        {
+          "y": 393.9375,
+          "bottom": 449.9375
+        },
+        {
+          "y": 457.9375,
+          "bottom": 513.9375
+        }
+      ],
+      "unhandled": [
+        "bk-help"
+      ]
+    },
+    {
+      "game": "pig-dice",
+      "width": 768,
+      "height": 1024,
+      "theme": "night",
+      "embed": false,
+      "viewport": [
+        768,
+        1024
+      ],
+      "scrollWidth": 768,
+      "scrollHeight": 1024,
+      "stage": {
+        "x": 16,
+        "y": 318,
+        "w": 400,
+        "h": 500,
+        "bottom": 818,
+        "right": 416
+      },
+      "tools": {
+        "x": 432,
+        "y": 644.125,
+        "w": 320,
+        "h": 44,
+        "bottom": 688.125,
+        "right": 752
+      },
+      "status": {
+        "x": 432,
+        "y": 521.9375,
+        "w": 320,
+        "h": 88,
+        "bottom": 609.9375,
+        "right": 752
+      },
+      "extra": {
+        "x": 432,
+        "y": 617.9375,
+        "w": 320,
+        "h": 18.1875,
+        "bottom": 636.125,
+        "right": 752
+      },
+      "players": [
+        {
+          "y": 393.9375,
+          "bottom": 449.9375
+        },
+        {
+          "y": 457.9375,
+          "bottom": 513.9375
+        }
+      ],
+      "unhandled": [
+        "bk-help"
+      ]
+    },
+    {
+      "game": "pig-dice",
+      "width": 390,
+      "height": 844,
+      "theme": "day",
+      "embed": false,
+      "viewport": [
+        390,
+        844
+      ],
+      "scrollWidth": 390,
+      "scrollHeight": 844,
+      "stage": {
+        "x": 16,
+        "y": 212,
+        "w": 358,
+        "h": 358,
+        "bottom": 570,
+        "right": 374
+      },
+      "tools": {
+        "x": 271.125,
+        "y": 658,
+        "w": 110.875,
+        "h": 44,
+        "bottom": 702,
+        "right": 382
+      },
+      "status": {
+        "x": 8,
+        "y": 578,
+        "w": 374,
+        "h": 64,
+        "bottom": 642,
+        "right": 382
+      },
+      "extra": {
+        "x": 8,
+        "y": 650,
+        "w": 374,
+        "h": 0,
+        "bottom": 650,
+        "right": 382
+      },
+      "players": [
+        {
+          "y": 128,
+          "bottom": 172
+        },
+        {
+          "y": 128,
+          "bottom": 172
+        }
+      ],
+      "unhandled": [
+        "bk-help"
+      ]
+    },
+    {
+      "game": "pig-dice",
+      "width": 390,
+      "height": 844,
+      "theme": "night",
+      "embed": false,
+      "viewport": [
+        390,
+        844
+      ],
+      "scrollWidth": 390,
+      "scrollHeight": 844,
+      "stage": {
+        "x": 16,
+        "y": 212,
+        "w": 358,
+        "h": 358,
+        "bottom": 570,
+        "right": 374
+      },
+      "tools": {
+        "x": 271.125,
+        "y": 658,
+        "w": 110.875,
+        "h": 44,
+        "bottom": 702,
+        "right": 382
+      },
+      "status": {
+        "x": 8,
+        "y": 578,
+        "w": 374,
+        "h": 64,
+        "bottom": 642,
+        "right": 382
+      },
+      "extra": {
+        "x": 8,
+        "y": 650,
+        "w": 374,
+        "h": 0,
+        "bottom": 650,
+        "right": 382
+      },
+      "players": [
+        {
+          "y": 128,
+          "bottom": 172
+        },
+        {
+          "y": 128,
+          "bottom": 172
+        }
+      ],
+      "unhandled": [
+        "bk-help"
+      ]
+    },
+    {
+      "game": "pig-dice",
+      "width": 420,
+      "height": 700,
+      "theme": "day",
+      "embed": true,
+      "viewport": [
+        420,
+        700
+      ],
+      "scrollWidth": 420,
+      "scrollHeight": 712,
+      "stage": {
+        "x": 34,
+        "y": 212,
+        "w": 352,
+        "h": 352,
+        "bottom": 564,
+        "right": 386
+      },
+      "tools": {
+        "x": 301.125,
+        "y": 652,
+        "w": 110.875,
+        "h": 44,
+        "bottom": 696,
+        "right": 412
+      },
+      "status": {
+        "x": 8,
+        "y": 572,
+        "w": 404,
+        "h": 64,
+        "bottom": 636,
+        "right": 412
+      },
+      "extra": {
+        "x": 8,
+        "y": 644,
+        "w": 404,
+        "h": 0,
+        "bottom": 644,
+        "right": 412
+      },
+      "players": [
+        {
+          "y": 128,
+          "bottom": 172
+        },
+        {
+          "y": 128,
+          "bottom": 172
+        }
+      ],
+      "unhandled": [
+        "bk-help"
+      ]
+    },
+    {
+      "game": "pig-dice",
+      "width": 420,
+      "height": 700,
+      "theme": "night",
+      "embed": true,
+      "viewport": [
+        420,
+        700
+      ],
+      "scrollWidth": 420,
+      "scrollHeight": 712,
+      "stage": {
+        "x": 34,
+        "y": 212,
+        "w": 352,
+        "h": 352,
+        "bottom": 564,
+        "right": 386
+      },
+      "tools": {
+        "x": 301.125,
+        "y": 652,
+        "w": 110.875,
+        "h": 44,
+        "bottom": 696,
+        "right": 412
+      },
+      "status": {
+        "x": 8,
+        "y": 572,
+        "w": 404,
+        "h": 64,
+        "bottom": 636,
+        "right": 412
+      },
+      "extra": {
+        "x": 8,
+        "y": 644,
+        "w": 404,
+        "h": 0,
+        "bottom": 644,
+        "right": 412
+      },
+      "players": [
+        {
+          "y": 128,
+          "bottom": 172
+        },
+        {
+          "y": 128,
+          "bottom": 172
+        }
+      ],
+      "unhandled": [
+        "bk-help"
+      ]
+    },
+    {
+      "game": "pig-dice",
+      "width": 560,
+      "height": 760,
+      "theme": "day",
+      "embed": true,
+      "viewport": [
+        560,
+        760
+      ],
+      "scrollWidth": 560,
+      "scrollHeight": 772,
+      "stage": {
+        "x": 74,
+        "y": 212,
+        "w": 412,
+        "h": 412,
+        "bottom": 624,
+        "right": 486
+      },
+      "tools": {
+        "x": 441.125,
+        "y": 712,
+        "w": 110.875,
+        "h": 44,
+        "bottom": 756,
+        "right": 552
+      },
+      "status": {
+        "x": 8,
+        "y": 632,
+        "w": 544,
+        "h": 64,
+        "bottom": 696,
+        "right": 552
+      },
+      "extra": {
+        "x": 8,
+        "y": 704,
+        "w": 544,
+        "h": 0,
+        "bottom": 704,
+        "right": 552
+      },
+      "players": [
+        {
+          "y": 128,
+          "bottom": 172
+        },
+        {
+          "y": 128,
+          "bottom": 172
+        }
+      ],
+      "unhandled": [
+        "bk-help"
+      ]
+    },
+    {
+      "game": "pig-dice",
+      "width": 560,
+      "height": 760,
+      "theme": "night",
+      "embed": true,
+      "viewport": [
+        560,
+        760
+      ],
+      "scrollWidth": 560,
+      "scrollHeight": 772,
+      "stage": {
+        "x": 74,
+        "y": 212,
+        "w": 412,
+        "h": 412,
+        "bottom": 624,
+        "right": 486
+      },
+      "tools": {
+        "x": 441.125,
+        "y": 712,
+        "w": 110.875,
+        "h": 44,
+        "bottom": 756,
+        "right": 552
+      },
+      "status": {
+        "x": 8,
+        "y": 632,
+        "w": 544,
+        "h": 64,
+        "bottom": 696,
+        "right": 552
+      },
+      "extra": {
+        "x": 8,
+        "y": 704,
+        "w": 544,
+        "h": 0,
+        "bottom": 704,
+        "right": 552
+      },
+      "players": [
+        {
+          "y": 128,
+          "bottom": 172
+        },
+        {
+          "y": 128,
+          "bottom": 172
+        }
+      ],
+      "unhandled": [
+        "bk-help"
+      ]
+    },
+    {
+      "game": "mega-tic-tac-toe",
+      "width": 1440,
+      "height": 900,
+      "theme": "day",
+      "embed": false,
+      "viewport": [
+        1440,
+        900
+      ],
+      "scrollWidth": 1440,
+      "scrollHeight": 900,
+      "stage": {
+        "x": 192,
+        "y": 146,
+        "w": 720,
+        "h": 720,
+        "bottom": 866,
+        "right": 912
+      },
+      "tools": {
+        "x": 928,
+        "y": 586.734375,
+        "w": 320,
+        "h": 44,
+        "bottom": 630.734375,
+        "right": 1248
+      },
+      "status": {
+        "x": 928,
+        "y": 464.546875,
+        "w": 320,
+        "h": 88,
+        "bottom": 552.546875,
+        "right": 1248
+      },
+      "extra": {
+        "x": 928,
+        "y": 560.546875,
+        "w": 320,
+        "h": 18.1875,
+        "bottom": 578.734375,
+        "right": 1248
+      },
+      "players": [
+        {
+          "y": 336.546875,
+          "bottom": 392.546875
+        },
+        {
+          "y": 400.546875,
+          "bottom": 456.546875
+        }
+      ],
+      "unhandled": [
+        "bk-help"
+      ]
+    },
+    {
+      "game": "mega-tic-tac-toe",
+      "width": 1440,
+      "height": 900,
+      "theme": "night",
+      "embed": false,
+      "viewport": [
+        1440,
+        900
+      ],
+      "scrollWidth": 1440,
+      "scrollHeight": 900,
+      "stage": {
+        "x": 192,
+        "y": 146,
+        "w": 720,
+        "h": 720,
+        "bottom": 866,
+        "right": 912
+      },
+      "tools": {
+        "x": 928,
+        "y": 586.734375,
+        "w": 320,
+        "h": 44,
+        "bottom": 630.734375,
+        "right": 1248
+      },
+      "status": {
+        "x": 928,
+        "y": 464.546875,
+        "w": 320,
+        "h": 88,
+        "bottom": 552.546875,
+        "right": 1248
+      },
+      "extra": {
+        "x": 928,
+        "y": 560.546875,
+        "w": 320,
+        "h": 18.1875,
+        "bottom": 578.734375,
+        "right": 1248
+      },
+      "players": [
+        {
+          "y": 336.546875,
+          "bottom": 392.546875
+        },
+        {
+          "y": 400.546875,
+          "bottom": 456.546875
+        }
+      ],
+      "unhandled": [
+        "bk-help"
+      ]
+    },
+    {
+      "game": "mega-tic-tac-toe",
+      "width": 1024,
+      "height": 768,
+      "theme": "day",
+      "embed": false,
+      "viewport": [
+        1024,
+        768
+      ],
+      "scrollWidth": 1024,
+      "scrollHeight": 768,
+      "stage": {
+        "x": 50,
+        "y": 146,
+        "w": 588,
+        "h": 588,
+        "bottom": 734,
+        "right": 638
+      },
+      "tools": {
+        "x": 666,
+        "y": 520.015625,
+        "w": 320,
+        "h": 44,
+        "bottom": 564.015625,
+        "right": 986
+      },
+      "status": {
+        "x": 666,
+        "y": 397.828125,
+        "w": 320,
+        "h": 88,
+        "bottom": 485.828125,
+        "right": 986
+      },
+      "extra": {
+        "x": 666,
+        "y": 493.828125,
+        "w": 320,
+        "h": 18.1875,
+        "bottom": 512.015625,
+        "right": 986
+      },
+      "players": [
+        {
+          "y": 269.828125,
+          "bottom": 325.828125
+        },
+        {
+          "y": 333.828125,
+          "bottom": 389.828125
+        }
+      ],
+      "unhandled": [
+        "bk-help"
+      ]
+    },
+    {
+      "game": "mega-tic-tac-toe",
+      "width": 1024,
+      "height": 768,
+      "theme": "night",
+      "embed": false,
+      "viewport": [
+        1024,
+        768
+      ],
+      "scrollWidth": 1024,
+      "scrollHeight": 768,
+      "stage": {
+        "x": 50,
+        "y": 146,
+        "w": 588,
+        "h": 588,
+        "bottom": 734,
+        "right": 638
+      },
+      "tools": {
+        "x": 666,
+        "y": 520.015625,
+        "w": 320,
+        "h": 44,
+        "bottom": 564.015625,
+        "right": 986
+      },
+      "status": {
+        "x": 666,
+        "y": 397.828125,
+        "w": 320,
+        "h": 88,
+        "bottom": 485.828125,
+        "right": 986
+      },
+      "extra": {
+        "x": 666,
+        "y": 493.828125,
+        "w": 320,
+        "h": 18.1875,
+        "bottom": 512.015625,
+        "right": 986
+      },
+      "players": [
+        {
+          "y": 269.828125,
+          "bottom": 325.828125
+        },
+        {
+          "y": 333.828125,
+          "bottom": 389.828125
+        }
+      ],
+      "unhandled": [
+        "bk-help"
+      ]
+    },
+    {
+      "game": "mega-tic-tac-toe",
+      "width": 768,
+      "height": 1024,
+      "theme": "day",
+      "embed": false,
+      "viewport": [
+        768,
+        1024
+      ],
+      "scrollWidth": 768,
+      "scrollHeight": 1024,
+      "stage": {
+        "x": 16,
+        "y": 368,
+        "w": 400,
+        "h": 400,
+        "bottom": 768,
+        "right": 416
+      },
+      "tools": {
+        "x": 432,
+        "y": 644.125,
+        "w": 320,
+        "h": 44,
+        "bottom": 688.125,
+        "right": 752
+      },
+      "status": {
+        "x": 432,
+        "y": 521.9375,
+        "w": 320,
+        "h": 88,
+        "bottom": 609.9375,
+        "right": 752
+      },
+      "extra": {
+        "x": 432,
+        "y": 617.9375,
+        "w": 320,
+        "h": 18.1875,
+        "bottom": 636.125,
+        "right": 752
+      },
+      "players": [
+        {
+          "y": 393.9375,
+          "bottom": 449.9375
+        },
+        {
+          "y": 457.9375,
+          "bottom": 513.9375
+        }
+      ],
+      "unhandled": [
+        "bk-help"
+      ]
+    },
+    {
+      "game": "mega-tic-tac-toe",
+      "width": 768,
+      "height": 1024,
+      "theme": "night",
+      "embed": false,
+      "viewport": [
+        768,
+        1024
+      ],
+      "scrollWidth": 768,
+      "scrollHeight": 1024,
+      "stage": {
+        "x": 16,
+        "y": 368,
+        "w": 400,
+        "h": 400,
+        "bottom": 768,
+        "right": 416
+      },
+      "tools": {
+        "x": 432,
+        "y": 644.125,
+        "w": 320,
+        "h": 44,
+        "bottom": 688.125,
+        "right": 752
+      },
+      "status": {
+        "x": 432,
+        "y": 521.9375,
+        "w": 320,
+        "h": 88,
+        "bottom": 609.9375,
+        "right": 752
+      },
+      "extra": {
+        "x": 432,
+        "y": 617.9375,
+        "w": 320,
+        "h": 18.1875,
+        "bottom": 636.125,
+        "right": 752
+      },
+      "players": [
+        {
+          "y": 393.9375,
+          "bottom": 449.9375
+        },
+        {
+          "y": 457.9375,
+          "bottom": 513.9375
+        }
+      ],
+      "unhandled": [
+        "bk-help"
+      ]
+    },
+    {
+      "game": "mega-tic-tac-toe",
+      "width": 390,
+      "height": 844,
+      "theme": "day",
+      "embed": false,
+      "viewport": [
+        390,
+        844
+      ],
+      "scrollWidth": 390,
+      "scrollHeight": 844,
+      "stage": {
+        "x": 16,
+        "y": 212,
+        "w": 358,
+        "h": 358,
+        "bottom": 570,
+        "right": 374
+      },
+      "tools": {
+        "x": 271.125,
+        "y": 658,
+        "w": 110.875,
+        "h": 44,
+        "bottom": 702,
+        "right": 382
+      },
+      "status": {
+        "x": 8,
+        "y": 578,
+        "w": 374,
+        "h": 64,
+        "bottom": 642,
+        "right": 382
+      },
+      "extra": {
+        "x": 8,
+        "y": 650,
+        "w": 374,
+        "h": 0,
+        "bottom": 650,
+        "right": 382
+      },
+      "players": [
+        {
+          "y": 128,
+          "bottom": 172
+        },
+        {
+          "y": 128,
+          "bottom": 172
+        }
+      ],
+      "unhandled": [
+        "bk-help"
+      ]
+    },
+    {
+      "game": "mega-tic-tac-toe",
+      "width": 390,
+      "height": 844,
+      "theme": "night",
+      "embed": false,
+      "viewport": [
+        390,
+        844
+      ],
+      "scrollWidth": 390,
+      "scrollHeight": 844,
+      "stage": {
+        "x": 16,
+        "y": 212,
+        "w": 358,
+        "h": 358,
+        "bottom": 570,
+        "right": 374
+      },
+      "tools": {
+        "x": 271.125,
+        "y": 658,
+        "w": 110.875,
+        "h": 44,
+        "bottom": 702,
+        "right": 382
+      },
+      "status": {
+        "x": 8,
+        "y": 578,
+        "w": 374,
+        "h": 64,
+        "bottom": 642,
+        "right": 382
+      },
+      "extra": {
+        "x": 8,
+        "y": 650,
+        "w": 374,
+        "h": 0,
+        "bottom": 650,
+        "right": 382
+      },
+      "players": [
+        {
+          "y": 128,
+          "bottom": 172
+        },
+        {
+          "y": 128,
+          "bottom": 172
+        }
+      ],
+      "unhandled": [
+        "bk-help"
+      ]
+    },
+    {
+      "game": "mega-tic-tac-toe",
+      "width": 420,
+      "height": 700,
+      "theme": "day",
+      "embed": true,
+      "viewport": [
+        420,
+        700
+      ],
+      "scrollWidth": 420,
+      "scrollHeight": 712,
+      "stage": {
+        "x": 34,
+        "y": 212,
+        "w": 352,
+        "h": 352,
+        "bottom": 564,
+        "right": 386
+      },
+      "tools": {
+        "x": 301.125,
+        "y": 652,
+        "w": 110.875,
+        "h": 44,
+        "bottom": 696,
+        "right": 412
+      },
+      "status": {
+        "x": 8,
+        "y": 572,
+        "w": 404,
+        "h": 64,
+        "bottom": 636,
+        "right": 412
+      },
+      "extra": {
+        "x": 8,
+        "y": 644,
+        "w": 404,
+        "h": 0,
+        "bottom": 644,
+        "right": 412
+      },
+      "players": [
+        {
+          "y": 128,
+          "bottom": 172
+        },
+        {
+          "y": 128,
+          "bottom": 172
+        }
+      ],
+      "unhandled": [
+        "bk-help"
+      ]
+    },
+    {
+      "game": "mega-tic-tac-toe",
+      "width": 420,
+      "height": 700,
+      "theme": "night",
+      "embed": true,
+      "viewport": [
+        420,
+        700
+      ],
+      "scrollWidth": 420,
+      "scrollHeight": 712,
+      "stage": {
+        "x": 34,
+        "y": 212,
+        "w": 352,
+        "h": 352,
+        "bottom": 564,
+        "right": 386
+      },
+      "tools": {
+        "x": 301.125,
+        "y": 652,
+        "w": 110.875,
+        "h": 44,
+        "bottom": 696,
+        "right": 412
+      },
+      "status": {
+        "x": 8,
+        "y": 572,
+        "w": 404,
+        "h": 64,
+        "bottom": 636,
+        "right": 412
+      },
+      "extra": {
+        "x": 8,
+        "y": 644,
+        "w": 404,
+        "h": 0,
+        "bottom": 644,
+        "right": 412
+      },
+      "players": [
+        {
+          "y": 128,
+          "bottom": 172
+        },
+        {
+          "y": 128,
+          "bottom": 172
+        }
+      ],
+      "unhandled": [
+        "bk-help"
+      ]
+    },
+    {
+      "game": "mega-tic-tac-toe",
+      "width": 560,
+      "height": 760,
+      "theme": "day",
+      "embed": true,
+      "viewport": [
+        560,
+        760
+      ],
+      "scrollWidth": 560,
+      "scrollHeight": 772,
+      "stage": {
+        "x": 74,
+        "y": 212,
+        "w": 412,
+        "h": 412,
+        "bottom": 624,
+        "right": 486
+      },
+      "tools": {
+        "x": 441.125,
+        "y": 712,
+        "w": 110.875,
+        "h": 44,
+        "bottom": 756,
+        "right": 552
+      },
+      "status": {
+        "x": 8,
+        "y": 632,
+        "w": 544,
+        "h": 64,
+        "bottom": 696,
+        "right": 552
+      },
+      "extra": {
+        "x": 8,
+        "y": 704,
+        "w": 544,
+        "h": 0,
+        "bottom": 704,
+        "right": 552
+      },
+      "players": [
+        {
+          "y": 128,
+          "bottom": 172
+        },
+        {
+          "y": 128,
+          "bottom": 172
+        }
+      ],
+      "unhandled": [
+        "bk-help"
+      ]
+    },
+    {
+      "game": "mega-tic-tac-toe",
+      "width": 560,
+      "height": 760,
+      "theme": "night",
+      "embed": true,
+      "viewport": [
+        560,
+        760
+      ],
+      "scrollWidth": 560,
+      "scrollHeight": 772,
+      "stage": {
+        "x": 74,
+        "y": 212,
+        "w": 412,
+        "h": 412,
+        "bottom": 624,
+        "right": 486
+      },
+      "tools": {
+        "x": 441.125,
+        "y": 712,
+        "w": 110.875,
+        "h": 44,
+        "bottom": 756,
+        "right": 552
+      },
+      "status": {
+        "x": 8,
+        "y": 632,
+        "w": 544,
+        "h": 64,
+        "bottom": 696,
+        "right": 552
+      },
+      "extra": {
+        "x": 8,
+        "y": 704,
+        "w": 544,
+        "h": 0,
+        "bottom": 704,
+        "right": 552
+      },
+      "players": [
+        {
+          "y": 128,
+          "bottom": 172
+        },
+        {
+          "y": 128,
+          "bottom": 172
+        }
+      ],
+      "unhandled": [
+        "bk-help"
+      ]
+    }
+  ],
+  "errors": [],
+  "interactions": [],
+  "pass": true
+}

@@ -1,0 +1,10 @@
+{
+  "pass": true,
+  "checks": [
+    "Resign confirmation, authority result, sheet closure and usable Rematch",
+    "Draw notification, other seat reply, settled result and modal closure",
+    "Chess flip follows board orientation and keeps player identity"
+  ],
+  "video": "video/actions.mp4",
+  "videoPathBase": "artifacts/app-feel"
+}

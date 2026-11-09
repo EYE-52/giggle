@@ -1,0 +1,13 @@
+const {chromium}=require('playwright'),fs=require('node:fs'),path=require('node:path');
+const root=path.resolve(__dirname,'../../../../artifacts/app-feel'),out=path.join(root,'after'),contacts=path.join(root,'contacts');
+(async()=>{fs.mkdirSync(contacts,{recursive:true});const b=await chromium.launch({executablePath:'/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',headless:true}),p=await b.newPage({viewport:{width:1000,height:1200}});
+async function sheet(files,file,columns=3){await p.setContent('<style>body{margin:0;background:#ddd;font:14px system-ui}main{display:grid;grid-template-columns:repeat('+columns+',1fr);gap:8px}article{min-width:0}img{display:block;width:100%;object-fit:contain}h3{margin:4px;font-size:14px}</style><main>'+files.map(([label,file])=>'<article><h3>'+label+'</h3><img src="data:image/png;base64,'+fs.readFileSync(file).toString('base64')+'"></article>').join('')+'</main>');await p.evaluate(()=>Promise.all([...document.images].map(i=>i.decode())));await p.screenshot({path:path.join(contacts,file),fullPage:true,type:'jpeg',quality:85});}
+const games=[...new Set(JSON.parse(fs.readFileSync(path.join(out,'review.json'))).cases.map(r=>r.game))];
+for(const [w,h]of [[1440,900],[1024,768],[768,1024],[390,844],[420,700],[560,760]])for(const theme of ['day','night']){
+ const suffix=`${w}x${h}-${theme}${w===420||w===560?'-meet':''}`;
+ for(let j=0;j<games.length;j+=6)await sheet(games.slice(j,j+6).map(game=>[game,path.join(out,`${game}-${suffix}.png`)]),`boards-${suffix}-${j/6+1}.jpg`);
+}
+for(const [game,suffix]of [['chess','390x844-day'],['chess','1440x900-night'],['chess','420x700-day-meet'],['fleet-duel','390x844-day'],['ludo','390x844-day'],['five-row','390x844-day']])await sheet([['Before',path.join(root,'before',`${game}-${suffix}.png`)],['After',path.join(out,`${game}-${suffix}.png`)]],`compare-${game}-${suffix}.jpg`,2);
+await sheet([['Ludo · 4 people',path.join(out,'ludo-4p-390x844-day.png')],['Snakes & Ladders · 8 people',path.join(out,'snakes-ladders-8p-420x700-night-meet.png')],['Pig Dice · 8 people',path.join(out,'pig-dice-8p-390x844-day.png')]],'larger-rooms.jpg');
+await sheet([['Practice guide',path.join(out,'practice-info-390x844-day.png')],['Manage players',path.join(out,'manage-players-390x844-night.png')],['Game picker',path.join(out,'one-device-picker-390x844-day.png')],['Scoring',path.join(out,'would-you-rather-menu-390x844-day.png')],['Rules',path.join(out,'word-chain-menu-390x844-night.png')],['Framed Help',path.join(out,'chain-reaction-menu-420x700-day.png')]],'shared-menus.jpg');
+await b.close();console.log('APP_FEEL_CONTACTS_SAVED');})().catch(e=>{console.error(e);process.exit(1)});

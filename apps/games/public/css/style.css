@@ -1905,6 +1905,8 @@ body:not(.game-immersive) .game-preparation:not(.is-first) {
  * Games framed there wear the same palette in either theme, so the panel
  * reads as one product. Tokens only; every screen picks these up. */
 body.is-embed {
+  --app-embed-bg:#171922; --app-embed-card:#21242f; --app-embed-well:#2a2f3d;
+  --app-embed-ink:#f5f6fa; --app-embed-dim:#a8b0c5;
   --bg: #171922;
   --card: #21242f;
   --well: #2a2f3d;

@@ -1,0 +1,5 @@
+APP_ACTIONS_PASS [
+  'Resign confirmation, authority result, sheet closure and usable Rematch',
+  'Draw notification, other seat reply, settled result and modal closure',
+  'Chess flip follows board orientation and keeps player identity'
+]

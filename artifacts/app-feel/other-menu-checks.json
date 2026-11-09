@@ -1,0 +1,10 @@
+{
+  "pass": true,
+  "checks": [
+    "would-you-rather real practice: menu, no reflow, 6 sizes, 2 themes",
+    "word-chain real practice: menu, no reflow, 6 sizes, 2 themes",
+    "chain-reaction real practice: menu, no reflow, 6 sizes, 2 themes"
+  ],
+  "video": "video/other-menus.mp4",
+  "videoPathBase": "artifacts/app-feel"
+}

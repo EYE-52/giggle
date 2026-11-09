@@ -22,17 +22,25 @@ function bkEsc(value) {
 
 /* Load the shared board stylesheet (kept across board games). */
 export function bkEnsureCss() {
-  if (typeof document === 'undefined' || !document.head || document.getElementById(BK_CSS_ID)) return;
-  const link = document.createElement('link');
-  link.id = BK_CSS_ID; link.rel = 'stylesheet'; link.href = BK_CSS_HREF;
-  document.head.appendChild(link);
+  if (typeof document === 'undefined' || !document.head) return;
+  if (!document.getElementById(BK_CSS_ID)) {
+    const link = document.createElement('link');
+    link.id = BK_CSS_ID; link.rel = 'stylesheet'; link.href = BK_CSS_HREF;
+    document.head.appendChild(link);
+  }
+  if (!document.getElementById('board-app-css')) {
+    const app = document.createElement('link'); app.id = 'board-app-css'; app.rel = 'stylesheet'; app.href = '/css/board-app.css'; document.head.appendChild(app);
+  }
 }
 
 export function bkRemoveCss() {
   if (typeof document === 'undefined') return;
   document.getElementById(BK_CSS_ID)?.remove();
+  document.getElementById('board-app-css')?.remove();
 }
 
+const BK_MORE_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></svg>';
+const BK_RULES_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5c-3-2-6-2-9-1v15c3-1 6-1 9 1 3-2 6-2 9-1V4c-3-1-6-1-9 1Zm0 0v15"/></svg>';
 const BK_FLIP_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 8A8 8 0 1 0 20 16M20 3v5h-5"/></svg>';
 
 /* Panel markup. `extra` is the game's own block (die, captures, harbour
@@ -46,13 +54,13 @@ export function bkPanelHTML({ title, help = [], extra = '', flip = false, draw =
     <div class="bk-status" role="status" aria-live="polite"><span class="bk-status-dot" aria-hidden="true"></span><div class="bk-status-copy"><span class="bk-status-text"></span><small class="bk-hint"></small></div></div>
     <div class="bk-timer" hidden><span class="bk-timer-label">Move timer</span><b class="bk-timer-value">0:00</b><span class="bk-timer-track" aria-hidden="true"><i class="bk-timer-fill"></i></span></div>
     ${extra ? `<div class="bk-extra">${extra}</div>` : ''}
-    <div class="bk-actions"${resign || draw ? '' : ' hidden'}>
+    <div class="bk-tools">
+    ${flip ? `<button type="button" class="bk-btn bk-quiet" aria-label="Flip board" title="Flip board" data-flip data-watchok>${BK_FLIP_ICON}<span>Flip</span></button>` : ''}<details class="bk-help" data-watchok><summary data-watchok aria-label="How to play">${BK_RULES_ICON}<span>Rules</span></summary><div class="bk-help-body">${helpText}</div></details><details class="bk-match"><summary aria-label="Match actions">${BK_MORE_ICON}<span>More</span></summary><div class="bk-actions"${resign || draw ? '' : ' hidden'}>
       <div class="bk-row bk-row-play">${resign ? `<button type="button" class="bk-btn" data-resign>${bkEsc(resignLabel)}</button>` : ''}${draw ? '<button type="button" class="bk-btn" data-offer-draw>Offer draw</button>' : ''}</div>
       <div class="bk-row bk-row-confirm" hidden><span class="bk-ask">Resign this game?</span><button type="button" class="bk-btn bk-danger" data-confirm-resign>Resign</button><button type="button" class="bk-btn" data-keep>Cancel</button></div>
       <div class="bk-row bk-row-offer" hidden><span class="bk-ask">Draw offered.</span><button type="button" class="bk-btn bk-primary" data-accept-draw>Accept draw</button><button type="button" class="bk-btn" data-decline-draw>Decline</button></div>
       <p class="bk-row bk-row-note" hidden></p>
-    </div>
-    <div class="bk-tools">${flip ? `<button type="button" class="bk-btn bk-quiet" data-flip data-watchok>${BK_FLIP_ICON}<span>Flip board</span></button>` : ''}<details class="bk-help" data-watchok><summary data-watchok>How to play</summary><div class="bk-help-body">${helpText}</div></details></div>
+    </div></details></div>
     <section class="bk-final" hidden aria-label="Final scores">
       <h2 class="bk-final-title">Final scores</h2>
       <p class="bk-winner"></p><p class="bk-reason"></p>
@@ -117,6 +125,8 @@ function bkPlayers(panel, players) {
     list.setAttribute('data-count', String(players.length));
     list.innerHTML = players.map((_, i) => `<li class="bk-player" data-seat="${i}"><span class="bk-chip" aria-hidden="true"></span><span class="bk-who"><b class="bk-name"></b><small class="bk-side"><span class="bk-you">You</span><span class="bk-side-text"></span><span class="bk-turn-text"></span></small></span><span class="bk-stat"><b class="bk-stat-value"></b><small class="bk-stat-label"></small></span></li>`).join('');
   }
+  list.setAttribute('tabindex', players.length > 2 ? '0' : '-1');
+  list.setAttribute('aria-label', `Players, ${players.length} at this table`);
   players.forEach((p, i) => {
     const row = list.querySelector(`[data-seat="${i}"]`);
     row.classList.toggle('is-turn', !!p.turn);
@@ -136,6 +146,11 @@ function bkPlayers(panel, players) {
     row.querySelector('.bk-stat-value').textContent = p.clock != null ? p.clock : p.stat ?? '';
     row.querySelector('.bk-stat-label').textContent = p.clock != null ? 'Clock' : p.statLabel || '';
     row.setAttribute('aria-label', bkPlayerLabel(p));
+    // A turn edge reveals its seat within the roster, without scrolling the page.
+    if (p.turn && players.length > 2 && list._bkTurn !== i && Number.isFinite(row.offsetLeft)) {
+      list.scrollLeft = Math.max(0, row.offsetLeft - list.offsetLeft - (list.clientWidth - row.clientWidth) / 2);
+      list._bkTurn = i;
+    }
   });
 }
 
@@ -157,11 +172,12 @@ export function bkPaint(root, m) {
   panel.querySelector('.bk-meta').hidden = !m.meta;
   bkPlayers(panel, m.players || []);
   panel.querySelector('.bk-status').setAttribute('style', `--bk-status-color:${bkColor(m.statusColor || m.players?.find(p => p.turn)?.color)}`);
-  panel.querySelector('.bk-status-text').textContent = m.status || '';
+  panel.querySelector('.bk-status-text').textContent = m.player && m.drawOffer === 'theirs' && !m.done ? 'Draw offered. Open More to reply.' : m.status || '';
   panel.querySelector('.bk-hint').textContent = m.hint || '';
   panel.querySelector('.bk-hint').hidden = !m.hint;
 
   const done = !!m.done;
+  if (done && typeof window !== 'undefined') window.gigglePanels?.closeFor(panel);
   // Move timer: present for the whole game when on (no layout jumps).
   const timer = panel.querySelector('.bk-timer');
   if (m.timer) timer.classList.add('has-timer');
@@ -292,7 +308,7 @@ export function bkPanelStatic(cfg, m) {
     const side = p.out ? p.outLabel || 'Out' : p.side || '';
     const cls = ['bk-player', p.turn ? 'is-turn' : '', p.you ? 'is-you' : '', p.out ? 'is-out' : '', p.clock != null ? 'has-clock' : '', p.clock != null || p.stat != null && p.stat !== '' ? 'has-stat' : '', p.low ? 'is-low' : ''].filter(Boolean).join(' ');
     const value = p.clock != null ? p.clock : p.stat ?? '';
-    return `<li class="${cls}" data-seat="${i}" style="--bk-player-color:${bkColor(p.color)}" aria-label="${bkEsc(bkPlayerLabel(p))}"><span class="bk-chip" aria-hidden="true">${p.chip || ''}</span><span class="bk-who"><b class="bk-name">${bkEsc(p.name)}</b><small class="bk-side"><span class="bk-you"${p.you ? '' : ' hidden'}>You</span><span class="bk-side-text">${bkEsc(side)}</span><span class="bk-turn-text"${p.turn ? '' : ' hidden'}>${p.you ? 'Your turn' : 'Turn'}</span></small></span><span class="bk-stat"><b class="bk-stat-value"${p.statId ? ` id="${p.statId}"` : ''}>${bkEsc(value)}</b><small class="bk-stat-label">${bkEsc(p.clock != null ? 'Clock' : p.statLabel || '')}</small></span></li>`;
+    return `<li class="${cls}" data-seat="${i}" style="--bk-player-color:${bkColor(p.color)}" aria-label="${bkEsc(bkPlayerLabel(p))}"><span class="bk-chip" aria-hidden="true">${p.chip || ''}</span><span class="bk-who"><b class="bk-name">${bkEsc(p.name)}</b>${p.captures ? `<span class="bk-captures">${p.captures}</span>` : ''}<small class="bk-side"><span class="bk-you"${p.you ? '' : ' hidden'}>You</span><span class="bk-side-text">${bkEsc(side)}</span><span class="bk-turn-text"${p.turn ? '' : ' hidden'}>${p.you ? 'Your turn' : 'Turn'}</span></small></span><span class="bk-stat"><b class="bk-stat-value"${p.statId ? ` id="${p.statId}"` : ''}>${bkEsc(value)}</b><small class="bk-stat-label">${bkEsc(p.clock != null ? 'Clock' : p.statLabel || '')}</small></span></li>`;
   }).join('');
   const t = m.timer && !done ? m.timer : null;
   const left = t ? (t.running ? bkRemaining(t) : t.total) : 0;
@@ -312,11 +328,10 @@ export function bkPanelStatic(cfg, m) {
   return `<aside class="bk-panel${final ? ' is-final' : ''}" aria-label="${bkEsc(cfg.title)} players and actions">
     <header class="bk-head"><h1 class="bk-title">${bkEsc(cfg.title)}</h1>${m.meta ? `<p class="bk-meta">${bkEsc(m.meta)}</p>` : ''}</header>
     <ol class="bk-players" aria-label="Players">${players}</ol>
-    <div class="bk-status ${cfg.statusClass || ''}" role="status" style="--bk-status-color:${bkColor(m.statusColor || m.players?.find(p => p.turn)?.color)}"><span class="bk-status-dot" aria-hidden="true"></span><div class="bk-status-copy"><span class="bk-status-text">${bkEsc(m.status || '')}</span><small class="bk-hint"${m.hint ? '' : ' hidden'}>${bkEsc(m.hint || '')}</small></div></div>
+    <div class="bk-status ${cfg.statusClass || ''}" role="status" style="--bk-status-color:${bkColor(m.statusColor || m.players?.find(p => p.turn)?.color)}"><span class="bk-status-dot" aria-hidden="true"></span><div class="bk-status-copy"><span class="bk-status-text">${bkEsc(incoming ? 'Draw offered. Open More to reply.' : m.status || '')}</span><small class="bk-hint"${m.hint ? '' : ' hidden'}>${bkEsc(m.hint || '')}</small></div></div>
     ${timer}
     ${cfg.extra ? `<div class="bk-extra">${cfg.extra}</div>` : ''}
-    ${row ? `<div class="bk-actions">${row}</div>` : ''}
-    <div class="bk-tools">${cfg.flip ? `<button type="button" class="bk-btn bk-quiet" data-flip data-watchok${cfg.flipId ? ` id="${cfg.flipId}"` : ''}${m.flipBusy ? ' disabled' : ''}>${BK_FLIP_ICON}<span>Flip board</span></button>` : ''}<details class="bk-help" data-watchok${cfg.helpOpen ? ' open' : ''}><summary data-watchok>How to play</summary><div class="bk-help-body">${helpText}</div></details></div>
+    <div class="bk-tools">${cfg.flip ? `<button type="button" class="bk-btn bk-quiet" aria-label="Flip board" title="Flip board" data-flip data-watchok${cfg.flipId ? ` id="${cfg.flipId}"` : ''}${m.flipBusy ? ' disabled' : ''}>${BK_FLIP_ICON}<span>Flip</span></button>` : ''}<details class="bk-help" data-watchok${cfg.helpOpen ? ' open' : ''}><summary data-watchok aria-label="How to play">${BK_RULES_ICON}<span>Rules</span></summary><div class="bk-help-body">${helpText}</div></details>${row ? `<details class="bk-match"><summary aria-label="Match actions">${BK_MORE_ICON}<span>More</span></summary><div class="bk-actions">${row}</div></details>` : ''}</div>
     <section class="bk-final ${cfg.finalClass || ''}"${final ? '' : ' hidden'} aria-label="Final scores">${final ? `
       <h2 class="bk-final-title">Final scores</h2>
       <p class="bk-winner">${bkEsc(final.headline || '')}</p>${final.detail ? `<p class="bk-reason">${bkEsc(final.detail)}</p>` : ''}

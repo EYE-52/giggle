@@ -83,8 +83,9 @@ function main() {
     assert.ok(html.includes(`<input type="hidden" name="game" value="${g.id}">`), `${g.id}: hidden game`);
     assert.ok(html.includes('name="name" required maxlength="16"'), `${g.id}: name field`);
     assert.ok(html.includes('>Create room</button>'), `${g.id}: create button`);
-    // Only the theme one-liner may run; nothing fetches, sockets, or creates.
-    assert.strictEqual(html.split('<script').length - 1, 1, `${g.id}: theme script only`);
+    // Only theme and local panel behavior may run; no transport or room creation.
+    assert.strictEqual(html.split('<script').length - 1, 2, `${g.id}: theme and local panel behavior only`);
+    assert(html.includes('/js/app-panels.js'), `${g.id}: rules use shared accessible floating panels`);
     for (const auto of ['fetch(', 'WebSocket', 'XMLHttpRequest', '.submit(']) {
       assert.ok(!html.includes(auto), `${g.id}: nothing auto-runs (${auto})`);
     }

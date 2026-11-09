@@ -110,7 +110,7 @@ const CSS = `
 .cc-main{display:grid;gap:12px;min-width:0}
 @media(min-width:820px){.cc-play{grid-template-columns:minmax(0,1fr) 260px}}
 .cc-castle{min-width:0}
-.cc-castle>summary{min-height:32px;margin:0 0 6px;font-size:18px;font-weight:800;cursor:pointer}
+.cc-castle>h3{min-height:32px;margin:0 0 6px;font-size:18px;font-weight:800;cursor:default}
 .cc-gridwrap{overflow-x:auto;max-width:100%;padding-bottom:4px;-webkit-overflow-scrolling:touch}
 .cc-grid{display:grid;gap:3px;width:100%;min-width:min-content}
 .cc-cell{position:relative;min-width:44px;min-height:44px;border:2px solid var(--edge,#1f2a33);border-radius:8px;background:var(--well,#f6f1e7);color:var(--ink,#1f2a33);cursor:pointer;padding:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
@@ -152,10 +152,10 @@ const CSS = `
   .cc-palette{display:flex;gap:8px;overflow-x:auto;padding:4px 3px 8px;scroll-snap-type:x proximity}
   .cc-pick{flex:0 0 144px;min-height:76px;scroll-snap-align:start}
   .cc-pick small{font-size:13px}
-  .cc-castle>summary,.cc-intel>summary{min-height:44px;display:flex;align-items:center;gap:8px;font-size:17px;line-height:1.3;cursor:pointer}
-  .cc-castle>summary::before,.cc-intel>summary::before{content:'+';font-weight:800}
-  .cc-castle[open]>summary::before,.cc-intel[open]>summary::before{content:'−'}
-  .cc-castle>summary:focus-visible,.cc-intel>summary:focus-visible{outline:3px solid var(--accent,#e8446e);outline-offset:2px}
+  .cc-castle>h3,.cc-intel>summary{min-height:44px;display:flex;align-items:center;gap:8px;font-size:17px;line-height:1.3;cursor:pointer}
+  .cc-intel>summary::before{content:'+';font-weight:800}
+  .cc-intel[open]>summary::before{content:'−'}
+  .cc-castle>h3:focus-visible,.cc-intel>summary:focus-visible{outline:3px solid var(--accent,#e8446e);outline-offset:2px}
   .castle-clash[data-phase="siege"] .cc-foe-wrap{order:-1}
   .cc-intel{margin-top:8px;border:2px solid var(--edge,#1f2a33);border-radius:12px;padding:0 8px;background:var(--card,#fff)}
 .cc-intel[open]{padding-bottom:8px}
@@ -164,7 +164,7 @@ const CSS = `
   .cc-head{order:0}.cc-action{order:1}
   .cc-brief{order:2;display:block;font-size:16px;font-weight:800;margin:0 0 8px}
   .cc-result{order:3}.cc-play{order:4}.cc-intel{order:5}.cc-rules{order:6}.cc-after{order:7}
-  .cc-castle>summary,.cc-intel>summary{min-height:44px;display:flex;align-items:center;gap:8px;cursor:pointer}
+  .cc-castle>h3,.cc-intel>summary{min-height:44px;display:flex;align-items:center;gap:8px;cursor:pointer}
   .cc-intel>summary::before{content:'+'}.cc-intel[open]>summary::before{content:'−'}
   .castle-clash[data-phase="siege"] .cc-foe-wrap{order:-1}
   .cc-intel{margin-top:8px;border:2px solid var(--edge,#1f2a33);border-radius:12px;padding:0 8px;background:var(--card,#fff)}
@@ -369,7 +369,7 @@ function skeleton(el) {
     </div>
     <div class="cc-brief" id="cc-brief"></div>
     <div class="cc-action" id="cc-action" role="status"></div>
-    <details class="cc-intel" id="cc-intel" open><summary>Teams &amp; Core defenses</summary>
+    <details class="cc-intel" id="cc-intel"><summary>Teams &amp; Core defenses</summary>
     <div class="cc-teams" id="cc-teams"></div>
     <div class="cc-core" id="cc-core"></div>
     </details>
@@ -377,8 +377,8 @@ function skeleton(el) {
     <div class="cc-supplies" id="cc-supplies" hidden><span id="cc-orders"></span><button type="button" class="btn" id="cc-claim" hidden>Claim supplies</button></div>
     <div class="cc-play">
     <div class="cc-main">
-      <details class="cc-castle cc-mine-wrap" id="cc-mine-wrap" open><summary id="cc-mine-h"></summary><div class="cc-gridwrap"><div class="cc-grid" id="cc-mine" role="group" aria-label="Your castle grid"></div></div></details>
-      <details class="cc-castle cc-foe-wrap" id="cc-foe-wrap" open><summary id="cc-foe-h"></summary><div class="cc-gridwrap"><div class="cc-grid" id="cc-foe" role="group" aria-label="Enemy castle"></div></div></details>
+      <section class="cc-castle cc-mine-wrap" id="cc-mine-wrap"><h3 id="cc-mine-h"></h3><div class="cc-gridwrap"><div class="cc-grid" id="cc-mine" role="group" aria-label="Your castle grid"></div></div></section>
+      <section class="cc-castle cc-foe-wrap" id="cc-foe-wrap"><h3 id="cc-foe-h"></h3><div class="cc-gridwrap"><div class="cc-grid" id="cc-foe" role="group" aria-label="Enemy castle"></div></div></section>
     </div>
     <div class="cc-side">
       <div class="cc-modes" id="cc-modes"></div>
@@ -580,14 +580,6 @@ const exportDefault = {
     }
     const freshSet = new Set(freshEarned);
     root.dataset.phase = S.phase;
-    const compact = window.matchMedia('(max-width:819px), (max-height:760px)').matches;
-    const layoutKey = `${S.instanceId}|${S.phase}|${compact}`;
-    if (root.dataset.layout !== layoutKey) {
-      root.dataset.layout = layoutKey;
-      el.querySelector('#cc-intel').open = !compact;
-      el.querySelector('#cc-mine-wrap').open = !compact || S.phase !== 'siege';
-      el.querySelector('#cc-foe-wrap').open = !compact || S.phase !== 'build';
-    }
     const ownCore = S.objectives && S.objectives[mine];
     const enemyCore = S.objectives && S.objectives[foe];
     el.querySelector('#cc-brief').textContent = S.phase === 'done' ? '' : S.phase === 'build'

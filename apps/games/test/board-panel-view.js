@@ -31,6 +31,8 @@ const {rig}=require('./board-duels-view');
  assert.equal(ludo.el.querySelector('.ld-reason').textContent,'Anika rolled 2 · no legal move.');
  assert.match(ludo.el.querySelector('.bk-status').getAttribute('style'),/#4f6bd8/,'active status follows the real Ludo lane');
  ludo.render('watcher');assert(ludo.el.querySelector('.ld-reason').textContent.includes('no legal move'),'watchers also see the skipped roll');ludo.view.dispose(ludo.el);
+ kit.bkPaint(root,{...model,player:false,drawOffer:'theirs'});
+ assert.equal(status.querySelector('.bk-status-text').textContent,model.status,'watchers never get a draw reply prompt');
  const html=kit.bkPanelStatic({title:'Chess'},{...model,players:players.map((p,i)=>({...p,clock:i?'10:00':null,statId:i?'ch-clock-b':null}))});
  assert(html.includes('Alex &lt;&amp;&gt;'),'static names are escaped');assert(html.includes('id="ch-clock-b"'),'clock id stays intact');
  root.innerHTML=html;assert.equal(root.querySelectorAll('.bk-you').length,2);assert.equal(root.querySelectorAll('.bk-turn-text').length,2,'static view keeps marker slots for every card');

@@ -30,13 +30,14 @@ function empty(title, description, busy = false) {
   section.append(heading); if (description) section.append(text);
   table.replaceChildren(section);
 }
-// Seat chips read "Player 2" with room to spare and "P2" on narrow phones.
+// Segments read "Player 2" with room to spare and "2" on narrow phones.
 function seatLabel(tab, n) {
   if (tab.dataset.seat === String(n)) return;
   tab.dataset.seat = String(n);
+  tab.setAttribute('aria-label', `Player ${n}`);
   const long = document.createElement('span'), short = document.createElement('span');
   long.className = 'seat-long'; long.textContent = `Player ${n}`;
-  short.className = 'seat-short'; short.setAttribute('aria-hidden', 'true'); short.textContent = `P${n}`;
+  short.className = 'seat-short'; short.setAttribute('aria-hidden', 'true'); short.textContent = String(n);
   tab.replaceChildren(long, short);
 }
 function chosen() { return games.find(game => game.id === gameSelect.value); }

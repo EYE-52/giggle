@@ -1,0 +1,18 @@
+APP_PANELS_PASS [
+  '1440x900 day: 37 disclosure families, keyboard, focus trap, draft, outside click, no reflow',
+  '1440x900 night: 37 disclosure families, keyboard, focus trap, draft, outside click, no reflow',
+  '1024x768 day: 37 disclosure families, keyboard, focus trap, draft, outside click, no reflow',
+  '1024x768 night: 37 disclosure families, keyboard, focus trap, draft, outside click, no reflow',
+  '768x1024 day: 37 disclosure families, keyboard, focus trap, draft, outside click, no reflow',
+  '768x1024 night: 37 disclosure families, keyboard, focus trap, draft, outside click, no reflow',
+  '390x844 day: 37 disclosure families, keyboard, focus trap, draft, outside click, no reflow',
+  '390x844 night: 37 disclosure families, keyboard, focus trap, draft, outside click, no reflow',
+  '420x700 day: 37 disclosure families, keyboard, focus trap, draft, outside click, no reflow',
+  '420x700 night: 37 disclosure families, keyboard, focus trap, draft, outside click, no reflow',
+  '560x760 day: 37 disclosure families, keyboard, focus trap, draft, outside click, no reflow',
+  '560x760 night: 37 disclosure families, keyboard, focus trap, draft, outside click, no reflow',
+  'Open panel survives full snapshot replacement',
+  'Move list: wide side region, narrow sheet, resize and focus',
+  'Report: nested native sheet, form ownership, Escape order and saved draft; no report sent',
+  '72 generated guides: real rules open and close in sheets'
+]

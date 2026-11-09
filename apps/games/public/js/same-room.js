@@ -67,7 +67,7 @@ function gameCards() {
   // game near the end of the catalogue.
   const shelf = [game(), ...games.filter(g => g.id !== gameId)];
   return `<details id="srGamePicker" class="sr-game-picker"${pickingGame ? ' open' : ''}>
-    <summary class="tb-btn tb-secondary">Choose a game <span class="t-caption">${games.length} on one device</span></summary>
+    <summary class="tb-btn tb-secondary" aria-label="Choose a game">Choose a game <span class="t-caption">${games.length} on one device</span></summary>
     <div id="srGameGrid" class="sr-game-grid${showingAllGames ? ' is-expanded' : ''}" role="group" aria-label="Choose a one-device game">${shelf.map(g => {
       const selected = g.id === gameId, support = sameRoomSupport(g);
       return `<button type="button" class="sr-game-card tb-card is-compact" data-game-choice="${g.id}" data-family="${family(g)}" aria-pressed="${selected}" aria-label="Choose ${esc(g.name)}">
@@ -114,6 +114,7 @@ function setup() {
   };
   app.querySelectorAll('[data-game-choice]').forEach(card => { card.onclick = () => {
     const nameDraft = $('srName').value;
+    window.gigglePanels?.close(false);
     gameId = card.dataset.gameChoice; settings = {}; pickingGame = false; showingAllGames = false;
     history.replaceState(null, '', `?game=${encodeURIComponent(gameId)}`);
     setup(); $('srName').value = nameDraft;

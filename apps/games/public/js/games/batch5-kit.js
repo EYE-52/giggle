@@ -91,7 +91,7 @@ export function createBatch5View(config) {
   }
 
   return {
-    styles: ['/css/board-duels.css', '/css/batch5-boards.css', `/css/${config.id}.css`],
+    styles: ['/css/board-duels.css', '/css/batch5-boards.css', '/css/board-app.css', `/css/${config.id}.css`],
     ownsTimer: true, ownsInputs: true, ownsRematch: true,
     mount(el) {
       // game-host loads styles in the declared order. Appending another copy

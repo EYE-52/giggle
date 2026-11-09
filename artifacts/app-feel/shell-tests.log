@@ -1,0 +1,18 @@
+APP_SHELLS_PASS [
+  'Practice / Manage players 1440x900 day',
+  'Practice / Manage players 1440x900 night',
+  'Practice / Manage players 1024x768 day',
+  'Practice / Manage players 1024x768 night',
+  'Practice / Manage players 768x1024 day',
+  'Practice / Manage players 768x1024 night',
+  'Practice / Manage players 390x844 day',
+  'Practice / Manage players 390x844 night',
+  'Practice / Manage players 420x700 day',
+  'Practice / Manage players 420x700 night',
+  'Practice / Manage players 560x760 day',
+  'Practice / Manage players 560x760 night',
+  'Practice segments: arrow-key seat switch and state preserved',
+  'Room menu: expanded state, Escape focus',
+  'Full screen: enter from button, exit, live board retained',
+  'One-device chooser: no reflow at 6 sizes / 2 themes; selection closes and keeps new game'
+]
