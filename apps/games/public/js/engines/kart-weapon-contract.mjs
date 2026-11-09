@@ -1,13 +1,13 @@
 // Shared by both authorities and both presentations. +Z is the barrel axis.
 export const WEAPONS = Object.freeze(Object.fromEntries(Object.entries({
- machinegun:{tier:'common',damage:1,ammo:24,cooldown:1/12,speed:140,ttl:1.25},
- trishot:{tier:'common',damage:1,ammo:3,cooldown:.28,speed:95,ttl:1.2},
+ machinegun:{tier:'common',damage:1,ammo:30,cooldown:1/12,hitCooldown:1,speed:140,ttl:1.25},
+ trishot:{tier:'common',damage:1,ammo:9,cooldown:.28,hitCooldown:1,speed:95,ttl:1.2},
  mine:{tier:'common',damage:1,ammo:3,triggerRadius:2.2,armTime:.7,lifetime:12,bodyRadius:.41,dropInterval:.24},
  oil:{tier:'common',damage:1,ammo:2,triggerRadius:2.4,armTime:.5,lifetime:12,bodyRadius:.41,dropInterval:.3,spinTime:1.2},
  boomerang:{tier:'common',damage:1,ammo:2,speed:30,outTime:.62,curveRate:1.4,returnTurn:7,ttl:3.2,catchRadius:2.2},
  missile:{tier:'uncommon',damage:2,ammo:1,speed:60,ttl:2.4,splashRadius:3,range:60,halfAngle:30,turnRate:1.5,lockDelay:.18},
  cannon:{tier:'uncommon',damage:2,ammo:1,speed:44,ttl:2.2,splashRadius:2.8,splashDamage:1,launchY:4,gravity:12,knockback:10},
- blades:{tier:'uncommon',damage:1,ammo:1,duration:6,radius:2.2,bladeRadius:.55,turnRate:7,knockback:7},
+ blades:{tier:'uncommon',damage:1,ammo:1,duration:6,hitCooldown:2,radius:2.2,bladeRadius:.55,turnRate:7,knockback:7},
  frost:{tier:'uncommon',damage:1,ammo:1,splashRadius:4.5,fuse:.9,slowTime:2,slowFactor:.55},
  thunder:{tier:'uncommon',damage:1,ammo:1,range:35,halfAngle:15},
  ram:{tier:'uncommon',damage:1,ammo:1,duration:3,reach:4.6,speedFactor:1.5},

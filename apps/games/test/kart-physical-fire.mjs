@@ -188,11 +188,11 @@ for(const pump of [50,100]) {
   f.press(true);for(let i=0;i<46;i++)f.tick(50);
   check(a.weapon===null&&a.input.boost===false,'completed held clip crosses movement TTL');
   s.rngState=7;s.crates=[{id:'ttl-held-crate',x:a.x,z:a.z}];f.tick(50);s.crates=[];
-  check(a.weapon==='machinegun'&&a.ammo===24,'new actual pickup remains after held clip and TTL');
+  check(a.weapon==='machinegun'&&a.ammo===30,'new actual pickup remains after held clip and TTL');
   f.press(true);f.tick(50);
-  check(a.ammo===24&&!POCKET.view(s,a.pid).karts.find(k=>k.pid===a.pid).firing,'resumed held keepalive after TTL cannot impersonate a new Fire press');
+  check(a.ammo===30&&!POCKET.view(s,a.pid).karts.find(k=>k.pid===a.pid).firing,'resumed held keepalive after TTL cannot impersonate a new Fire press');
   f.press(false);f.press(true);f.tick(50);
-  check(a.ammo===23&&POCKET.view(s,a.pid).karts.find(k=>k.pid===a.pid).firing,'explicit release then fresh press still activates after TTL');
+  check(a.ammo===29&&POCKET.view(s,a.pid).karts.find(k=>k.pid===a.pid).firing,'explicit release then fresh press still activates after TTL');
  }finally{POCKET.dispose(s);}
 }
 for(const stop of ['release','ttl','disconnect','ko','life','epoch','done','dispose']) {

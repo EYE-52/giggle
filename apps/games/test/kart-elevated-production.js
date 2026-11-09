@@ -289,7 +289,7 @@ async function main() {
     eq(latest(battle.clients[0].ws).coins, 1); eq(latest(battle.clients[1].ws).coins, 0, 'pickup wallet stays private');
     ok(Object.values(b.totals).every(v => v === 0), 'pickup coins do not become Room points');
     pump(55);
-    eq(COMBAT.weapons.machinegun.damage,1);eq(COMBAT.weapons.machinegun.ammo,24);eq(COMBAT.maxHealth,3);
+    eq(COMBAT.weapons.machinegun.damage,1);eq(COMBAT.weapons.machinegun.ammo,30);eq(COMBAT.maxHealth,3);
     eq(latest(battle.clients[0].ws).karts[1].health,1);eq(latest(battle.clients[0].ws).karts[1].maxHealth,3);
     const ready=latest(battle.clients[0].ws);send(b,battle.clients[0],input(ready,1,{use:true}));send(b,battle.clients[0],input(ready,2,{use:false}));
     const connectedHits=new Map();

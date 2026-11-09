@@ -9,7 +9,7 @@ const {createElevatedMotion,clearElevatedDrift,ELEVATED_MOTION_FIELDS}=require('
 const {elevatedStatics}=require('../../public/js/engines/kart-feature-solids.mjs');
 const B = require('./kart-rules-battle').constants;
 const H = require('./kart-engine').constants;
-const {config:COMBAT,damageAt} = require('./kart-combat-config');
+const {config:COMBAT,damageAt,bladeContact,volleyHit} = require('./kart-combat-config');
 const {normalizeWeapon}=require('./kart-combat-config');
 const {weaponForward,launchVelocity,TRI_FAN,CURATED_MUZZLE,inWeaponCone,WEAPON_FEEL}=require('../../public/js/engines/kart-weapon-contract.mjs');
 const LEGACY={proximity:{bodyRadius:.6,splashRadius:5.5,triggerRadius:3},laser:{speed:190,ttl:.7},bouncer:{speed:48,ttl:3.5,bounces:4},cluster:{fuse:.75,bomblets:5,splashRadius:3}};
@@ -107,7 +107,7 @@ function createElevatedCombat(RAPIER,config,map,seats,options={}) {
     // One call per confirmed authority transition; failure never replays award.
     if(typeof options.onAward==='function') { try { options.onAward(k.id,amount,instance+'-'+key); } catch {} }
   }
-  function clean(k) { motion?.reset(k);if(k.sequence){k.weapon=null;k.ammo=0;}k.bladesT=0;k.bladesAge=0;k.supernovaT=0;k.bladesVolley=null;k.supernovaVolley=null;k.frostT=0;k.spinT=0;k.rammingT=0;k.ramVolley=null;k.spinKick=0;k.input=neutral(); k.queue.length=0; k.pendingFire=false; k.pendingFireAt=null; k.useDown=false; k.lastInputAt=null; k.nitroActive=false; k.sequence=null; k.stuck=null; }
+  function clean(k) { motion?.reset(k);if(k.sequence){k.weapon=null;k.ammo=0;}k.bladesT=0;k.bladesAge=0;k.supernovaT=0;k.bladesVolley=null;k.supernovaVolley=null;k.bladesHits=null;k.frostT=0;k.spinT=0;k.rammingT=0;k.ramVolley=null;k.spinKick=0;k.input=neutral(); k.queue.length=0; k.pendingFire=false; k.pendingFireAt=null; k.useDown=false; k.lastInputAt=null; k.nitroActive=false; k.sequence=null; k.stuck=null; }
   function supported(point) {
     if(!point || !validId(point.id) || !validId(point.surface) || ![point.x,point.y,point.z,point.angle].every(finite) || Math.abs(point.x)>M.half-2 || Math.abs(point.z)>M.half-2 || Math.abs(point.angle)>2*Math.PI) return false;
     const s=physics.supportAt({x:point.x,y:point.y+0.4,z:point.z},0.8);
@@ -210,20 +210,17 @@ function createElevatedCombat(RAPIER,config,map,seats,options={}) {
     emit('ko',owner,{other:k.id,weapon,position:physics.pose(k.id).position});
     return true;
   }
-  // Whole hearts, at most once per rival per pickup (volley). Supernova
+  // Whole hearts, with per-target cooldowns for rapid fire and blades. Supernova
   // blocks every hit until its authority timer expires.
   function damage(k,owner,weapon,volley=null,override=null) {
     let amount=override??damageAt(weapon);
     if(!vulnerable(k) || k.id===owner || !finite(amount) || amount<=0) return false;
     if(k.supernovaT>0){
       let announce=true;
-      if(volley){let hits=volleyHits.get(volley);if(!hits)volleyHits.set(volley,hits=new Set());const key='blocked:'+k.id+':'+k.spawnSeq;announce=!hits.has(key);hits.add(key);}
+      if(volley){let hits=volleyHits.get(volley);if(!hits)volleyHits.set(volley,hits=new Map());const key='blocked:'+k.id+':'+k.spawnSeq;announce=!hits.has(key);hits.set(key,true);}
       if(announce)emit('block',owner,{other:k.id,weapon,position:physics.pose(k.id).position});return true;
     }
-    if(volley) {
-      let hits=volleyHits.get(volley);if(!hits)volleyHits.set(volley,hits=new Set());
-      if(hits.has(k.id))return false;hits.add(k.id);
-    }
+    if(weapon!=='blades'&&!volleyHit(volleyHits,volley,k.id,k.spawnSeq,weapon,simAt/1000))return false;
     if(k.guard) {k.guard=false;emit('block',owner,{other:k.id,weapon,position:physics.pose(k.id).position});return true;}
     const taken=Math.min(k.health,amount);k.health=Math.max(0,k.health-taken);
     emit('hit',owner,{other:k.id,weapon,damage:taken,health:k.health,maxHealth:k.maxHealth,position:physics.pose(k.id).position});
@@ -258,9 +255,9 @@ function createElevatedCombat(RAPIER,config,map,seats,options={}) {
             const a=(age+Math.min(h,j*.03))*W.blades.turnRate+n*Math.PI*2/3;
             if(Math.hypot(p.x-me.x-Math.cos(a)*2.2,p.y-me.y,p.z-me.z-Math.sin(a)*2.2)<2.25){touch=true;break;}
           }
-          if(touch&&los(me,p))damage(v,k.id,'blades',k.bladesVolley);
+          if(touch&&los(me,p))bladeContact(k,v.id,v.spawnSeq,()=>damage(v,k.id,'blades',k.bladesVolley));
         }
-        if(k.bladesT===0)k.bladesVolley=null;
+        if(k.bladesT===0){k.bladesVolley=null;k.bladesHits=null;}
       }
       if(k.supernovaT>0){k.supernovaT=Math.max(0,k.supernovaT-dt);if(k.supernovaT<=1e-8){
         k.supernovaT=0;splash(me,k.id,W.supernova.splashRadius,'supernova',null,k.supernovaVolley);
@@ -303,7 +300,7 @@ function createElevatedCombat(RAPIER,config,map,seats,options={}) {
     const weapon=k.weapon=normalizeWeapon(k.weapon), offset=['machinegun','trishot','missile','cannon'].includes(muzzleOf(weapon))?CURATED_MUZZLE:C.combat[muzzleOf(weapon)+'Muzzle']||CURATED_MUZZLE;
     const origin=add(p.position,rotate({x:offset.x,y:offset.y,z:0},p.rotation)), muzzle=add(p.position,rotate(offset,p.rotation));
     const forward=weaponForward(p.rotation);
-    // One pickup is one volley: its hearts land at most once per rival.
+    // One pickup is one volley; rapid-fire targets have a one-second hit cooldown.
     const volley=k.id+':'+k.itemSeq;
     let deployed=null,announced=false;
     if(weapon==='mine'||weapon==='oil') {
@@ -323,7 +320,7 @@ function createElevatedCombat(RAPIER,config,map,seats,options={}) {
       }
       if(!deployed)return;
     } else if(weapon==='supernova'){k.supernovaT=W.supernova.duration;k.supernovaVolley=volley;}
-    else if(weapon==='blades'){k.bladesT=W.blades.duration;k.bladesAge=0;k.bladesVolley=volley;}
+    else if(weapon==='blades'){k.bladesT=W.blades.duration;k.bladesAge=0;k.bladesVolley=volley;k.bladesHits=new Map();}
     else if(weapon==='ram') {k.rammingT=B.RAM_TIME;k.ramVolley=volley;}
     else if(weapon==='thunder') {
       // A narrow aimed strike. No eligible rival means a harmless ground hit.

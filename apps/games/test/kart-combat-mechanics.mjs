@@ -28,24 +28,24 @@ function armed(kind,m=map(),opts={}) {
 }
 {
  const w=armed('machinegun',map([point('a',0,0),point('b',30,30)]));try {
-  check('machine gun crate grants twelve rounds',kart(w).ammo===24);
+  check('machine gun crate grants thirty rounds',kart(w).ammo===30);
   send(w,'a',{use:true});step(w);const shot=w.snapshot().projectiles[0];
   check('machine gun fires fast visible swept bullet',Math.abs(Math.hypot(shot.velocity.x-kart(w).pose.linearVelocity.x,shot.velocity.y-kart(w).pose.linearVelocity.y,shot.velocity.z-kart(w).pose.linearVelocity.z)-140)<.01);
   check('machine gun static sweep encloses its visible body',shot.radius===.22&&shot.radius===COMBAT.staticSweepRadii.machinegun);
   step(w,30,i=>{if(i%8===0)send(w,'a',{use:true});});
-  const spent=24-kart(w).ammo;check('held machine gun fires at bounded eight rounds per second',spent>=6&&spent<=8);
-  send(w);step(w,130);check('release lets the accepted full twelve-round payload finish',w.snapshot().events.filter(e=>e.type==='fire'&&e.weapon==='machinegun').length===24&&!kart(w).firing);
+  const spent=30-kart(w).ammo;check('held machine gun fires at bounded twelve rounds per second',spent>=6&&spent<=8);
+  send(w);step(w,160);check('release lets the accepted full thirty-round payload finish',w.snapshot().events.filter(e=>e.type==='fire'&&e.weapon==='machinegun').length===30&&!kart(w).firing);
   check('a new actual pickup is not auto-activated after release',kart(w).weapon!==null&&kart(w).ammo>0);const nextItem={weapon:kart(w).weapon,ammo:kart(w).ammo};step(w,60);
   check('completed activation cannot reuse its input for the next pickup',kart(w).weapon===nextItem.weapon&&kart(w).ammo===nextItem.ammo&&!kart(w).firing);
  }finally{w.dispose();}
  const cut=armed('machinegun',map([point('a',0,0),point('b',30,30)]));try {
-  fire(cut);step(cut,5);check('disconnect fixture has an accepted incomplete payload',kart(cut).firing&&kart(cut).ammo===22);cut.setConnected('a',false);step(cut,60);
+  fire(cut);step(cut,5);check('disconnect fixture has an accepted incomplete payload',kart(cut).firing&&kart(cut).ammo===28);cut.setConnected('a',false);step(cut,60);
   check('disconnect discards committed remaining rounds',!kart(cut).firing&&kart(cut).ammo===0&&kart(cut).weapon===null);cut.setConnected('a',true);step(cut,30);
   check('reconnect never resumes the cancelled sequence',!kart(cut).firing&&cut.snapshot().events.filter(e=>e.type==='fire').length===2);
  }finally{cut.dispose();}
  const full=armed('machinegun',map([point('a',0,0),point('b',30,30)]));try {
   send(full,'a',{use:true});step(full,185,i=>{if(i%8===0)send(full,'a',{use:true});});
-  check('one held burst cannot fire a newly collected item',full.snapshot().events.filter(e=>e.type==='fire').length===24);
+  check('one held burst cannot fire a newly collected item',full.snapshot().events.filter(e=>e.type==='fire').length===30);
  }finally{full.dispose();}
 }
 {

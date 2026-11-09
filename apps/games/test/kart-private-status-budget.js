@@ -5,6 +5,7 @@ const assert=require('node:assert/strict'),fs=require('node:fs');
 const {Room}=require('../server/room');
 const {loadElevatedDependencies}=require('../games/engines/kart-elevated-adapter');
 const {createElevatedCombat}=require('../games/engines/kart-elevated-combat');
+const ROUND_SECONDS=60,STEP_MS=50,MAX_PUMPS=(ROUND_SECONDS+15)*1000/STEP_MS;
 const percentile=(values,p)=>values.slice().sort((a,b)=>a-b)[Math.min(values.length-1,Math.floor(values.length*p))];
 async function run(base,legacy,workload){
   delete require.cache[require.resolve('../games/pocket-karts/server')];
@@ -20,17 +21,17 @@ async function run(base,legacy,workload){
   const room=new Room('BUDG',{}),clients=[];
   try{
     for(let i=0;i<24;i++){const socket={readyState:1,bufferedAmount:0,kartEventDeltas:process.env.KART_EVENT_DELTAS==='1',bytes:0,count:0,last:null,send(text){this.bytes+=Buffer.byteLength(text);this.count++;this.last=text;},close(){}};clients.push({socket,p:room.addPlayer('Seat '+i,socket).player});}
-    assert(room.startGame(def,{ready:true,settings:{map:'Harbor Heights',mode:'Zap Battle',winRule:'Time limit',roundSeconds:60}},room.hostId).ok);
+    assert(room.startGame(def,{ready:true,settings:{map:'Harbor Heights',mode:'Zap Battle',winRule:'Time limit',roundSeconds:ROUND_SECONDS}},room.hostId).ok);
     for(const c of clients.slice(0,8)){const s=JSON.parse(c.socket.last);room.onReady(c.socket,{i:s.instanceId,w:s.w});}
     assert(!room.game.preparing);
     const samples=[],fields={};let frames=0;
     const initialFull=fullReads,initialCompact=compactReads,initialViewClones=viewClones,cpuStart=process.cpuUsage();
-    for(let n=0;n<1400&&room.game.state.phase!=='done';n++){
+    for(let n=0;n<MAX_PUMPS&&room.game.state.phase!=='done';n++){
       if(n%2===0)for(let i=0;i<8;i++){
         const c=clients[i],own=match.privateStatus(c.p.id);
         room.onAction(c.socket,{type:'input',seq:own.receivedSeq+1,life:own.life,controlEpoch:own.controlEpoch,steer:workload==='neutral'?0:(i%2?.3:-.3),throttle:workload==='neutral'?0:1,brake:0,nitro:workload==='nitro',use:workload==='nitro'&&n%20===0},{i:room.game.instanceId,w:room._actionToken()});
       }
-      now+=50;const start=performance.now();room.onTick(now);samples.push(performance.now()-start);
+      now+=STEP_MS;const start=performance.now();room.onTick(now);samples.push(performance.now()-start);
       if(room.game.preparing)for(const c of clients.slice(0,8)){const s=JSON.parse(c.socket.last);room.onReady(c.socket,{i:s.instanceId,w:s.w});}
       // Field accounting follows the measured pump, never enters tick timing.
       const state=JSON.parse(clients[0].socket.last);

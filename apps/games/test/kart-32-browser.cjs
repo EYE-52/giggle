@@ -91,8 +91,15 @@ async function until(fn, label, ms = 15000) { const end = Date.now() + ms; while
     await page.evaluate(() => { window.__draws = 0; window.__fps = { n: 0, start: performance.now(), worst: 0, last: performance.now() }; const tick = t => { const f = window.__fps; f.n++; f.worst = Math.max(f.worst, t - f.last); f.last = t; requestAnimationFrame(tick); }; requestAnimationFrame(tick); });
     pageFrames = 0; pageBytes = 0; const t0 = Date.now();
     await page.keyboard.down('ArrowUp');
-    for (let t = 0; t < DRIVE_MS; t += 1500) { const key = (t / 1500) % 2 ? 'ArrowLeft' : 'ArrowRight'; await page.keyboard.down(key); await sleep(500); await page.keyboard.up(key); await sleep(1000); }
+    let reversing = false;
+    for (let t = 0; t < DRIVE_MS; t += 1500) {
+      // This fixed keyboard route can meet authored cover near a spawn.
+      // Back out using real input; broken browser controls still fail movement.
+      if (!reversing && t >= 6000 && farthest < 5) { await page.keyboard.up('ArrowUp'); await page.keyboard.down('ArrowDown'); reversing = true; }
+      const key = (t / 1500) % 2 ? 'ArrowLeft' : 'ArrowRight'; await page.keyboard.down(key); await sleep(500); await page.keyboard.up(key); await sleep(1000);
+    }
     await page.keyboard.up('ArrowUp');
+    await page.keyboard.up('ArrowDown');
     const seconds = (Date.now() - t0) / 1000;
     clearInterval(timer);
     const fps = await page.evaluate(() => { const f = window.__fps; return { fps: +(f.n / ((performance.now() - f.start) / 1000)).toFixed(1), worstFrameMs: +f.worst.toFixed(0), drawCallsPerFrame: Math.round(window.__draws / Math.max(1, f.n)) }; });
