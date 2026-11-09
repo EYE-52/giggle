@@ -101,345 +101,498 @@ function paint(canvas, S, api) {
     );
   }
 }
+// Rounded toy slabs, pooled cut-offs and an instanced skyline.
 function build(T, helper, get) {
-  const scene = new T.Scene();
-  const night = document.documentElement.dataset.theme === "night";
+  const scene = new T.Scene(),
+    night = document.documentElement.dataset.theme === "night";
   const skyCanvas = document.createElement("canvas");
   skyCanvas.width = 2;
   skyCanvas.height = 256;
-  const sky = skyCanvas.getContext("2d"),
-    gradient = sky.createLinearGradient(0, 0, 0, 256);
-  gradient.addColorStop(0, night ? "#405d8c" : "#bde7ff");
-  gradient.addColorStop(0.65, night ? "#a9a6cf" : "#e8f6ff");
-  gradient.addColorStop(1, night ? "#e6b4ac" : "#fff0d1");
-  sky.fillStyle = gradient;
-  sky.fillRect(0, 0, 2, 256);
+  const ctx = skyCanvas.getContext("2d"),
+    gradient = ctx.createLinearGradient(0, 0, 0, 256);
+  gradient.addColorStop(0, night ? "#283f70" : "#88c9e7");
+  gradient.addColorStop(0.6, night ? "#8b8db9" : "#d5ebec");
+  gradient.addColorStop(1, night ? "#d5a9ba" : "#ffe6bb");
+  ctx.fillStyle = gradient;
+  ctx.fillRect(0, 0, 2, 256);
   const skyTexture = new T.CanvasTexture(skyCanvas);
   skyTexture.colorSpace = T.SRGBColorSpace;
   scene.background = skyTexture;
-  scene.fog = new T.Fog(night ? "#aaa8c9" : "#edf6ee", 45, 110);
-  const camera = new T.OrthographicCamera(-10, 10, 8, -8, 0.1, 180);
+  scene.fog = new T.Fog(night ? "#a69abb" : "#dae9e1", 38, 95);
+  const camera = new T.OrthographicCamera(-8, 8, 7, -7, 0.1, 180);
   scene.add(
-    new T.HemisphereLight(night ? "#d6e6ff" : "#ffffff", "#8ba399", 2.3),
+    new T.HemisphereLight(night ? "#d2ddff" : "#ffffff", "#8d91ac", 1.8),
   );
-  const sun = new T.DirectionalLight("#fff0d9", 2.1);
+  const sun = new T.DirectionalLight("#fff1d2", 2.2);
   sun.position.set(-12, 24, 16);
   sun.castShadow = true;
   sun.shadow.mapSize.set(1024, 1024);
   Object.assign(sun.shadow.camera, {
-    left: -26,
-    right: 26,
-    top: 35,
-    bottom: -26,
+    left: -24,
+    right: 24,
+    top: 40,
+    bottom: -24,
     far: 100,
   });
   sun.shadow.camera.updateProjectionMatrix();
-  sun.shadow.bias = -0.001;
   sun.shadow.normalBias = 0.04;
   scene.add(sun);
   const renderer = helper.renderer();
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = T.PCFSoftShadowMap;
+  const material = (color, extra = {}) =>
+    new T.MeshStandardMaterial({ color, roughness: 0.48, ...extra });
+  // A subdivided cube projected onto a rounded box gives true soft bevels.
+  const rounded = new T.BoxGeometry(1, 1, 1, 4, 4, 4),
+    position = rounded.attributes.position,
+    v = new T.Vector3(),
+    core = new T.Vector3();
+  for (let i = 0; i < position.count; i++) {
+    v.fromBufferAttribute(position, i);
+    core.copy(v).clampScalar(-0.42, 0.42);
+    v.sub(core).normalize().multiplyScalar(0.08).add(core);
+    position.setXYZ(i, v.x, v.y, v.z);
+  }
+  rounded.computeVertexNormals();
+  const blockMat = material("#ffffff"),
+    platformMat = material("#fff9ed"),
+    rimMat = material("#e9bb75"),
+    shadowMat = new T.MeshBasicMaterial({
+      color: "#334968",
+      transparent: true,
+      opacity: 0.16,
+      depthWrite: false,
+      side: T.DoubleSide,
+    });
   const ground = new T.Mesh(
-    new T.PlaneGeometry(80, 34),
-    new T.MeshStandardMaterial({
-      color: night ? "#758c9c" : "#b7d7c6",
-      roughness: 1,
-    }),
+    new T.CircleGeometry(8, 64),
+    material(night ? "#6b799b" : "#b6cfd2"),
   );
   ground.rotation.x = -Math.PI / 2;
-  ground.position.set(0, -0.8, 8);
+  ground.position.y = -1.25;
   ground.receiveShadow = true;
   scene.add(ground);
-  for (const [x, y, z] of [
-    [-7, 0, -18],
-    [3, 1, -20],
-  ]) {
-    const cloud = new T.Group();
-    const material = new T.MeshBasicMaterial({
-      color: "#ffffff",
+  // Islands in the mist give the plinth a place in the world.
+  const scenery = new T.InstancedMesh(
+      new T.CylinderGeometry(1.3, 1.6, 1, 12),
+      material(night ? "#8192ad" : "#b4d4ce"),
+      14,
+    ),
+    dummy = new T.Object3D(),
+    color = new T.Color();
+  for (let i = 0; i < 14; i++) {
+    dummy.position.set(((i % 7) - 3) * 7, -3.5, -12 - Math.floor(i / 7) * 14);
+    dummy.scale.set(1, 1 + (i % 3) * 0.3, 1);
+    dummy.rotation.y = i;
+    dummy.updateMatrix();
+    scenery.setMatrixAt(i, dummy.matrix);
+  }
+  scenery.receiveShadow = true;
+  scene.add(scenery);
+  const clouds = [],
+    puffGeo = new T.SphereGeometry(1, 12, 8),
+    cloudMat = material(night ? "#c5cee9" : "#fffaf1", {
       transparent: true,
-      opacity: night ? 0.34 : 0.7,
+      opacity: night ? 0.45 : 0.85,
     });
-    for (let i = 0; i < 3; i++) {
-      const puff = new T.Mesh(new T.SphereGeometry(1.5, 12, 8), material);
-      puff.position.set(i * 1.7, i === 1 ? 0.5 : 0, 0);
-      puff.scale.y = 0.55;
+  for (let j = 0; j < 6; j++) {
+    const cloud = new T.Group();
+    for (let i = 0; i < 4; i++) {
+      const puff = new T.Mesh(puffGeo, cloudMat);
+      puff.position.set(i * 1.1, i === 1 ? 0.4 : 0, 0);
+      puff.scale.set(1.25, 0.65, 0.8);
       cloud.add(puff);
     }
-    cloud.position.set(x, y, z);
+    cloud.position.set(
+      ((j % 3) - 1) * 11,
+      3 + Math.floor(j / 3) * 6,
+      -15 - (j % 2) * 7,
+    );
     scene.add(cloud);
+    clouds.push(cloud);
   }
-  let towers = new T.Group();
-  scene.add(towers);
-  let key = "",
+  const moon = new T.Mesh(
+    new T.SphereGeometry(1.2, 24, 16),
+    new T.MeshBasicMaterial({ color: night ? "#fff1ce" : "#fff3bf" }),
+  );
+  moon.position.set(-10, 10, -25);
+  scene.add(moon);
+  const records = new Map(),
     moving = [],
-    aspect = 1,
-    lift = 0;
-  const prior = new Map();
-  const vec = new T.Vector3();
-  function rebuild(S) {
-    towers.traverse((node) => {
-      if (node.isInstancedMesh) node.dispose();
+    debris = [];
+  const ringGeo = new T.TorusGeometry(2.8, 0.045, 6, 64),
+    debrisMaterial = material("#ffffff");
+  for (let i = 0; i < 24; i++) {
+    const mesh = new T.Mesh(rounded, debrisMaterial.clone());
+    mesh.visible = false;
+    mesh.castShadow = true;
+    scene.add(mesh);
+    debris.push({
+      mesh,
+      start: -100,
+      x: 0,
+      y: 0,
+      z: 0,
+      dir: 1,
+      axis: "x",
+      scale: 1,
     });
-    helper.disposeObject(towers);
-    scene.remove(towers);
-    towers = new T.Group();
-    scene.add(towers);
-    moving = [];
+  }
+  let debrisIndex = 0,
+    snapshot = null,
+    round = null,
+    aspect = 1,
+    lift = 0,
+    viewSize = 6.4;
+  const look = new T.Vector3();
+  function make(pid, own, index, total) {
+    const group = new T.Group(),
+      scale = own ? 1 : 0.32,
+      peer = own ? 0 : index - (get().S.myTower ? 1 : 0);
+    group.position.set(
+      own ? 0 : (peer - (total - 2) / 2) * 5.1,
+      0,
+      own ? 2.4 : -6,
+    );
+    group.scale.setScalar(scale);
+    scene.add(group);
+    function part(geo, mat, x, y, z, sx = 1, sy = 1, sz = 1) {
+      const mesh = new T.Mesh(geo, mat);
+      mesh.position.set(x, y, z);
+      mesh.scale.set(sx, sy, sz);
+      mesh.castShadow = mesh.receiveShadow = true;
+      group.add(mesh);
+      return mesh;
+    }
+    const platform = part(
+      new T.CylinderGeometry(3.25, 3.55, 0.65, 64),
+      platformMat,
+      0,
+      -0.45,
+      0,
+    );
+    platform.name = own ? "bs-own-platform" : "bs-rival-platform";
+    part(new T.CylinderGeometry(3.5, 3.3, 0.24, 64), rimMat, 0, -0.83, 0);
+    const rim = part(
+      new T.TorusGeometry(3.18, 0.055, 8, 64),
+      rimMat,
+      0,
+      -0.1,
+      0,
+    );
+    rim.rotation.x = Math.PI / 2;
+    part(
+      rounded,
+      material(own ? "#fcf5e6" : "#9bb2cb"),
+      0,
+      0.08,
+      0,
+      4.4,
+      0.3,
+      4.4,
+    );
+    const settled = new T.InstancedMesh(rounded, blockMat, 384);
+    settled.count = 0;
+    settled.castShadow = settled.receiveShadow = true;
+    group.add(settled);
+    const top = part(rounded, material("#ffffff"), 0, 0.7, 0);
+    top.name = own ? "bs-own-top" : "bs-rival-top";
+    const slider = part(
+      rounded,
+      material("#ffffff", { emissive: "#fff2ba", emissiveIntensity: 0.12 }),
+      0,
+      1.8,
+      0,
+    );
+    slider.name = own ? "bs-own-slider" : "bs-rival-slider";
+    // Thin top inset catches light without a dark wireframe cage.
+    const inset = new T.Mesh(
+      rounded,
+      material("#ffffff", { transparent: true, opacity: 0.26 }),
+    );
+    inset.position.y = 0.46;
+    inset.scale.set(0.93, 0.06, 0.93);
+    slider.add(inset);
+    const ghost = part(new T.PlaneGeometry(1, 1), shadowMat, 0, 0.3, 0);
+    ghost.rotation.x = -Math.PI / 2;
+    const guideGeo = new T.BufferGeometry().setAttribute(
+      "position",
+      new T.Float32BufferAttribute([0, 0, 0, 0, 0, 0], 3),
+    );
+    const guide = new T.Line(
+      guideGeo,
+      new T.LineBasicMaterial({
+        color: "#fff8dc",
+        transparent: true,
+        opacity: 0.75,
+      }),
+    );
+    guide.name = own ? "bs-drop-guide" : "bs-rival-guide";
+    group.add(guide);
+    const rail = new T.Line(
+      new T.BufferGeometry().setAttribute(
+        "position",
+        new T.Float32BufferAttribute([0, 0, 0, 0, 0, 0], 3),
+      ),
+      new T.LineBasicMaterial({
+        color: "#fff9e6",
+        transparent: true,
+        opacity: 0.2,
+      }),
+    );
+    group.add(rail);
+    const ring = part(
+      ringGeo,
+      new T.MeshBasicMaterial({
+        color: "#fff3b8",
+        transparent: true,
+        opacity: 0,
+        depthWrite: false,
+      }),
+      0,
+      0,
+      0,
+    );
+    ring.rotation.x = Math.PI / 2;
+    ring.visible = false;
+    ring.name = own ? "bs-perfect-ring" : "bs-rival-ring";
+    const r = {
+      pid,
+      own,
+      index,
+      group,
+      scale,
+      settled,
+      top,
+      slider,
+      ghost,
+      guide,
+      rail,
+      ring,
+      height: -1,
+      out: false,
+      round: null,
+      prev: null,
+      landingAt: -100,
+    };
+    records.set(pid, r);
+    moving.push(r);
+    return r;
+  }
+  function blockColor(level, index) {
+    return color.setHSL(
+      ((level * 9 + index * 34 + 330) % 360) / 360,
+      0.67,
+      night ? 0.61 : 0.57,
+    );
+  }
+  function cut(r, t, previous, now) {
+    if (!previous || helper.reducedMotion()) return;
+    const axis = previous.axis,
+      size = axis === "x" ? "width" : "depth",
+      miss = t.out && !previous.out;
+    const amount = miss ? previous[size] : previous[size] - t[size];
+    if (amount < 0.001) return;
+    const delta = miss ? t.miss?.offset || 0 : (t[axis] - previous[axis]) * 2,
+      dir = delta < 0 ? -1 : 1,
+      d = debris[debrisIndex++ % debris.length];
+    d.axis = axis;
+    d.dir = dir;
+    d.start = now;
+    d.scale = r.scale;
+    const x =
+      axis === "x"
+        ? miss
+          ? previous.x + delta
+          : previous.x + dir * (previous.width / 2 + amount / 2)
+        : previous.x;
+    const z =
+      axis === "z"
+        ? miss
+          ? previous.z + delta
+          : previous.z + dir * (previous.depth / 2 + amount / 2)
+        : previous.z;
+    d.x = r.group.position.x + x * r.scale;
+    d.y = (0.7 + (miss ? t.height : t.height - 1) * 0.8) * r.scale;
+    d.z = r.group.position.z + z * r.scale;
+    d.mesh.scale.set(
+      (axis === "x" ? amount : previous.width) * r.scale,
+      0.75 * r.scale,
+      (axis === "z" ? amount : previous.depth) * r.scale,
+    );
+    d.mesh.material.color.copy(
+      blockColor(miss ? t.height : t.height - 1, r.index),
+    );
+    d.mesh.rotation.set(0, 0, 0);
+    d.mesh.visible = true;
+  }
+  function sync(S, now) {
     const ids = Object.keys(S.towers),
       ordered = [S.myTower, ...ids.filter((pid) => pid !== S.myTower)].filter(
         Boolean,
-      ),
-      box = new T.BoxGeometry(1, 1, 1);
-    ordered.forEach((pid, i) => {
+      );
+    ordered.forEach((pid, index) => {
       const t = S.towers[pid],
-        own = pid === S.myTower,
-        peer = Math.max(0, i - (S.myTower ? 1 : 0)),
-        row = Math.floor(peer / 4),
-        count = Math.min(4, ordered.length - (S.myTower ? 1 : 0) - row * 4),
-        group = new T.Group(),
-        scale = own ? 1 : 0.36;
-      group.position.set(
-        own ? 0 : ((peer % 4) - (count - 1) / 2) * 4.4,
-        0,
-        own ? 3 : -5 - row * 5,
-      );
-      group.scale.setScalar(scale);
-      towers.add(group);
-      const color = palette[ids.indexOf(pid) % palette.length];
-      const platform = new T.Mesh(
-        new T.CylinderGeometry(3.1, 3.3, 0.6, 40),
-        new T.MeshStandardMaterial({
-          color: own ? "#fffdf2" : "#c5d9dc",
-          roughness: 0.8,
-        }),
-      );
-      platform.position.y = -0.35;
-      platform.castShadow = platform.receiveShadow = true;
-      platform.name = own ? "bs-own-platform" : "bs-rival-platform";
-      group.add(platform);
-      const rim = new T.Mesh(
-        new T.TorusGeometry(3.05, own ? 0.1 : 0.06, 6, 48),
-        new T.MeshStandardMaterial({ color: own ? "#ffbc64" : color }),
-      );
-      rim.rotation.x = Math.PI / 2;
-      rim.position.y = -0.03;
-      group.add(rim);
-      const base = new T.Mesh(
-        box,
-        new T.MeshStandardMaterial({
-          color: own ? "#ffffff" : "#97b3ba",
-          roughness: 0.75,
-        }),
-      );
-      base.scale.set(4.4, 0.3, 4.4);
-      base.position.y = 0.15;
-      base.castShadow = base.receiveShadow = true;
-      group.add(base);
-      const previous = prior.get(pid),
-        stamp = `${S.round}:${t.height}`,
-        landed =
-          previous && previous.stamp !== stamp && t.height > previous.height,
-        landingAt = landed
-          ? performance.now() / 1000
-          : previous?.landingAt || -100;
-      prior.set(pid, { stamp, height: t.height, landingAt });
-      const material = new T.MeshStandardMaterial({ color, roughness: 0.5 });
-      let top = null;
-      if (t.blocks.length) {
-        const settled = new T.InstancedMesh(
-          box,
-          material,
-          Math.max(1, t.blocks.length - 1),
+        r =
+          records.get(pid) ||
+          make(pid, pid === S.myTower, index, ordered.length);
+      if (r.round !== S.round || r.height !== t.height || r.out !== t.out) {
+        const fresh = r.round === S.round && r.height >= 0,
+          landed = fresh && t.height > r.height;
+        if (fresh && (landed || t.out !== r.out)) cut(r, t, r.prev, now);
+        if (landed) {
+          r.landingAt = now;
+          if (r.own)
+            get().api.cue?.(t.perfect ? "correct" : "place", {
+              id: S.instanceId + ":" + S.round + ":" + t.height + ":land",
+            });
+        }
+        r.round = S.round;
+        r.height = t.height;
+        r.out = t.out;
+        r.settled.count = Math.max(0, t.blocks.length - 1);
+        for (let j = 0; j < t.blocks.length - 1; j++) {
+          const b = t.blocks[j];
+          dummy.position.set(b.x, 0.7 + j * 0.8, b.z);
+          dummy.rotation.set(0, 0, 0);
+          dummy.scale.set(b.width, 0.75, b.depth);
+          dummy.updateMatrix();
+          r.settled.setMatrixAt(j, dummy.matrix);
+          r.settled.setColorAt(j, blockColor(j, r.index));
+        }
+        r.settled.instanceMatrix.needsUpdate = true;
+        if (r.settled.instanceColor) r.settled.instanceColor.needsUpdate = true;
+        r.top.material.color.copy(
+          blockColor(Math.max(0, t.height - 1), r.index),
         );
-        const matrix = new T.Matrix4();
-        settled.count = Math.max(0, t.blocks.length - 1);
-        t.blocks.slice(0, -1).forEach((b, j) => {
-          matrix.compose(
-            new T.Vector3(b.x, 0.7 + j * 0.8, b.z),
-            new T.Quaternion(),
-            new T.Vector3(b.width, 0.75, b.depth),
-          );
-          settled.setMatrixAt(j, matrix);
-          settled.setColorAt(
-            j,
-            new T.Color(color).lerp(new T.Color("#ffffff"), j % 2 ? 0.15 : 0),
-          );
-        });
-        settled.castShadow = settled.receiveShadow = true;
-        group.add(settled);
-        const b = t.blocks.at(-1);
-        top = new T.Mesh(box, material);
-        top.name = own ? "bs-own-top" : "bs-rival-top";
-        top.scale.set(b.width, 0.75, b.depth);
-        top.position.set(b.x, 0.7 + (t.height - 1) * 0.8, b.z);
-        top.castShadow = top.receiveShadow = true;
-        group.add(top);
+        r.slider.material.color.copy(blockColor(t.height, r.index));
+        r.top.visible = t.height > 0;
       }
-      const block = new T.Mesh(
-        box,
-        new T.MeshStandardMaterial({
-          color: own ? "#fff4a3" : "#fffde7",
-          emissive: own ? "#b47722" : "#786b39",
-          emissiveIntensity: 0.22,
-          roughness: 0.35,
-        }),
-      );
-      block.name = own ? "bs-own-slider" : "bs-rival-slider";
-      block.scale.set(t.width, 0.75, t.depth);
-      block.castShadow = true;
-      group.add(block);
-      const edge = new T.LineSegments(
-        new T.EdgesGeometry(box),
-        new T.LineBasicMaterial({
-          color: "#875a30",
-          transparent: true,
-          opacity: 0.65,
-        }),
-      );
-      block.add(edge);
-      const ghost = new T.Mesh(
-        new T.PlaneGeometry(1, 1),
-        new T.MeshBasicMaterial({
-          color: "#29465b",
-          transparent: true,
-          opacity: 0.22,
-          depthWrite: false,
-          side: T.DoubleSide,
-        }),
-      );
-      ghost.rotation.x = -Math.PI / 2;
-      ghost.scale.set(t.width, t.depth, 1);
-      group.add(ghost);
-      const guide = new T.Line(
-        new T.BufferGeometry().setFromPoints([
-          new T.Vector3(),
-          new T.Vector3(),
-        ]),
-        new T.LineDashedMaterial({
-          color: "#fffdf2",
-          dashSize: 0.14,
-          gapSize: 0.12,
-          transparent: true,
-          opacity: 0.85,
-        }),
-      );
-      guide.name = own ? "bs-drop-guide" : "bs-rival-guide";
-      group.add(guide);
-      const rail = new T.Line(
-        new T.BufferGeometry().setFromPoints([
-          new T.Vector3(),
-          new T.Vector3(),
-        ]),
-        new T.LineDashedMaterial({
-          color: own ? "#8d6947" : "#dde9ef",
-          dashSize: 0.25,
-          gapSize: 0.2,
-          transparent: true,
-          opacity: 0.55,
-        }),
-      );
-      group.add(rail);
-      moving.push({ pid, block, ghost, guide, rail, top, landingAt });
+      r.prev = t;
     });
-  }
-  function frame(dt = 0) {
-    const { S, api } = get();
-    if (!S) return;
-    const signature = JSON.stringify([
-      S.round,
-      S.myTower,
-      Object.values(S.towers).map((t) => [t.height, t.out]),
-    ]);
-    if (signature !== key) {
-      key = signature;
-      rebuild(S);
+    if (round !== S.round) {
+      round = S.round;
+      for (const d of debris) d.mesh.visible = false;
     }
-    const now = performance.now() / 1000;
-    for (const m of moving) {
-      const t = S.towers[m.pid],
-        d = slide(t, api.now()),
-        x = t.x + (t.axis === "x" ? d : 0),
-        z = t.z + (t.axis === "z" ? d : 0),
-        floor = 0.32 + t.height * 0.8,
-        hover = floor + 1.8;
-      m.block.visible =
-        m.ghost.visible =
-        m.guide.visible =
-        m.rail.visible =
-          ["countdown", "stack"].includes(S.phase) && !t.out;
-      m.block.position.set(x, hover, z);
-      m.ghost.position.set(x, floor + 0.02, z);
-      const points = m.guide.geometry.attributes.position;
-      points.setXYZ(0, x, floor + 0.04, z);
-      points.setXYZ(1, x, hover - 0.4, z);
-      points.needsUpdate = true;
-      m.guide.computeLineDistances();
-      const rail = m.rail.geometry.attributes.position;
-      rail.setXYZ(
-        0,
-        t.x - (t.axis === "x" ? 6 : 0),
-        hover,
-        t.z - (t.axis === "z" ? 6 : 0),
-      );
-      rail.setXYZ(
-        1,
-        t.x + (t.axis === "x" ? 6 : 0),
-        hover,
-        t.z + (t.axis === "z" ? 6 : 0),
-      );
-      rail.needsUpdate = true;
-      m.rail.computeLineDistances();
-      if (m.top) {
-        const b = t.blocks.at(-1),
-          p = helper.reducedMotion()
-            ? 1
-            : Math.min(1, Math.max(0, (now - m.landingAt) / 0.48)),
-          fall = Math.pow(1 - p, 3),
-          bounce = Math.sin(p * Math.PI * 2) * Math.pow(1 - p, 2);
-        m.top.position.y = 0.7 + (t.height - 1) * 0.8 + fall * 1.15;
-        m.top.scale.set(
-          b.width * (1 + bounce * 0.08),
-          0.75 * (1 - bounce * 0.18),
-          b.depth * (1 + bounce * 0.08),
-        );
-      }
-    }
-    const highest = Math.max(
-        0,
-        ...Object.entries(S.towers).map(
-          ([pid, t]) => t.height * 0.8 * (pid === S.myTower ? 1 : 0.36),
-        ),
-      ),
-      target = highest * 0.48;
-    lift +=
-      (target - lift) *
-      (helper.reducedMotion() ? 1 : 1 - Math.exp(-Math.max(0.016, dt) * 4));
-    const halfH = Math.max(7.5, highest * 0.58 + 3.6),
-      halfW = Math.max(8.5, halfH * aspect);
-    camera.left = -halfW;
-    camera.right = halfW;
-    camera.top = halfW / aspect;
-    camera.bottom = -halfW / aspect;
-    camera.position.set(6, lift + 17, 27);
-    camera.lookAt(vec.set(0, lift + 1.2, -2));
-    camera.updateProjectionMatrix();
   }
   return {
     scene,
     camera,
-    frame,
     resize(w, h) {
       aspect = w / h;
-      frame();
+    },
+    frame(dt = 0.016) {
+      const { S, api } = get();
+      if (!S) return;
+      const now = performance.now() / 1000,
+        reduced = helper.reducedMotion();
+      if (snapshot !== S) {
+        snapshot = S;
+        sync(S, now);
+      }
+      let highest = 0;
+      for (const r of moving) {
+        const t = S.towers[r.pid];
+        if (!t) continue;
+        const d = slide(t, api.now()),
+          x = t.x + (t.axis === "x" ? d : 0),
+          z = t.z + (t.axis === "z" ? d : 0),
+          floor = 0.32 + t.height * 0.8,
+          hover = floor + 1.65;
+        const visible =
+          (S.phase === "countdown" || S.phase === "stack") && !t.out;
+        r.slider.visible =
+          r.ghost.visible =
+          r.guide.visible =
+          r.rail.visible =
+            visible;
+        r.slider.position.set(x, hover, z);
+        r.slider.scale.set(t.width, 0.75, t.depth);
+        r.ghost.position.set(x, floor + 0.025, z);
+        r.ghost.scale.set(t.width, t.depth, 1);
+        const points = r.guide.geometry.attributes.position;
+        points.setXYZ(0, x, floor + 0.04, z);
+        points.setXYZ(1, x, hover - 0.4, z);
+        points.needsUpdate = true;
+        const rail = r.rail.geometry.attributes.position;
+        rail.setXYZ(
+          0,
+          t.x - (t.axis === "x" ? 6 : 0),
+          hover,
+          t.z - (t.axis === "z" ? 6 : 0),
+        );
+        rail.setXYZ(
+          1,
+          t.x + (t.axis === "x" ? 6 : 0),
+          hover,
+          t.z + (t.axis === "z" ? 6 : 0),
+        );
+        rail.needsUpdate = true;
+        const age = now - r.landingAt,
+          p = reduced ? 1 : Math.min(1, age / 0.42),
+          fall = Math.pow(1 - p, 3),
+          bounce = Math.sin(p * Math.PI * 2) * Math.pow(1 - p, 2);
+        if (r.top.visible) {
+          const b = t.blocks[t.blocks.length - 1];
+          r.top.position.set(
+            b.x,
+            0.7 + (t.height - 1) * 0.8 + fall * 1.15,
+            b.z,
+          );
+          r.top.scale.set(
+            b.width * (1 + bounce * 0.06),
+            0.75 * (1 - bounce * 0.16),
+            b.depth * (1 + bounce * 0.06),
+          );
+        }
+        r.ring.visible = !reduced && t.perfect && age < 0.75 && age >= 0;
+        r.ring.position.set(t.x, 0.5 + t.height * 0.8, t.z);
+        r.ring.scale.setScalar(0.35 + Math.min(0.75, age) * 1.4);
+        r.ring.material.opacity = Math.max(0, 1 - age / 0.75);
+        r.group.rotation.z =
+          !reduced && t.height > 7
+            ? Math.sin(now * 1.7) * Math.min(0.012, t.height * 0.0005)
+            : 0;
+        highest = Math.max(highest, t.height * 0.8 * r.scale);
+      }
+      for (const d of debris) {
+        if (!d.mesh.visible) continue;
+        const age = now - d.start;
+        if (reduced || age > 1.8) {
+          d.mesh.visible = false;
+          continue;
+        }
+        d.mesh.position.set(
+          d.x + (d.axis === "x" ? d.dir * age * 2.8 * d.scale : 0),
+          d.y + age * 0.6 - age * age * 7,
+          d.z + (d.axis === "z" ? d.dir * age * 2.8 * d.scale : 0),
+        );
+        d.mesh.rotation.set(age * 1.8, age * 0.6, age * d.dir * 2);
+      }
+      for (let i = 0; i < clouds.length; i++)
+        if (!reduced)
+          clouds[i].position.x =
+            ((i % 3) - 1) * 11 + Math.sin(now * 0.06 + i) * 1.6;
+      const target = Math.max(0, highest * 0.46),
+        blend = reduced ? 1 : 1 - Math.exp(-Math.max(0.001, dt) * 4);
+      lift += (target - lift) * blend;
+      const targetSize = Math.max(5.6, highest * 0.48 + 3.1);
+      viewSize += (targetSize - viewSize) * blend;
+      const halfW = Math.max(6.8, viewSize * aspect);
+      camera.left = -halfW;
+      camera.right = halfW;
+      camera.top = halfW / aspect;
+      camera.bottom = -halfW / aspect;
+      camera.position.set(8, lift + 11, 23);
+      camera.lookAt(look.set(0, lift + 1.1, 0));
+      camera.updateProjectionMatrix();
     },
     dispose() {
-      towers.traverse((node) => {
-        if (node.isInstancedMesh) node.dispose();
-      });
+      for (const r of moving) r.settled.dispose();
+      scenery.dispose();
       skyTexture.dispose();
-      prior.clear();
+      debrisMaterial.dispose();
+      records.clear();
     },
   };
 }
@@ -560,6 +713,8 @@ export default batchView({
         if (next !== burstKey) {
           const was = burstKey;
           burstKey = next;
+          clearTimeout(burstTimer);
+          burst.hidden = true;
           if (was && t?.perfect && !t.out && t.height > 0) {
             clearTimeout(burstTimer);
             burst.hidden = false;

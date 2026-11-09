@@ -120,3 +120,209 @@
     grid-column: 2;
   }
 }
+/* The goal itself is the aiming control. These transparent targets sit on
+   the projected goal mouth, never in a separate row of word buttons. */
+#gbody .pk6-world .pk6-pitch {
+  height: clamp(320px, calc(100dvh - 360px), 520px);
+  grid-row: auto;
+  grid-column: auto;
+}
+.pk6-world .b6-field {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+}
+.pk6-world .pk6-zones {
+  position: absolute;
+  left: 13%;
+  top: 26%;
+  width: 74%;
+  height: 39%;
+  gap: var(--space-8);
+  z-index: 1;
+}
+#gbody .pk6-world .pk6-target {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  min-height: var(--control-h-sm);
+  border: var(--outline-w) solid rgb(255 249 232 / 28%);
+  border-radius: var(--radius-md);
+  background: rgb(235 255 244 / 6%);
+  color: #fff9e8;
+  cursor: crosshair;
+  transition:
+    transform var(--dur-quick) var(--ease),
+    opacity var(--dur-quick) var(--ease);
+}
+.pk6-target svg {
+  width: var(--space-40);
+  height: var(--space-40);
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  filter: drop-shadow(0 2px 1px #174d47);
+  opacity: 0.8;
+}
+#gbody .pk6-world .pk6-target[aria-pressed="true"] {
+  background: rgb(255 190 75 / 38%);
+  border-color: #ffe0a0;
+  color: #ffe0a0;
+}
+#gbody .pk6-world .pk6-target[aria-pressed="true"] svg {
+  opacity: 1;
+  stroke-width: 3;
+}
+#gbody .pk6-world .pk6-target:active {
+  transform: scale(0.96);
+}
+#gbody .pk6-world .pk6-target:disabled {
+  cursor: default;
+  opacity: 0.38;
+}
+#gbody .pk6-world .pk6-target:disabled[aria-pressed="true"] {
+  opacity: 0.85;
+}
+@media (hover: hover) {
+  #gbody .pk6-world .pk6-target:hover:not(:disabled) {
+    border-color: #ffe0a0;
+    background: rgb(255 225 160 / 24%);
+    transform: scale(0.98);
+  }
+}
+.pk6-world[data-phase="reveal"] .pk6-zones {
+  visibility: hidden;
+}
+.pk6-world .pk6-banner {
+  position: absolute;
+  top: var(--space-16);
+  left: 50%;
+  transform: translateX(-50%);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4) var(--space-24);
+  background: var(--success);
+  color: var(--on-success);
+  font: var(--text-heading);
+  box-shadow: var(--shadow-sticker);
+  white-space: nowrap;
+  pointer-events: none;
+}
+.pk6-world .pk6-banner[data-outcome="save"] {
+  background: var(--fam);
+  color: var(--on-fam);
+}
+.pk6-world .pk6-banner[data-outcome="miss"] {
+  background: var(--card);
+  color: var(--ink);
+}
+.pk6-world .pk6-runup {
+  position: absolute;
+  bottom: var(--space-12);
+  left: var(--space-12);
+  padding: var(--space-4) var(--space-12);
+  border-radius: var(--radius-pill);
+  background: #163d44;
+  color: #fff9e8;
+  font: var(--text-caption);
+  pointer-events: none;
+}
+.pk6-world .pk6-controls {
+  justify-content: space-between;
+  grid-column: auto;
+}
+.pk6-world .pk6-power button {
+  display: flex;
+  gap: var(--space-8);
+  align-items: center;
+  font: var(--text-button-sm);
+}
+.pk6-meter {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: var(--space-16);
+}
+.pk6-meter i {
+  display: block;
+  width: 4px;
+  height: 6px;
+  background: currentColor;
+  border-radius: 2px;
+}
+.pk6-meter i:nth-child(2) {
+  height: 11px;
+  opacity: 0.25;
+}
+.pk6-meter i:nth-child(3) {
+  height: 16px;
+  opacity: 0.25;
+}
+.pk6-meter[data-power-level="hard"] i {
+  opacity: 1;
+}
+.pk6-world .pk6-match-tools {
+  gap: var(--space-4);
+}
+.pk6-world .b6-actions {
+  grid-column: auto;
+}
+.pk6-world .b6-pop {
+  animation: none;
+}
+@media (min-width: 701px) {
+  #gbody .pk6-world.pl-fill {
+    grid-template-columns: minmax(0, 3fr) minmax(240px, 1fr);
+    column-gap: var(--space-16);
+  }
+  #gbody .pk6-world > :is(.party-hud, .b6-prompt, .pl-live) {
+    grid-column: 1 / -1;
+  }
+  .pk6-world .b6-field {
+    grid-column: 1 / -1;
+    grid-template-columns: minmax(0, 3fr) minmax(240px, 1fr);
+    gap: var(--space-16);
+  }
+  #gbody .pk6-world .pk6-pitch {
+    grid-column: 1;
+    grid-row: 1 / 3;
+  }
+  .pk6-world .pk6-controls {
+    grid-column: 2;
+    grid-row: 1;
+    align-self: end;
+    flex-direction: column;
+    gap: var(--space-16);
+  }
+  .pk6-world .b6-actions {
+    grid-column: 2;
+    grid-row: 2;
+    align-self: start;
+  }
+}
+@media (max-width: 700px) {
+  #gbody .pk6-world .pk6-pitch {
+    height: clamp(224px, calc(100dvh - 520px), 280px);
+  }
+  .pk6-world .pk6-controls {
+    min-height: var(--control-h);
+  }
+}
+
+#gbody .pk6-world .pl-head {
+  display: none;
+}
+#gbody .pk6-world .pl-seat {
+  grid-template-rows: repeat(3, var(--space-24));
+}
+
+.pk6-target[aria-pressed="true"]::after {
+  content: "✓";
+  position: absolute;
+  top: var(--space-4);
+  right: var(--space-8);
+  font: var(--text-caption);
+}
+.pk6-target {
+  position: relative;
+}

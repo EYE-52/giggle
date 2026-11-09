@@ -219,6 +219,9 @@ async function primary(f) {
 async function play(id, viewport, theme, forced2D = false) {
   const context = await browser.newContext({
     viewport,
+    ...(process.env.B6_VIDEO
+      ? { recordVideo: { dir: path.join(artifacts, "videos"), size: viewport } }
+      : {}),
     reducedMotion: process.env.B6_MOTION === "1" ? "no-preference" : "reduce",
     isMobile: viewport.width < 600,
     hasTouch: viewport.width < 600,
@@ -272,7 +275,9 @@ async function play(id, viewport, theme, forced2D = false) {
   const row = { id, viewport, theme, forced2D, phases: [], geometryChecks: 0 };
   const prefix = `${id}-${viewport.width}-${theme}${forced2D ? "-2d" : ""}`;
   try {
-    await page.goto(`http://127.0.0.1:${port}/practice/?game=${id}`);
+    await page.goto(
+      `${process.env.B6_URL || `http://127.0.0.1:${port}`}/practice/?game=${id}`,
+    );
     await page.waitForFunction(
       () => !document.querySelector("#practiceStart").disabled,
     );
@@ -438,7 +443,7 @@ async function play(id, viewport, theme, forced2D = false) {
                       t.speed -
                       (t.height === 0 ? 0 : Math.PI / 2),
                   ),
-              ) < 0.04
+              ) < 0.06
             );
           },
           level,
@@ -522,7 +527,8 @@ async function play(id, viewport, theme, forced2D = false) {
     compare(baseline, baseline, prefix);
     row.baseline = baseline;
     const initialInstance = (await state(host)).instanceId;
-    const seen = new Set();
+    const seen = new Set(),
+      outcomes = new Set();
     let capturedInk = false;
     async function captureInk(frame) {
       if (capturedInk) return;
@@ -649,6 +655,16 @@ async function play(id, viewport, theme, forced2D = false) {
     let priorPhase = "";
     for (let guard = 0; guard < 260; guard++) {
       const S = await state(host);
+      if (process.env.B6_TRACE)
+        console.log(
+          "B6_STEP",
+          id,
+          viewport.width,
+          theme,
+          guard,
+          S.phase,
+          S.kick || S.round,
+        );
       if (S.phase === "done") break;
       if (S.phase !== priorPhase) {
         await inspect(host);
@@ -663,6 +679,30 @@ async function play(id, viewport, theme, forced2D = false) {
       )
         continue;
       if (S.phase === "reveal") {
+        if (process.env.B6_POLISH && id === "penalty-kicks") {
+          await select(page, host);
+          await host.waitForFunction((kick) => {
+            const s = window.__b6State;
+            return (
+              s.phase !== "reveal" ||
+              s.kick !== kick ||
+              !document.querySelector(".pk6-banner")?.hidden
+            );
+          }, S.kick);
+          const live = await state(host);
+          if (live.phase !== "reveal" || live.kick !== S.kick) continue;
+          if (!outcomes.has(S.last.outcome)) {
+            outcomes.add(S.last.outcome);
+            await page.screenshot({
+              path: path.join(
+                artifacts,
+                prefix + "-" + S.last.outcome + ".png",
+              ),
+              clip: await (await host.frameElement()).boundingBox(),
+            });
+          }
+          await page.waitForTimeout(300);
+        }
         const leader = frames.find(
           (_, i) => fresh.players[i]?.id === fresh.hostId,
         );
@@ -672,6 +712,17 @@ async function play(id, viewport, theme, forced2D = false) {
         await leader
           .locator(".b6-primary:not([disabled])")
           .click({ timeout: 2000 });
+        await host.waitForFunction(
+          (previous) => {
+            const s = window.__b6State;
+            return (
+              s.phase !== "reveal" ||
+              s.round !== previous.round ||
+              s.kick !== previous.kick
+            );
+          },
+          { round: S.round, kick: S.kick },
+        );
         continue;
       }
       if (id === "dice-fibs") {
@@ -740,7 +791,7 @@ async function play(id, viewport, theme, forced2D = false) {
           if (v.phase !== "stack" || t.out) continue;
           await select(page, f);
           await f.waitForFunction(
-            () => {
+            (polish) => {
               const S = window.__b6State,
                 t = S.towers[S.me];
               const delta = Math.abs(
@@ -751,11 +802,13 @@ async function play(id, viewport, theme, forced2D = false) {
                       (t.height === 0 ? 0 : Math.PI / 2),
                   ),
               );
-              return t.height < (S.me === S.hostId ? 4 : 2)
+              if (polish && S.me === S.hostId && t.height === 2)
+                return delta > 0.5 && delta < 0.65;
+              return t.height < (S.me === S.hostId ? (polish ? 8 : 4) : 2)
                 ? delta < 0.06
                 : delta > Math.max(t.width, t.depth) + 0.15;
             },
-            null,
+            !!process.env.B6_POLISH,
             { polling: "raf", timeout: 10000 },
           );
           await primary(f);
@@ -771,9 +824,39 @@ async function play(id, viewport, theme, forced2D = false) {
           const after = await state(f),
             tower = after.towers[after.me];
           if (
+            process.env.B6_POLISH &&
+            after.me === after.hostId &&
+            tower.height === 3
+          ) {
+            await page.waitForTimeout(100);
+            if (!tower.perfect)
+              assert.equal(
+                await f.locator(".bs-perfect").isVisible(),
+                false,
+                "a trimmed drop must clear the previous Perfect pulse",
+              );
+            await page.screenshot({
+              path: path.join(artifacts, prefix + "-trim.png"),
+              clip: await (await f.frameElement()).boundingBox(),
+            });
+            if (!forced2D)
+              assert(
+                await f.evaluate(() =>
+                  window.__b6Scene.scene.children.some(
+                    (n) =>
+                      n.isMesh &&
+                      n.visible &&
+                      n.rotation.x > 0.05 &&
+                      n.geometry?.type === "BoxGeometry",
+                  ),
+                ),
+                "cut-off must tumble",
+              );
+          }
+          if (
             after.me === after.hostId &&
             after.phase === "stack" &&
-            tower.height >= 4 &&
+            tower.height >= (process.env.B6_POLISH ? 8 : 4) &&
             !tower.out &&
             !row.heroCaptured
           ) {
@@ -956,50 +1039,65 @@ async function play(id, viewport, theme, forced2D = false) {
     console.error(JSON.stringify(row));
     throw e;
   } finally {
+    const video = page.video();
     await context.close();
+    if (video)
+      await video.saveAs(path.join(artifacts, "videos", prefix + ".webm"));
   }
 }
 (async () => {
-  const probe = net.createServer();
-  await new Promise((r) => probe.listen(0, "127.0.0.1", r));
-  port = probe.address().port;
-  await new Promise((r) => probe.close(r));
-  scratch = fs.mkdtempSync(path.join(os.tmpdir(), "giggle-b6-server-"));
-  server = spawn(process.execPath, ["server/server.js"], {
-    cwd: root,
-    env: {
-      ...process.env,
-      PORT: String(port),
-      HOST: "127.0.0.1",
-      NODE_ENV: "test",
-      GAME_REPORT_DB: path.join(scratch, "reports.sqlite"),
-    },
-    stdio: ["ignore", "pipe", "pipe"],
-  });
-  server.stdout.on("data", (s) => (logs += s));
-  server.stderr.on("data", (s) => (logs += s));
-  for (let i = 0; i < 200 && !logs.includes("PartyBox on"); i++) {
-    if (server.exitCode !== null) throw Error(logs);
-    await wait(50);
+  if (!process.env.B6_URL) {
+    const probe = net.createServer();
+    await new Promise((r) => probe.listen(0, "127.0.0.1", r));
+    port = probe.address().port;
+    await new Promise((r) => probe.close(r));
+    scratch = fs.mkdtempSync(path.join(os.tmpdir(), "giggle-b6-server-"));
+    server = spawn(process.execPath, ["server/server.js"], {
+      cwd: root,
+      env: {
+        ...process.env,
+        PORT: String(port),
+        HOST: "127.0.0.1",
+        NODE_ENV: "test",
+        GAME_REPORT_DB: path.join(scratch, "reports.sqlite"),
+      },
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+    server.stdout.on("data", (s) => (logs += s));
+    server.stderr.on("data", (s) => (logs += s));
+    for (let i = 0; i < 200 && !logs.includes("PartyBox on"); i++) {
+      if (server.exitCode !== null) throw Error(logs);
+      await wait(50);
+    }
+    assert(logs.includes("PartyBox on"), logs);
   }
-  assert(logs.includes("PartyBox on"), logs);
   browser = await chromium.launch({
     headless: true,
+    ...(process.env.B6_CHANNEL ? { channel: process.env.B6_CHANNEL } : {}),
+    ...(process.env.B6_ANGLE
+      ? { args: ["--use-angle=" + process.env.B6_ANGLE] }
+      : {}),
     ...(process.env.B6_CHROMIUM
       ? { executablePath: process.env.B6_CHROMIUM }
       : {}),
   });
-  const sizes = process.env.B6_WIDTH
+  const sizes = process.env.B6_POLISH
     ? [
-        {
-          width: Number(process.env.B6_WIDTH),
-          height: Number(process.env.B6_WIDTH) < 600 ? 844 : 800,
-        },
-      ]
-    : [
+        { width: 1440, height: 900 },
+        { width: 1280, height: 720 },
         { width: 390, height: 844 },
-        { width: 1280, height: 800 },
-      ];
+      ]
+    : process.env.B6_WIDTH
+      ? [
+          {
+            width: Number(process.env.B6_WIDTH),
+            height: Number(process.env.B6_WIDTH) < 600 ? 844 : 800,
+          },
+        ]
+      : [
+          { width: 390, height: 844 },
+          { width: 1280, height: 800 },
+        ];
   for (const viewport of sizes)
     for (const theme of process.env.B6_THEME
       ? [process.env.B6_THEME]

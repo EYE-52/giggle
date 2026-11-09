@@ -6,6 +6,8 @@ export function sceneView(mount, api, build, paint) {
     handle = null,
     controller = null,
     retired = false;
+  // The scene reads one live cell; the animation loop creates no snapshots.
+  const snapshot = { S: null, api };
   let generation = 0,
     raf = 0,
     fallback = true,
@@ -60,8 +62,7 @@ export function sceneView(mount, api, build, paint) {
     if (retired || token !== generation) return;
     const result = await factory(gl, {
       signal: controller.signal,
-      build: (T, helper) =>
-        build(T, helper, () => ({ S: state, api: liveApi })),
+      build: (T, helper) => build(T, helper, () => snapshot),
       onContextLost: lose,
     });
     if (retired || token !== generation) {
@@ -96,6 +97,8 @@ export function sceneView(mount, api, build, paint) {
     update(S, nextApi) {
       state = S;
       liveApi = nextApi;
+      snapshot.S = state;
+      snapshot.api = nextApi;
       if (fallback) paint(flat, S, liveApi);
     },
     dispose() {
@@ -106,7 +109,7 @@ export function sceneView(mount, api, build, paint) {
       handle = null;
       cancelAnimationFrame(raf);
       if (retry) retry.onclick = null;
-      state = liveApi = null;
+      state = liveApi = snapshot.S = snapshot.api = null;
     },
   };
 }
