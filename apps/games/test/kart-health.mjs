@@ -26,16 +26,16 @@ function armed(weapon,m=map(),opts={}) {
  }
  throw Error('bounded real pickup search failed '+weapon);
 }
-// One acquired clip is one volley: however many rounds connect, the rival
-// loses one heart, and the clip never scores a KO from full hearts.
-for(const [weapon,ammo] of [['machinegun',24],['trishot',3]]) {
+// One acquired clip is one volley: landed hits repeat once per target per second.
+// A complete on-target clip can take all three hearts.
+for(const [weapon,ammo] of [['machinegun',30],['trishot',9]]) {
  const w=armed(weapon,weapon==='trishot'?map([point('a',0,0),point('b',0,5.2)]):map());try {
   const initialAmmo=kart(w).ammo;
   fire(w);const seen=new Map();
-  for(let i=0;i<180;i++){for(const e of w.snapshot().events)if(e.type==='hit'&&e.other==='b')seen.set(e.id,e);if(seen.size)eq(kart(w,'b').health,2,weapon+' connected clip holds the rival at two hearts');step(w);}
+  for(let i=0;i<180;i++){for(const e of w.snapshot().events)if(e.type==='hit'&&e.other==='b')seen.set(e.id,e);step(w);}
   eq(initialAmmo,ammo,weapon+' actual crate supplies the shared clip');eq(kart(w).firing,false,weapon+' accepted clip finishes');
-  eq([...seen.values()].map(e=>[e.damage,e.health,e.maxHealth,e.weapon]),[[1,2,3,weapon]],weapon+' whole clip takes exactly one heart once');
-  eq(kart(w).hits,0,weapon+' one clip cannot score from full hearts');eq(kart(w,'b').deaths,0,weapon+' rival survives one clip');
+  eq([...seen.values()].map(e=>[e.damage,e.health,e.maxHealth,e.weapon]),[[1,2,3,weapon],[1,1,3,weapon],[1,0,3,weapon]],weapon+' whole clip takes three spaced hearts');
+  eq(kart(w).hits,1,weapon+' one clip scores one KO');eq(kart(w,'b').deaths,1,weapon+' rival loses one life');
   measurements[weapon+'Clip']={initialAmmo,hits:seen.size,health:kart(w,'b').health};
  }finally{w.dispose();}
 }
@@ -132,7 +132,7 @@ for(const gate of ['cover','offline','shield']) {
 {
  const w=armed('machinegun'),seen=new Map();try {
   for(let i=0;i<240;i++){if(i%6===0)send(w,'a',{use:true});step(w);for(const e of w.snapshot().events)seen.set(e.id,e);}
-  eq([...seen.values()].filter(e=>e.type==='fire'&&e.weapon==='machinegun').length,24,'held Pulse consumes one finite twelve-round clip');eq([...seen.values()].filter(e=>e.type==='hit').length,1,'held Pulse clip lands exactly one heart');eq(kart(w).hits,0,'held Pulse clip cannot score from full hearts');ok(kart(w,'b').alive&&kart(w,'b').health===2,'long Pulse burst leaves the rival on two hearts');
+  eq([...seen.values()].filter(e=>e.type==='fire'&&e.weapon==='machinegun').length,30,'held Pulse consumes one finite thirty-round clip');eq([...seen.values()].filter(e=>e.type==='hit').length,3,'held Pulse clip lands three spaced hearts');eq(kart(w).hits,1,'held Pulse clip scores exactly one KO');ok(!kart(w,'b').alive&&kart(w,'b').health===0,'long Pulse burst empties all three hearts');
  }finally{w.dispose();}
 }
 {
@@ -150,13 +150,13 @@ for(const gate of ['cover','offline','shield']) {
 function legacy(n=2){let now=1000000,volleys=0;const players=Array.from({length:n},(_,i)=>({id:'p'+i,name:'P'+i})),ctx={now:()=>now,settings:()=>({mode:'Zap Battle',map:'Rookie Ring',winRule:'Time limit'}),players:()=>players.filter(p=>!ctx.offline?.has(p.id)),allPlayers:()=>players,broadcast(){},award(){},later:()=>()=>{}};const history=new Map();const s=GAME.create(ctx);now+=3000;GAME.onTick(s,ctx);s.blocks=[];s.crates=[];s.karts.forEach((k,i)=>{k.x=0;k.z=i*10;k.angle=0;k.shield=0;k.speed=0;});return {s,ctx,history,step(ms=100){now+=ms;GAME.onTick(s,ctx);for(const e of s.events)history.set(e.id,e)},fire(weapon,ammo=1){const a=s.karts[0];a.weapon=weapon;a.ammo=ammo;a.fireCd=0;a.prevAction=false;a.volley='t'+(++volleys);GAME.onAction(s,ctx,a.pid,{input:{steer:0,throttle:0,boost:true}});GAME.onAction(s,ctx,a.pid,{input:{steer:0,throttle:0,boost:false}});}};}
 // Controlled classic placement isolates actual crate acquisition and planar
 // authority; never a shipping Room actor or hidden-state acceptance claim.
-for(const [weapon,ammo] of [['machinegun',24],['trishot',3]]) {
+for(const [weapon,ammo] of [['machinegun',30],['trishot',9]]) {
  let r;
  for(let seed=0;seed<512;seed++) {const v=legacy();v.s.rngState=seed;v.s.crates=[{id:'pickup',x:0,z:0}];v.step(100);if(v.s.karts[0].weapon===weapon){r=v;break;}}
  ok(r,weapon+' bounded classic pickup fixture reaches weapon');const [a,b]=r.s.karts;if(weapon==='trishot')b.z=5.2;
  const initialAmmo=a.ammo;r.s.crates=[];
- for(let i=0;i<ammo&&a.weapon;i++) {a.fireCd=0;a.prevAction=false;GAME.onAction(r.s,r.ctx,'p0',{input:{steer:0,throttle:0,boost:true}});r.step(100);GAME.onAction(r.s,r.ctx,'p0',{input:{steer:0,throttle:0,boost:false}});for(let t=0;t<4;t++)r.step(100);eq(b.health,2,'classic '+weapon+' acquired clip connection '+(i+1)+' stays at one heart');eq(a.hits,0,'classic '+weapon+' one clip cannot score from full hearts');}
- eq(initialAmmo,ammo,'classic '+weapon+' actual pickup supplies same clip as elevated');eq([...r.history.values()].filter(e=>e.type==='hit').map(e=>e.damage),[1],'classic '+weapon+' whole clip lands one heart once');measurements['classic'+weapon+'Clip']={initialAmmo,remainingAmmo:a.ammo,hits:a.hits};
+ for(let i=0;i<60&&b.health>0&&a.weapon;i++) {GAME.onAction(r.s,r.ctx,'p0',{input:{steer:0,throttle:0,boost:true}});r.step(100);GAME.onAction(r.s,r.ctx,'p0',{input:{steer:0,throttle:0,boost:false}});}
+ eq(initialAmmo,ammo,'classic '+weapon+' actual pickup supplies same clip as elevated');eq([...r.history.values()].filter(e=>e.type==='hit').map(e=>e.damage),[1,1,1],'classic '+weapon+' landed shots remove three spaced hearts');eq(a.hits,1,'classic '+weapon+' one acquired clip scores once');measurements['classic'+weapon+'Clip']={initialAmmo,remainingAmmo:a.ammo,hits:a.hits};
 }
 {
  const r=legacy(),[a,b]=r.s.karts;eq([a.health,b.health],[3,3],'legacy engine starts with three hearts');eq(GAME.view(r.s,r.ctx,'p0').combat,SHARED.config,'legacy projects shared damage/range description');

@@ -7,7 +7,7 @@
  * A Tri-Shot adds only its explicit -8/0/+8 degree fan. Missiles acquire a
  * rival at launch, coast straight briefly, then turn at a bounded rate.
  * Machine Gun and Tri-Shot commit their complete pickup on a fresh press.
- * Blades repeat on a per-rival cooldown; other pickups hurt each rival once.
+ * Rapid fire and blades repeat on per-rival cooldowns; other pickups hit once.
  * Mine/oil traps are separate.
  *
  * Sweeps stop at the earliest static surface, hull or expiry. Static cover
@@ -17,7 +17,7 @@
  * and wire names remain for old fixtures and already-created bodies.
  */
 
-const {config:COMBAT,damageAt,weaponForRoll,bladeContact} = require('./kart-combat-config');
+const {config:COMBAT,damageAt,weaponForRoll,bladeContact,volleyHit} = require('./kart-combat-config');
 const {normalizeWeapon}=require('./kart-combat-config');
 const {weaponForward,launchVelocity,TRI_FAN,CURATED_MUZZLE,inWeaponCone,WEAPON_FEEL}=require('../../public/js/engines/kart-weapon-contract.mjs');
 const LEGACY={proximity:{bodyRadius:.6,splashRadius:5.5,triggerRadius:3},laser:{speed:190,ttl:.7},bouncer:{speed:48,ttl:3.5,bounces:4},cluster:{fuse:.75,bomblets:5,splashRadius:3}};
@@ -274,7 +274,7 @@ function applyStatus(state, victim, weapon) {
   } else if (weapon === 'frost') victim.frostT = FROST_TIME;
 }
 
-/* Whole hearts, once per pickup per rival except sustained blades. Supernova blocks every hit
+/* Whole hearts, with per-target cooldowns for rapid fire and blades. Supernova blocks every hit
  * while active. The old guard field only serves legacy state. */
 function damage(state,victim,owner,weapon,connected,econ,volley=null,override=null) {
   const amount=override??damageAt(weapon);
@@ -282,13 +282,10 @@ function damage(state,victim,owner,weapon,connected,econ,volley=null,override=nu
   const hitPosition = victim.physicalPose ? physicalHullCenter(victim) : {x:+victim.x.toFixed(3),y:0,z:+victim.z.toFixed(3)};
   if(victim.supernovaT>0){
     let announce=true;
-    if(volley){let hits=state.volleyHits.get(volley);if(!hits)state.volleyHits.set(volley,hits=new Set());const key='blocked:'+victim.pid+':'+(victim.spawnSeq||0);announce=!hits.has(key);hits.add(key);}
+    if(volley){let hits=state.volleyHits.get(volley);if(!hits)state.volleyHits.set(volley,hits=new Map());const key='blocked:'+victim.pid+':'+(victim.spawnSeq||0);announce=!hits.has(key);hits.set(key,true);}
     if(announce)pushEvent(state,'block',owner,victim.pid,weapon,{position:hitPosition});return true;
   }
-  if(volley && weapon!=='blades') {
-    let hits=state.volleyHits.get(volley);if(!hits)state.volleyHits.set(volley,hits=new Set());
-    if(hits.has(victim.pid))return false;hits.add(victim.pid);
-  }
+  if(weapon!=='blades'&&!volleyHit(state.volleyHits,volley,victim.pid,victim.spawnSeq||0,weapon,state.nowMs/1000))return false;
   if(victim.guard){victim.guard=false;pushEvent(state,'block',owner,victim.pid,weapon,{position:hitPosition});return true;}
   const health=Number.isFinite(victim.health)?victim.health:COMBAT.maxHealth;
   const taken=Math.min(health,amount);victim.health=Math.max(0,health-taken);

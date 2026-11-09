@@ -1,7 +1,7 @@
 // Shared by both authorities and both presentations. +Z is the barrel axis.
 export const WEAPONS = Object.freeze(Object.fromEntries(Object.entries({
- machinegun:{tier:'common',damage:1,ammo:24,cooldown:1/12,speed:140,ttl:1.25},
- trishot:{tier:'common',damage:1,ammo:3,cooldown:.28,speed:95,ttl:1.2},
+ machinegun:{tier:'common',damage:1,ammo:30,cooldown:1/12,hitCooldown:1,speed:140,ttl:1.25},
+ trishot:{tier:'common',damage:1,ammo:9,cooldown:.28,hitCooldown:1,speed:95,ttl:1.2},
  mine:{tier:'common',damage:1,ammo:3,triggerRadius:2.2,armTime:.7,lifetime:12,bodyRadius:.41,dropInterval:.24},
  oil:{tier:'common',damage:1,ammo:2,triggerRadius:2.4,armTime:.5,lifetime:12,bodyRadius:.41,dropInterval:.3,spinTime:1.2},
  boomerang:{tier:'common',damage:1,ammo:2,speed:30,outTime:.62,curveRate:1.4,returnTurn:7,ttl:3.2,catchRadius:2.2},

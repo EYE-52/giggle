@@ -62,10 +62,10 @@ for(const block of ['muzzle','cap']){
  const f=fixture();try{
   if(block==='muzzle')f.physics.addStatic({id:'barrel-block',shape:'box',half:{x:2,y:2,z:.2},position:{x:0,y:2,z:1}});
   else f.s.zaps=Array.from({length:64},(_,i)=>({id:'cap-'+i,owner:'a',kind:'machinegun',physical:true,x:70,y:20,z:70,vx:0,vy:0,vz:0,ttl:20,angle:0}));
-  f.tap();f.tick(0);equal([f.a.weapon,f.a.ammo,f.firing()],['machinegun',24,false],block+' refusal keeps the untouched pickup');
+  f.tap();f.tick(0);equal([f.a.weapon,f.a.ammo,f.firing()],['machinegun',30,false],block+' refusal keeps the untouched pickup');
   if(block==='muzzle')f.pose(f.a,10,0);else f.s.zaps=[];
   f.tick(250);equal(f.s.zapSeq,0,'unaccepted input cannot auto-retry after '+block+' clears');
-  f.tap();f.tick(0);equal(f.a.ammo,23,'a fresh accepted press starts after '+block+' clears');
+  f.tap();f.tick(0);equal(f.a.ammo,29,'a fresh accepted press starts after '+block+' clears');
   // Once committed, later obstruction/cap cannot leave a reusable remainder.
   f.geometry.sweepStatic=()=>({fraction:0,point:{x:0,y:0,z:0},normal:{x:0,y:0,z:1}});
   f.tick(8100);equal([f.a.weapon,f.a.ammo,f.firing()],[null,0,false],'blocked committed payload expires within8s and discards remainder');

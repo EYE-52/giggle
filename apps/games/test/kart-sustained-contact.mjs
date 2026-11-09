@@ -90,6 +90,11 @@ for(const [map,create] of [['Rookie Ring',classic],['Alpine Courtyard (7m deck)'
   const result={map,weapon,hits:hits.length,damage:hits.reduce((n,e)=>n+e.damage,0),hitTimes:hits.map(e=>e.at),koSeconds:ko};report.push(result);
   if(!baseline){
    assert(result.hits>0,map+' '+weapon+' must land a real hit');
+   if(['machinegun','trishot'].includes(weapon)){
+    assert(ko>=2&&ko<=3,map+': full rapid-fire burst must KO within 2–3s; '+JSON.stringify(result));
+    assert.equal(result.hits,3);assert.equal(result.damage,3);
+    for(let i=1;i<hits.length;i++)assert(hits[i].at-hits[i-1].at>=WEAPONS[weapon].hitCooldown-.002,weapon+': pellets and rounds share a per-target cooldown');
+   }
    if(weapon==='blades'){
     assert(ko>=3&&ko<=6,map+': sustained blades must KO within 3–6s; '+JSON.stringify(result));
     assert.equal(result.hits,3);assert.equal(result.damage,3);
@@ -100,6 +105,14 @@ for(const [map,create] of [['Rookie Ring',classic],['Alpine Courtyard (7m deck)'
 }
 console.log(JSON.stringify({scope:'one full pickup; 60Hz real authority/Rapier; controlled sustained contact; 10s limit',report},null,2));
 if(!baseline){
+ for(const [label,create] of [['classic',classic],['raised',raised]])for(const weapon of ['machinegun','trishot']){
+  const f=create(weapon,{protected:true}),seen=new Set();let damage=0;
+  try{
+   for(let i=0;i<STEPS;i++)for(const e of f.tick(i).events)if(!seen.has(e.id)){seen.add(e.id);if(e.type==='hit'&&e.other==='b')damage+=e.damage;}
+   assert(damage<3,label+' '+weapon+": protected spawn cannot be KO'd by this burst");
+   if(label==='classic')assert.equal(f.b.shield,0,'rejected contacts cannot refresh spawn shield');
+  }finally{f.close();}
+ }
  for(const [label,create] of [['classic',classic],['raised',raised]])for(const mode of ['height','cover','protected']){
   const f=create('blades',{protected:mode==='protected'}),seen=new Set();let damage=0;
   try{
@@ -108,6 +121,29 @@ if(!baseline){
    for(let i=0;i<STEPS;i++)for(const e of f.tick(i).events)if(!seen.has(e.id)){seen.add(e.id);if(e.type==='hit'&&e.other==='b')damage+=e.damage;}
    if(mode==='protected')assert(damage>0&&damage<3,label+': protection expires naturally and is never refreshed by blade contact');
    else assert.equal(damage,0,label+': blades respect '+mode);
+  }finally{f.close();}
+ }
+ // Real hull impacts with declared in-flight bullets isolate staggered rivals,
+ // pellets, exact cooldown boundaries, life changes and volley cleanup.
+ for(const weapon of ['machinegun','trishot']){
+  const f=classic(weapon);f.a.pendingFire=false;
+  const c={...structuredClone(f.b),pid:'c',x:5,z:0};f.s.karts.push(c);f.s.scores.c=0;f.connected.add('c');
+  f.physics.addKart('c',{position:{x:5,y:.64,z:0}});let shot=0;
+  const impact=(victim,volley=f.a.volley)=>{
+   const p=f.physics.pose(victim.pid).position;
+   for(let n=0;n<(weapon==='trishot'?3:1);n++)f.s.zaps.push({id:'timed-'+(++shot),owner:'a',kind:weapon,volley,physical:true,
+    x:p.x,y:p.y+.35,z:p.z,vx:0,vy:0,vz:0,angle:0,ttl:.1,radius:weapon==='trishot'?.25:.22});
+  };
+  try{
+   impact(f.b);impact(f.a);f.tick(0);assert.equal(f.b.health,2);assert.equal(f.a.health,3,'owner remains immune');
+   for(let i=1;i<60;i++){impact(f.b);if(i===30)impact(c);f.tick(i);assert.equal(f.b.health,2,'sub-second contacts never refresh or bypass cooldown');}
+   assert.equal(c.health,2,'another target gets its own immediate first hit');
+   impact(f.b);impact(c);f.tick(60);assert.equal(f.b.health,1,'same rival takes next heart at one second');assert.equal(c.health,2,'staggered rival keeps its own deadline');
+   for(let i=61;i<=90;i++){impact(c);f.tick(i);}assert.equal(c.health,1,'staggered deadline expires independently');
+   f.b.spawnSeq++;f.b.health=3;f.b.shield=.5;
+   for(let i=91;i<=160;i++){impact(f.b);f.tick(i);}assert.equal(f.b.health,3,'old volley never farms a new protected life');
+   f.a.volley='fresh-rapid';impact(f.b);f.tick(161);assert.equal(f.b.health,2,'fresh pickup gets a fresh hit history');
+   assert(!f.s.volleyHits.has('bench'),'spent volley releases timed history');
   }finally{f.close();}
  }
  // Two rivals have independent cooldowns; a respawned rival stays excluded

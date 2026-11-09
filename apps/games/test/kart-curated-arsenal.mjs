@@ -15,7 +15,7 @@ for(const [old,id]of Object.entries(combat.weaponAliases))assert.equal(combat.no
 for(let i=0;i<10000;i++)check(WEAPON_IDS.includes(combat.weaponForRoll(i/10000)),'curated rolls only');
 export function classic(weapon='machinegun',target={x:0,z:20}){
  const k=(pid,x,z)=>({pid,x,z,angle:0,speed:0,slip:0,...battle.blankKart(),shield:0,input:{steer:0,throttle:0,boost:false}});
- const a=k('a',0,0),b=k('b',target.x,target.z),s={phase:'drive',bound:180,half:182,blocks:[],crates:[],karts:[a,b],zaps:[],zapSeq:0,mines:[],mineSeq:0,grenades:[],grenadeSeq:0,events:[],eventSeq:0,volleySeq:0,volleyHits:new Map(),targetHits:99};
+ const a=k('a',0,0),b=k('b',target.x,target.z),s={scores:{a:0,b:0},phase:'drive',bound:180,half:182,blocks:[],crates:[],karts:[a,b],zaps:[],zapSeq:0,mines:[],mineSeq:0,grenades:[],grenadeSeq:0,events:[],eventSeq:0,volleySeq:0,volleyHits:new Map(),targetHits:99};
  a.weapon=weapon;a.ammo=WEAPONS[combat.normalizeWeapon(weapon)].ammo;a.volley='pickup-a';
  const connected=new Set(['a','b']),log=new Map();
  return {a,b,s,connected,log,fire(){a.pendingFire=true;this.step(0);},step(dt=1/60,geometry){s.lastTick=(s.lastTick||0)+dt*1000;battle.tick(s,connected,dt,null,null,new Map(),geometry);for(const e of s.events)log.set(e.id,e);},settle(seconds){for(let t=0;t<seconds;t+=1/60)this.step();}};
@@ -110,8 +110,8 @@ for(const weapon of WEAPON_IDS){
   check(hurt>=WEAPONS[weapon].damage,weapon+' elevated hits');
   const s=w.snapshot();check(!s.projectiles.length&&!s.grenades.length&&!s.mines.length,weapon+' elevated entities retire');
   check(s.karts.every(k=>!k.bladesT&&!k.supernovaT&&!k.rammingT&&!k.frostT&&!k.spinT),weapon+' elevated statuses retire');
-  if(weapon==='machinegun')check([...log.values()].filter(e=>e.type==='fire'&&e.weapon===weapon).length===24,'elevated full 24-round stream');
-  if(weapon==='trishot')check([...log.values()].filter(e=>e.type==='fire'&&e.weapon===weapon).length===3,'elevated 3 volleys');
+  if(weapon==='machinegun')check([...log.values()].filter(e=>e.type==='fire'&&e.weapon===weapon).length===30,'elevated full 30-round stream');
+  if(weapon==='trishot')check([...log.values()].filter(e=>e.type==='fire'&&e.weapon===weapon).length===9,'elevated 9 triple volleys');
  }finally{w.dispose();check(w.stats().projectiles===0,'disposal empties pools');}
 }
 console.log(JSON.stringify({pass:true,checks,scope:'13 curated weapons; real elevated collection and sequenced fire; classic rules and statuses'}));

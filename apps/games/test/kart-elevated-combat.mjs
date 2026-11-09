@@ -276,15 +276,15 @@ for(const angle of [0,Math.PI/2,Math.PI,-Math.PI/2]) {
     check('side-mounted Pulse checks the actual barrel corridor before launching',w.snapshot().projectiles.length===0&&w.snapshot().events.some(e=>e.type==='impact'&&e.surfaceId==='barrel-cover'));
     const impact=w.snapshot().events.find(e=>e.type==='impact');
     check('blocked barrel reports its actual sweep origin before the muzzle',gap(impact.from,{x:before.position.x+offset.x,y:before.position.y+offset.y,z:before.position.z})<.002&&impact.position.z<before.position.z+offset.z);
-    check('blocked side-mounted Pulse spends one shot without a KO',kart(w).ammo===23&&kart(w).hits===0&&kart(w,'b').alive);
+    check('blocked side-mounted Pulse spends one shot without a KO',kart(w).ammo===29&&kart(w).hits===0&&kart(w,'b').alive);
   }finally{w.dispose();}
 }
 
 {
   const w=armed('machinegun');try {
-    send(w,'a',{use:true});send(w,'a',{use:false});step(w);check('short Use edge survives newer neutral packet exactly once',kart(w).ammo===23&&w.snapshot().events.filter(e=>e.type==='fire').length===1);
+    send(w,'a',{use:true});send(w,'a',{use:false});step(w);check('short Use edge survives newer neutral packet exactly once',kart(w).ammo===29&&w.snapshot().events.filter(e=>e.type==='fire').length===1);
     send(w,'a',{use:true});step(w,30);send(w,'a',{use:true});step(w,30);
-    check('accepted Pulse sequence keeps its authoritative cadence despite repeated held Use',w.snapshot().events.filter(e=>e.type==='fire'&&e.weapon==='machinegun').length>1&&kart(w).ammo<23);
+    check('accepted Pulse sequence keeps its authoritative cadence despite repeated held Use',w.snapshot().events.filter(e=>e.type==='fire'&&e.weapon==='machinegun').length>1&&kart(w).ammo<29);
   }finally{w.dispose();}
 }
 
@@ -334,7 +334,7 @@ for(const angle of [0,Math.PI/2,Math.PI,-Math.PI/2]) {
     }finally{w.dispose();}
   }
   const low={id:'low-cover',shape:'box',half:{x:6,y:0.2,z:0.5},position:{x:0,y:0.2,z:5}};
-  const over=armed('machinegun',fixture([low]));try{fire(over);step(over,8);check('finite low cover permits a genuine one-heart Pulse wound above it',kart(over,'b').health===2&&kart(over).hits===0);step(over,130);check('the rest of the Pulse clip cannot take a second heart from the same pickup',kart(over,'b').health===2&&!kart(over).firing);}finally{over.dispose();}
+  const over=armed('machinegun',fixture([low]));try{fire(over);step(over,8);check('finite low cover permits a genuine one-heart Pulse wound above it',kart(over,'b').health===2&&kart(over).hits===0);step(over,160);check('continued Pulse hits above low cover take all three hearts',kart(over,'b').health===0&&kart(over).hits===1&&!kart(over).firing);}finally{over.dispose();}
 }
 
 {
@@ -354,7 +354,7 @@ for(const angle of [0,Math.PI/2,Math.PI,-Math.PI/2]) {
 {
   const w=armed('machinegun');try {
     send(w,'a',{use:true});send(w,'a',{use:false},w.snapshot().serverAt+1000);w.advance(w.snapshot().serverAt+3000);
-    check('stale Use edge cannot borrow freshness from newer neutral input',!w.snapshot().events.some(e=>e.type==='fire')&&kart(w).ammo===24);
+    check('stale Use edge cannot borrow freshness from newer neutral input',!w.snapshot().events.some(e=>e.type==='fire')&&kart(w).ammo===30);
   }finally{w.dispose();}
   const countdown=create(fixture(),{countdownMs:100});try{
     step(countdown,5);send(countdown,'a',{throttle:1},110);step(countdown,4);

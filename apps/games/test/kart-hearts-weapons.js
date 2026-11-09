@@ -4,7 +4,7 @@
  * the elevated arsenal table:
  * - 3 hearts per kart; whole-heart damage per weapon (Pulse, Scatter, Mine,
  *   Seeker 1; Rocket, Proximity Bomb 2; Nuke takes every heart in 14u).
- * - One pickup hurts a rival at most once; each Mine is its own trap.
+ * - Rapid fire repeats once per target per second; each Mine is its own trap.
  * - Shield blocks the next hit, then breaks; respawn refills the hearts.
  * - Pickups roll 52/43/5 by tier and the retired weapons never spawn.
  * - The second eight (laser, thunder, boomerang, oil, frost, cluster,
@@ -81,20 +81,21 @@ for (const [weapon, lost] of [['machinegun', 1], ['trishot', 1], ['missile',2],[
   console.log(`HEARTS ok: ${weapon} takes ${lost}`);
 }
 
-// --- 4. one pickup hurts a rival once, however many rounds land ---
+// --- 4. one rapid-fire pickup hurts again after a per-target second ---
 {
   const [st, ctx] = arena(2);
   const [a, b] = st.karts;
   a.x = 0; a.z = -20; b.x = 0; b.z = -10;
   arm(a, 'machinegun', 'vclip');
   for (let i = 0; i < 6; i++) { shoot(st, ctx, 'p0'); tick(ctx, st, 200); }
-  assert(a.ammo <= 18, 'several rounds left the clip');
-  assert.strictEqual(b.health, 2, 'a whole Pulse clip still takes one heart');
+  assert(a.ammo <= config.weapons.machinegun.ammo - 6, 'several rounds left the clip');
+  assert.strictEqual(b.health, 1, 'sustained Pulse contact takes a second heart after one second');
   arm(a, 'machinegun', 'vnext');
   shoot(st, ctx, 'p0'); tick(ctx, st); tick(ctx, st);
-  assert.strictEqual(b.health, 1, 'the next pickup hurts again');
+  assert.strictEqual(b.health, 0, 'the next pickup has an immediate first hit');
+  assert.strictEqual(a.hits, 1, 'three lost hearts award one KO');
   assert(!st.volleyHits.has('vclip'), 'a spent, landed volley is forgotten');
-  console.log('HEARTS ok: one heart per pickup per rival');
+  console.log('HEARTS ok: one heart per target per second within a volley');
 }
 
 // --- 5. mines: each trap is its own heart ---

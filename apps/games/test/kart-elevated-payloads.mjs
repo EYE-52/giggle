@@ -19,7 +19,7 @@ function armed(weapon,m=map(),options={}){
  }throw Error('No real pickup seed for '+weapon);
 }
 function tap(w){assert(send(w,'a',{use:true}).ok);assert(send(w).ok);step(w);}
-for(const [weapon,count] of [['machinegun',24],['trishot',3]]){
+for(const [weapon,count] of [['machinegun',30],['trishot',9]]){
  const w=armed(weapon);try{
   tap(w);const fires=new Map(w.snapshot().events.filter(e=>e.type==='fire').map(e=>[e.id,e]));
   check(kart(w).firing===true&&kart(w).weapon===weapon&&kart(w).ammo===count-1,weapon+' publishes the in-progress inventory after one tap');
@@ -35,16 +35,16 @@ for(const [weapon,count] of [['machinegun',24],['trishot',3]]){
  const w=armed('machinegun');try{
   assert(send(w,'a',{use:true}).ok);step(w);const fires=new Map();
   step(w,220,s=>{for(const e of s.events)if(e.type==='fire')fires.set(e.id,e);if(s.simTick%6===0)send(w,'a',{use:true});});
-  check(fires.size===24,'held Use spends exactly one full Pulse pickup');
+  check(fires.size===30,'held Use spends exactly one full Pulse pickup');
   check(kart(w).weapon!==null&&!kart(w).firing,'recycled actual crate stays unused while Use remains held');
   check(w.snapshot().karts.every(k=>typeof k.firing==='boolean'&&!('sequence'in k)&&!('itemSeq'in k)),'public karts expose only firing, not private sequence identity/timers');
  }finally{w.dispose();}
  const staleHeld=armed('machinegun');try{
   assert(send(staleHeld,'a',{use:true}).ok);step(staleHeld);const fires=new Set();
   step(staleHeld,230,s=>{for(const e of s.events)if(e.type==='fire')fires.add(e.id);if(kart(staleHeld).firing&&s.simTick%6===0){send(staleHeld,'a',{use:false});send(staleHeld,'a',{use:true});}});
-  check(fires.size===24&&kart(staleHeld).weapon!==null&&!kart(staleHeld).firing,'repeated presses during a sequence cannot queue reuse of the next real pickup');
+  check(fires.size===30&&kart(staleHeld).weapon!==null&&!kart(staleHeld).firing,'repeated presses during a sequence cannot queue reuse of the next real pickup');
   assert(send(staleHeld,'a',{use:true}).ok);step(staleHeld,30,s=>{for(const e of s.events)if(e.type==='fire')fires.add(e.id);});
-  check(fires.size===24&&!kart(staleHeld).firing,'input TTL cannot manufacture a new activation edge from still-held Use');
+  check(fires.size===30&&!kart(staleHeld).firing,'input TTL cannot manufacture a new activation edge from still-held Use');
   const nextAmmo=kart(staleHeld).ammo;assert(send(staleHeld).ok);assert(send(staleHeld,'a',{use:true}).ok);step(staleHeld);
   check(kart(staleHeld).ammo<nextAmmo||kart(staleHeld).weapon===null,'explicit neutral release followed by a new press can activate the next actual pickup');
  }finally{staleHeld.dispose();}
