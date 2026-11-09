@@ -59,7 +59,8 @@ const first={id:'a',physical:true,x:0,y:1,z:0,vx:0,vy:0,vz:140,angle:0,ttl:1};
 playback.ingest([first],1000);const next={...first,z:14};playback.ingest([next],1100);
 const positions=[];for(const now of [1100,1125,1150,1175,1200]){assert.strictEqual(playback.sample(next,{simAt:1100},now,out),out);positions.push(out.z);}
 assert.deepEqual(positions,[0,3.5,7,10.5,14]);checks++;
-playback.sample(next,{simAt:1100},1350,out);check(out.visible===true&&out.z===35,'physical lead reaches at most 150ms past the newest record');
+playback.sample(next,{simAt:1100},1250,out);check(out.visible===true&&out.z===21,'physical shot lease ends 150ms after the newest authority record');
+playback.sample(next,{simAt:1100},1350,out);check(out.visible===false&&out.z===35,'playback delay cannot extend the shot lease');
 playback.sample(next,{simAt:1100},1351,out);check(out.visible===false&&out.z===35,'physical shot hides beyond 150ms without extending through cover');
 playback.sample(next,{simAt:1100},1700,out);check(out.visible===false&&out.z===35,'600ms gap keeps the shot hidden at the lead cap');
 playback.sample(next,{simAt:1100},2201,out);check(out.visible===false,'missing record expires after 1000ms');
@@ -73,7 +74,8 @@ console.log(JSON.stringify({pass:true,checks,scope:'shared resources, real rig b
  p.setDelay(80);p.ingest([shot],1000);p.ingest([{...shot,z:6}],1600);
  p.sample(shot,{simAt:1600},1600,out);assert.equal(out.z,5.2,'600ms record gap retains the older interpolation endpoint');
  p.ingest([],1500);p.ingest([],1600);p.sample(shot,{simAt:1600},1680,out);assert.equal(out.z,6);assert.ok(out.visible,'old/duplicate packet cannot delete current shot');
- p.sample(shot,{simAt:1600},1830,out);assert.ok(out.visible&&out.z===7.5,'150ms lead stays visible on the delayed playback clock');
+ p.sample(shot,{simAt:1600},1750,out);assert.ok(out.visible&&Math.abs(out.z-6.7)<1e-8,'150ms receipt age is independent of the delayed playback clock');
+ p.sample(shot,{simAt:1600},1830,out);assert.ok(!out.visible&&out.z===7.5,'delayed playback cannot extend receipt lifetime');
  p.sample(shot,{simAt:1600},1831,out);assert.equal(out.visible,false,'physical playback hides beyond 150ms');
  p.sample(shot,{simAt:1600},2200,out);assert.ok(!out.visible&&out.z===7.5,'600ms network gap cannot extend the shot through cover');
  p.ingest([{...shot,z:12}],2200);p.sample(shot,{simAt:2200},2200,out);assert.ok(out.visible&&out.z===11.2,'a newer record restores visibility and retains the earlier interpolation endpoint');
@@ -100,9 +102,9 @@ for(const kind of ['machinegun','cannon']){
  assert.equal(projectilePose({...shot,ttl:.05},snapshot,1100).visible,false,'physical lead cannot outlive its TTL');
 }
 
-// Keep the one-second record-age limit even while playback is delayed.
+// Large interpolation reserves cannot extend the 150ms authority lease.
 {
  const p=createProjectilePlayback(),out={direction:{}},shot={id:'retained',physical:true,x:0,y:1,z:0,vz:140,ttl:2};
- p.setDelay(1000);p.ingest([shot],1000);p.sample(shot,{simAt:1000},2000,out);assert.ok(out.visible,'record remains usable through 1000ms');
+ p.setDelay(1000);p.ingest([shot],1000);p.sample(shot,{simAt:1000},2000,out);assert.ok(!out.visible,'1000ms playback reserve cannot preserve a stale shot');
  p.sample(shot,{simAt:1000},2001,out);assert.equal(out.visible,false,'record older than 1000ms stays hidden');p.reset();
 }

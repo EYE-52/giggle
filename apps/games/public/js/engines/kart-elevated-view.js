@@ -70,7 +70,7 @@ export function createElevatedKartView() {
   let root,api,S,sequence=0,epoch='',generation=0,gl,audio,stick,preference='auto',pending=false,gfxReady=false,graphicsFailed=false;
   let hitFx=null,analog={x:0,y:0},lastSend=0,lastKey='',timer=0,inputTimer=0,resultsTimer=0,firstEvents=true,itemKey='',standingsKey='',audioDrifting=false,feedbackEpoch=0;
   const gearbox=createGearbox(CONFIG.handling.maxForward);
-  let sceneReady,shellAudioReady,rendererWarmup,lastSnapshotArrival=null,prediction=null,predicted=null;
+  let sceneReady,shellAudioReady,rendererWarmup,lastSnapshotArrival=null,snapshotOffset=null,prediction=null,predicted=null;
   const timeline=createElevatedTimeline();
   const roulette=createKartWeaponRoulette({now:()=>performance.now(),reducedMotion:()=>globalThis.matchMedia?.('(prefers-reduced-motion: reduce)').matches===true});
   const listeners=[],keys=new Set(),pointers=new Map(),seen=new Set(),newEvents=[],nodes=new Map();
@@ -296,20 +296,20 @@ export function createElevatedKartView() {
       for(const pool of pools.values())for(const object of pool)object.removeFromParent();
       statusDummy.removeFromParent();arsenalFX.reset();
       if(gen!==generation)throw Error('Retired arena');
-      function effect(e){
+      function effect(e,age=0){
         if(!e.position)return;
-        impactFX.emit(e);arsenalFX.event(e);arsenalFX.react(e,models);if(e.type==='blast'&&e.weapon==='nuke'&&!helper.reducedMotion()){const p=self()?.pose.position;if(p&&Math.hypot(p.x-e.position.x,p.y-e.position.y,p.z-e.position.z)<14)cameraKick=Math.max(cameraKick,.35);}
+        impactFX.emit(e,age);arsenalFX.event(e,age);arsenalFX.react(e,models,age);if(e.type==='blast'&&e.weapon==='nuke'&&!helper.reducedMotion()){const p=self()?.pose.position;if(p&&Math.hypot(p.x-e.position.x,p.y-e.position.y,p.z-e.position.z)<14)cameraKick=Math.max(cameraKick,.35);}
         const pool=e.type==='impact'&&e.from&&confirmedPools.get(e.weapon);
         if(pool){
           direction.subVectors(e.position,e.from);const length=direction.length();
           if(length>1e-6){
             let cue=pool[0];for(const candidate of pool){if(!candidate.object.visible){cue=candidate;break;}if(candidate.age>cue.age)cue=candidate;}
-            cue.age=0;cue.object.position.copy(e.from).addScaledVector(direction,.5);cue.object.quaternion.setFromUnitVectors(forward,direction.multiplyScalar(1/length));cue.object.scale.set(1,1,length/cue.length);cue.object.visible=true;
+            cue.age=age;cue.object.position.copy(e.from).addScaledVector(direction,.5);cue.object.quaternion.setFromUnitVectors(forward,direction.multiplyScalar(1/length));cue.object.scale.set(1,1,length/cue.length);cue.object.visible=age<.09;
           }
         }
         if(e.type==='fire')art.recoil(rigs.get(e.pid)?.object);
         if(e.type==='fire'&&e.direction&&['machinegun','trishot','missile','cannon','nuke','boomerang','frost'].includes(e.weapon)){
-          const f=flashes.find(f=>!f.mesh.visible)||flashes[0];f.mesh.visible=true;f.age=0;f.mesh.position.copy(e.position);f.mesh.quaternion.setFromUnitVectors(forward,direction.copy(e.direction).normalize());f.mesh.scale.setScalar(e.weapon==='cannon'||e.weapon==='missile'||e.weapon==='nuke'?1.6:1);return;
+          const f=flashes.find(f=>!f.mesh.visible)||flashes[0];f.mesh.visible=age<.09;f.age=age;f.mesh.position.copy(e.position);f.mesh.quaternion.setFromUnitVectors(forward,direction.copy(e.direction).normalize());f.mesh.scale.setScalar(e.weapon==='cannon'||e.weapon==='missile'||e.weapon==='nuke'?1.6:1);return;
         }
         if(e.type==='hit'&&e.other===S.you)hitFx?.hurt();
         if(e.pid===S.you&&e.other&&e.other!==S.you&&['hit','ko','block'].includes(e.type))hitFx?.landed(landedText(e));
@@ -322,7 +322,7 @@ export function createElevatedKartView() {
         if((e.pid===S.you||e.other===S.you)&&!helper.reducedMotion())cameraKick=Math.max(cameraKick,(e.type==='collision'?.10:e.type==='ko'?.16:.05)*strength);
         if(e.type==='landing'||e.type==='collision'||helper.reducedMotion())return;
         const small=['impact','collision','hit'].includes(e.type),f=effects.find(f=>!f.mesh.visible)||effects.reduce((a,b)=>a.age>b.age?a:b);
-        f.count=small?8:24;f.mesh.count=f.count;f.mesh.visible=true;f.position.copy(e.position);f.age=0;f.at=performance.now()/1000;f.duration=small?.28:.75;
+        f.count=small?8:24;f.mesh.count=f.count;f.mesh.visible=true;f.position.copy(e.position);f.age=0;f.at=performance.now()/1000-age;f.duration=.14;
         normal.copy(e.normal||up);if(normal.lengthSq()<.01)normal.copy(up);normal.normalize();basis.setFromUnitVectors(up,normal);
         for(let j=0;j<f.count;j++){const angle=j*2.39996,speed=(j%3+3)*(.45+.55*strength);f.velocities[j].set(Math.cos(angle)*speed,2+j%4,Math.sin(angle)*speed).applyQuaternion(basis).y+=1.2;f.mesh.setColorAt(j,sparkColor.setHex(small?(j%2?0xffe3a0:0xf5fbff):(j%3?0xff8128:0xffdc68)));}f.mesh.instanceColor.needsUpdate=true;
       }
@@ -354,8 +354,9 @@ export function createElevatedKartView() {
       }
       function sync(list,prefix,factory){
         const ids=new Set();for(const value of list||[])ids.add(prefix+value.id);
-        for(const[id,object]of objects)if(id.startsWith(prefix)&&!ids.has(id)){object.visible=false;object.removeFromParent();if(object.userData.poolKey)pools.get(object.userData.poolKey).push(object);objects.delete(id);}
-        for(const value of list||[]){const id=prefix+value.id;ids.add(id);let object=objects.get(id);if(!object){const key=poolKey(prefix,value);object=pools.get(key)?.pop()||factory(value);object.userData.poolKey=pools.has(key)?key:null;scene.add(object);objects.set(id,object);
+        for(const[id,object]of objects)if(id.startsWith(prefix)&&!ids.has(id)){impactFX.retire(object);object.visible=false;object.removeFromParent();if(object.userData.poolKey)pools.get(object.userData.poolKey).push(object);objects.delete(id);}
+        for(const value of list||[]){const id=prefix+value.id;ids.add(id);let object=objects.get(id);if(!object){const key=poolKey(prefix,value);object=pools.get(key)?.pop()||factory(value);object.userData.poolKey=pools.has(key)?key:null;scene.add(object);objects.set(id,object);object.quaternion.identity();object.scale.setScalar(1);
+            if(object.userData.combat){const c=object.userData.combat;c.trailClock=0;c.trailX=c.trailY=c.trailZ=Infinity;}
             // A new mine leaves through the back of its kart and arcs down to its spot.
             if(prefix==='mine:'){const owner=minesSeen&&models.get(value.owner);object.userData.drop=owner?{from:owner.localToWorld(new THREE.Vector3(0,.75,-1.1)),at:null}:null;}}object.position.copy(value.position);object.visible=prefix==='warning:'?value.warning===true:value.available!==false;if(prefix==='crate:')object.position.y-=.6;
           if(value.direction||value.velocity){direction.copy(value.direction||value.velocity);if(direction.lengthSq()>0){const aim=object;if(aim)aim.quaternion.setFromUnitVectors(forward,direction.normalize());}}
@@ -370,7 +371,7 @@ export function createElevatedKartView() {
           if(prefix==='grenade:')object.scale.setScalar(1);
         }
         if(prefix==='mine:')minesSeen=true; // later mines are fresh drops; the first batch was already down
-        for(const[id,object]of objects)if(id.startsWith(prefix)&&!ids.has(id)){object.visible=false;object.removeFromParent();if(object.userData.poolKey)pools.get(object.userData.poolKey).push(object);objects.delete(id);}
+        for(const[id,object]of objects)if(id.startsWith(prefix)&&!ids.has(id)){impactFX.retire(object);object.visible=false;object.removeFromParent();if(object.userData.poolKey)pools.get(object.userData.poolKey).push(object);objects.delete(id);}
       }
       let minesSeen=false,objectTick='',started=false,cameraLife='',sideYaw=0,selectedSideYaw=0,sideHeight=3,recovery=0,sideSettling=false;
       const cameraAnchor=new THREE.Vector3(),cameraSolidAnchor=new THREE.Vector3(),sideEye=new THREE.Vector3(),recoveryEye=new THREE.Vector3(),modelBox=new THREE.Box3(),meshBox=new THREE.Box3(),corner=new THREE.Vector3(),probeCamera=new THREE.PerspectiveCamera(52,1,.1,650);
@@ -481,7 +482,7 @@ export function createElevatedKartView() {
         for(const f of flashes){if(!f.mesh.visible)continue;f.age+=effectDt;if(f.age>=.09-1e-9)f.mesh.visible=false;}
         for(const cue of confirmedShots){if(!cue.object.visible)continue;cue.age+=effectDt;if(cue.age>=.09-1e-9)cue.object.visible=false;}
         confirmedEpoch=feedbackEpoch;impactFX.update(effectDt);arsenalFX.update(effectDt);
-        while(newEvents.length)effect(newEvents.shift());
+        while(newEvents.length){const queued=newEvents.shift();const age=Math.max(0,(performance.now()-queued.at)/1000);if(age<.14)effect(queued.event,age);}
         arena.ingest(S.events,S.karts);arena.animate(effectDt,time,S,models);
         bodies(dt,time,playback);
         drivingFX.update(effectDt,predicted?.pose.speed??self()?.pose.speed??0,(predicted?.turbo??self()?.turbo)>0||self()?.nitroActive===true);
@@ -489,7 +490,7 @@ export function createElevatedKartView() {
         // Do not keep drawing ordnance from a frozen authority snapshot or a
         // terminal round. A fresh snapshot may show genuinely current objects
         // again; no motion, collision or gameplay lifetime is invented here.
-        const itemsFresh=S.phase!=='done'&&performance.now()-(lastSnapshotArrival??-Infinity)<=500&&api?.context?.().connected!==false;
+        const itemsFresh=S.phase!=='done'&&performance.now()-(lastSnapshotArrival??-Infinity)<=120&&api?.context?.().connected!==false;
         const itemTick=itemSnapshot.simTick+':'+S.simTick+':'+itemsFresh;
         if(objectTick!==itemTick){objectTick=itemTick;sync(itemsFresh?(itemSnapshot.projectiles||[]).filter(v=>S.projectiles?.some(latest=>latest.id===v.id)):[],'shot:',v=>projectile(v.weapon));sync(itemsFresh?S.mines:[],'mine:',v=>art.mine(v.owner===S.you,v.weapon));sync(itemsFresh?(itemSnapshot.grenades||[]).filter(v=>S.grenades?.some(latest=>latest.id===v.id)):[],'grenade:',v=>art.projectile(v.weapon));sync(itemsFresh?(itemSnapshot.grenades||[]).filter(v=>v.weapon==='nuke'&&S.grenades?.some(latest=>latest.id===v.id)):[],'warning:',()=>{throw Error('Nuke warning pool exhausted');});}
         const itemAlpha=playback?.alpha??1;movingItems(itemSnapshot.projectiles,'shot:',playback?.previous.snapshot.projectiles,playback?.current.snapshot.projectiles,itemAlpha);movingItems(itemSnapshot.grenades,'grenade:',playback?.previous.snapshot.grenades,playback?.current.snapshot.grenades,itemAlpha);
@@ -665,7 +666,13 @@ export function createElevatedKartView() {
       Number.isFinite(was.simAt)&&Number.isFinite(snapshot.simAt)&&snapshot.simAt<was.simAt))return;
     const arrival=performance.now(),advanced=!was||was.instanceId!==snapshot.instanceId||was.simTick!==snapshot.simTick||was.simAt!==snapshot.simAt;
     const gap=was&&Number.isFinite(snapshot.simAt)&&Number.isFinite(was.simAt)&&snapshot.simAt-was.simAt>1000;
-    if(advanced||snapshot.audioBaseline)lastSnapshotArrival=arrival;
+    if(advanced||snapshot.audioBaseline){
+      if(was?.instanceId!==snapshot.instanceId||was?.phase!==snapshot.phase||was?.preparing!==snapshot.preparing)snapshotOffset=null;
+      if(Number.isFinite(snapshot.simAt)){
+        const offset=arrival-snapshot.simAt;snapshotOffset=snapshotOffset===null?offset:Math.min(snapshotOffset,offset);
+        lastSnapshotArrival=Math.min(arrival,snapshot.simAt+snapshotOffset);
+      }else lastSnapshotArrival=arrival;
+    }
     const key=`${snapshot.instanceId}:${snapshot.inputAck?.life}:${snapshot.inputAck?.controlEpoch}`;
     if(key!==epoch){stop(false);feedbackEpoch++;newEvents.length=0;epoch=key;sequence=snapshot.inputAck?.receivedSeq||0;timeline.reset();}
     S=snapshot;prediction?.ingest(S,arrival,now());roulette.sync(S.instanceId,S.inputAck?.life);if(S.audioBaseline||gap||S.phase==='done')roulette.skip();if(S.audioBaseline||gap){firstEvents=true;newEvents.length=0;timeline.reset();feedbackEpoch++;}timeline.ingest(S,arrival);sequence=Math.max(sequence,S.inputAck?.receivedSeq||0);updateAudio();
@@ -676,7 +683,8 @@ export function createElevatedKartView() {
       if(firstEvents||!gfxReady)continue;
       if(S.phase==='done'&&was?.phase==='done')continue;
       if(e.type==='pickup'&&e.pid===S.you)roulette.begin(e.weapon);
-      newEvents.push(e);if(newEvents.length>32)newEvents.shift();
+      const eventAge=Number.isFinite(e.tick)&&Number.isFinite(S.simTick)?Math.max(0,S.simTick-e.tick)*CONFIG.fixedDt*1000:0;
+      newEvents.push({event:e,at:(lastSnapshotArrival??arrival)-eventAge});if(newEvents.length>32)newEvents.shift();
       const pose=(self()||S.karts[0])?.pose;
       if(!e.position||!pose)continue;
       const dx=e.position.x-pose.position.x,dy=e.position.y-pose.position.y,dz=e.position.z-pose.position.z;
@@ -697,7 +705,7 @@ export function createElevatedKartView() {
   function dispose(){
     stop(false);generation++;rendererWarmup?.cancel();rendererWarmup=null;clearInterval(timer);clearTimeout(resultsTimer);timer=resultsTimer=0;stick?.dispose();stick=null;audio?.dispose();audio=null;gl?.dispose();gl=null;prediction?.dispose();prediction=null;predicted=null;
     for(const[target,type,fn,opts]of listeners.splice(0)){if(type==='owned-style'||type==='owned-panel')target.remove();else target.removeEventListener(type,fn,opts);}
-    hitFx?.dispose();hitFx=null;root?.remove();root=null;S=null;api=null;epoch='';pending=gfxReady=graphicsFailed=false;timeline.reset();newEvents.length=0;seen.clear();nodes.clear();firstEvents=true;sequence=0;itemKey=standingsKey='';audioDrifting=false;lastSnapshotArrival=null;
+    hitFx?.dispose();hitFx=null;root?.remove();root=null;S=null;api=null;epoch='';pending=gfxReady=graphicsFailed=false;timeline.reset();newEvents.length=0;seen.clear();nodes.clear();firstEvents=true;sequence=0;itemKey=standingsKey='';audioDrifting=false;lastSnapshotArrival=null;snapshotOffset=null;
   }
   return {ownsTimer:true,ownsInputs:true,styles:['/css/kart-elevated.css'],mount,update,dispose,
     async ready(){await sceneReady;await waitKartPreparation(Promise.all([audio?.ready?.(),shellAudioReady]),api?.preparationSignal);if(!gfxReady)throw new Error('The 3D arena could not load');gl.renderOnce?.();await gl.firstFrame;}};

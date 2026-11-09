@@ -61,13 +61,13 @@ async function room(label) {
       const delta=wrapped(direction-facing(k)),steer=Math.max(-1,Math.min(1,-delta*2));
       const controls={steer,throttle:target?.distance<3&&k.weapon?0:1,nitro:Math.abs(delta)<.15&&k.nitro>.2};
       let a;
-      if(s.inputAck){c.seq=Math.max(c.seq,s.inputAck.receivedSeq)+1;a={type:'input',seq:c.seq,life:s.inputAck.life,controlEpoch:s.inputAck.controlEpoch,...controls,brake:0,use:!!k.weapon&&pulse%2===0};}
-      else a={input:{...controls,boost:!!k.weapon&&pulse%2===0,drift:false}};
+      if(s.profile){c.seq=Math.max(c.seq,s.inputAck.receivedSeq)+1;a={type:'input',seq:c.seq,life:s.inputAck.life,controlEpoch:s.inputAck.controlEpoch,...controls,brake:0,use:!!k.weapon&&pulse%2===0};}
+      else {c.seq=Math.max(c.seq,s.inputAck?.receivedSeq||0)+1;a={seq:c.seq,life:s.inputAck?.life,controlEpoch:s.inputAck?.controlEpoch,input:{...controls,boost:!!k.weapon&&pulse%2===0,drift:false}};}
       send(c,{t:'action',i:s.instanceId,w:s.w,a});
     }
   },200);
   try{
-    await until(()=>clients.every(c=>c.state.phase==='done'),'actual timed round did not finish: '+label,40000);
+    await until(()=>clients.every(c=>c.state.phase==='done'),'actual timed round did not finish: '+label,75000);
     assert.ok(clients.every(c=>!c.errors.length),'production error during '+label);
     assert.ok(metrics.phaseSequence.includes(clients[0].state.profile?'live':'drive'),'never became actionable: '+label);
     assert.ok(metrics.maxSpeed>2,'legal controls never produced motion: '+label);

@@ -28,9 +28,8 @@ check(fx.emit({id:'hit',type:'hit',position:p,weapon:'missile'}),'Accepted hit a
 check(counts()[1]===7,'Hit never adds another fireball or smoke cloud');
 check(!fx.emit({id:'legacy',type:'blast',x:14,z:-9}),'Legacy planar-only blast cannot invent contact height');
 check(!fx.emit({id:'bad',type:'impact',position:{x:0,y:NaN,z:0}}),'Invalid xyz cannot contaminate GPU buffers');
-fx.update(.4);eq(counts(),[0,4,0,0],'Fire/embers gone; only four short smoke puffs remain at .4sec');
-fx.update(.08);eq(counts(),[0,2,0,0],'Only the two final smoke puffs remain at .48sec');
-fx.update(.12);eq(counts(),[0,0,0,0],'All explosion layers retire within .6sec');
+fx.update(.08);eq(counts(),[14,7,18,0],'Explosion and small hit sparks share the short initial flash');
+fx.update(.07);eq(counts(),[0,0,0,0],'All explosion layers retire within 150ms');
 fx.reset('new-life');eq(counts(),[0,0,0,0],'Explicit epoch/life reset clears all particle lifetimes');
 check(fx.emit({...rocket,id:'blast-first',type:'blast'}),'Blast-first order creates explosion');
 check(!fx.emit({...rocket,id:'impact-second'}),'Blast then impact is one main explosion');

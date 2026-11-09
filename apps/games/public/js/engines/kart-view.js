@@ -193,7 +193,7 @@ export function createKartView(viewConfig) {
   const hooks = cfg.hooks && typeof cfg.hooks === 'object' ? cfg.hooks : {};
 
   let S = null;
-  let lastSnapshotArrival = null;
+  let lastSnapshotArrival = null,snapshotOffset=null;
   let apiRef = null;
   let rootEl = null;
   let hitFx = null; // screen-edge flash, hit marker, toast and camera shake
@@ -489,8 +489,14 @@ export function createKartView(viewConfig) {
 
   // The same retirement boundary protects WebGL and Canvas fallback. Static
   // mines are authority objects too: a disconnected/frozen round is not live.
-  function ordnanceFresh(maxAge=500) {
+  function ordnanceFresh(maxAge=120) {
     return S?.phase!=='done'&&nowMs()-(lastSnapshotArrival??-Infinity)<=maxAge&&apiRef?.context?.().connected!==false;
+  }
+
+  // Simulation may pause while the arena prepares. Advance from the latest
+  // accepted simulation stamp, using monotonic receipt age (including jitter).
+  function ordnanceNow(){
+    return Number.isFinite(S?.simAt)?S.simAt+Math.max(0,nowMs()-(lastSnapshotArrival??nowMs())):serverNow();
   }
 
   /* Calibrated server time for HUD deadlines (api.now when the shell
@@ -1272,19 +1278,19 @@ export function createKartView(viewConfig) {
           combatEffects.clear();popSites.length=0;effectSeen.clear();
         }
         impactFX.update(effectDt);skids.update(effectDt);drivingFX.update(effectDt,S.phase==='drive'&&S.youDrive?(physicalLocalPose?.speed??myKart()?.speed??0):0,S.phase==='drive'&&S.youDrive&&((physicalLocalPose?.turbo??myKart()?.turbo)>0||myKart()?.boost>0||myKart()?.nitroActive===true));arsenalFX.update(effectDt);
-        while(arsenalEvents.length){const e=arsenalEvents.shift();arsenalFX.event(e);arsenalFX.react(e,karts);}
+        while(arsenalEvents.length){const queued=arsenalEvents.shift();const age=Math.max(0,(nowMs()-queued.at)/1000);if(age>=.14)continue;const e=queued.event;arsenalFX.event(e,age);arsenalFX.react(e,karts,age);}
         // Arena features: cannons, portals, fall zones (map.features + arenaEvents).
         structures.sync(S.map);structures.animate();
         arena.sync(S.map);arena.ingest(S.arenaEvents,S.karts);arena.animate(effectDt,t,S,poses);
         if(localFlash){
-          if(nowMs()-localFlash.at<150){const e={type:'fire',weapon:localFlash.kind,position:localFlash.position,direction:localFlash.direction};impactFX.emit(e);arsenalFX.event(e);}
+          if(nowMs()-localFlash.at<140){const e={type:'fire',weapon:localFlash.kind,position:localFlash.position,direction:localFlash.direction};impactFX.emit(e,(nowMs()-localFlash.at)/1000);arsenalFX.event(e,(nowMs()-localFlash.at)/1000);}
           localFlash=null;
         }
         if(localRecoil){localRecoil=false;localRecoilAt=nowMs();combat.recoil(karts.get(S.you)?.userData.rig);}
         const acceptedEffects=feedback.current(nowMs());
         for(const cue of shotCues)if(cue.until<=nowMs())cue.object.visible=false;
-        for(const e of acceptedEffects){if(effectSeen.has(e.id))continue;effectSeen.add(e.id);
-          if(e.at>=impactSince&&e.position&&!(e.kind==='fire'&&e.pid===S.you&&['machinegun','trishot'].includes(e.weapon)&&nowMs()-localRecoilAt<800)){impactFX.emit(e);if(e.kind==='blast'&&e.weapon==='nuke'){const own=S.karts.find(k=>k.pid===S.you),p=own?.physicalPose?.position;if(own&&Math.hypot((p?.x??own.x)-e.position.x,(p?.y??0)-e.position.y,(p?.z??own.z)-e.position.z)<14)hitFx?.rumble?.();}}
+        for(const e of acceptedEffects){if(effectSeen.has(e.id))continue;effectSeen.add(e.id);if(nowMs()-e.at>=140)continue;
+          if(e.at>=impactSince&&e.position&&!(e.kind==='fire'&&e.pid===S.you&&['machinegun','trishot'].includes(e.weapon)&&nowMs()-localRecoilAt<800)){impactFX.emit(e,(nowMs()-e.at)/1000);if(e.kind==='blast'&&e.weapon==='nuke'){const own=S.karts.find(k=>k.pid===S.you),p=own?.physicalPose?.position;if(own&&Math.hypot((p?.x??own.x)-e.position.x,(p?.y??0)-e.position.y,(p?.z??own.z)-e.position.z)<14)hitFx?.rumble?.();}}
           if(e.kind==='fire'&&!(e.pid===S.you&&nowMs()-localRecoilAt<800))combat.recoil(karts.get(e.pid)?.userData.rig);
           if((e.kind==='fire'||e.kind==='impact')&&e.position){
             let cue=null;
@@ -1297,12 +1303,12 @@ export function createKartView(viewConfig) {
               if(shotDirection.lengthSq()>1e-8){
                 shotDirection.normalize();cue.object.position.set(from.x,from.y,from.z).addScaledVector(shotDirection,length*.5);
                 cue.object.quaternion.setFromUnitVectors(shotForward,shotDirection);
-                cue.object.scale.set(1.6,1.6,length/Math.max(.01,cue.length));cue.until=e.until;cue.object.visible=true;
+                cue.object.scale.set(1.6,1.6,length/Math.max(.01,cue.length));cue.until=Math.min(e.until,e.at+140);cue.object.visible=true;
               }
             }
           }
           if(e.kind==='ko'||(e.kind==='blast'&&!e.position)){
-            if(!rm){if(popSites.length>=8)popSites.shift();popSites.push({x:e.position?.x??e.x,y:e.position?.y??((world.groundAt?.(e.x,e.z)||0)+.6),z:e.position?.z??e.z,t,kind:e.kind});}
+            if(!rm){if(popSites.length>=8)popSites.shift();popSites.push({x:e.position?.x??e.x,y:e.position?.y??((world.groundAt?.(e.x,e.z)||0)+.6),z:e.position?.z??e.z,t:t-(nowMs()-e.at)/1000,kind:e.kind});}
             if(e.kind==='ko'&&e.inferred&&e.pid===S.you&&e.weapon!=='nuke')audio?.cue('ko');
           }
           if((e.kind==='collision'||e.kind==='landing')&&e.pid===S.you)
@@ -1310,7 +1316,7 @@ export function createKartView(viewConfig) {
           if((e.kind==='blast'&&!e.position)||e.kind==='ko'){
             const mesh=takeMarker('blast');
             placeGroundMarker(mesh,e.x,e.z,groundAt);
-            scene.add(mesh);combatEffects.set(e.id,{mesh,until:e.kind==='ko'?e.at+500:e.until,at:e.at,kind:e.kind,size:e.kind==='blast'?BLAST_SCALE[e.weapon]||1:1});
+            scene.add(mesh);combatEffects.set(e.id,{mesh,until:Math.min(e.until,e.at+140),at:e.at,kind:e.kind,size:e.kind==='blast'?BLAST_SCALE[e.weapon]||1:1});
           }
         }
         while(effectSeen.size>48)effectSeen.delete(effectSeen.values().next().value);
@@ -1372,14 +1378,14 @@ export function createKartView(viewConfig) {
         }
         lodProxied = kartLod.update(camera, [...karts].filter(([pid]) => live.has(pid)).map(([pid, mesh]) => ({ mesh, color: colorFor(pid), visible: mesh.visible })));
         let popCount=0;
-        for (let i=popSites.length-1;i>=0;i--) if (t-popSites[i].t> .65) popSites.splice(i,1);
+        for (let i=popSites.length-1;i>=0;i--) if (t-popSites[i].t>= .14) popSites.splice(i,1);
         for (const site of popSites) {
           const age=Math.max(0,t-site.t);
           const reach=site.kind==='impact'?1.8:site.kind==='collision'?2.2:6;
           for (let i=0;i<8;i++) {
             const angle=i*Math.PI/4;
-            sparkMatrix.makeScale(1-age,1-age,1-age);
-            sparkMatrix.setPosition(site.x+Math.sin(angle)*age*reach,site.y+Math.sin(age*Math.PI/.65)*(site.kind==='impact'?.5:1.7),site.z+Math.cos(angle)*age*reach);
+            const fade=Math.max(0,1-age/.14);sparkMatrix.makeScale(fade,fade,fade);
+            sparkMatrix.setPosition(site.x+Math.sin(angle)*age*reach,site.y+Math.sin(age*Math.PI/.14)*(site.kind==='impact'?.5:1.7),site.z+Math.cos(angle)*age*reach);
             pops.setMatrixAt(popCount++,sparkMatrix);
           }
         }
@@ -1450,9 +1456,9 @@ export function createKartView(viewConfig) {
         // positions: easing fast shots made them visibly slow and jerky.
         shotPlayback.setDelay(physicalPrediction?.remoteDelay()??100);
         const liveZ = new Set();
-        const currentZ=(ordnanceFresh(1000)?S.zaps:[])||[];
+        const currentZ=(ordnanceFresh()?S.zaps:[])||[];
         for(const z of currentZ)liveZ.add(z.id);
-        for(const [id,mesh]of zaps)if(!liveZ.has(id)){mesh.visible=false;mesh.removeFromParent();shotPools.get(mesh.userData.combat.kind)?.push(mesh);zaps.delete(id);}
+        for(const [id,mesh]of zaps)if(!liveZ.has(id)){impactFX.retire(mesh);mesh.visible=false;mesh.removeFromParent();shotPools.get(mesh.userData.combat.kind)?.push(mesh);zaps.delete(id);}
         for (const z of currentZ) {
           liveZ.add(z.id);
           let mesh = zaps.get(z.id);
@@ -1463,7 +1469,7 @@ export function createKartView(viewConfig) {
             scene.add(mesh);
             zaps.set(z.id, mesh);
           }
-          const flight=shotPlayback.sample(z,S,serverNow(),mesh.userData.flight);
+          const flight=shotPlayback.sample(z,S,ordnanceNow(),mesh.userData.flight);
           mesh.position.set(flight.x,flight.y,flight.z);
           if(flight.direction){shotDirection.set(flight.direction.x,flight.direction.y,flight.direction.z).normalize();mesh.quaternion.setFromUnitVectors(shotForward,shotDirection);}
           else mesh.rotation.y=flight.angle;
@@ -1477,22 +1483,22 @@ export function createKartView(viewConfig) {
         }
         for (const [zid, mesh] of zaps) {
           if (!liveZ.has(zid)) {
-            mesh.visible=false;mesh.removeFromParent();
+            impactFX.retire(mesh);mesh.visible=false;mesh.removeFromParent();
             const pool=shotPools.get(mesh.userData.combat?.kind);if(pool)pool.push(mesh);else scene.remove(mesh);
             zaps.delete(zid);
           }
         }
         const liveG=new Set(),currentG=(ordnanceFresh()?S.grenades:[])||[];
         for(const g of currentG)liveG.add(g.id);
-        for(const[id,group]of grenades)if(!liveG.has(id)){if(group.userData.ring)returnMarker(group.userData.ring);group.userData.ring=null;group.visible=false;group.removeFromParent();grenadePools.get(group.userData.poolKey).push(group);grenades.delete(id);}
+        for(const[id,group]of grenades)if(!liveG.has(id)){impactFX.retire(group.userData.body);if(group.userData.ring)returnMarker(group.userData.ring);group.userData.ring=null;group.visible=false;group.removeFromParent();grenadePools.get(group.userData.poolKey).push(group);grenades.delete(id);}
         for(const g of currentG){liveG.add(g.id);let group=grenades.get(g.id);
-          if(!group){const kind=g.kind==='frost'?'frost':'nuke';group=grenadePools.get(kind).pop();group.visible=true;
+          if(!group){const kind=g.kind==='frost'?'frost':'nuke';group=grenadePools.get(kind).pop();group.visible=true;const c=group.userData.body.userData.combat;c.trailClock=0;c.trailX=c.trailY=c.trailZ=Infinity;
             // Only the Nuke marks its knockout radius on the ground.
             const ring=kind==='nuke'?takeMarker('nuke'):null;group.userData.ring=ring;scene.add(group);grenades.set(g.id,group);}
-          const flight=grenadePose(g,S,serverNow());group.position.set(flight.x,flight.y+(g.physical ? .45 : .38),flight.z);group.rotation.y=flight.angle;group.visible=flight.visible;
-          combat.animate(group.userData.body,dt,t,rm);if(flight.visible)impactFX.trail(group.userData.body,dt,group.position);if(group.userData.ring){placeGroundMarker(group.userData.ring,flight.x,flight.z,groundAt);group.userData.ring.visible=flight.visible&&g.warning===true;}
+          const flight=grenadePose(g,S,ordnanceNow());group.position.set(flight.x,flight.y+(g.physical ? .45 : .38),flight.z);group.rotation.y=flight.angle;group.visible=flight.visible;
+          combat.animate(group.userData.body,dt,t,rm);if(!flight.visible)impactFX.retire(group.userData.body);if(flight.visible)impactFX.trail(group.userData.body,dt,group.position);if(group.userData.ring){placeGroundMarker(group.userData.ring,flight.x,flight.z,groundAt);group.userData.ring.visible=flight.visible&&g.warning===true;}
         }
-        for(const[id,group]of grenades)if(!liveG.has(id)){if(group.userData.ring)returnMarker(group.userData.ring);group.visible=false;grenadePools.get(group.userData.poolKey).push(group);grenades.delete(id);}
+        for(const[id,group]of grenades)if(!liveG.has(id)){impactFX.retire(group.userData.body);if(group.userData.ring)returnMarker(group.userData.ring);group.visible=false;grenadePools.get(group.userData.poolKey).push(group);grenades.delete(id);}
         const liveM = new Set(),currentM=(ordnanceFresh()?S.mines:[])||[];
         for(const m of currentM)liveM.add(m.id);
         for(const[id,mesh]of mines)if(!liveM.has(id)){mesh.visible=false;mesh.removeFromParent();minePools.get(mesh.userData.poolKey).push(mesh);mines.delete(id);}
@@ -1743,8 +1749,8 @@ export function createKartView(viewConfig) {
       ctx.arc(px(c.x), pz(c.z), Math.max(4, 2.4 * scale), 0, Math.PI * 2);
       ctx.stroke();
     }
-    for (const z of (ordnanceFresh(1000)?S.zaps:[]) || []) {
-      const p=shotPlayback.sample(z,S,serverNow(),{direction:{}});if(!p.visible)continue;
+    for (const z of (ordnanceFresh()?S.zaps:[]) || []) {
+      const p=shotPlayback.sample(z,S,ordnanceNow(),{direction:{}});if(!p.visible)continue;
       ctx.strokeStyle=z.kind==='trishot'?'#ffad69':z.kind==='cannon'?'#ffda58':z.kind==='missile'?'#91d451':z.kind==='boomerang'?'#ff8a3c':'#6af0ff';ctx.lineWidth=Math.max(2,.35*scale);
       const angle=Number.isFinite(z.vx)&&Number.isFinite(z.vz)?Math.atan2(z.vx,z.vz):p.angle;
       ctx.beginPath();ctx.moveTo(px(p.x),pz(p.z));ctx.lineTo(px(p.x-Math.sin(angle)*2),pz(p.z-Math.cos(angle)*2));ctx.stroke();
@@ -1757,13 +1763,13 @@ export function createKartView(viewConfig) {
       ctx.arc(px(m.x),pz(m.z),Math.max(3,(m.kind==='proximity'?1.3:.9)*scale),0,Math.PI*2); ctx.fill();
       ctx.fillStyle=m.armed&&Math.sin(now/150)>0?'#ffeaa0':'#402835';ctx.fillRect(px(m.x)-1,pz(m.z)-1,2,2);
     }
-    for(const g of (ordnanceFresh()?S.grenades:[])||[]){const p=grenadePose(g,S,serverNow());if(!p.visible)continue;
+    for(const g of (ordnanceFresh()?S.grenades:[])||[]){const p=grenadePose(g,S,ordnanceNow());if(!p.visible)continue;
       if(g.warning){ctx.strokeStyle='#e65832';ctx.lineWidth=2;ctx.beginPath();ctx.arc(px(p.x),pz(p.z),14*scale,0,Math.PI*2);ctx.stroke();}
       ctx.fillStyle='#ffd458';ctx.fillRect(px(p.x)-.4*scale,pz(p.z)-.6*scale-p.y*scale,.8*scale,1.2*scale);
       ctx.strokeStyle='#25354b';ctx.lineWidth=1;ctx.strokeRect(px(p.x)-.4*scale,pz(p.z)-.6*scale-p.y*scale,.8*scale,1.2*scale);
     }
     const acceptedEffects=feedback.current(now);
-    for(const e of acceptedEffects){const age=Math.max(0,(now-e.at)/1000);ctx.strokeStyle=e.kind==='collision'?'#ffe3a1':'#ff963d';ctx.lineWidth=2;
+    for(const e of acceptedEffects){const age=Math.max(0,(now-e.at)/1000);if(age>=.14)continue;ctx.strokeStyle=e.kind==='collision'?'#ffe3a1':'#ff963d';ctx.lineWidth=2;
       ctx.beginPath();ctx.arc(px(e.x),pz(e.z),Math.max(1,(e.kind==='blast'?4*(BLAST_SCALE[e.weapon]||1):1+age*5))*scale,0,Math.PI*2);ctx.stroke();
     }
     for (const k of S.karts || []) {
@@ -1856,7 +1862,7 @@ export function createKartView(viewConfig) {
     bound = [];
     disposeGl();
     hitFx?.dispose();hitFx=null;
-    S = null;lastSnapshotArrival=null;
+    S = null;lastSnapshotArrival=null;snapshotOffset=null;
     radarCanvas=null;radarAt=-Infinity;radarMap=null;
     feedback.reset();
     apiRef = null;
@@ -2196,10 +2202,11 @@ export function createKartView(viewConfig) {
     if(S?.instanceId===Snew?.instanceId&&(
       Number.isFinite(S?.simTick)&&Number.isFinite(Snew?.simTick)&&Snew.simTick<S.simTick||
       Number.isFinite(S?.simAt)&&Number.isFinite(Snew?.simAt)&&Snew.simAt<S.simAt))return;
-    if(S?.instanceId!==Snew.instanceId||S?.map?.id!==Snew.map?.id){shotPlayback.reset();localFlash=null;physicalPending=null;}
+    if(S?.phase!==Snew.phase||S?.preparing!==Snew.preparing)snapshotOffset=null;
+    if(S?.instanceId!==Snew.instanceId||S?.map?.id!==Snew.map?.id){snapshotOffset=null;shotPlayback.reset();localFlash=null;physicalPending=null;}
     const advanced=!S||Snew.instanceId!==S.instanceId||(!Number.isFinite(Snew.simTick)&&!Number.isFinite(Snew.simAt))||Snew.simTick!==S.simTick||Snew.simAt!==S.simAt;
     const life=state=>`${state?.instanceId}:${state?.you}:${state?.inputAck?.life}:${state?.inputAck?.controlEpoch}`;
-    if(Snew?.audioBaseline||!S||Snew.instanceId!==S.instanceId||(Number.isFinite(S.simAt)&&Number.isFinite(Snew?.simAt)&&Snew.simAt-S.simAt>1000)){
+    if(Snew?.audioBaseline||!S||Snew.instanceId!==S.instanceId||(Number.isFinite(S.simAt)&&Number.isFinite(Snew?.simAt)&&Snew.simAt-S.simAt>150)){
       firstEvents=true;feedback.reset();seenEvents.clear();feedbackEpoch++;
     }else if(life(Snew)!==life(S)){
       feedback.clearPresentation();feedbackEpoch++;localFlash=null;
@@ -2215,7 +2222,14 @@ export function createKartView(viewConfig) {
       apiRef = api;
     }
     roulette.sync(S.instanceId,S.inputAck?.life??myKart()?.spawnSeq);if(S.audioBaseline||S.phase==='done')roulette.skip();
-    if(advanced||Snew.audioBaseline)lastSnapshotArrival=nowMs();
+    if(advanced||Snew.audioBaseline){
+      const arrival=nowMs();
+      // Arrival alone would give a delayed packet a brand-new visual lease.
+      if(Number.isFinite(S.simAt)){
+        const offset=arrival-S.simAt;snapshotOffset=snapshotOffset===null?offset:Math.min(snapshotOffset,offset);
+        lastSnapshotArrival=Math.min(arrival,S.simAt+snapshotOffset);
+      }else lastSnapshotArrival=arrival;
+    }
     if(S.motionProfile&&!physicalReady){const gen=mountGen;physicalReady=loadClassicPhysics().then(R=>{if(gen!==mountGen)return;physicalPrediction=createClassicPrediction(R);physicalPrediction.ingest(S,nowMs(),serverNow());});}
     if(S.motionProfile&&physicalPrediction&&S.inputAck?.life!==physicalPrediction.life){atomicStop();physicalPrediction.life=S.inputAck?.life;}
     const receivedAt=nowMs(),receivedServerAt=serverNow();
@@ -2230,7 +2244,7 @@ export function createKartView(viewConfig) {
     if(firstEvents){const me=myKart();wasTurbo=me?.boost>0||me?.turbo>0||me?.nitroActive===true;}
     if(S.audioBaseline){cueUntil=0;cueText='';keycapUntil=0;}
     updateAudio();
-    feedback.ingest(S,nowMs());
+    feedback.ingest(S,lastSnapshotArrival??nowMs());
     if (S.phase !== 'done') garagePending=null;
     try {
       ingestSnapshot(poseStore, S, S && S.you, nowMs());
@@ -2241,7 +2255,7 @@ export function createKartView(viewConfig) {
       if (seenEvents.has(event.id)) continue;
       seenEvents.add(event.id);
       if(firstEvents)continue;
-      if(['fire','mine','blast','burst','bounce','splat','hit'].includes(event.type)){arsenalEvents.push(event);if(arsenalEvents.length>24)arsenalEvents.shift();}
+      if(['fire','mine','blast','burst','bounce','splat','hit'].includes(event.type)){arsenalEvents.push({event,at:lastSnapshotArrival??nowMs()});if(arsenalEvents.length>24)arsenalEvents.shift();}
       updateAudio();
       const me=myKart(),source=S.karts?.find(k=>k.pid===event.pid);
       const nearby=!S.youDrive||event.pid===S.you||event.other===S.you||
