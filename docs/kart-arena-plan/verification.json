@@ -1,0 +1,107 @@
+{
+  "scope": "Current raised authority initialization only; no new-map driving or performance claims.",
+  "date": "2026-11-10",
+  "node": "v24.21.0",
+  "rapier": "0.21.0",
+  "seed": 7,
+  "cases": [
+    {
+      "map": "skyport",
+      "players": 2,
+      "expected": 9,
+      "created": 9,
+      "available": 9
+    },
+    {
+      "map": "skyport",
+      "players": 8,
+      "expected": 9,
+      "created": 9,
+      "available": 9
+    },
+    {
+      "map": "skyport",
+      "players": 32,
+      "expected": 12,
+      "created": 12,
+      "available": 12
+    },
+    {
+      "map": "foundry",
+      "players": 2,
+      "expected": 9,
+      "created": 9,
+      "available": 9
+    },
+    {
+      "map": "foundry",
+      "players": 8,
+      "expected": 9,
+      "created": 9,
+      "available": 9
+    },
+    {
+      "map": "foundry",
+      "players": 32,
+      "expected": 12,
+      "created": 12,
+      "available": 12
+    },
+    {
+      "map": "garden",
+      "players": 2,
+      "expected": 6,
+      "created": 6,
+      "available": 6
+    },
+    {
+      "map": "garden",
+      "players": 8,
+      "expected": 6,
+      "created": 6,
+      "available": 6
+    },
+    {
+      "map": "frost",
+      "players": 2,
+      "expected": 6,
+      "created": 6,
+      "available": 6
+    },
+    {
+      "map": "frost",
+      "players": 8,
+      "expected": 6,
+      "created": 6,
+      "available": 6
+    },
+    {
+      "map": "neon",
+      "players": 2,
+      "expected": 6,
+      "created": 6,
+      "available": 6
+    },
+    {
+      "map": "neon",
+      "players": 8,
+      "expected": 6,
+      "created": 6,
+      "available": 6
+    },
+    {
+      "map": "harbor",
+      "players": 2,
+      "expected": 6,
+      "created": 6,
+      "available": 6
+    },
+    {
+      "map": "harbor",
+      "players": 8,
+      "expected": 6,
+      "created": 6,
+      "available": 6
+    }
+  ]
+}
