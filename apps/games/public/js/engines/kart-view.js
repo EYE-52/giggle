@@ -1301,9 +1301,13 @@ export function createKartView(viewConfig) {
               let length=shotDirection.length();
               if(length<1e-6&&e.direction){shotDirection.set(e.direction.x,e.direction.y,e.direction.z);length=.8;}
               if(shotDirection.lengthSq()>1e-8){
-                shotDirection.normalize();cue.object.position.set(from.x,from.y,from.z).addScaledVector(shotDirection,length*.5);
+                shotDirection.normalize();length=Math.min(length,1.25);
+                // Keep the accepted contact endpoint; never stretch one slug
+                // over the whole final sweep like a solid orange road slab.
+                const end=e.from?e.position:from;
+                cue.object.position.set(end.x,end.y,end.z).addScaledVector(shotDirection,(e.from?-1:1)*length*.5);
                 cue.object.quaternion.setFromUnitVectors(shotForward,shotDirection);
-                cue.object.scale.set(1.6,1.6,length/Math.max(.01,cue.length));cue.until=Math.min(e.until,e.at+140);cue.object.visible=true;
+                cue.object.scale.set(1,1,length/Math.max(.01,cue.length));cue.until=Math.min(e.until,e.at+140);cue.object.visible=true;
               }
             }
           }

@@ -76,21 +76,46 @@ export function createClassicMotion(RAPIER,baseConfig,state){
   config.chassis.friction=CLASSIC_CONTACT_TUNING.friction;config.chassis.restitution=CLASSIC_CONTACT_TUNING.restitution;
   // Keep a released/respawned kart parked on real slopes using wheel brakes.
   config.handling.coastBrake=4;
-  const physics=createKartPhysics(RAPIER,config),life=new Map(),enabled=new Map();let accumulator=0,disposed=false;
+  const physics=createKartPhysics(RAPIER,config),life=new Map(),enabled=new Map(),overturned=new Map();let accumulator=0,disposed=false;
+  const recoveryPose={position:{x:0,y:0,z:0},rotation:{x:0,y:0,z:0,w:1}};
   const map={id:state.map,half:state.half,blocks:state.blocks,pads:state.pads,surfaces:state.surfaces,roads:state.roads,offroad:state.offroad,barriers:state.barriers,ramps:state.ramps,features:state.features};
   const surfaceIndex=createSurfaceIndex(map);
   const terrain=createRoadTerrain(map);
   // Arena features (cannons, portals) step after physics; see kart-map-features.mjs.
   const features=createFeatureRunner({physics,state,features:state.features,enabled,project:k=>project(k),groundAt:(x,z)=>terrain?.heightAt(x,z)||0});
   for(const item of classicStatics(map,terrain))physics.addStatic(item);
-  for(const k of state.karts){physics.addKart(k.pid,spawn(k,terrain));life.set(k.pid,k.spawnSeq||0);enabled.set(k.pid,true);}
+  for(const k of state.karts){physics.addKart(k.pid,spawn(k,terrain));life.set(k.pid,k.spawnSeq||0);enabled.set(k.pid,true);overturned.set(k.pid,0);}
   // Settle before readiness, not on the first playable frame.
   physics.step(6);
   function project(k){const p=physics.pose(k.pid);k.physicalPose=p;k.x=p.position.x;k.z=p.position.z;k.angle=yaw(p.rotation);k.speed=p.speed;const right={x:-Math.cos(k.angle),z:Math.sin(k.angle)};k.slip=p.linearVelocity.x*right.x+p.linearVelocity.z*right.z;k.drifting=p.grounded&&Math.abs(k.speed)>6&&(k._driftHeld===true||Math.abs(k.slip)>.8);}
   for(const k of state.karts)project(k);
+  // A live flipped body is not a KO wreck. Classic maps lacked the raised
+  // authority's stopped-overturn recovery, so it could remain on its roof
+  // forever with its driver hidden below the road. Right it on the same
+  // supported spot; health, inventory, score and life never change.
+  function recoverOverturned(k){
+    const p=k.physicalPose,q=p.rotation;
+    if(!enabled.get(k.pid)||k.flight||1-2*(q.x*q.x+q.z*q.z)>=.35||
+      Math.hypot(p.linearVelocity.x,p.linearVelocity.y,p.linearVelocity.z)>.5||
+      Math.hypot(p.angularVelocity.x,p.angularVelocity.y,p.angularVelocity.z)>.5){overturned.set(k.pid,0);return;}
+    const seconds=(overturned.get(k.pid)||0)+config.fixedDt;overturned.set(k.pid,seconds);
+    if(seconds<2)return;
+    // A blocked recovery retries at 4 Hz, not on every physics step.
+    overturned.set(k.pid,1.75);
+    const support=physics.supportAt(p.position,2.4);
+    if(!support||support.normal.y<.65)return;
+    const angle=yaw(q),{position,rotation}=recoveryPose;
+    rotation.y=Math.sin(angle/2);rotation.w=Math.cos(angle/2);
+    position.x=p.position.x;position.y=support.point.y+.75;position.z=p.position.z;
+    // Never right through cover, a fence or another live chassis.
+    if(physics.overlapsStatic(position,rotation))return;
+    for(const other of state.karts)if(other!==k&&enabled.get(other.pid)&&
+      Math.hypot(other.x-position.x,other.z-position.z)<3.5)return;
+    physics.resetKart(k.pid,recoveryPose);overturned.set(k.pid,0);k._prevPose=null;project(k);
+  }
   function sync(connected){for(const k of state.karts){
     const current=k.spawnSeq||0;
-    if(life.get(k.pid)!==current){physics.resetKart(k.pid,spawn(k,terrain));k._driftHeld=false;k.driftCharge=0;k.driftDirection=0;k.driftHop=0;k.driftTier=0;life.set(k.pid,current);project(k);}
+    if(life.get(k.pid)!==current){physics.resetKart(k.pid,spawn(k,terrain));k._driftHeld=false;k.driftCharge=0;k.driftDirection=0;k.driftHop=0;k.driftTier=0;life.set(k.pid,current);overturned.set(k.pid,0);project(k);}
     const live=connected.has(k.pid)&&!(k.respawn>0)&&!features.reconcile(k);
     if(enabled.get(k.pid)!==live){physics.setKartEnabled(k.pid,live);enabled.set(k.pid,live);project(k);}
   }}
@@ -99,7 +124,7 @@ export function createClassicMotion(RAPIER,baseConfig,state){
       while(accumulator>=config.fixedDt-1e-9){
         for(const k of state.karts)if(enabled.get(k.pid)){if(k.spinKick){physics.spinKart?.(k.pid,k.spinKick);k.spinKick=0;}const control=classicControls(k,config.fixedDt,map,state.mode==='battle',surfaceIndex);physics.tuneKart(k.pid,control.tuning);physics.applyIntent(k.pid,control.intent);physics.arcadeSlide(k.pid,control.slide);k._appliedSeq=k._receivedSeq||0;}
         for(const k of state.karts)k._prevPose=k.physicalPose;
-        physics.step();for(const k of state.karts)project(k);accumulator-=config.fixedDt;
+        physics.step();for(const k of state.karts){project(k);recoverOverturned(k);}accumulator-=config.fixedDt;
         features.step(config.fixedDt,connected);
         for(const ids of physics.kartContacts())contacts.set(ids.join('|'),ids.map(id=>state.karts.find(k=>k.pid===id)));
         for(const impact of physics.drainImpacts()){
@@ -113,7 +138,7 @@ export function createClassicMotion(RAPIER,baseConfig,state){
     // Unsimulated fraction of the next fixed step: renderers blend
     // _prevPose -> physicalPose by it so motion is even at any frame rate.
     alpha:()=>Math.max(0,Math.min(1,accumulator/config.fixedDt)),
-    restore(k,p){k._prevPose=null;features.resumeLanded(k);if(physics.pose(k.pid).epoch!==p.epoch)physics.resetKart(k.pid,{position:p.position,rotation:p.rotation});physics.restoreKart(k.pid,p);life.set(k.pid,k.spawnSeq||0);project(k);},
+    restore(k,p){overturned.set(k.pid,0);k._prevPose=null;features.resumeLanded(k);if(physics.pose(k.pid).epoch!==p.epoch)physics.resetKart(k.pid,{position:p.position,rotation:p.rotation});physics.restoreKart(k.pid,p);life.set(k.pid,k.spawnSeq||0);project(k);},
     sweepStatic:(from,to,radius)=>physics.sweepStatic(from,to,radius),
     kickKart:(id,delta)=>physics.kickKart(id,delta),
     supportAt:(origin,maxDistance)=>physics.supportAt(origin,maxDistance),
