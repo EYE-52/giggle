@@ -1,4 +1,5 @@
 'use strict';
+const {selectArenaVariant,validateArenaContract,selectArenaHomes,arenaRespawnMs,createArenaRewardPolicy}=require('../../public/js/engines/kart-arena-policy.mjs');
 const {elevatedFallZone}=require('../../public/js/engines/kart-elevated-surfaces.mjs');
 
 // Elevated combat authority used by the opt-in Room profile.
@@ -17,7 +18,7 @@ const ZERO = Object.freeze({ x: 0, y: 0, z: 0 });
 const IDENTITY = Object.freeze({ x: 0, y: 0, z: 0, w: 1 });
 const LIMIT = Object.freeze({ queue: 32, seq: 0x7fffffff, seqJump: 4096, events: 32, steps: 15, activationMs:8000 });
 const RECOVERY = Object.freeze({ up: 0.35, linear: 0.5, angular: 0.5, progress: 0.3, seconds: 2, retryMs: 500, cooldownMs: 5000 });
-// Elevated arsenal: the same sixteen weapons and tier odds as the flat arenas.
+// Same ten weapons and ordinary tier odds as the flat arenas.
 const W = COMBAT.weapons;
 const ARSENAL = Object.freeze({
   weights:Object.freeze(Object.fromEntries(COMBAT.weaponOrder.map(id=>[id,COMBAT.pickupWeights[id]*100]))),
@@ -89,8 +90,9 @@ function createElevatedCombat(RAPIER,config,map,seats,options={}) {
   if(targetHits!==null&&(!Number.isInteger(targetHits)||targetHits<1||targetHits>100))throw new RangeError('invalid score target');
   if(!Number.isInteger(initialHealth)||initialHealth<1||initialHealth>COMBAT.maxHealth)throw new RangeError('invalid initial health');
   if (!boundedTime(startAt) || !finite(countdownMs) || countdownMs < 0 || countdownMs > 10000 || !finite(roundMs) || roundMs < 1000 || roundMs > 600000) throw new RangeError('invalid round timing');
-  const M = structuredClone(map), C = structuredClone(config);
-  if (!validId(M?.id) || typeof M.revision !== 'string' || !M.revision.length || M.revision.length > 64 || !finite(M.half) || M.half < 10 || M.half > 500 || !Array.isArray(M.colliders) || !Array.isArray(M.spawns) || M.spawns.length < seats.length || M.spawns.length > 32 || !Array.isArray(M.sockets) || M.sockets.length < 2 || M.sockets.length > 64 || new Set(M.spawns.map(s=>s.id)).size!==M.spawns.length || new Set(M.sockets.map(s=>s.id)).size!==M.sockets.length) throw new TypeError('bounded authored map required');
+  const M = map.arenaVersion && map.variants ? selectArenaVariant(map,seats.length) : structuredClone(map), C = structuredClone(config);
+  if(M.arenaVersion)validateArenaContract(M);
+  if (!validId(M?.id) || typeof M.revision !== 'string' || !M.revision.length || M.revision.length > 64 || !finite(M.half) || M.half < 10 || M.half > 500 || !Array.isArray(M.colliders) || !Array.isArray(M.spawns) || M.spawns.length < seats.length || M.spawns.length > 32 || !Array.isArray(M.sockets) || M.sockets.length < 2 || M.sockets.length > (M.arenaVersion?96:64) || new Set(M.spawns.map(s=>s.id)).size!==M.spawns.length || new Set(M.sockets.map(s=>s.id)).size!==M.sockets.length) throw new TypeError('bounded authored map required');
   const physics = createKartPhysics(RAPIER,C), dt=C.fixedDt, stepMs=dt*1000;
   const karts = new Map(), events=[], shots=[], mines=[], grenades=[], crates=[], collisionAt=new Map(), volleyHits=new Map();
   let targetReached=false, rng=options.seed, eventSeq=0, entitySeq=0, phase='countdown', simTick=0, simAt=startAt, wallAt=startAt, accumulator=0, resultData=null, disposed=false, droppedMs=0;
@@ -124,7 +126,8 @@ function createElevatedCombat(RAPIER,config,map,seats,options={}) {
       return support && Math.abs(support.point.y-s.y)<0.15 && support.normal.y>0.65;
     });
   }
-  let spawns,sockets,motion;
+  let spawns,sockets,motion,respawnCandidates;
+  const rewardPolicy=M.arenaVersion?createArenaRewardPolicy(W,seats.length,rand):null,spawnUsed=new Map();
   function pickSocket(exclude, level) {
     let pool=sockets.filter(s=>s.id!==exclude && (level===undefined || Math.abs(s.y-level)<.25) && !crates.some(c=>c.socketId===s.id));
     if(!pool.length) return null;
@@ -133,11 +136,12 @@ function createElevatedCombat(RAPIER,config,map,seats,options={}) {
     if(far.length) pool=far;
     return choose(pool);
   }
-  function crateAt(socket) { return {id:entity('c'),socketId:socket.id,surfaceId:socket.surface,position:{x:socket.x,y:socket.y+0.6,z:socket.z},availableAt:simAt}; }
+  function crateAt(socket) { return {id:entity('c'),socketId:socket.id,surfaceId:socket.surface,position:{x:socket.x,y:socket.y+0.6,z:socket.z},availableAt:simAt,...(M.arenaVersion?{profile:socket.profile||'safe',blocked:new Set(),wasAvailable:true}: {})}; }
   function rollWeapon() { let edge=0; const r=rand()*100; for(const [id,weight] of Object.entries(ARSENAL.weights)) { edge+=weight; if(r<edge) return id; } return 'nuke'; }
   try {
     for(const d of elevatedStatics(M)) physics.addStatic(d);
     spawns=M.spawns.filter(legalSpawn);
+    respawnCandidates=M.arenaVersion?M.spawnCandidates.filter(legalSpawn):spawns;
     sockets=M.sockets.filter(s=>supported(s) && !physics.sweepStatic({x:s.x,y:s.y+0.65,z:s.z},{x:s.x,y:s.y+0.65,z:s.z},0.45));
     if(spawns.length < seats.length || sockets.length < 2) throw new Error('map lacks supported clear spawns/sockets');
     for(let i=0;i<seats.length;i++) for(let j=0;j<i;j++) if(hullsOverlap(spawnPose(spawns[i]),spawnPose(spawns[j]))) throw new Error('initial spawn hulls overlap');
@@ -150,10 +154,16 @@ function createElevatedCombat(RAPIER,config,map,seats,options={}) {
     }
     physics.step(15); physics.step(15); physics.step(15); physics.step(15); physics.step(15); physics.step(15);
     for(const k of karts.values()) physics.freezeKart(k.id,true);
+    if(M.arenaVersion){
+      if(sockets.length!==M.sockets.length||spawns.length!==M.spawns.length||respawnCandidates.length!==M.spawnCandidates.length)throw new Error('Arena has unsupported authored poses');
+      const homes=selectArenaHomes({...M,sockets},seats.length,rand,spawns.slice(0,seats.length));
+      for(const home of homes)crates.push(crateAt(home));
+    }else{
     const crateLevels=(M.complex||M.balancedLoot)?[...new Set(sockets.map(s=>Math.round(s.y)))].sort((a,b)=>a-b):null;
     const count=options.crates ?? Math.min(M.complex ? (seats.length>8?12:9) : 6,sockets.length-1);
     if(!Number.isInteger(count) || count<1 || count>=sockets.length || count>12) throw new RangeError('invalid crate subset size');
     for(let i=0;i<count;i++) { const s=pickSocket(undefined,crateLevels?.[i%crateLevels.length]); if(s) crates.push(crateAt(s)); }
+    }
   } catch(error) { physics.dispose(); throw error; }
 
   motion=createElevatedMotion({physics,map:M,karts:[...karts.values()],emit});
@@ -265,11 +275,20 @@ function createElevatedCombat(RAPIER,config,map,seats,options={}) {
   }
   function clearSpawns(k) {
     const others=[...karts.values()].filter(v=>v.id!==k.id&&v.alive).map(v=>physics.pose(v.id));
-    return spawns.filter(s=>legalSpawn(s)&&others.every(p=>!hullsOverlap(spawnPose(s),p))).map(s=>({s,clear:Math.min(...others.map(p=>distance(p.position,spawnPose(s).position)))})).filter(v=>v.clear>=B.RESPAWN_CLEAR);
+    return respawnCandidates.filter(s=>legalSpawn(s)&&others.every(p=>!hullsOverlap(spawnPose(s),p))).map(s=>({s,clear:Math.min(...others.map(p=>distance(p.position,spawnPose(s).position)))})).filter(v=>v.clear>=B.RESPAWN_CLEAR);
   }
   function respawn(k) {
-    const safe=clearSpawns(k).sort((a,b)=>b.clear-a.clear);
+    const safe=clearSpawns(k).map(v=>{
+      if(!M.arenaVersion)return v;
+      const at=spawnPose(v.s).position;
+      let threat=0;
+      for(const enemy of karts.values())if(enemy.id!==k.id&&enemy.alive&&enemy.connected){const p=physics.pose(enemy.id).position;const d=distance(at,p);if(Math.abs(at.y-p.y)<3)threat+=Math.max(0,35-d);if(d<50&&los(at,p))threat+=18;}
+      for(const shot of shots)if(shot.owner!==k.id&&distance(at,shot.position)<15)threat+=25;
+      const recency=Math.max(0,10000-(simAt-(spawnUsed.get(v.s.id)??-Infinity)))/1000;
+      return {...v,score:v.clear-threat-recency*4};
+    }).sort((a,b)=>M.arenaVersion?b.score-a.score:b.clear-a.clear);
     if(!safe.length) return; // Keep non-solid; retry until a safe pose exists.
+    spawnUsed.set(safe[0].s.id,simAt);
     clean(k); k.spawnSeq++; k.controlEpoch++; k.alive=true; k.health=COMBAT.maxHealth; k.respawn=0; k.shield=B.SPAWN_SHIELD; k.guard=false; k.nitro=1; k.nitroLocked=false;
     physics.resetKart(k.id,spawnPose(safe[0].s)); physics.setKartEnabled(k.id,true); physics.freezeKart(k.id,false); physics.tuneKart(k.id,{top:1,engine:1,steering:1,traction:1});
     emit('respawn',k.id,{spawnSeq:k.spawnSeq,position:physics.pose(k.id).position});
@@ -583,6 +602,15 @@ function createElevatedCombat(RAPIER,config,map,seats,options={}) {
     }
     updateShots(before,after);updateMines(before,after);updateGrenades(before,after);updateRams(after);
     if(targetReached) {finish('target');return;}
+    if(M.arenaVersion)for(const c of crates){
+      const available=at>=c.availableAt;
+      for(const k of karts.values()){
+        const near=k.alive&&distance(physics.pose(k.id).position,c.position)<=3;
+        if(!near)c.blocked.delete(k.id);
+        else if(available&&!c.wasAvailable)c.blocked.add(k.id);
+      }
+      c.wasAvailable=available;
+    }
     for(const k of karts.values()) {
       if(!k.connected || !k.alive) continue;
       const p=physics.pose(k.id);
@@ -590,10 +618,11 @@ function createElevatedCombat(RAPIER,config,map,seats,options={}) {
       if(recoverStuck(k,p)) continue;
       if(k.weapon || k.sequence || !p.grounded) continue;
       for(const c of crates) {
-        if(at<c.availableAt || distance(p.position,c.position)>Math.sqrt(B.PICKUP_R2) || !p.wheels.some(w=>w.contact&&w.surfaceId===c.surfaceId) || !los(c.position,p.position)) continue;
-        k.itemSeq++;k.weapon=rollWeapon();k.ammo=k.weapon==='machinegun'?ARSENAL.machinegun.ammo:(COMBAT.weapons[k.weapon]?.ammo||1);award(k,B.COIN_PICKUP,'pickup-'+c.id);emit('pickup',k.id,{weapon:k.weapon,crateId:c.id,position:c.position});
-        const s=pickSocket(c.socketId,(M.complex||M.balancedLoot)?c.position.y-.6:undefined);
-        if(s) Object.assign(c,crateAt(s),{availableAt:at+2000});
+        if(at<c.availableAt || c.blocked?.has(k.id) || distance(p.position,c.position)>Math.sqrt(B.PICKUP_R2) || !p.wheels.some(w=>w.contact&&w.surfaceId===c.surfaceId) || !los(c.position,p.position)) continue;
+        k.itemSeq++;k.weapon=rewardPolicy?rewardPolicy.roll(c.profile,at-liveAt):rollWeapon();k.ammo=k.weapon==='machinegun'?ARSENAL.machinegun.ammo:(COMBAT.weapons[k.weapon]?.ammo||1);award(k,B.COIN_PICKUP,'pickup-'+c.id);emit('pickup',k.id,{weapon:k.weapon,crateId:c.id,position:c.position});
+        if(M.arenaVersion){c.availableAt=at+arenaRespawnMs(c.profile);c.wasAvailable=false;c.blocked.add(k.id);}
+        else {const s=pickSocket(c.socketId,(M.complex||M.balancedLoot)?c.position.y-.6:undefined);
+        if(s) Object.assign(c,crateAt(s),{availableAt:at+2000});}
         break;
       }
     }
@@ -620,9 +649,9 @@ function createElevatedCombat(RAPIER,config,map,seats,options={}) {
   }
   function snapshot(viewer=null) {
     alive();
-    return structuredClone({instance,profile:'internal-elevated-combat-v2',combat:COMBAT,projectileRadii:COMBAT.staticSweepRadii,physicsVersion:physics.apiVersion,configVersion:C.version,mapId:M.id,mapRevision:M.revision,phase,simTick,simAt,serverAt:wallAt,liveAt,deadline,droppedMs,
+    return structuredClone({instance,profile:'internal-elevated-combat-v2',combat:COMBAT,projectileRadii:COMBAT.staticSweepRadii,physicsVersion:physics.apiVersion,configVersion:C.version,mapId:M.id,mapRevision:M.revision,...(M.arenaVersion?{variantId:M.variantId,arenaVersion:M.arenaVersion,enabledDistricts:M.enabledDistricts}:{}),phase,simTick,simAt,serverAt:wallAt,liveAt,deadline,droppedMs,
       karts:[...karts.values()].map(k=>({id:k.id,name:k.name,connected:k.connected,...(k.out?{out:true}:{}),alive:k.alive,health:k.health,maxHealth:k.maxHealth,hits:k.hits,deaths:k.deaths,spawnSeq:k.spawnSeq,controlEpoch:k.controlEpoch,weapon:normalizeWeapon(k.weapon),...(k.weapon==='missile'?{lockTarget:missileLock(k.id,add(physics.pose(k.id).position,rotate(CURATED_MUZZLE,physics.pose(k.id).rotation)),weaponForward(physics.pose(k.id).rotation))?.id||null}:{}),ammo:k.ammo,firing:!!k.sequence,shield:k.shield,guard:k.guard,respawn:k.respawn,nitro:k.nitro,nitroActive:k.nitroActive,frostT:k.frostT,spinT:k.spinT,rammingT:k.rammingT,bladesT:k.bladesT||0,bladesAge:k.bladesAge||0,supernovaT:k.supernovaT||0,...Object.fromEntries(ELEVATED_MOTION_FIELDS.map(key=>[key,k[key]??(key==='surface'?'road':key==='flight'?null:0)])),pose:physics.pose(k.id)})),
-      crates:crates.map(c=>({id:c.id,position:c.position,surfaceId:c.surfaceId,available:c.availableAt<=simAt})),
+      crates:crates.map(c=>({id:c.id,position:c.position,surfaceId:c.surfaceId,available:c.availableAt<=simAt,...(M.arenaVersion?{homeId:c.socketId,profile:c.profile,readyInMs:Math.max(0,c.availableAt-simAt)}:{})})),
       projectiles:shots,mines:mines.map(m=>({...m,armed:m.arm<=0})),grenades:grenades.map(g=>({...g,...(proximityCharge(g.weapon)?{armed:g.landed&&g.arm<=1e-8,warning:g.landed&&g.arm<=1e-8}:{warning:g.weapon==="nuke"&&g.fuse<=(ARSENAL[g.weapon]?.warning??B.GRENADE_WARN)})})),events,
       you:privateStatus(viewer),result:resultData});
   }

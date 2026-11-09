@@ -17,7 +17,7 @@ A **socket** is a legal placed location. A **live box** is an available pickup i
 - Classic Zap Battle creates `clamp(4 + players, 6, 10)` boxes. On collection, a box immediately moves to another socket. There is no box respawn delay on this path.
 - Four smaller raised maps create **6** boxes, regardless of 2–8 players. Skyport and Foundry create **9** for 2–8 players, **12** for 9–32. Collected boxes move to another socket on the same height layer and wait **2 seconds**. Thus the available count can temporarily fall below the created count.
 - Raised maps guarantee a share per level: 3/3 in a two-level map; 3/3/3 or 4/4/4 in a three-level map. This is useful, but still sparse on their large ground floors.
-- Current shared tier odds are **52% common / 43% uncommon / 5% rare**. Comments mentioning eight or sixteen weapons are stale: the current contract has **13**. Use the contract, not old prose.
+- Current shared tier odds are **52% common / 43% uncommon / 5% rare**. Comments mentioning eight or sixteen weapons are stale: the current contract has **10**. Use the contract, not old prose.
 - Classic maps, Skyport, and Foundry support 2–32 seats. The other four raised maps support 2–8. Raised maps currently require **Zap Battle, Garage off**, with 20 Hz JSON room updates; classic rooms have their separate adaptive realtime path. Do not assume a new raised map inherits classic modes or transport.
 
 The table reports bounds area, **not usable surface area**. For raised maps, upper floors add space and cover removes space. Distances are straight-line centre distances in 3D, not road distance or proof of fairness. The minimum is across the maximum-size start pool. Frost Quarry's 0.12 m ice is grouped with ground.
@@ -136,7 +136,7 @@ Large-map eight-seat variants are optional advanced choices, larger than the pre
 
 ### Rarity and power
 
-Start with the current **52 / 43 / 5** common/uncommon/rare odds on ordinary homes. Common means Machine Gun, Tri-Shot, Mine, Oil Slick, Boomerang. Uncommon means Missile, Cannon, Blades, Frost, Thunder, Turbo Ram. Rare means Supernova and Nuke. Divide each tier's weight evenly between its current contract weapons, as today.
+Start with the current **52 / 43 / 5** common/uncommon/rare odds on ordinary homes. Common means Machine Gun, Tri-Shot and Mine. Uncommon means Missile, Cannon, Blades, Frost and Turbo Ram. Rare means Supernova and Nuke. Divide each tier's weight evenly between its current contract weapons, as today.
 
 Use a distinct star-marked **risk box** on no more than 10% of homes, with **40 / 50 / 10** tier odds. Risk is a choice of position, not a guaranteed rare weapon. During the first 8 s, every home uses normal odds. Cap rare awards at **1 per 12 s for ≤8 players; 2 per 12 s for 9–16; 3 per 12 s for 17–32**, using a server-owned rolling window. When the cap is full, reroll into common/uncommon in their existing ratio. Thus ordinary odds are pre-cap odds, not a promise of a 5% realised rare rate. Retain item-slot and payload lifetime checks so repeat claims cannot stack powers. Measure Nuke warning visibility across decks and use the engine's real blast/occlusion rules; do not assume an upper floor is safe from an area weapon.
 
@@ -356,7 +356,7 @@ Target: median unarmed travel to a reachable available ordinary box ≤4 s, p95 
 
 Cast and physically drive every selected initial pose with full visible art. Test all 32 departures simultaneously. Require no overlaps, no forced immediate falls, no geometry hits in the intended 20 m opening lane, and the two box timing targets from section 2. Run at least 10 full three-minute matches at minimum, middle and maximum supported seat counts, rotating spawn sectors. Flag any sector with >15% excess deaths in the 3 s after protection ends or >20% pickup-rate difference after controlling for time alive. These are review triggers; limited bot samples cannot prove human balance. Follow with at least two human sessions per map (new and experienced drivers) before final tuning.
 
-Shoot through and across every height connection. Check muzzle obstruction, finite deck undersides, missiles, mines on slopes, area effects across floors and cannon/portal pose epochs. Preserve 3-heart damage, one-slot rules and safe recovery. Do not change combat damage to rescue a weak map layout.
+Shoot through and across every height connection. Check muzzle obstruction, finite deck undersides, missiles, mines on slopes, area effects across floors and cannon/portal pose epochs. Preserve the current 100 HP weapon damage, one-slot rules and safe recovery. Do not change combat damage to rescue a weak map layout.
 
 ### E. Performance and regression acceptance
 

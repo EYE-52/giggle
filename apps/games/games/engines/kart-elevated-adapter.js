@@ -1,5 +1,6 @@
 'use strict';
 
+const {selectArenaVariant}=require('../../public/js/engines/kart-arena-policy.mjs');
 const crypto = require('crypto');
 const { createElevatedCombat } = require('./kart-elevated-combat');
 const { rankStandings } = require('./kart-standings');
@@ -64,7 +65,7 @@ function project(raw, map, settings) {
   const result = resultOf(raw);
   return {
     profile: PROFILE, waitForResult: true, combat:raw.combat, projectileRadii:raw.projectileRadii, physicsVersion: raw.physicsVersion, configVersion: raw.configVersion,
-    mapRevision: raw.mapRevision, mapId: raw.mapId,
+    mapRevision: raw.mapRevision, mapId: raw.mapId,...(raw.variantId?{variantId:raw.variantId,arenaVersion:raw.arenaVersion,enabledDistricts:raw.enabledDistricts}:{}),
     map: { id: raw.mapId, label: map.name, environment: map.environment, half: map.half },
     phase: raw.phase, endsAt: raw.phase === 'done' ? 0 : raw.phase === 'countdown' ? raw.liveAt : raw.deadline,
     liveAt: raw.liveAt, deadline: raw.deadline, roundMs: raw.deadline - raw.liveAt,
@@ -89,7 +90,7 @@ function project(raw, map, settings) {
         linearVelocity: vector(k.pose.linearVelocity), angularVelocity: vector(k.pose.angularVelocity),
         grounded: k.pose.grounded, speed: number(k.pose.speed), epoch: k.pose.epoch,
         wheels: k.pose.wheels.map(w => ({ length: number(w.length, 4), rotation: number(w.rotation, 4), steering: number(w.steering, 4) })) } })),
-    crates: raw.crates.map(c => ({ id: c.id, position: vector(c.position), available: c.available })),
+    crates: raw.crates.map(c => ({ id: c.id, position: vector(c.position), available: c.available,...(c.homeId?{homeId:c.homeId,profile:c.profile,readyInMs:number(c.readyInMs)}:{}) })),
     projectiles: raw.projectiles.map(p => ({ id: p.id, owner: p.owner, weapon: p.weapon, ...(p.targetId ? { targetId: p.targetId } : {}),
       position: vector(p.position), velocity: vector(p.velocity), radius: number(p.radius), ttl: number(p.ttl) })),
     mines: raw.mines.map(m => ({ id: m.id, owner: m.owner, ...(m.weapon ? { weapon: m.weapon } : {}), position: vector(m.position), normal: vector(m.normal),
@@ -141,7 +142,8 @@ function createElevatedKartAdapter({ RAPIER, config, maps, defaults, createMatch
     const settings = settingsOf(ctx.settings());
     const check = preflight(settings);
     if (check.error) throw new Error(check.error);
-    const map = deps.maps[MAP_LABELS[settings.map]], state = { profile: PROFILE, phase: 'countdown', endsAt: 0 };
+    const sourceMap=deps.maps[MAP_LABELS[settings.map]];
+    const map=sourceMap?.arenaVersion?selectArenaVariant(sourceMap,ctx.allPlayers().length):sourceMap, state = { profile: PROFILE, phase: 'countdown', endsAt: 0 };
     if (!map) throw new Error('Choose an elevated arena.');
     const match = deps.createMatch(deps.RAPIER, deps.config, map, ctx.allPlayers(), {
       instance: ctx.instanceId, seed: crypto.randomBytes(4).readUInt32LE(0), startAt: ctx.now(), roundMs: settings.roundSeconds * 1000,
