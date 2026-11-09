@@ -159,3 +159,34 @@
   top: auto;
   bottom: calc(-1 * var(--space-12));
 }
+/* Keep the toy skyline large without pushing the drop button off a phone. */
+#gbody .bs-world .bs-sky {
+  height: clamp(320px, calc(100dvh - 340px), 560px);
+}
+.bs-world .bs-height {
+  min-width: calc(3 * var(--space-64));
+  font-variant-numeric: tabular-nums;
+}
+.bs-world .bs-perfect {
+  top: var(--space-16);
+  right: var(--space-16);
+  padding: var(--space-8) var(--space-16);
+}
+.bs-world .b6-pop {
+  animation: none;
+}
+@media (max-width: 700px) {
+  #gbody .bs-world .bs-sky {
+    height: clamp(288px, calc(100dvh - 480px), 360px);
+  }
+  #gbody .bs-world .pl-head {
+    display: none;
+  }
+}
+
+#gbody .bs-world .pl-head {
+  display: none;
+}
+#gbody .bs-world .pl-seat {
+  grid-template-rows: repeat(3, var(--space-24));
+}

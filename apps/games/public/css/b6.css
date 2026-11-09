@@ -280,3 +280,12 @@
     padding: var(--space-8) var(--space-12);
   }
 }
+/* A fixed three-line score card fits four-seat practice on a phone, even
+   with the shared party strip's larger score/gain styles. */
+#gbody .b6-world .pl-seat {
+  grid-template-rows: repeat(3, var(--space-24));
+}
+/* Round and player names are already visible in the HUD and cards. */
+#gbody .b6-world .pl-head {
+  display: none;
+}
