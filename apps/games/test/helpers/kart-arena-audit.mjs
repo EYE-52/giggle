@@ -14,11 +14,12 @@ export function measureArenaArea(physics,map,spacing=.5){
  }
  return {spacing,areas,total:Object.values(areas).reduce((a,b)=>a+b,0)};
 }
-export function arenaClearanceGraph(physics,map,spacing=1){
- const nodes=[],columns=new Map(),max=Math.max(...map.levels.map(l=>l.y)),clear=p=>!physics.overlapsStatic({...p,y:p.y+.9},rotation,{x:1.3,y:.3,z:1.6});
+export function arenaClearanceGraph(physics,map,spacing=1,{turnMargin=0}={}){
+ const surfaces=map.colliders.filter(d=>d.shape==='deck'||d.shape==='wedge'||d.id.startsWith('floor'));
+ const nodes=[],columns=new Map(),max=Math.max(...map.levels.map(l=>l.y)),clear=p=>!physics.overlapsStatic({...p,y:p.y+.9},rotation,{x:1.3+turnMargin,y:.3,z:1.6+turnMargin});
  const extentX=Math.floor(map.playBounds.halfX/spacing)*spacing,extentZ=Math.floor(map.playBounds.halfZ/spacing)*spacing;
  for(let x=-extentX;x<=extentX;x+=spacing)for(let z=-extentZ;z<=extentZ;z+=spacing){const column=[];
-  for(let y=0;y<=max+1;y+=.5){const s=physics.supportAt({x,y:y+.4,z},.9);if(!s||s.normal.y<.65||s.point.y<-.02||s.point.y>max+.1||column.some(p=>Math.abs(p.y-s.point.y)<.1)||!clear(s.point))continue;
+  for(const y of new Set(surfaces.map(d=>raisedSurfaceHeight(d,x,z)).filter(Number.isFinite))){const s=physics.supportAt({x,y:y+.4,z},.9);if(!s||s.normal.y<.65||s.point.y<-.02||s.point.y>max+.1||column.some(p=>Math.abs(p.y-s.point.y)<.1)||!clear(s.point))continue;
    const n={x,y:s.point.y,z,surface:s.surfaceId,index:nodes.length,edges:[]};column.push(n);nodes.push(n);
   }columns.set(x+':'+z,column);
  }
@@ -27,7 +28,19 @@ export function arenaClearanceGraph(physics,map,spacing=1){
   const p={x:(n.x+next.x)/2,y:(n.y+next.y)/2,z:(n.z+next.z)/2},s=physics.supportAt({...p,y:p.y+.4},.9);if(!s||Math.abs(s.point.y-p.y)>.15||!clear(p))continue;
   n.edges.push(next.index);next.edges.push(n.index);
  }
- const nearest=p=>nodes.reduce((best,n)=>Math.abs(n.y-p.y)<.3&&Math.hypot(n.x-p.x,n.z-p.z)<(best?.distance??Infinity)?{n,distance:Math.hypot(n.x-p.x,n.z-p.z)}:best,null);
- function flood(start,blocked){const parents=new Map([[start,-1]]),queue=[start];for(let k=0;k<queue.length;k++)for(const i of nodes[queue[k]].edges)if(!parents.has(i)&&nodes[i].surface!==blocked){parents.set(i,queue[k]);queue.push(i);}return parents;}
- return {nodes,nearest,flood};
+ const nearest=p=>{let best=null;const x=Math.round(p.x/spacing)*spacing,z=Math.round(p.z/spacing)*spacing;
+  for(let dx=-spacing;dx<=spacing;dx+=spacing)for(let dz=-spacing;dz<=spacing;dz+=spacing)for(const n of columns.get((x+dx)+':'+(z+dz))||[]){const distance=Math.hypot(n.x-p.x,n.z-p.z);if(Math.abs(n.y-p.y)<.3&&distance<(best?.distance??Infinity))best={n,distance};}return best;
+ };
+ function flood(start,blocked){const parents=new Map([[start,-1]]),queue=[start];for(let k=0;k<queue.length;k++)for(const i of nodes[queue[k]].edges)if(!parents.has(i)&&!(typeof blocked==='function'?blocked(nodes[i]):blocked instanceof Set?blocked.has(nodes[i].surface):nodes[i].surface===blocked)){parents.set(i,queue[k]);queue.push(i);}return parents;}
+ const boundary=nodes.filter(n=>n.edges.length<8);for(const n of nodes)n.clearance=Infinity;for(const n of boundary)n.clearance=0;
+ for(let i=0;i<boundary.length;i++){const n=boundary[i];for(const j of n.edges)if(nodes[j].clearance>n.clearance+spacing){nodes[j].clearance=n.clearance+spacing;boundary.push(nodes[j]);}}
+ function shortest(start,blocked,comfort=false){
+  const distance=new Float64Array(nodes.length).fill(Infinity),parents=new Int32Array(nodes.length).fill(-1),heap=[];
+  const push=(i,d)=>{let k=heap.length;heap.push({i,d});while(k){const p=(k-1)>>1;if(heap[p].d<=d)break;heap[k]=heap[p];k=p;}heap[k]={i,d};};
+  const pop=()=>{const first=heap[0],last=heap.pop();if(heap.length){let k=0;while(k*2+1<heap.length){let c=k*2+1;if(c+1<heap.length&&heap[c+1].d<heap[c].d)c++;if(heap[c].d>=last.d)break;heap[k]=heap[c];k=c;}heap[k]=last;}return first;};
+  distance[start]=0;push(start,0);
+  while(heap.length){const {i,d}=pop();if(distance[i]!==d)continue;const n=nodes[i];for(const j of n.edges){if(typeof blocked==='function'?blocked(nodes[j]):blocked instanceof Set?blocked.has(nodes[j].surface):nodes[j].surface===blocked)continue;const next=nodes[j],value=d+Math.hypot(n.x-next.x,n.y-next.y,n.z-next.z)*(comfort?1+4/(1+next.clearance):1);if(value<distance[j]){distance[j]=value;parents[j]=i;push(j,value);}}}
+  return {distance,parents,path(target){const path=[];if(!Number.isFinite(distance[target]))return path;for(let i=target;i!==-1;i=parents[i])path.push(nodes[i]);return path.reverse();}};
+ }
+ return {nodes,nearest,flood,shortest};
 }

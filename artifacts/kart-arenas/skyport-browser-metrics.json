@@ -1,0 +1,253 @@
+{
+  "errors": [],
+  "reports": [
+    {
+      "id": "skyport-split",
+      "variant": "full",
+      "viewport": [
+        1280,
+        720
+      ],
+      "phase": 0,
+      "world": {
+        "drawCalls": 25,
+        "triangles": 34742,
+        "textureBytes": 4793172,
+        "textureCount": 5,
+        "colliders": 59
+      },
+      "renderer": {
+        "frame": 407,
+        "calls": 117,
+        "triangles": 87928,
+        "points": 0,
+        "lines": 0
+      },
+      "frameMs": {
+        "median": 16.699999999999818,
+        "p95": 16.799999999999272,
+        "p99": 16.80000000000109,
+        "stalls": 0
+      },
+      "fps": 59.88023952095874,
+      "samples": 299
+    },
+    {
+      "id": "skyport-split",
+      "variant": "full",
+      "viewport": [
+        1280,
+        720
+      ],
+      "phase": 1,
+      "world": {
+        "drawCalls": 25,
+        "triangles": 34742,
+        "textureBytes": 4793172,
+        "textureCount": 5,
+        "colliders": 59
+      },
+      "renderer": {
+        "frame": 395,
+        "calls": 117,
+        "triangles": 87928,
+        "points": 0,
+        "lines": 0
+      },
+      "frameMs": {
+        "median": 16.699999999999818,
+        "p95": 16.799999999999272,
+        "p99": 16.800000000000182,
+        "stalls": 0
+      },
+      "fps": 59.88023952095874,
+      "samples": 299
+    },
+    {
+      "id": "skyport-split",
+      "variant": "full",
+      "viewport": [
+        390,
+        844
+      ],
+      "phase": 0,
+      "world": {
+        "drawCalls": 25,
+        "triangles": 34742,
+        "textureBytes": 4793172,
+        "textureCount": 5,
+        "colliders": 59
+      },
+      "renderer": {
+        "frame": 377,
+        "calls": 86,
+        "triangles": 67752,
+        "points": 0,
+        "lines": 0
+      },
+      "frameMs": {
+        "median": 16.699999999999818,
+        "p95": 16.700000000000728,
+        "p99": 16.800000000000182,
+        "stalls": 0
+      },
+      "fps": 59.88023952095874,
+      "samples": 299
+    },
+    {
+      "id": "skyport-split",
+      "variant": "full",
+      "viewport": [
+        390,
+        844
+      ],
+      "phase": 1,
+      "world": {
+        "drawCalls": 25,
+        "triangles": 34742,
+        "textureBytes": 4793172,
+        "textureCount": 5,
+        "colliders": 59
+      },
+      "renderer": {
+        "frame": 376,
+        "calls": 86,
+        "triangles": 67752,
+        "points": 0,
+        "lines": 0
+      },
+      "frameMs": {
+        "median": 16.699999999999818,
+        "p95": 16.799999999999727,
+        "p99": 16.800000000000182,
+        "stalls": 0
+      },
+      "fps": 59.88023952095874,
+      "samples": 299
+    },
+    {
+      "id": "skyport-split",
+      "variant": "compact",
+      "viewport": [
+        1280,
+        720
+      ],
+      "phase": 0,
+      "world": {
+        "drawCalls": 25,
+        "triangles": 24114,
+        "textureBytes": 4793172,
+        "textureCount": 5,
+        "colliders": 57
+      },
+      "renderer": {
+        "frame": 401,
+        "calls": 125,
+        "triangles": 84690,
+        "points": 0,
+        "lines": 0
+      },
+      "frameMs": {
+        "median": 16.699999999999818,
+        "p95": 16.700000000000728,
+        "p99": 16.800000000000182,
+        "stalls": 0
+      },
+      "fps": 59.88023952095874,
+      "samples": 299
+    },
+    {
+      "id": "skyport-split",
+      "variant": "compact",
+      "viewport": [
+        1280,
+        720
+      ],
+      "phase": 1,
+      "world": {
+        "drawCalls": 25,
+        "triangles": 24114,
+        "textureBytes": 4793172,
+        "textureCount": 5,
+        "colliders": 57
+      },
+      "renderer": {
+        "frame": 398,
+        "calls": 125,
+        "triangles": 84690,
+        "points": 0,
+        "lines": 0
+      },
+      "frameMs": {
+        "median": 16.699999999999818,
+        "p95": 16.700000000000728,
+        "p99": 16.800000000000182,
+        "stalls": 0
+      },
+      "fps": 59.88023952095874,
+      "samples": 299
+    },
+    {
+      "id": "skyport-split",
+      "variant": "compact",
+      "viewport": [
+        390,
+        844
+      ],
+      "phase": 0,
+      "world": {
+        "drawCalls": 25,
+        "triangles": 24114,
+        "textureBytes": 4793172,
+        "textureCount": 5,
+        "colliders": 57
+      },
+      "renderer": {
+        "frame": 378,
+        "calls": 95,
+        "triangles": 65086,
+        "points": 0,
+        "lines": 0
+      },
+      "frameMs": {
+        "median": 16.699999999999818,
+        "p95": 16.799999999999727,
+        "p99": 16.800000000000182,
+        "stalls": 0
+      },
+      "fps": 59.88023952095874,
+      "samples": 300
+    },
+    {
+      "id": "skyport-split",
+      "variant": "compact",
+      "viewport": [
+        390,
+        844
+      ],
+      "phase": 1,
+      "world": {
+        "drawCalls": 25,
+        "triangles": 24114,
+        "textureBytes": 4793172,
+        "textureCount": 5,
+        "colliders": 57
+      },
+      "renderer": {
+        "frame": 377,
+        "calls": 95,
+        "triangles": 65086,
+        "points": 0,
+        "lines": 0
+      },
+      "frameMs": {
+        "median": 16.699999999999818,
+        "p95": 16.700000000000728,
+        "p99": 16.800000000000182,
+        "stalls": 0
+      },
+      "fps": 59.88023952095874,
+      "samples": 299
+    }
+  ]
+}

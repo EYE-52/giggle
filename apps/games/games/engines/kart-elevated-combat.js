@@ -1,4 +1,5 @@
 'use strict';
+const {createArenaTravelScorer}=require('../../public/js/engines/kart-arena-travel.mjs');
 const {selectArenaVariant,validateArenaContract,selectArenaHomes,arenaRespawnMs,createArenaRewardPolicy}=require('../../public/js/engines/kart-arena-policy.mjs');
 const {elevatedFallZone}=require('../../public/js/engines/kart-elevated-surfaces.mjs');
 
@@ -126,7 +127,7 @@ function createElevatedCombat(RAPIER,config,map,seats,options={}) {
       return support && Math.abs(support.point.y-s.y)<0.15 && support.normal.y>0.65;
     });
   }
-  let spawns,sockets,motion,respawnCandidates;
+  let spawns,sockets,motion,respawnCandidates,travel;
   const rewardPolicy=M.arenaVersion?createArenaRewardPolicy(W,seats.length,rand):null,spawnUsed=new Map();
   function pickSocket(exclude, level) {
     let pool=sockets.filter(s=>s.id!==exclude && (level===undefined || Math.abs(s.y-level)<.25) && !crates.some(c=>c.socketId===s.id));
@@ -140,6 +141,7 @@ function createElevatedCombat(RAPIER,config,map,seats,options={}) {
   function rollWeapon() { let edge=0; const r=rand()*100; for(const [id,weight] of Object.entries(ARSENAL.weights)) { edge+=weight; if(r<edge) return id; } return 'nuke'; }
   try {
     for(const d of elevatedStatics(M)) physics.addStatic(d);
+    travel=M.arenaVersion?createArenaTravelScorer(physics,M):null;
     spawns=M.spawns.filter(legalSpawn);
     respawnCandidates=M.arenaVersion?M.spawnCandidates.filter(legalSpawn):spawns;
     sockets=M.sockets.filter(s=>supported(s) && !physics.sweepStatic({x:s.x,y:s.y+0.65,z:s.z},{x:s.x,y:s.y+0.65,z:s.z},0.45));
@@ -278,6 +280,7 @@ function createElevatedCombat(RAPIER,config,map,seats,options={}) {
     return respawnCandidates.filter(s=>legalSpawn(s)&&others.every(p=>!hullsOverlap(spawnPose(s),p))).map(s=>({s,clear:Math.min(...others.map(p=>distance(p.position,spawnPose(s).position)))})).filter(v=>v.clear>=B.RESPAWN_CLEAR);
   }
   function respawn(k) {
+    travel?.prepare([...karts.values()].filter(enemy=>enemy.id!==k.id&&enemy.alive&&enemy.connected).map(enemy=>physics.pose(enemy.id).position));
     const safe=clearSpawns(k).map(v=>{
       if(!M.arenaVersion)return v;
       const at=spawnPose(v.s).position;
@@ -285,7 +288,7 @@ function createElevatedCombat(RAPIER,config,map,seats,options={}) {
       for(const enemy of karts.values())if(enemy.id!==k.id&&enemy.alive&&enemy.connected){const p=physics.pose(enemy.id).position;const d=distance(at,p);if(Math.abs(at.y-p.y)<3)threat+=Math.max(0,35-d);if(d<50&&los(at,p)){threat+=18;if(Math.abs(at.y-p.y)<3&&d<12)threatened=true;}}
       for(const shot of shots)if(shot.owner!==k.id&&distance(at,shot.position)<15){threat+=25;if(distance(at,shot.position)<10)threatened=true;}
       const recency=Math.max(0,10000-(simAt-(spawnUsed.get(v.s.id)??-Infinity)))/1000;
-      return {...v,score:v.clear-threat-recency*4,threatened};
+      return {...v,score:Math.min(100,travel?travel.distance(v.s):v.clear)-threat-recency*4,threatened};
     }).filter(v=>!v.threatened).sort((a,b)=>M.arenaVersion?b.score-a.score:b.clear-a.clear);
     if(!safe.length) return; // Keep non-solid; retry until a safe pose exists.
     spawnUsed.set(safe[0].s.id,simAt);

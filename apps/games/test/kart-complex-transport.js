@@ -17,14 +17,15 @@ const send=(c,m)=>c.ws.send(JSON.stringify(m));
   server.stdout.on('data',v=>logs+=v);server.stderr.on('data',v=>logs+=v);await until(()=>logs.includes('PartyBox on'),'server starts');
   for(let i=0;i<32;i++){
     const c={ws:new WebSocket('ws://127.0.0.1:'+port),hello:null,state:null,count:0,bytes:0};clients.push(c);
-    c.ws.on('message',raw=>{const m=JSON.parse(String(raw));if(m.t==='hello')c.hello=m;if(m.t==='state'){c.state=m;c.count++;c.bytes=raw.length;}});await once(c.ws,'open');
+    c.ws.on('message',raw=>{const m=JSON.parse(String(raw));if(m.t==='error')c.lastError=m.msg;if(m.t==='hello')c.hello=m;if(m.t==='state'){c.state=m;c.count++;c.bytes=raw.length;}});await once(c.ws,'open');
     send(c,i?{t:'join',code:clients[0].hello.code,name:'Map '+i}:{t:'create',name:'Map 0'});await until(()=>c.hello,'seat '+i+' joins');
   }
   const host=clients[0];
   for(const [label,id] of Object.entries(require('../games/engines/kart-elevated-adapter').MAP_LABELS)){
-    const old=host.state?.instanceId;send(host,{t:'start',game:'pocket-karts',settings:{map:label,mode:'Zap Battle',roundSeconds:60}});
+    const cap=require('../games/engines/kart-elevated-adapter').LAUNCH_ARENA_CAPS[label],old=host.state?.instanceId;host.lastError=null;send(host,{t:'start',game:'pocket-karts',settings:{map:label,mode:'Zap Battle',roundSeconds:60}});
+    if(cap&&cap.max<32){await until(()=>host.lastError,'capacity rejection '+label);assert.match(host.lastError,new RegExp(cap.min+'–'+cap.max+' drivers'));assert.equal(host.state?.instanceId,old,'rejection preserves existing match');continue;}
     await until(()=>clients.every(c=>c.state?.instanceId&&c.state.instanceId!==old),'all clients receive '+label);
-    const complex=id==='skyport'||id==='foundry',drivers=complex?32:8;
+    const complex=id==='skyport'||id==='foundry'||id==='skyport-split',drivers=cap?32:complex?32:8;
     for(const [index,c] of clients.entries()){assert.equal(c.state.profile,'elevated-combat-v1');assert.equal(c.state.map.label,label);assert.equal(c.state.mapId,id);assert.equal(c.state.karts.length,drivers);assert.equal(c.state.youDrive,index<drivers);assert.equal(c.state.spectators.length,32-drivers);assert(c.bytes<40000);}
     await until(()=>host.state.phase==='live',label+' live countdown');const self=s=>s.karts.find(k=>k.id===s.you),origin=self(host.state).pose.position,firstCount=host.count;
     for(let i=0;i<12;i++){const s=host.state;send(host,{t:'action',i:s.instanceId,w:s.w,a:{type:'input',seq:s.inputAck.receivedSeq+1,life:s.inputAck.life,controlEpoch:s.inputAck.controlEpoch,throttle:1,steer:0,brake:0,nitro:false,use:false}});await sleep(50);}

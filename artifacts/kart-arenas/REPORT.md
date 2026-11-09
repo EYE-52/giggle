@@ -2,14 +2,14 @@
 
 10 November 2026. Local work only. Nothing pushed or deployed.
 
-**The seven-arena request is unfinished.** Shared support and the first Rookie Ribbons playable slice are implemented. Rookie has useful driving, camera and render evidence, but has not passed every launch gate. The other six maps have not been built. The old menu entries remain until the replacement lineup is ready; their IDs still load their original worlds.
+**The seven-arena request is unfinished.** Shared support and the first Rookie Ribbons playable slice are implemented. Rookie has useful driving, camera and render evidence, but has not passed every launch gate. Skyport now also has a three-floor build and core automated evidence. The other five maps have not yet been completed. The old menu entries remain until the replacement lineup is ready; their IDs still load their original worlds.
 
 ## Map status, in the required build order
 
 | Arena | Implementation | Evidence / next work |
 | --- | --- | --- |
 | Rookie Ribbons | Playable duel/full slice; 2 floors | Screenshots and measurements below. Combat supply, balance and full acceptance remain. |
-| Skyport Split | Not built | All variants, three floors, helix/switchback, roof gap/catch, features, 64 candidates, 72 homes and all gates remain. |
+| Skyport Split | Three-floor build with four variants and finished shared art | Core geometry, driving, camera, starts, supply, transport and render checks pass. Wider combat/device/human gates remain. |
 | Garden Crown | Not built | Clover geometry, crown/fountain, both climbs, variants, starts/homes, art and all gates remain. |
 | Frostbite Crescent | Not built | Crescent shoreline, ice/shelf, jump/bypass, variants, starts/homes, art and all gates remain. |
 | Neon Switchyard | Not built | Hexagon, sign bridges, market cover, variants, starts/homes, art and all gates remain. |
@@ -120,3 +120,25 @@ All sixteen named duel/full screenshots above were refreshed. [Review sheet](roo
 The solid rails caught the old test driver's cut turns. The driver now detects passed waypoint planes and slows tight turns; it does not reset or teleport. Both complete circuit directions, all departures/routes, 10,032 camera checks and forty three-minute stress replays pass with the guards present. New `kart-launch-art.mjs` checks texture mipmaps/UVs, finite camera envelopes, slope-guard transforms, bridge supports, disposal and map art budgets; it is in `npm test`.
 
 Still outstanding: the full shared and combat acceptance items listed above, including active box-seeking/fire trials and physical-device/human sessions. These results do not close those gates.
+
+## Skyport Split — first built large arena
+
+Four fixed variants now have measured areas **7,795 / 9,212.5 / 12,704.25 / 18,189.25 m²**, **40 / 48 / 64 / 72** authored homes and **25 / 29 / 40 / 48** cycling boxes at 8 / 16 / 24 / 32 drivers. Pools contain **16 / 32 / 48 / 64** legal candidates. Max starts are 16 ground / 8 middle / 8 roof, interleaved across the roster. All 32 full-map starts physically drive 20m together; full-hull casts include the cannon and portal frames.
+
+The west two-turn helix, east switchback, middle bridges, protected roof bridge, optional roof gap/lower catch, full-map two cannons and cross-level portal are built. Every ordinary directed route passes authority-input driving in both directions on compact/full. Real clearance graphs connect every start/home; closing either tier of the helix or either east climb leaves the ordinary network connected. Closures block the climb interior, preserving supported endpoint aprons. Twenty supply seeds per reference count pass fixed-home count/floor checks. [Core audit](skyport-gates.json).
+
+Uniform compact geometry retains the ramp grades while bringing eight-driver area down from the first 14,861m² prototype to **7,795m²**. Its floors are 0 / 7.5 / 15m; medium uses 0 / 8 / 16m; wide 0 / 8.5 / 17m; full retains **0 / 10 / 20m**. Compact/medium omit the two cannons because those narrower street loops do not need them. The portal and both ordinary ascent systems remain. These are explicit changes from the plan. Medium/wide/full area remains above its starting sketch target; encounter/balance testing still matters.
+
+The skin has metre-tiled steel/paving, warm roof and teal middle floors, parking bays, H/P markings, runway lamps, reflected guard caps, roof utility pods and a windowed helix core. Existing painted harbor scenery and full driver models are reused. Guard boxes combine into bounded static meshes; their individual transforms remain the exact art/camera proxies. No arbitrary terrain mesh was introduced. Maximum statics including feature frames: **63**, cap 92. Full world plus shortcut art: **40 draws / 38,726 triangles**, cap 65 / 43,000, before the one loaded backdrop draw. Loaded texture accounting is under 5MiB. Top/chase and each floor slice are captured at 1280×720 and 390×844 in both palettes.
+
+Eight-driver render review cases measured **59.9 FPS** at 4× CPU throttle. The separate real **32-driver** production-browser run measured **59.6 FPS**, **125 draws/frame**, **20.2 binary updates/s**, **79.7KiB/s**, 15.1m confirmed keyboard movement and no browser errors. [32-driver metrics](skyport-32/kart-32-browser.json) · [production screenshot](skyport-32/kart-32-browser.png). This is a short run on this Mac using Chrome/Metal, not physical-phone or five-minute combat proof.
+
+Launch arenas now reuse the existing binary transport at their existing 20Hz cadence; legacy raised fixture IDs keep their JSON contract. A mixed real-Room test compares binary-decoded poses, health, districts and homes to JSON clients for 20 seconds, including disconnect/resume. It measured about **27–83KiB/s binary versus 335–871KiB/s full JSON**, depending on seats, before this final geometry refresh. [Current measurements](launch-transport.json) supersede that range. No loading, vendor or game-host code changed.
+
+Respawn scores now use small offline road-distance atlases built from real support/hull graphs. Enemy attachments are accepted only across supported, unobstructed road segments; missing attachments fall back conservatively. No live map raster/search was added to a server tick. Stacked-floor and atlas regression tests pass.
+
+An additional active box-seeking/firing probe is diagnostic, **not a passed gate**: at eight on Rookie, one three-minute seed approached all 18 homes and visited both levels, with 183 pickups and no server recovery. Median unarmed time was 2s and median availability 83%, but p95 unarmed time was 16.7s and the test driver logged 30 stalled approaches. It still needs better turn/goal handling and the full 20-seed acceptance run. The earlier isolated route replays remain passing, but do not replace this combat gate. Do not describe either map as launch accepted on this evidence.
+
+Final isolated Room transport rerun for this build: 8 / 16 / 32 Skyport drivers used **22.4 / 42.7 / 81.7KiB/s** binary versus **353 / 524 / 869KiB/s** JSON. Full Room update p95 was **2.1 / 6.4 / 15.3ms**. An earlier concurrent browser/test run measured 33.3ms at 32, so these are machine-load-sensitive measurements, not a hardware-independent promise. [Exact final transport run](launch-transport.json).
+
+Reviewed sheets: [Skyport full](skyport-split-full-review.jpg), [Skyport compact](skyport-split-compact-review.jpg). Each includes all three top slices and chase views in Day/Night at 1280/390. Raw files use `skyport-split-{full,compact}-{1280,390}-{day,night}-{top,chase,L0-top,L0-chase,L1-top,L1-chase,L2-top,L2-chase}.png`. Picker previews now use the finished Rookie and Skyport worlds.

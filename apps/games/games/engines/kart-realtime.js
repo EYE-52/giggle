@@ -27,3 +27,16 @@ const KART_STREAM = Object.freeze({
 });
 
 module.exports = { KART_STREAM };
+
+// Launch arenas keep their 20 Hz authority cadence. Their own pose layout
+// streams directly; all drivers receive every pose each tick. Old saved
+// elevated fixtures keep their original JSON transport contract.
+const ELEVATED_KART_STREAM=Object.freeze({path:'karts',key:'id',fields:[
+ ['pose.position.x','f32'],['pose.position.y','f32'],['pose.position.z','f32'],
+ ['pose.rotation','quat'],
+ ['pose.linearVelocity.x','i16',.01],['pose.linearVelocity.y','i16',.01],['pose.linearVelocity.z','i16',.01],
+ ['pose.angularVelocity.x','i16',.001],['pose.angularVelocity.y','i16',.001],['pose.angularVelocity.z','i16',.001],
+ [['pose.grounded'],'bits'],['pose.epoch','u32'],['pose.speed','i16',.01],
+ ['pose.wheels','list',{count:4,fields:[['length','u8',.0025],['rotation','angle'],['steering','i8',.005]]}],
+]});
+module.exports.ELEVATED_KART_STREAM=ELEVATED_KART_STREAM;

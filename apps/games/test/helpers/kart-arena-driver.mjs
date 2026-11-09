@@ -1,3 +1,5 @@
+import {createKartPhysics} from '../../public/js/engines/kart-physics-core.mjs';
+import {elevatedStatics} from '../../public/js/engines/kart-feature-solids.mjs';
 import combat from '../../games/engines/kart-elevated-combat.js';
 import {arenaPoint,arenaSupport} from '../../public/js/engines/kart-arena-authoring.mjs';
 // Real authority inputs, with a diagnostic initial start only. A traversal
@@ -5,8 +7,9 @@ import {arenaPoint,arenaSupport} from '../../public/js/engines/kart-arena-author
 export function driveArenaRoute(RAPIER,config,map,points,{seed=42,speed=5,seconds=180,continuous=false}={}){
  const first=points[0],second=points[1],angle=Math.atan2(second.x-first.x,second.z-first.z),copy=structuredClone(map);
  const initial=arenaPoint('route-start',arenaSupport(copy,first.x,first.y,first.z),first.x,first.y,first.z,angle,{district:'core'});
+ const query=createKartPhysics(RAPIER,config);try{elevatedStatics(copy).forEach(d=>query.addStatic(d));initial.surface=query.supportAt({...first,y:first.y+.4},.8)?.surfaceId;}finally{query.dispose();}
  const rival=copy.spawnCandidates.filter(p=>p.y===0).map(p=>({p,clear:Math.min(...points.map(q=>Math.hypot(p.x-q.x,p.y-q.y,p.z-q.z)))})).sort((a,b)=>b.clear-a.clear)[0].p;
- copy.spawns=[initial,rival];copy.spawnCandidates=[initial,...copy.spawnCandidates];
+ copy.spawns=[initial,rival];copy.spawnCandidates=[initial,...copy.spawnCandidates.slice(0,63)];
  const match=combat.createElevatedCombat(RAPIER,config,copy,[{id:'bot'},{id:'rival'}],{instance:'route',seed,startAt:0,countdownMs:0,roundMs:Math.min(600000,seconds*1000+5000)});
  let goal=1,seq=0,at=0,stuck=0,anchor=first,lastProgress=0;const poses=[],events=new Set();
  try{

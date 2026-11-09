@@ -1,3 +1,4 @@
+import {addLaunchDetails} from './kart-launch-details.mjs';
 import {complexSurfaceTexture} from './kart-complex-surfaces.mjs';
 import {mergeStaticMeshes} from './kart-instancing.mjs';
 import {createRaisedReadability,applyRaisedLighting} from './kart-raised-readability.mjs';
@@ -15,12 +16,13 @@ export function createKartLaunchWorld(THREE,{scene,map,palette='Daybreak',lighti
  const M={road:material('road',colors.road),deck:material('deck',colors.deck),edge:material('edge',colors.edge),cover:material('cover',colors.cover),blue:material('blue',0x6bbbc8),dark:material('dark',0x344c60),white:material('white',0xfff4d6),yellow:material('yellow',0xffcc55),green:material('green',0x569675)};
  const roadTexture=texture(complexSurfaceTexture(THREE,map.artId==='garden'?'pavers':'asphalt')),deckTexture=texture(complexSurfaceTexture(THREE,['ring','garden','frost'].includes(map.artId)?'pavers':'steel'));
  M.road.map=roadTexture;M.deck.map=deckTexture;M.cover.map=deckTexture;
+ const tierMaterials=map.levels.slice(1).map(l=>{if(map.artId==='ring')return M.deck;const m=material('deck-'+l.id,new THREE.Color(colors.deck).lerp(new THREE.Color(l.color),.48));m.map=deckTexture;return m;});
  const glow=mat(new THREE.MeshLambertMaterial({color:0xc9f4ef,emissive:0x70d6d5,emissiveIntensity:.8}));
  const unit=geo(new THREE.BoxGeometry(1,1,1));
  function add(parent,g,m,p=[0,0,0],scale=[1,1,1],rotation=[0,0,0]){const mesh=new THREE.Mesh(g,m);mesh.position.set(...p);mesh.scale.set(...scale);mesh.rotation.set(...rotation);mesh.receiveShadow=true;mesh.castShadow=false;parent.add(mesh);return mesh;}
- for(const d of map.colliders){
+ for(const d of map.colliders.flatMap(d=>d.parts||[d])){
   const g=new THREE.Group();g.name=d.id;g.position.copy(d.position);if(d.rotation)g.quaternion.copy(d.rotation);solids.add(g);
-  const m=d.material==='pillar'?M.dark:d.material==='barrier'?M.dark:d.material==='toy-blue'?M.blue:d.shape==='deck'||d.shape==='wedge'?M.deck:d.id.startsWith('floor')?M.road:M.cover;
+  const m=d.material==='pillar'?M.dark:d.material==='barrier'?M.dark:d.material==='toy-blue'?M.blue:d.shape==='deck'||d.shape==='wedge'?tierMaterials[Math.max(0,map.levels.slice(1).findIndex(l=>l.y>=d.position.y+d.half.y-.1))]||M.deck:d.id.startsWith('floor')?M.road:M.cover;
   const geometry=geo(d.id.startsWith('floor')?new THREE.BoxGeometry(d.half.x*2,d.half.y*2,d.half.z*2):solidGeometry(THREE,d));
   // Bake metre-scale UVs before merging. No per-mesh shader or draw call.
   if(m.map){const p=geometry.attributes.position,n=geometry.attributes.normal,uv=geometry.attributes.uv;
@@ -35,8 +37,8 @@ export function createKartLaunchWorld(THREE,{scene,map,palette='Daybreak',lighti
    const alongX=d.half.x>d.half.z,length=2*(alongX?d.half.x:d.half.z),cross=2*(alongX?d.half.z:d.half.x),v=(a,b,c)=>alongX?[a,b,c]:[c,b,a];
    body.scale.y=.28;body.position.y=-d.half.y*.72;
    add(g,unit,M.edge,v(0,d.half.y*.72,0),v(length,.14,cross));
-   for(let t=-length/2+.18;t<length/2;t+=3){add(g,unit,M.blue,v(t,0,0),v(.14,d.half.y*1.8,cross));add(g,unit,glow,v(t,d.half.y*.72,0),v(.4,.16,cross+.005));}
-   for(let t=-length/2+.5;t<length/2;t+=2)add(g,unit,M.yellow,v(t,-d.half.y*.65,0),v(.6,.18,cross+.006));
+   for(let t=-length/2+.18;t<length/2;t+=(map.artId==='ring'?3:4.5)){add(g,unit,M.blue,v(t,0,0),v(.14,d.half.y*1.8,cross));add(g,unit,glow,v(t,d.half.y*.72,0),v(.4,.16,cross+.005));}
+   for(let t=-length/2+.5;t<length/2;t+=(map.artId==='ring'?2:3))add(g,unit,M.yellow,v(t,-d.half.y*.65,0),v(.6,.18,cross+.006));
   }
   if(d.role==='pillar'){
    for(let y=-d.half.y+.5;y<d.half.y;y+=1.1)add(g,unit,M.yellow,[0,y,0],[d.half.x*2+.006,.22,d.half.z*2+.006]);
@@ -79,9 +81,10 @@ export function createKartLaunchWorld(THREE,{scene,map,palette='Daybreak',lighti
    for(let i=0;i<4;i++)for(let j=0;j<2;j++)if((i+j)%2===0)add(scenery,unit,M.white,[x-side*1.2+(i-1.5)*.5,5.4+(j-.5)*.55,-15.94],[.5,.55,.025]);
   }
  }
+ addLaunchDetails(THREE,{map,soft,scenery,geo,add,M,glow,unit});
  // A low ground apron is scenery only. The shaped driving slabs and guards
  // above it are the complete physical footprint; there is no square collider.
- const ground=material('backdrop-ground',map.artId==='frost'?0xd1e5ed:map.artId==='neon'?0x304c68:0x82b59a);
+ const ground=material('backdrop-ground',map.artId==='frost'?0xd1e5ed:map.artId==='neon'?0x304c68:['harbor','skyport'].includes(map.artId)?0x438fa7:0x82b59a);
  add(scenery,geo(new THREE.CylinderGeometry(map.half+18,map.half+23,3,12)),ground,[0,-3.1,0]);
  const sky=createKartSky(THREE,{parent:scenery,radius:330,geometry:geo,material:mat});
  const backdrop=createKartBackdrop(THREE,{parent:scenery,theme:map.backdrop||map.artId,radius:map.half+130,geometry:geo,material:mat,texture,isAlive:()=>!disposed});
@@ -93,7 +96,7 @@ export function createKartLaunchWorld(THREE,{scene,map,palette='Daybreak',lighti
  const fixed=palette==='Starlight'?1:palette==='Sunset'?.65:0;
  const lightingState={phase:fixed,sun,hemisphere:hemi,fogColor:new THREE.Color(),fogNear:180,fogFar:400,exposure:1.05};
  function animate(dt,time,skyPhase){if(disposed)return;const p=Number.isFinite(skyPhase)?Math.max(0,Math.min(1,skyPhase)):fixed;sky.setPhase(p);backdrop.tint(sky.horizon,Math.max(0,(p-.65)/.35));applyRaisedLighting(sun,hemi,p,{neon:map.artId==='neon'});lightingState.phase=p;lightingState.fogColor.copy(sky.horizon);}
- function stats(){const out={drawCalls:0,triangles:0,textureBytes:0,textureCount:textures.size,colliders:colliderMeshes.size};group.traverseVisible(o=>{if(!o.isMesh||o.userData.cameraCollider)return;out.drawCalls+=Array.isArray(o.material)?o.geometry.groups.length:1;out.triangles+=(o.geometry.index?.count??o.geometry.attributes.position.count)/3*(o.isInstancedMesh?o.count:1);});for(const t of textures)out.textureBytes+=Math.round((t.image?.width||0)*(t.image?.height||0)*4*4/3);return out;}
+ function stats(){const out={drawCalls:0,triangles:0,textureBytes:0,textureCount:textures.size,colliders:map.colliders.length};group.traverseVisible(o=>{if(!o.isMesh||o.userData.cameraCollider)return;out.drawCalls+=Array.isArray(o.material)?o.geometry.groups.length:1;out.triangles+=(o.geometry.index?.count??o.geometry.attributes.position.count)/3*(o.isInstancedMesh?o.count:1);});for(const t of textures)out.textureBytes+=Math.round((t.image?.width||0)*(t.image?.height||0)*4*4/3);return out;}
  function dispose(){if(disposed)return;disposed=true;group.removeFromParent();readability.dispose();group.traverse(o=>{if(o.isInstancedMesh)o.dispose();});for(const r of[...geometries,...materials,...textures])r.dispose();sun.dispose();hemi.dispose();colliderMeshes.clear();group.clear();}
  animate(0,0);return {group,solids,scenery,colliderMeshes,layout:map,lighting:lightingState,animate,updateDetail(){},stats,dispose,get disposed(){return disposed;}};
 }

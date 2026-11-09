@@ -41,3 +41,34 @@ export function arenaRampGuards(d,{height=1.1,width=.28}={}){
  const yaw=2*Math.atan2(d.rotation.y,d.rotation.w),pitch=-Math.atan2(d.half.y,d.half.z),sy=Math.sin(yaw/2),cy=Math.cos(yaw/2),sp=Math.sin(pitch/2),cp=Math.cos(pitch/2);
  return [-1,1].map(side=>arenaBox(d.id+'-rail-'+side,d.position.x+Math.cos(yaw)*side*(d.half.x-width/2),d.position.y+height/2,d.position.z-Math.sin(yaw)*side*(d.half.x-width/2),width/2,height/2,Math.hypot(d.half.z,d.half.y),'barrier',{rotation:{x:cy*sp,y:sy*cp,z:-sy*sp,w:cy*cp},role:'rail'}));
 }
+// A bounded group of ordinary guard boxes becomes one fixed collision mesh.
+// This is only for rails, never terrain: each part remains available to art
+// and camera queries with the exact same world transform.
+export function arenaGuardGroup(id,parts){
+ if(!parts.length||parts.length>16||parts.some(p=>p.shape!=='box'||p.material!=='barrier'))throw new TypeError('Guard boxes required');
+ const vertices=[],indices=[];
+ for(const d of parts){const base=vertices.length/3,q=d.rotation||{x:0,y:0,z:0,w:1};
+  for(let i=0;i<8;i++){
+   const x=(i&1?1:-1)*d.half.x,y=(i&2?1:-1)*d.half.y,z=(i&4?1:-1)*d.half.z;
+   const tx=2*(q.y*z-q.z*y),ty=2*(q.z*x-q.x*z),tz=2*(q.x*y-q.y*x);
+   vertices.push(d.position.x+x+q.w*tx+q.y*tz-q.z*ty,d.position.y+y+q.w*ty+q.z*tx-q.x*tz,d.position.z+z+q.w*tz+q.x*ty-q.y*tx);
+  }
+  for(const f of[[0,4,6,2],[1,3,7,5],[0,1,5,4],[2,6,7,3],[0,2,3,1],[4,5,7,6]])indices.push(base+f[0],base+f[1],base+f[2],base+f[0],base+f[2],base+f[3]);
+ }
+ return {id,shape:'trimesh',position:{x:0,y:0,z:0},half:{x:Math.max(...parts.map(d=>Math.abs(d.position.x)+d.half.x)),y:Math.max(...parts.map(d=>Math.abs(d.position.y)+d.half.y)),z:Math.max(...parts.map(d=>Math.abs(d.position.z)+d.half.z))},material:'barrier',parts,vertices:new Float32Array(vertices),indices:new Uint32Array(indices),grip:1};
+}
+// Variant geometry may shrink uniformly, preserving ramp grades and all
+// support/proxy transforms. Quaternions, indices, angles and colours do not scale.
+export function arenaScale(source,factor){
+ const map=structuredClone(source);
+ function visit(value){
+  if(!value||typeof value!=='object')return;
+  if(value instanceof Float32Array){for(let i=0;i<value.length;i++)value[i]*=factor;return;}
+  if(ArrayBuffer.isView(value)||Number.isFinite(value.w))return;
+  if(['x','y','z'].every(k=>Number.isFinite(value[k])))for(const k of['x','y','z'])value[k]*=factor;
+  if(Number.isFinite(value.apex))value.apex*=factor;
+  for(const child of Object.values(value))visit(child);
+ }
+ visit(map);for(const level of map.levels)level.y*=factor;map.playBounds.halfX*=factor;map.playBounds.halfZ*=factor;map.playBounds.outline=map.playBounds.outline.map(r=>r.map(n=>n*factor));
+ if(map.reviewPoses)map.reviewPoses=map.reviewPoses.map(p=>p.map((n,i)=>i<3?n*factor:n));map.artScale=factor;return map;
+}

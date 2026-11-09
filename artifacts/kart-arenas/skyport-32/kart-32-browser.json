@@ -1,0 +1,24 @@
+{
+  "map": "Skyport Split",
+  "drivers": 32,
+  "connected": 32,
+  "seconds": 21.1,
+  "browser": {
+    "binaryFramesPerSec": 20.2,
+    "kbPerSec": 79.7,
+    "textFrames": 6,
+    "fps": 59.6,
+    "worstFrameMs": 117,
+    "drawCallsPerFrame": 125,
+    "hud": {
+      "rows": 0,
+      "canvas": true
+    }
+  },
+  "bots": {
+    "framesPerSec": 18.7
+  },
+  "browserKartMovedM": 15.1,
+  "fastestForward": 21,
+  "errors": []
+}

@@ -1,0 +1,34 @@
+// Small, merged detail pieces share the world materials and metre-scale atlas.
+// Solid decoration stays inside authored cover. Floor paint is flat; scenery
+// signs sit outside the guarded footprint. There is no per-frame prop work.
+export function addLaunchDetails(THREE,{map,soft,scenery,geo,add,M,glow,unit}){
+ const flat=geo(new THREE.PlaneGeometry(1,1).rotateX(-Math.PI/2));
+ const glyphs={H:['11011','11011','11011','11111','11011','11011','11011'],P:['11110','11011','11011','11110','11000','11000','11000'],'2':['11110','00011','00011','01110','11000','11000','11111'],A:['01110','11011','11011','11111','11011','11011','11011'],B:['11110','11011','11011','11110','11011','11011','11110']};
+ for(const p of map.landmarks||[]){const glyph=glyphs[p.symbol];if(!glyph||map.artId==='ring')continue;
+  const scale=1.1;for(let row=0;row<7;row++)for(let col=0;col<5;col++)if(glyph[row][col]==='1')add(soft,flat,M.white,[p.x+(col-2)*scale,p.y+.035,p.z+(row-3)*scale],[scale*.9,1,scale*.9]);
+ }
+ if(map.artId==='skyport'){
+  // Parking stripes and generous turning bays are bounded by their deck.
+  for(const d of map.colliders.filter(d=>/^(west|east)-[12]$/.test(d.id))){const y=d.position.y+d.half.y+.025;
+   for(const side of[-1,1])for(let z=d.position.z-d.half.z+6;z<d.position.z+d.half.z-4;z+=7){
+    const x=d.position.x+side*(d.half.x-4);add(soft,flat,M.white,[x,y,z],[6.5,1,.14]);add(soft,flat,M.yellow,[d.position.x+side*(d.half.x-.8),y,z],[.14,1,5.8]);
+   }
+   for(let z=d.position.z-d.half.z+4;z<d.position.z+d.half.z-3;z+=5)add(soft,flat,M.yellow,[d.position.x,y,z],[.15,1,2]);
+  }
+  // The core is the structural and visual anchor of the west helix.
+  const core=map.colliders.find(d=>d.role==='core');if(core){const {x,y,z}=core.position,h=core.half,s=map.artScale||1;for(const side of[-1,1])for(let yy=y-h.y+3*s;yy<y+h.y;yy+=3*s){add(soft,unit,M.blue,[x,yy,z+side*(h.z-.01)],[h.x*1.75,.8*s,.02]);add(soft,unit,glow,[x,yy+.5*s,z+side*(h.z+.01)],[h.x*1.6,.08*s,.02]);}for(let dx=-h.x*.6;dx<h.x*.7;dx+=2*s)add(soft,unit,M.dark,[x+dx,y+h.y+.05,z],[.35*s,.05,h.z*1.75]);}
+  // Ground taxi kiosks and roof utility pods use the same cover envelopes.
+  const wheel=geo(new THREE.CylinderGeometry(.65,.65,.3,10).rotateX(Math.PI/2)),vent=geo(new THREE.CylinderGeometry(.8,.8,.08,12));
+  for(const d of map.colliders.filter(d=>d.material==='cargo')){
+   const {x,y,z}=d.position,h=d.half;
+   for(const side of[-1,1]){
+    add(soft,unit,M.blue,[x,y+.35,z+side*(h.z-.01)],[h.x*1.65,.85,.025]);
+    for(const dx of[-2.7,2.7])add(soft,wheel,M.dark,[x+dx*h.x/4,y-h.y+.7*(map.artScale||1),z+side*(h.z-.2)],Array(3).fill(map.artScale||1));
+    for(const dx of[-3.3,3.3])add(soft,unit,glow,[x+dx*h.x/4,y-.4*(map.artScale||1),z+side*(h.z-.005)],[.5,.28,.025]);
+   }
+   for(const dx of[-1.4,1.4]){add(soft,vent,M.dark,[x+dx*h.x/4,y+h.y-.03,z]);for(let i=0;i<3;i++)add(soft,unit,M.white,[x+dx*h.x/4,y+h.y+.015,z],[1.1,.025,.08],[0,i*Math.PI/3,0]);}
+  }
+  // Tiny runway lamps border real streets; no extra point lights.
+  for(const d of map.colliders.filter(d=>d.id.startsWith('floor'))){const {x,z}=d.position,h=d.half;for(let t=-h.z+2;t<h.z;t+=8)for(const side of[-1,1])add(soft,unit,glow,[x+side*(h.x-.45),.025,z+t],[.35,.05,.7]);}
+ }
+}

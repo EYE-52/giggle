@@ -3,6 +3,7 @@ import { esc } from './util.js';
 // Menu previews are small views of the shipped worlds, keyed by profile
 // as well as map ID: the classic and elevated gardens are different arenas.
 export const KART_ARENAS = [
+  { label: 'Skyport Split', key: 'arena-skyport-split', elevated: true, complex: true, players: '8–32', levels: 3, description: 'Twin parking towers, a two-turn helix and a roof gap with a safe bridge around it.' },
   { label: 'Rookie Ribbons', key: 'arena-rookie-ribbons', elevated: true, players: '2–8', levels: 2, description: 'Two toy lobes, a real arch bridge and two gentle climbs. A smaller duel arena for two.' },
   { label: 'Skyport', key: 'elevated-skyport', elevated: true, complex: true, description: 'Three floors, a spiral car park, roof jumps and sky bridges.' },
   { label: 'Foundry', key: 'elevated-foundry', elevated: true, complex: true, description: 'Three floors, furnace tunnels, moving belts and a high gantry.' },

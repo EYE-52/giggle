@@ -8,7 +8,7 @@ const { defaultSettings } = require('../_validate');
 const { MAP_LABELS, LAUNCH_ARENA_CAPS, preflightElevated, loadElevatedDependencies, createElevatedKartAdapter } = require('../engines/kart-elevated-adapter');
 
 let classicDependencies;
-const { KART_STREAM } = require('../engines/kart-realtime');
+const { KART_STREAM, ELEVATED_KART_STREAM } = require('../engines/kart-realtime');
 const {createClassicMotion}=require('../../public/js/engines/kart-classic-motion.mjs');
 const legacy = createKartGame({
   createMotion(state){if(!classicDependencies)throw Error('Kart physics is not initialized');return createClassicMotion(classicDependencies.RAPIER,classicDependencies.config,state);},
@@ -26,9 +26,9 @@ const legacy = createKartGame({
     ],
     tips: [
       'Grab a box; fire skips the reveal. Each pickup hurts each rival once.',
-      'Lock missiles ahead. Thunder needs a narrow cone within 35 metres.',
+      'Lock missiles ahead. Cannon shells bounce and burst on impact.',
       'Blades stay close for 6s. Supernova guards 3s, then bursts within 9m.',
-      'Dodge Nuke rings. Mine and Oil trap; Frost slows; Boomerang returns; Ram boosts.',
+      'Dodge Nuke rings. Mines guard routes; Frost slows; Turbo Ram boosts.',
       'Raised: cannons climb; portals cross levels. Release drift sparks for turbo.',
     ],
   },
@@ -104,7 +104,7 @@ const def = {
   // 25, 20 or 15 Hz). Elevated arenas keep their fixed 20 Hz JSON cadence.
   tickRate: state => owns(state) ? null : CLASSIC_RATE,
   tickInterval: () => 50,
-  realtime: state => owns(state) ? null : CLASSIC_REALTIME,
+  realtime: state => owns(state) ? (state.arenaVersion ? LAUNCH_REALTIME : null) : CLASSIC_REALTIME,
 };
 
 // Preserve prototype/private context methods while overriding only settings.
@@ -119,6 +119,7 @@ function contextWithSettings(ctx, settings) {
 const resolveSettings = settings => ({ ...defaults, ...defaultSettings(def), ...settings });
 
 const CLASSIC_RATE = Object.freeze({ target: 33, max: 66 });
+const LAUNCH_REALTIME = Object.freeze({streams:[ELEVATED_KART_STREAM],tiers:[{rank:Infinity,radius:Infinity,period:1}],publicView:state=>elevated.publicView(state),privateView:(state,pid)=>elevated.privateView(state,pid)});
 // Classic arenas: karts stream as binary records, the rest is a JSON delta.
 const CLASSIC_REALTIME = Object.freeze({
   streams: [KART_STREAM],

@@ -1,3 +1,5 @@
+import {rookieTravel} from './kart-rookie-travel.mjs';
+import {skyportSplit} from './kart-skyport-split.mjs';
 import {arenaBox as box,arenaDeck as deck,arenaRamp as ramp,arenaPoint as point,arenaFloor,arenaBoundary,arenaSupport,arenaRampGuards} from './kart-arena-authoring.mjs';
 const P=(x,y,z)=>({x,y,z});
 function rookie(){
@@ -47,9 +49,10 @@ function rookie(){
   for(const side of[-1,1])layout.colliders.push(box('bridge-pier-'+side,side*span,2.6,-10,.65,2.6,.65,'pillar',{role:'pillar'}));
   for(const [i,lo,hi]of [[0,-span,-9],[1,-5,5],[2,9,span]])layout.colliders.push(box('arch-front-rail-'+i,(lo+hi)/2,6.55,-4.12,(hi-lo)/2,.55,.14,'barrier',{role:'rail'}));
  }
+ map.travelAtlas=rookieTravel.full;duel.travelAtlas=rookieTravel.duel;
  map.variants=[{id:'duel',minPlayers:2,maxPlayers:2,usableArea:2117,districts,startIds:['duel-start-0','duel-start-1'],floorWeights:[8,4],layout:duel},
   {id:'full',minPlayers:3,maxPlayers:8,usableArea:3160.5,districts:[...districts,'retreat'],startIds:fullStarts,starts:{4:['start-0','start-1','start-12','start-13']},floorWeights:[14,4]}];
  map.spawns=fullStarts.map(id=>map.spawnCandidates.find(s=>s.id===id));return map;
 }
-export const launchArenas=Object.freeze({'rookie-ribbons':rookie()});
+export const launchArenas=Object.freeze({'rookie-ribbons':rookie(),'skyport-split':skyportSplit()});
 export const launchArenaIds=Object.freeze(Object.keys(launchArenas));

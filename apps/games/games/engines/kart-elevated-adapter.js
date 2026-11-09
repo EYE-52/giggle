@@ -30,6 +30,8 @@ const GONE_AFTER_MS = 60000;
 const END_REASONS = { deadline: 'timeout', target: 'goal', 'players-left': 'players-left' };
 
 function freeze(value) {
+  // Buffers live in the private structured clone; JS cannot freeze typed views.
+  if (ArrayBuffer.isView(value)) return value;
   if (value && typeof value === 'object' && !Object.isFrozen(value)) {
     for (const item of Object.values(value)) freeze(item);
     Object.freeze(value);
@@ -148,7 +150,7 @@ function createElevatedKartAdapter({ RAPIER, config, maps, defaults, createMatch
     const check = preflight(settings);
     if (check.error) throw new Error(check.error);
     const sourceMap=deps.maps[MAP_LABELS[settings.map]];
-    const map=sourceMap?.arenaVersion?selectArenaVariant(sourceMap,ctx.allPlayers().length):sourceMap, state = { profile: PROFILE, phase: 'countdown', endsAt: 0 };
+    const map=sourceMap?.arenaVersion?selectArenaVariant(sourceMap,ctx.allPlayers().length):sourceMap, state = { profile: PROFILE, phase: 'countdown', endsAt: 0,...(map?.arenaVersion?{arenaVersion:map.arenaVersion}:{}) };
     if (!map) throw new Error('Choose an elevated arena.');
     const match = deps.createMatch(deps.RAPIER, deps.config, map, ctx.allPlayers(), {
       instance: ctx.instanceId, seed: crypto.randomBytes(4).readUInt32LE(0), startAt: ctx.now(), roundMs: settings.roundSeconds * 1000,
@@ -221,6 +223,8 @@ function createElevatedKartAdapter({ RAPIER, config, maps, defaults, createMatch
       coins: own ? own.coins : 0 };
   }
   // Ordinary callers retain independent, mutable snapshots.
+  function publicView(state){return matches.get(state).view;}
+  function privateView(state,pid){const {youDrive,inputAck,coins}=viewForTransport(state,pid);return {youDrive,inputAck,coins};}
   function view(state, pid) { return structuredClone(viewForTransport(state, pid)); }
   function dispose(state) {
     const record = matches.get(state);
@@ -228,7 +232,7 @@ function createElevatedKartAdapter({ RAPIER, config, maps, defaults, createMatch
     record.disposed = true;
     record.match.dispose();
   }
-  return Object.freeze({ preflight, create, onAction, onTick, onConnection, onPlayerGone, view, viewForTransport, dispose, owns: state => matches.has(state) });
+  return Object.freeze({ preflight, create, onAction, onTick, onConnection, onPlayerGone, view, viewForTransport, publicView, privateView, dispose, owns: state => matches.has(state) });
 }
 
 module.exports = { GONE_AFTER_MS, PROFILE, MAP_LABELS, LAUNCH_ARENA_CAPS, preflightElevated, loadElevatedDependencies, createElevatedKartAdapter };
