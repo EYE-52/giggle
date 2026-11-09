@@ -46,15 +46,17 @@ export function arenaFloorQuotas(count, levels, sockets, weights=levels.map(()=>
   return quota;
 }
 export function selectArenaHomes(map,players,random,starts=map.spawns.slice(0,players)) {
+  const atlas=map.travelAtlas,rows=new Map((atlas?.ids||[]).map((id,i)=>[id,i])),columns=new Map((atlas?.homeIds||[]).map((id,i)=>[id,i]));
+  const road=(a,b)=>{const i=rows.get(a.id),j=columns.get(b.id);return i!==undefined&&j!==undefined&&atlas.homeDistances?atlas.homeDistances[i*atlas.homeIds.length+j]*atlas.scale:Math.hypot(a.x-b.x,a.z-b.z);};
   const count=arenaBoxCount(map.usableArea,players,map.sockets.length),quotas=arenaFloorQuotas(count,map.levels,map.sockets,map.boxPolicy.floorWeights),chosen=[];
   for(let floor=0;floor<map.levels.length;floor++){
     const level=map.levels[floor],pool=map.sockets.filter(s=>s.level===level.id),needs=starts.filter(s=>Math.abs(s.y-level.y)<.1).map(s=>({s,count:0}));
     const districts=new Map();
     while(chosen.filter(s=>s.level===level.id).length<quotas[floor]){
       const candidates=pool.filter(s=>!chosen.includes(s));
-      const ranked=candidates.map(s=>({s,score:needs.reduce((sum,n)=>sum+(n.count<2&&s.profile!=='risk'?Math.max(0,36-Math.hypot(s.x-n.s.x,s.z-n.s.z))*(2-n.count):0),0)+(1/(1+(districts.get(s.district)||0)))*15+random()})).sort((a,b)=>b.score-a.score);
+      const ranked=candidates.map(s=>({s,score:needs.reduce((sum,n)=>sum+(n.count<2&&s.profile!=='risk'?((road(n.s,s)<=32?10000:0)+Math.max(0,36-road(n.s,s))*10)*(2-n.count):0),0)+(1/(1+(districts.get(s.district)||0)))*15+random()})).sort((a,b)=>b.score-a.score);
       const next=ranked[0].s;chosen.push(next);districts.set(next.district,(districts.get(next.district)||0)+1);
-      for(const n of needs)if(next.profile!=='risk'&&Math.hypot(next.x-n.s.x,next.z-n.s.z)<=32)n.count++;
+      for(const n of needs)if(next.profile!=='risk'&&road(n.s,next)<=32)n.count++;
     }
   }
   if(chosen.filter(s=>s.profile==='risk').length>Math.floor(count*.1)){

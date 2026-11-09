@@ -60,7 +60,7 @@ async function main() {
   const base = await loadElevatedDependencies();
   eq(base.RAPIER.version(), '0.21.0', 'pinned Rapier initializes before synchronous create');
   const labels = def.manifest.settings.find(s => s.key === 'map');
-  eq(labels.options, ['Rookie Ring', 'Bumper Blocks', 'Garden Circuit', 'Frosty Pass', 'Neon Yard', 'Rookie Ribbons', 'Skyport Split', 'Garden Crown', 'Skyport', 'Foundry', 'Alpine Courtyard', 'Frost Quarry', 'Neon Harbor', 'Harbor Heights']);
+  eq(labels.options, ['Rookie Ring', 'Bumper Blocks', 'Garden Circuit', 'Frosty Pass', 'Neon Yard', 'Rookie Ribbons', 'Skyport Split', 'Garden Crown', 'Frostbite Crescent', 'Skyport', 'Foundry', 'Alpine Courtyard', 'Frost Quarry', 'Neon Harbor', 'Harbor Heights']);
   eq(labels.def, 'Garden Circuit', 'classic default unchanged');
   const mode = def.manifest.settings.find(s => s.key === 'mode');
   eq(mode.options, ['Star Rush', 'Zap Battle', 'Garage Battle']);

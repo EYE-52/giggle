@@ -16,6 +16,7 @@ export function createKartLaunchWorld(THREE,{scene,map,palette='Daybreak',lighti
  const M={road:material('road',colors.road),deck:material('deck',colors.deck),edge:material('edge',colors.edge),cover:material('cover',colors.cover),blue:material('blue',0x6bbbc8),dark:material('dark',0x344c60),white:material('white',0xfff4d6),yellow:material('yellow',0xffcc55),green:material('green',0x569675)};
  const roadTexture=texture(complexSurfaceTexture(THREE,map.artId==='garden'?'pavers':'asphalt')),deckTexture=texture(complexSurfaceTexture(THREE,['ring','garden','frost'].includes(map.artId)?'pavers':'steel'));
  M.fountain=material('fountain-stone',0xe4dfc4);M.fountain.map=deckTexture;
+ M.ice=mat(new THREE.MeshStandardMaterial({color:0x9fd9ed,roughness:.24,metalness:.12,map:deckTexture}));
  M.road.map=roadTexture;M.deck.map=deckTexture;M.cover.map=deckTexture;
  const tierMaterials=map.levels.slice(1).map(l=>{if(map.artId==='ring')return M.deck;const m=material('deck-'+l.id,new THREE.Color(colors.deck).lerp(new THREE.Color(l.color),.48));m.map=deckTexture;return m;});
  const glow=mat(new THREE.MeshLambertMaterial({color:0xc9f4ef,emissive:0x70d6d5,emissiveIntensity:.8}));
@@ -23,7 +24,7 @@ export function createKartLaunchWorld(THREE,{scene,map,palette='Daybreak',lighti
  function add(parent,g,m,p=[0,0,0],scale=[1,1,1],rotation=[0,0,0]){const mesh=new THREE.Mesh(g,m);mesh.position.set(...p);mesh.scale.set(...scale);mesh.rotation.set(...rotation);mesh.receiveShadow=true;mesh.castShadow=false;parent.add(mesh);return mesh;}
  for(const d of map.colliders.flatMap(d=>d.parts||[d])){
   const g=new THREE.Group();g.name=d.id;g.position.copy(d.position);if(d.rotation)g.quaternion.copy(d.rotation);solids.add(g);
-  const m=d.material==='fountain'?M.fountain:d.material==='fountain-core'?M.yellow:d.material==='hedge'?M.green:d.material==='pillar'?(map.artId==='garden'?M.fountain:M.dark):d.material==='barrier'?M.dark:d.material==='toy-blue'?M.blue:d.shape==='deck'||d.shape==='wedge'?tierMaterials[Math.max(0,map.levels.slice(1).findIndex(l=>l.y>=d.position.y+d.half.y-.1))]||M.deck:d.id.startsWith('floor')?M.road:M.cover;
+  const m=d.material==='ice'?M.ice:d.material==='fountain'?M.fountain:d.material==='fountain-core'?M.yellow:d.material==='hedge'?M.green:d.material==='pillar'?(map.artId==='garden'?M.fountain:M.dark):d.material==='barrier'?M.dark:d.material==='toy-blue'?M.blue:d.shape==='deck'||d.shape==='wedge'?tierMaterials[Math.max(0,map.levels.slice(1).findIndex(l=>l.y>=d.position.y+d.half.y-.1))]||M.deck:d.id.startsWith('floor')?M.road:M.cover;
   let skin;if(d.shape==='trimesh'){skin=new THREE.BufferGeometry();skin.setAttribute('position',new THREE.BufferAttribute(d.vertices,3));skin.setIndex(new THREE.BufferAttribute(d.indices,1));skin=skin.toNonIndexed();skin.computeVertexNormals();skin.setAttribute('uv',new THREE.BufferAttribute(new Float32Array(skin.attributes.position.count*2),2));}
   const geometry=geo(skin||(d.id.startsWith('floor')?new THREE.BoxGeometry(d.half.x*2,d.half.y*2,d.half.z*2):solidGeometry(THREE,d)));
   // Bake metre-scale UVs before merging. No per-mesh shader or draw call.
@@ -86,12 +87,12 @@ export function createKartLaunchWorld(THREE,{scene,map,palette='Daybreak',lighti
  addLaunchDetails(THREE,{map,soft,scenery,geo,add,M:{...M,own:mat},glow,unit});
  // A low ground apron is scenery only. The shaped driving slabs and guards
  // above it are the complete physical footprint; there is no square collider.
- const ground=material('backdrop-ground',map.artId==='frost'?0xd1e5ed:map.artId==='neon'?0x304c68:['harbor','skyport'].includes(map.artId)?0x438fa7:0x82b59a);
+ const ground=material('backdrop-ground',map.artId==='frost'?0x4686ad:map.artId==='neon'?0x304c68:['harbor','skyport'].includes(map.artId)?0x438fa7:0x82b59a);
  add(scenery,geo(new THREE.CylinderGeometry(map.half+18,map.half+23,3,12)),ground,[0,-3.1,0]);
  const sky=createKartSky(THREE,{parent:scenery,radius:330,geometry:geo,material:mat});
  const backdrop=createKartBackdrop(THREE,{parent:scenery,theme:map.backdrop||map.artId,radius:map.half+130,geometry:geo,material:mat,texture,isAlive:()=>!disposed});
  // Trees sit outside the guarded road and never hide a route decision.
- const trunk=material('trunk',0x89704e),leaf=material('leaf',0x4a9672),trunkG=geo(new THREE.CylinderGeometry(.4,.6,3,6)),leafG=geo(new THREE.IcosahedronGeometry(2.6,0));
+ const trunk=material('trunk',0x89704e),leaf=material('leaf',map.artId==='frost'?0xd7edf2:0x4a9672),trunkG=geo(new THREE.CylinderGeometry(.4,.6,3,6)),leafG=geo(new THREE.IcosahedronGeometry(2.6,0));
  for(let i=0;i<12;i++){const angle=i*Math.PI/6,r=map.half+10,x=Math.cos(angle)*r,z=Math.sin(angle)*r;add(scenery,trunkG,trunk,[x,-.3,z]);add(scenery,leafG,leaf,[x,2.2,z]);}
  for(const parent of[solids,scenery,soft])for(const {mesh}of mergeStaticMeshes(THREE,parent))geo(mesh.geometry);
  const sun=new THREE.DirectionalLight(0xffedce,1.75),hemi=new THREE.HemisphereLight(0xe4eeff,0x819d87,1.25);sun.castShadow=true;sun.shadow.mapSize.set(1024,1024);sun.shadow.bias=-.0004;sun.shadow.normalBias=.06;Object.assign(sun.shadow.camera,{left:-map.half-10,right:map.half+10,top:map.half+10,bottom:-map.half-10,near:5,far:220});sun.position.set(-45,75,35);if(lighting)group.add(sun,hemi,sun.target);

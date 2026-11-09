@@ -76,8 +76,8 @@
       ],
       "cameraSamples": 6072,
       "worldIncludingFeatures": {
-        "drawCalls": 27,
-        "triangles": 14810,
+        "drawCalls": 29,
+        "triangles": 14788,
         "textureBytes": 808276,
         "textureCount": 4,
         "colliders": 21
@@ -291,8 +291,8 @@
       ],
       "cameraSamples": 7212,
       "worldIncludingFeatures": {
-        "drawCalls": 29,
-        "triangles": 17798,
+        "drawCalls": 31,
+        "triangles": 17776,
         "textureBytes": 808276,
         "textureCount": 4,
         "colliders": 25

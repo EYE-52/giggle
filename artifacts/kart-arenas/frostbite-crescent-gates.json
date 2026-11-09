@@ -1,0 +1,302 @@
+{
+  "reports": [
+    {
+      "players": 6,
+      "variant": "small",
+      "area": {
+        "spacing": 0.5,
+        "areas": {
+          "L0": 4037.5,
+          "L1": 2107,
+          "ramps": 592
+        },
+        "total": 6736.5
+      },
+      "statics": 25,
+      "starts": 8,
+      "candidates": 16,
+      "homes": 32,
+      "opening": [
+        {
+          "id": "start-0",
+          "distances": [
+            8,
+            10.485281374238571
+          ]
+        },
+        {
+          "id": "start-1",
+          "distances": [
+            9.82842712474619,
+            24.242640687119284
+          ]
+        },
+        {
+          "id": "start-6",
+          "distances": [
+            8.485281374238571,
+            9
+          ]
+        },
+        {
+          "id": "start-2",
+          "distances": [
+            9.414213562373096,
+            10
+          ]
+        },
+        {
+          "id": "start-3",
+          "distances": [
+            12.071067811865476,
+            15.899494936611667
+          ]
+        },
+        {
+          "id": "start-4",
+          "distances": [
+            10.414213562373096,
+            12.414213562373096
+          ]
+        },
+        {
+          "id": "start-7",
+          "distances": [
+            8.414213562373096,
+            8.82842712474619
+          ]
+        },
+        {
+          "id": "start-5",
+          "distances": [
+            9.82842712474619,
+            20.384776310850242
+          ]
+        }
+      ],
+      "cameraSamples": 7716,
+      "worldIncludingFeatures": {
+        "drawCalls": 24,
+        "triangles": 17034,
+        "textureBytes": 808276,
+        "textureCount": 4,
+        "colliders": 25
+      }
+    },
+    {
+      "players": 8,
+      "variant": "small",
+      "area": {
+        "spacing": 0.5,
+        "areas": {
+          "L0": 4037.5,
+          "L1": 2107,
+          "ramps": 592
+        },
+        "total": 6736.5
+      },
+      "statics": 25,
+      "starts": 8,
+      "candidates": 16,
+      "homes": 32,
+      "opening": [
+        {
+          "id": "start-0",
+          "distances": [
+            8,
+            10.485281374238571
+          ]
+        },
+        {
+          "id": "start-1",
+          "distances": [
+            9.82842712474619,
+            24.242640687119284
+          ]
+        },
+        {
+          "id": "start-6",
+          "distances": [
+            8.485281374238571,
+            9
+          ]
+        },
+        {
+          "id": "start-2",
+          "distances": [
+            9.414213562373096,
+            10
+          ]
+        },
+        {
+          "id": "start-3",
+          "distances": [
+            12.071067811865476,
+            15.899494936611667
+          ]
+        },
+        {
+          "id": "start-4",
+          "distances": [
+            10.414213562373096,
+            12.414213562373096
+          ]
+        },
+        {
+          "id": "start-7",
+          "distances": [
+            8.414213562373096,
+            8.82842712474619
+          ]
+        },
+        {
+          "id": "start-5",
+          "distances": [
+            9.82842712474619,
+            20.384776310850242
+          ]
+        }
+      ],
+      "cameraSamples": 7716
+    },
+    {
+      "players": 16,
+      "variant": "full",
+      "area": {
+        "spacing": 0.5,
+        "areas": {
+          "L0": 4525.5,
+          "L1": 2107,
+          "ramps": 592
+        },
+        "total": 7224.5
+      },
+      "statics": 25,
+      "starts": 16,
+      "candidates": 32,
+      "homes": 44,
+      "opening": [
+        {
+          "id": "start-0",
+          "distances": [
+            8,
+            11.071067811865476
+          ]
+        },
+        {
+          "id": "start-1",
+          "distances": [
+            9.414213562373096,
+            10
+          ]
+        },
+        {
+          "id": "start-12",
+          "distances": [
+            8.485281374238571,
+            9
+          ]
+        },
+        {
+          "id": "start-2",
+          "distances": [
+            10,
+            15.82842712474619
+          ]
+        },
+        {
+          "id": "start-3",
+          "distances": [
+            9.82842712474619,
+            11.899494936611667
+          ]
+        },
+        {
+          "id": "start-4",
+          "distances": [
+            11.242640687119284,
+            13.727922061357859
+          ]
+        },
+        {
+          "id": "start-13",
+          "distances": [
+            8.414213562373096,
+            8.82842712474619
+          ]
+        },
+        {
+          "id": "start-5",
+          "distances": [
+            9.071067811865476,
+            10.071067811865476
+          ]
+        },
+        {
+          "id": "start-6",
+          "distances": [
+            9.242640687119284,
+            9.485281374238571
+          ]
+        },
+        {
+          "id": "start-7",
+          "distances": [
+            8.65685424949238,
+            9.071067811865476
+          ]
+        },
+        {
+          "id": "start-14",
+          "distances": [
+            8.414213562373096,
+            9.071067811865476
+          ]
+        },
+        {
+          "id": "start-8",
+          "distances": [
+            8,
+            9.82842712474619
+          ]
+        },
+        {
+          "id": "start-9",
+          "distances": [
+            8,
+            10
+          ]
+        },
+        {
+          "id": "start-10",
+          "distances": [
+            10,
+            13.485281374238571
+          ]
+        },
+        {
+          "id": "start-15",
+          "distances": [
+            8.485281374238571,
+            8.485281374238571
+          ]
+        },
+        {
+          "id": "start-11",
+          "distances": [
+            12.414213562373096,
+            15.414213562373096
+          ]
+        }
+      ],
+      "cameraSamples": 7716,
+      "worldIncludingFeatures": {
+        "drawCalls": 24,
+        "triangles": 17178,
+        "textureBytes": 808276,
+        "textureCount": 4,
+        "colliders": 25
+      }
+    }
+  ]
+}

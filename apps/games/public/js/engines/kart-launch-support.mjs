@@ -19,10 +19,18 @@ export function arenaFinish(map){
  for(let i=0;i<guards.length;i+=16)map.colliders.push(arenaGuardGroup('guard-batch-'+i/16,guards.slice(i,i+16)));return map;
 }
 export function arenaWithVariants(builds,poses){
- const base=structuredClone(builds.at(-1).geometry);base.variants=builds.map(b=>{const p=poses[b.id]||{};return {id:b.id,minPlayers:b.min,maxPlayers:b.max,usableArea:p.usableArea||1,floorWeights:b.weights,districts:['core',...new Set([...(p.sockets||[]),...(p.spawnCandidates||[])].map(s=>s.district))],startIds:(p.spawns||[]).map(s=>s.id),layout:{...b.geometry,...p}};});Object.assign(base,poses.full||{});return base;
+ const base=structuredClone(builds.at(-1).geometry);base.variants=builds.map(b=>{const p=poses[b.id]||{};return {id:b.id,minPlayers:b.min,maxPlayers:b.max,usableArea:p.usableArea||1,floorWeights:b.weights,districts:['core',...new Set([...(p.sockets||[]),...(p.spawnCandidates||[])].map(s=>s.district))],startIds:(p.spawns||[]).map(s=>s.id),layout:{...b.geometry,...p,sockets:arenaProfileHomes(b.geometry,p.sockets||[])}};});Object.assign(base,poses.full||{});base.sockets=arenaProfileHomes(base,base.sockets);return base;
 }
 export function arenaArc(cx,y,cz,r,a,b,n=8){return Array.from({length:n},(_,i)=>{const t=a+(b-a)*(i+1)/n;return arenaP(cx+r*Math.cos(t),y,cz+r*Math.sin(t));});}
 export function arenaRectangleLoop(hx,hz,y,r=6){
  return [arenaP(-hx,y,0),arenaP(-hx,y,-hz+r),...arenaArc(-hx+r,y,-hz+r,r,Math.PI,Math.PI*1.5),arenaP(hx-r,y,-hz),...arenaArc(hx-r,y,-hz+r,r,Math.PI*1.5,Math.PI*2),arenaP(hx,y,hz-r),...arenaArc(hx-r,y,hz-r,r,0,Math.PI/2),arenaP(-hx+r,y,hz),...arenaArc(-hx+r,y,hz-r,r,Math.PI/2,Math.PI),arenaP(-hx,y,0)];
 }
 export function arenaOpenRails(map,openings){map.colliders=map.colliders.flatMap(d=>d.material==='barrier'?openGuards([d],openings):[d]);}
+
+export function arenaProfileHomes(map,homes){
+ const materials=new Map(map.colliders.map(d=>[d.id,d.material])),rows=homes.map(h=>({...h,profile:'safe'}));
+ const exposed=[...rows].sort((a,b)=>((materials.get(b.surface)==='ice'?1000:0)+b.y*2+50-Math.hypot(b.x,b.z))-((materials.get(a.surface)==='ice'?1000:0)+a.y*2+50-Math.hypot(a.x,a.z)));
+ for(const h of exposed.slice(0,Math.floor(rows.length*.3)))h.profile='exposed';
+ let risks=0;for(const p of map.riskHomes||[]){const nearest=rows.filter(h=>h.y===p.y&&h.profile!=='risk').sort((a,b)=>Math.hypot(a.x-p.x,a.z-p.z)-Math.hypot(b.x-p.x,b.z-p.z))[0];if(nearest&&Math.hypot(nearest.x-p.x,nearest.z-p.z)<=8&&risks<Math.floor(rows.length*.1)){nearest.profile='risk';risks++;}}
+ return rows;
+}

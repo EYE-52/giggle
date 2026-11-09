@@ -54,6 +54,6 @@ export function skyportGeometry(compact=false,scale=1){
  return result;
 }
 export function skyportBuilds(){
- return [['compact',8,8,[20,10,10],[4,2,2],[13,6,6],true,.75],['medium',9,16,[24,12,12],[8,4,4],[14,7,7],true,.8],['wide',17,24,[28,14,22],[12,6,6],[18,10,10],false,.85],['full',25,32,[32,16,24],[16,8,8],[22,12,14],false,1]].map(([id,min,max,homes,starts,weights,compact,scale])=>({id,min,max,homes,starts,weights,geometry:skyportGeometry(compact,scale)}));
+ return [['compact',8,8,[20,10,10],[4,2,2],[13,6,6],true,.75],['medium',9,16,[24,12,12],[8,4,4],[13,8,8],true,.8],['wide',17,24,[28,14,22],[12,6,6],[18,10,10],false,.85],['full',25,32,[32,16,24],[16,8,8],[22,12,14],false,1]].map(([id,min,max,homes,starts,weights,compact,scale])=>({id,min,max,homes,starts,weights,geometry:skyportGeometry(compact,scale)}));
 }
 export function skyportSplit(){return arenaWithVariants(skyportBuilds(),skyportPoses);}

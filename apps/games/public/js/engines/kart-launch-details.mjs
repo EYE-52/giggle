@@ -52,4 +52,13 @@ export function addLaunchDetails(THREE,{map,soft,scenery,geo,add,M,glow,unit}){
   }
  }
 
+ if(map.artId==='frost'){
+  const ice=map.colliders.find(d=>d.material==='ice');if(ice){let seed=416;const rand=()=>((seed=(Math.imul(seed,1664525)+1013904223)>>>0)/4294967296);for(let i=0;i<36;i++)add(soft,flat,M.white,[3.5+rand()*13,.025,-20+rand()*40],[2+rand()*4,1,.05],[0,rand()*Math.PI,0]);for(let z=-20;z<=20;z+=8)add(soft,flat,M.white,[20.1,.02,z],[.24,1,2]);}
+  // A quarry hoist outside the shore guard gives the crescent a fixed north.
+  add(scenery,unit,M.dark,[-28,5,-55],[2,13,2]);add(scenery,unit,M.yellow,[-12,11,-55],[34,1.2,2]);
+  for(let x=-27;x<=3;x+=5)add(scenery,unit,M.blue,[x,11,-55],[.25,3,1.3],[0,0,.6]);
+  add(scenery,unit,M.dark,[2,7,-55],[.12,7,.12]);add(scenery,unit,M.yellow,[2,3.8,-55],[1.2,.5,1.2]);
+  const snow=geo(new THREE.IcosahedronGeometry(3,0));for(const side of[-1,1])for(let i=0;i<4;i++)add(scenery,snow,M.white,[side*(map.playBounds.halfX+8),-.6,-30+i*20],[1.5,.65,1]);
+ }
+
 }

@@ -3,6 +3,7 @@ import { esc } from './util.js';
 // Menu previews are small views of the shipped worlds, keyed by profile
 // as well as map ID: the classic and elevated gardens are different arenas.
 export const KART_ARENAS = [
+  { label: 'Frostbite Crescent', key: 'arena-frostbite-crescent', elevated: true, players: '6–16', levels: 2, description: 'Dry shore or slippery ice. Climb the quarry shelf, or jump the inlet beside its shore bypass.' },
   { label: 'Garden Crown', key: 'arena-garden-crown', elevated: true, players: '4–16', levels: 2, description: 'A crown walk around the fountain. Two garden climbs, shelter below and a marked drop.' },
   { label: 'Skyport Split', key: 'arena-skyport-split', elevated: true, complex: true, players: '8–32', levels: 3, description: 'Twin parking towers, a two-turn helix and a roof gap with a safe bridge around it.' },
   { label: 'Rookie Ribbons', key: 'arena-rookie-ribbons', elevated: true, players: '2–8', levels: 2, description: 'Two toy lobes, a real arch bridge and two gentle climbs. A smaller duel arena for two.' },
