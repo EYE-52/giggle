@@ -25,7 +25,7 @@ const send=(c,m)=>c.ws.send(JSON.stringify(m));
     const cap=require('../games/engines/kart-elevated-adapter').LAUNCH_ARENA_CAPS[label],old=host.state?.instanceId;host.lastError=null;send(host,{t:'start',game:'pocket-karts',settings:{map:label,mode:'Zap Battle',roundSeconds:60}});
     if(cap&&cap.max<32){await until(()=>host.lastError,'capacity rejection '+label);assert.match(host.lastError,new RegExp(cap.min+'–'+cap.max+' drivers'));assert.equal(host.state?.instanceId,old,'rejection preserves existing match');continue;}
     await until(()=>clients.every(c=>c.state?.instanceId&&c.state.instanceId!==old),'all clients receive '+label);
-    const complex=id==='skyport'||id==='foundry'||id==='skyport-split',drivers=cap?32:complex?32:8;
+    const complex=id==='skyport'||id==='foundry'||['skyport-split','harbor-fork','foundry-wheel'].includes(id),drivers=cap?32:complex?32:8;
     for(const [index,c] of clients.entries()){assert.equal(c.state.profile,'elevated-combat-v1');assert.equal(c.state.map.label,label);assert.equal(c.state.mapId,id);assert.equal(c.state.karts.length,drivers);assert.equal(c.state.youDrive,index<drivers);assert.equal(c.state.spectators.length,32-drivers);assert(c.bytes<40000);}
     await until(()=>host.state.phase==='live',label+' live countdown');const self=s=>s.karts.find(k=>k.id===s.you),origin=self(host.state).pose.position,firstCount=host.count;
     for(let i=0;i<12;i++){const s=host.state;send(host,{t:'action',i:s.instanceId,w:s.w,a:{type:'input',seq:s.inputAck.receivedSeq+1,life:s.inputAck.life,controlEpoch:s.inputAck.controlEpoch,throttle:1,steer:0,brake:0,nitro:false,use:false}});await sleep(50);}

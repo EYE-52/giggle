@@ -1,0 +1,253 @@
+{
+  "errors": [],
+  "reports": [
+    {
+      "id": "foundry-wheel",
+      "variant": "full",
+      "viewport": [
+        1280,
+        720
+      ],
+      "phase": 0,
+      "world": {
+        "drawCalls": 33,
+        "triangles": 31294,
+        "textureBytes": 4793172,
+        "textureCount": 5,
+        "colliders": 50
+      },
+      "renderer": {
+        "frame": 403,
+        "calls": 71,
+        "triangles": 50994,
+        "points": 0,
+        "lines": 0
+      },
+      "frameMs": {
+        "median": 16.699999999999818,
+        "p95": 16.700000000000728,
+        "p99": 16.800000000000182,
+        "stalls": 0
+      },
+      "fps": 59.88023952095874,
+      "samples": 300
+    },
+    {
+      "id": "foundry-wheel",
+      "variant": "full",
+      "viewport": [
+        1280,
+        720
+      ],
+      "phase": 1,
+      "world": {
+        "drawCalls": 33,
+        "triangles": 31294,
+        "textureBytes": 4793172,
+        "textureCount": 5,
+        "colliders": 50
+      },
+      "renderer": {
+        "frame": 399,
+        "calls": 71,
+        "triangles": 50994,
+        "points": 0,
+        "lines": 0
+      },
+      "frameMs": {
+        "median": 16.699999999999818,
+        "p95": 16.700000000000728,
+        "p99": 16.800000000000182,
+        "stalls": 0
+      },
+      "fps": 59.88023952095874,
+      "samples": 299
+    },
+    {
+      "id": "foundry-wheel",
+      "variant": "full",
+      "viewport": [
+        390,
+        844
+      ],
+      "phase": 0,
+      "world": {
+        "drawCalls": 33,
+        "triangles": 31294,
+        "textureBytes": 4793172,
+        "textureCount": 5,
+        "colliders": 50
+      },
+      "renderer": {
+        "frame": 383,
+        "calls": 67,
+        "triangles": 50706,
+        "points": 0,
+        "lines": 0
+      },
+      "frameMs": {
+        "median": 16.699999999999818,
+        "p95": 16.700000000000728,
+        "p99": 16.800000000000182,
+        "stalls": 0
+      },
+      "fps": 59.88023952095874,
+      "samples": 299
+    },
+    {
+      "id": "foundry-wheel",
+      "variant": "full",
+      "viewport": [
+        390,
+        844
+      ],
+      "phase": 1,
+      "world": {
+        "drawCalls": 33,
+        "triangles": 31294,
+        "textureBytes": 4793172,
+        "textureCount": 5,
+        "colliders": 50
+      },
+      "renderer": {
+        "frame": 375,
+        "calls": 67,
+        "triangles": 50706,
+        "points": 0,
+        "lines": 0
+      },
+      "frameMs": {
+        "median": 16.699999999999818,
+        "p95": 16.700000000000728,
+        "p99": 16.800000000000182,
+        "stalls": 0
+      },
+      "fps": 59.88023952095874,
+      "samples": 299
+    },
+    {
+      "id": "foundry-wheel",
+      "variant": "compact",
+      "viewport": [
+        1280,
+        720
+      ],
+      "phase": 0,
+      "world": {
+        "drawCalls": 33,
+        "triangles": 28214,
+        "textureBytes": 4793172,
+        "textureCount": 5,
+        "colliders": 50
+      },
+      "renderer": {
+        "frame": 395,
+        "calls": 71,
+        "triangles": 47634,
+        "points": 0,
+        "lines": 0
+      },
+      "frameMs": {
+        "median": 16.699999999999818,
+        "p95": 16.700000000000728,
+        "p99": 16.800000000000182,
+        "stalls": 0
+      },
+      "fps": 59.88023952095874,
+      "samples": 299
+    },
+    {
+      "id": "foundry-wheel",
+      "variant": "compact",
+      "viewport": [
+        1280,
+        720
+      ],
+      "phase": 1,
+      "world": {
+        "drawCalls": 33,
+        "triangles": 28214,
+        "textureBytes": 4793172,
+        "textureCount": 5,
+        "colliders": 50
+      },
+      "renderer": {
+        "frame": 393,
+        "calls": 71,
+        "triangles": 47634,
+        "points": 0,
+        "lines": 0
+      },
+      "frameMs": {
+        "median": 16.699999999999818,
+        "p95": 16.700000000000728,
+        "p99": 16.800000000000182,
+        "stalls": 0
+      },
+      "fps": 59.88023952095874,
+      "samples": 299
+    },
+    {
+      "id": "foundry-wheel",
+      "variant": "compact",
+      "viewport": [
+        390,
+        844
+      ],
+      "phase": 0,
+      "world": {
+        "drawCalls": 33,
+        "triangles": 28214,
+        "textureBytes": 4793172,
+        "textureCount": 5,
+        "colliders": 50
+      },
+      "renderer": {
+        "frame": 376,
+        "calls": 67,
+        "triangles": 47346,
+        "points": 0,
+        "lines": 0
+      },
+      "frameMs": {
+        "median": 16.699999999999818,
+        "p95": 16.700000000000728,
+        "p99": 16.800000000000182,
+        "stalls": 0
+      },
+      "fps": 59.88023952095874,
+      "samples": 299
+    },
+    {
+      "id": "foundry-wheel",
+      "variant": "compact",
+      "viewport": [
+        390,
+        844
+      ],
+      "phase": 1,
+      "world": {
+        "drawCalls": 33,
+        "triangles": 28214,
+        "textureBytes": 4793172,
+        "textureCount": 5,
+        "colliders": 50
+      },
+      "renderer": {
+        "frame": 382,
+        "calls": 67,
+        "triangles": 47346,
+        "points": 0,
+        "lines": 0
+      },
+      "frameMs": {
+        "median": 16.699999999999818,
+        "p95": 16.700000000000728,
+        "p99": 16.800000000000182,
+        "stalls": 0
+      },
+      "fps": 59.88023952095874,
+      "samples": 300
+    }
+  ]
+}

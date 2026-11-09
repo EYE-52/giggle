@@ -1,0 +1,25 @@
+{
+  "map": "Foundry Wheel",
+  "drivers": 32,
+  "connected": 32,
+  "seconds": 21.1,
+  "browser": {
+    "binaryFramesPerSec": 20.1,
+    "kbPerSec": 66.3,
+    "textFrames": 6,
+    "fps": 59.6,
+    "worstFrameMs": 117,
+    "drawCallsPerFrame": 135,
+    "submittedTrianglesPerFrame": 74015,
+    "hud": {
+      "rows": 0,
+      "canvas": true
+    }
+  },
+  "bots": {
+    "framesPerSec": 18.7
+  },
+  "browserKartMovedM": 33.7,
+  "fastestForward": 21.6,
+  "errors": []
+}
