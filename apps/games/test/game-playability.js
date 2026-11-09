@@ -1071,7 +1071,7 @@ driver('number-hunt', () => {
   must(solved === 4, 'binary search solves for everyone');
   must(state.phase === 'roundEnd', 'last solver ends the round');
   must(state.last.secret >= 1 && state.last.secret <= 100, 'secret revealed at round end');
-  must(state.last.finished[0].tries <= state.last.finished[3].tries, 'fewest tries ranked first');
+  must(state.last.finished[0].rank === 1 && state.last.finished[3].rank === 4, 'first to find ranked first');
   must(state.wins[state.last.finished[0].pid] === 1, 'round win recorded');
   ctx.fireUntil(() => state.phase !== 'roundEnd');
   must(state.phase === 'done', 'done after 1 round');
