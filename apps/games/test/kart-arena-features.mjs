@@ -130,7 +130,7 @@ for(const id of MAP_IDS){
  const back=approach(id,B.x,B.z,B.angle+Math.PI,9);k.x=back.x;k.z=back.z;k.angle=back.angle;k.spawnSeq++;k.portalCd=0;
  for(let i=0;i<60*4;i++)w.advance(1/60,online);
  const returns=s.featureEvents.filter(e=>e.type==='warp');
- ok(returns.length===2&&returns[1].side===1,id+': round trip back through the partner is one more jump');
+ ok(returns.length===2&&returns[1].side===1,id+': round trip back through the partner is one more jump '+JSON.stringify({returns,back,k}));
  const home=F.portalExit(A);
  ok(Math.hypot(k.x-home.x,k.z-home.z)>4,id+': drove on out of the first ring');
  metrics.push({id,portalEntrySpeed:+entry.toFixed(2)});

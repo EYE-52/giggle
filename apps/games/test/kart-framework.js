@@ -287,7 +287,7 @@ async function main() {
   {
     const [st, ctx] = racing(karts, { mode: 'Zap Battle', map: 'Bumper Blocks' });
     assert.strictEqual(st.map, 'blocks', 'host setting selects the blocks map');
-    assert.strictEqual(st.blocks.length, 4, 'four bumper blocks');
+    assert.strictEqual(st.blocks.length, 6, 'six switchback bumper blocks');
     const v = karts.view(st, 'pa');
     assert.strictEqual(v.map.id, 'blocks', 'view carries the map id');
     assert.deepStrictEqual(v.map.blocks, st.blocks, 'view carries block geometry (single source)');
@@ -307,16 +307,16 @@ async function main() {
     }
     // Driving into a block pushes out and scrubs speed.
     const a = st.karts[0];
-    a.x = 16; a.z = 12.5; a.angle = 0; a.speed = 10;
+    a.x = 7; a.z = 8.5; a.angle = 0; a.speed = 10;
     karts.onAction(st, ctx, 'pa', { input: { steer: 0, throttle: 1 } });
     for (let i = 0; i < 5; i++) {
       ctx._now += 100;
       karts.onTick(st, ctx);
     }
-    approx(a.z, 13.5 - engine.constants.KART_R, 0.05, 'kart rests on the block face');
+    approx(a.z, 12 - engine.constants.KART_R, 0.05, 'kart rests on the block face');
     assert(a.speed < 10, 'block hit scrubs speed');
     // Zaps die on blocks.
-    a.x = 16; a.z = 5; a.angle = 0; a.weapon = 'machinegun'; a.ammo = 3; a.shield = 0; a.fireCd = 0; a.prevAction = false;
+    a.x = 7; a.z = 6.5; a.angle = 0; a.weapon = 'machinegun'; a.ammo = 3; a.shield = 0; a.fireCd = 0; a.prevAction = false;
     karts.onAction(st, ctx, 'pa', { input: { steer: 0, throttle: 0, boost: true } });
     ctx._now += 50;
     karts.onTick(st, ctx);

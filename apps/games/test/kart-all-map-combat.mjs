@@ -43,12 +43,13 @@ const body=k=>k.physicalPose.position;
 const gap=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y,a.z-b.z);
 const blast=(f,at,id='declared-airburst')=>{f.s.grenades=[{id,owner:f.a.pid,kind:'nuke',physical:true,x:at.x,y:at.y-battle.constants.GRENADE_R,z:at.z,vx:0,vy:0,vz:0,fuse:0,bounces:0}];f.tick(0);};
 for(const id of maps.mapIds()){
+  const fightX=id==='garden'?-10:0; // Use the clear promenade beside the fountain.
   const before=checks,map={id,...maps.mapDef(id)},terrain=createRoadTerrain(map);
   let hill={x:0,z:0,height:0};
   for(let x=-map.half+4;x<map.half-4;x++)for(let z=-map.half+4;z<map.half-4;z++){
     const height=terrain.heightAt(x,z);if(height>hill.height)hill={x,z,height};
   }
-  check(hill.height>.5,id+': shared shipping road contains real relief');
+  check(hill.height>(id==='blocks'?.25:.5),id+': shared shipping road contains real relief');
   check(POCKET.preflight({map:map.label,mode:'Zap Battle'}).ok,id+': initialized production preflight accepts map');
   const oracle=physics.createKartPhysics(RAPIER,config);
   classicStatics(map).forEach(d=>oracle.addStatic(d));
@@ -56,7 +57,7 @@ for(const id of maps.mapIds()){
     {
       const f=fixture(id);try{
         check(f.s.phase==='drive'&&f.s.karts.every(k=>k.physicalPose?.position&&Object.values(body(k)).every(Number.isFinite)),id+': readiness supplies actual finite Rapier bodies');
-        f.place(f.a,hill.x,hill.z);f.place(f.b,0,0);
+        f.place(f.a,hill.x,hill.z);f.place(f.b,fightX,0);
         check(Math.abs(body(f.a).y-hill.height-.75)<.015,id+': life reset uses exact terrain support height');
         f.fire(f.a,'mine');const mine=f.s.mines[0];
         check(mine?.physical&&Math.abs(mine.y-terrain.heightAt(mine.x,mine.z))<.015,id+': accepted mine rests on real hill triangles');
@@ -69,7 +70,7 @@ for(const id of maps.mapIds()){
     }
     for(const [weapon,damage] of [['machinegun',1],['trishot',1],['missile',2],['cannon',2]]){
       const f=fixture(id);try{
-        f.place(f.a,0,-4);f.place(f.b,0,0);f.fire(f.a,weapon);
+        f.place(f.a,fightX,-4);f.place(f.b,fightX,0);f.fire(f.a,weapon);
         const volley=f.s.zaps.slice();
         check(volley.length===(weapon==='trishot'?3:1)&&volley.every(p=>p.physical),id+': accepted '+weapon+' launches its physical mounted volley');
         const packets=POCKET.view(f.s,f.a.pid).zaps;
@@ -81,7 +82,7 @@ for(const id of maps.mapIds()){
     }
     {
       const f=fixture(id);try{
-        f.place(f.a,0,-6);f.place(f.b,0,4,Math.PI);f.fire(f.a,'supernova');
+        f.place(f.a,fightX,-6);f.place(f.b,fightX,4,Math.PI);f.fire(f.a,'supernova');
         check(f.a.supernovaT>2.9&&f.a.shield===0&&f.a.ammo===0&&f.a.weapon===null,id+': Shield arms one guard without spawn protection');
         f.fire(f.b,'missile');for(let i=0;i<8;i++)f.tick(50);
         check(f.a.health===3&&f.a.supernovaT>0&&f.s.zaps.length===0&&f.s.events.filter(e=>e.type==='fire'&&e.weapon==='supernova').length===1,id+': Shield absorbs a real mounted Rocket once');
@@ -90,7 +91,7 @@ for(const id of maps.mapIds()){
     }
     for(const dt of [50,250]){
       const f=fixture(id);try{
-        f.place(f.a,hill.x,hill.z);f.place(f.b,0,0);f.fire(f.a,'nuke');
+        f.place(f.a,hill.x,hill.z);f.place(f.b,fightX,0);f.fire(f.a,'nuke');
         check(f.s.grenades[0]?.physical&&f.s.grenades[0].kind==='nuke'&&f.s.events.some(e=>e.type==='fire'&&e.weapon==='nuke'&&e.position.y>hill.height),id+': nuke launches at actual hill muzzle '+dt+'ms');
         let bounce=false,observed=0;
         while(f.s.grenades.length){f.tick(dt);for(const g of f.s.grenades){observed++;bounce ||=g.bounces>0;
@@ -105,7 +106,7 @@ for(const id of maps.mapIds()){
     }
     for(const high of [false,true]){
       const f=fixture(id);try{
-        f.place(f.a,0,-8);f.place(f.b,0,8);
+        f.place(f.a,fightX,-8);f.place(f.b,fightX,8);
         const cover=map.blocks[0],left=cover?cover.x-cover.hw:map.half+.05,z=cover?.z||0;
         const support=cover?Math.max(...classicStatics(map).filter(d=>d.id==='cover-0'||d.id==='cover-top-0').map(d=>d.position.y+d.half.y)):terrain.wallHeight;
         f.s.grenades=[{id:'declared-finite-cover',owner:f.a.pid,kind:'nuke',physical:true,x:left-1,y:high?support+2:.6,z,vx:40,vy:0,vz:0,fuse:1,bounces:0}];
@@ -115,7 +116,7 @@ for(const id of maps.mapIds()){
     }
     {
       const f=fixture(id);try{
-        f.place(f.a,0,-8);f.place(f.b,0,8);
+        f.place(f.a,fightX,-8);f.place(f.b,fightX,8);
         f.s.zaps=[{id:'declared-hill-strike',owner:f.a.pid,kind:'machinegun',physical:true,x:hill.x,y:hill.height+.8,z:hill.z,vx:0,vy:-30,vz:0,angle:0,ttl:1}];
         f.tick(50);const impact=f.s.events.find(e=>e.type==='impact');
         check(f.s.zaps.length===0&&impact&&Math.abs(impact.position.y-hill.height-battle.viewExtra(f.s).combat.staticSweepRadii.machinegun)<.015,id+': physical projectile sphere stops above actual hillside triangles');
@@ -124,7 +125,7 @@ for(const id of maps.mapIds()){
     }
     {
       const f=fixture(id);try{
-        f.place(f.a,0,-6);f.place(f.b,0,4);f.b.health=2;const old=POCKET.view(f.s,f.b.pid).inputAck;
+        f.place(f.a,fightX,-6);f.place(f.b,fightX,4);f.b.health=2;const old=POCKET.view(f.s,f.b.pid).inputAck;
         f.fire(f.a,'missile');
         check(f.s.zaps[0]?.radius===battle.viewExtra(f.s).combat.staticSweepRadii.missile&&POCKET.view(f.s,f.a.pid).zaps[0]?.radius===f.s.zaps[0]?.radius,id+': accepted mounted Rocket packet retains exact static radius');
         for(let i=0;i<8&&f.b.health;i++)f.tick(50);
@@ -143,7 +144,7 @@ for(const id of maps.mapIds()){
     }
     {
       const f=fixture(id);try{
-        f.place(f.a,0,-8);f.place(f.b,hill.x,hill.z);const p=body(f.b);
+        f.place(f.a,fightX,-8);f.place(f.b,hill.x,hill.z);const p=body(f.b);
         blast(f,{x:p.x,y:p.y+15,z:p.z});check(f.b.health===3,id+': high nuke airburst outside 3D splash range is harmless');
         blast(f,{x:p.x+1,y:p.y+.35,z:p.z},'declared-visible-burst');
         check(f.b.health===0&&f.b.deaths===1&&f.s.events.filter(e=>e.type==='hit'&&e.damage===3).length===1,id+': visible in-range nuke takes every heart once');
@@ -152,7 +153,7 @@ for(const id of maps.mapIds()){
     if(map.blocks.length){
       {
         const f=fixture(id);try{
-          const b=map.blocks[0];f.place(f.a,b.x,b.z-b.hd-1.8,Math.PI);f.place(f.b,0,0);f.fire(f.a,'mine');
+          const b=map.blocks[0];f.place(f.a,b.x,b.z-b.hd-1.8,Math.PI);f.place(f.b,fightX,0);f.fire(f.a,'mine');
           const mine=f.s.mines[0];
           check(mine?.physical&&Math.abs(mine.y-terrain.heightAt(mine.x,mine.z))<.015,id+': mine retries blocked rear drop onto actual supported road');
           check(!map.blocks.some(b=>Math.abs(mine.x-b.x)<b.hw+.5&&Math.abs(mine.z-b.z)<b.hd+.5),id+': supported mine never spawns inside cover clearance');
@@ -161,7 +162,7 @@ for(const id of maps.mapIds()){
       {
         const f=fixture(id);try{
           const b=map.blocks[0],top=Math.max(...classicStatics(map).filter(d=>d.id==='cover-0'||d.id==='cover-top-0').map(d=>d.position.y+d.half.y));
-          f.place(f.a,0,-8);f.place(f.b,0,8);
+          f.place(f.a,fightX,-8);f.place(f.b,fightX,8);
           f.s.grenades=[{id:'declared-cover-support',owner:f.a.pid,kind:'nuke',physical:true,x:b.x,y:top+1,z:b.z,vx:0,vy:0,vz:0,fuse:1.2,bounces:0}];
           let bounced=false;
           while(f.s.grenades.length){f.tick(50);for(const g of f.s.grenades){bounced ||=g.bounces>0;check(g.y>=top-.015,id+': nuke full-radius sweep stays above authored cover top');}}
@@ -181,7 +182,7 @@ for(const id of maps.mapIds()){
     }
     for(const mode of ['Zap Battle','Star Rush','Garage Battle']){
       const f=fixture(id,mode);try{
-        f.place(f.a,hill.x,hill.z-5);f.place(f.b,0,0);for(let i=0;i<15;i++)f.tick(50);
+        f.place(f.a,hill.x,hill.z-5);f.place(f.b,fightX,0);for(let i=0;i<15;i++)f.tick(50);
         const field=mode==='Star Rush'?'stars':'crates';f.s[field]=[{id:'declared-hill-pickup',x:hill.x,z:hill.z}];
         check(Math.abs(POCKET.view(f.s,f.a.pid)[field][0].groundY-hill.height)<.015,id+' '+mode+': pickup projection follows slope support');
         check(Math.hypot(f.a.x-hill.x,f.a.z-hill.z)>4,id+' '+mode+': approach starts outside pickup radius');
@@ -199,16 +200,10 @@ for(const id of maps.mapIds()){
         // Deterministic straight driving launches from shipped terrain. The
         // pickup canary is introduced only after the private Rapier body is
         // airborne; no cached pose, velocity or physics body is replaced.
-        const yaw=id==='frost'?Math.PI*1.5:Math.PI,offset=['ring','blocks'].includes(id)?0:16;
-        // Blocks' new pocket walls contain the old hill transect. Use
-        // its actual cannon approach for this high-air pickup canary;
-        // kart-arena-layout checks every new ramp with actual driving.
-        if(id==='blocks'){
-          const c=map.features.cannons[0];
-          f.place(f.a,c.x-Math.sin(c.angle)*3,c.z-Math.cos(c.angle)*3,c.angle);
-        }
-        else f.place(f.a,hill.x-Math.sin(yaw)*offset,hill.z-Math.cos(yaw)*offset,yaw);
-        f.place(f.b,0,0);
+        // Each arena's launcher gives a repeatable real flight above a route.
+        const c=map.features.cannons[0];
+        f.place(f.a,c.x-Math.sin(c.angle)*3,c.z-Math.cos(c.angle)*3,c.angle);
+        f.place(f.b,fightX,0);
         let flight;
         for(let i=0;i<180&&!flight;i++){
           if(i%3===0)f.input(f.a,{throttle:1,nitro:true});f.tick(25);

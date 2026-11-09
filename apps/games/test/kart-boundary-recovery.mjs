@@ -68,7 +68,7 @@ for(const id of maps.mapIds())for(const mode of ['battle','starrush']){
     game.onAction(state,f.ctx,'driver',{seq:999,life:fresh.life,controlEpoch:old.controlEpoch,input:{steer:0,throttle:1,boost:true}});
     assert.equal(driver.input.throttle,0,id+' retired control epoch rejected');
     f.tick(100);assert.equal(driver.spawnSeq,fresh.life,id+' recovery does not loop');
-    f.input({throttle:1});f.tick(100);assert.ok(driver.speed>0,id+' fresh input drives recovered kart');
+    f.input({throttle:1});f.tick(100);assert.ok(driver.speed>0,id+' fresh input drives recovered kart '+JSON.stringify({speed:driver.speed,position:driver.physicalPose.position,grounded:driver.physicalPose.grounded,input:driver.input,angle:driver.angle}));
 
     const life=driver.spawnSeq;
     // High in-map flight alone

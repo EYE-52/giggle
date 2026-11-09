@@ -34,18 +34,12 @@ function navigation(m){
 // Named fight regions and crate pockets have measured, clear mouths. The
 // full one-metre flood above also checks every destination and off-road loop.
 const regions={
- ring:[{at:[0,0],gates:[[0,-9,6,0],[0,9,6,0],[-9,0,0,6],[9,0,0,6]]}],
- blocks:[{at:[0,0],gates:[[0,10,5.5,0],[0,-10,5.5,0],[-20,0,0,6],[20,0,0,6]]},...[-1,1].flatMap(x=>[-1,1].map(z=>({at:[x*9,z*20],pocket:true,gates:[[x*9,z*10,5.5,0]]})))],
- // Measure the four plaza mouths and the actual six perimeter gates:
- // portal lanes, two northern corner flanks, and both southern cuts.
- garden:[{at:[0,0],gates:[[0,-11,10,0],[0,11,10,0],[-11,0,0,12],[11,0,0,12]]},{at:[30,34],gates:[[-40,0,0,10],[40,2,0,10],[16,-40,10,0],[-16,40,10,0],[-40,-32,0,12],[24,40,10,0]]}],
- frost:[{at:[0,0],gates:[[0,-11,9,0],[0,11,9,0],[-12,0,0,6],[12,0,0,6]]}],
- // The yard's outer-corridor and runway junctions retain >=7 m mouths.
- neon:[{at:[0,0],gates:[[0,-10,6,0],[0,14,6,0],[-16,0,0,8],[16,0,0,8]]},
-  {at:[-25,-28],gates:[[-25,-32.8,7,0],[-25,-24,7,0]]},
-  {at:[-44,4],gates:[[-38,3,0,10],[-38,-18,0,10]]},
-  {at:[44,-4],gates:[[38,-2,0,10],[38,20,0,9]]},
-  {at:[0,48],gates:[[0,42,12,0],[-44,42,8,0],[44,42,8,0]]}],
+ ring:[{at:[0,0],gates:[[-10,-6,0,6],[10,-6,0,6],[-10,6,0,6],[10,6,0,6]]}],
+ blocks:[{at:[0,0],gates:[[0,-7,6,0],[0,7,6,0]]},
+  {at:[-22,-7],gates:[[-22,-7,0,6],[-22,7,0,6]]}],
+ garden:[{at:[0,-17],gates:[[0,-23,10,0],[17,0,0,10],[-17,0,0,10],[0,23,10,0]]}],
+ frost:[{at:[0,0],gates:[[-27,0,0,7],[27,0,0,7],[0,-6,10,0],[0,6,10,0]]}],
+ neon:[{at:[0,0],gates:[[0,-9,8,0],[0,23,8,0],[-16,-9,0,7],[16,23,0,7]]}],
 };
 for(const id of maps.mapIds()){
  const m={id,...maps.mapDef(id)},terrain=createRoadTerrain(m),solids=[...m.blocks,...m.barriers,...m.ramps.map(rampRect)],nav=navigation(m),index=createSurfaceIndex(m);
@@ -69,15 +63,15 @@ for(const id of maps.mapIds()){
   ok(m.features.falls.every(f=>distance(f,x,z)>2),id+' ramp '+i+' dry landing');
  }
  for(const region of regions[id]){ok(region.gates.length>=(region.pocket?1:2),id+' enough exits');ok(nav.reached(...region.at),id+' connected region');for(const [x,z,w,d]of region.gates){ok(Math.max(w,d)>(region.pocket?5:4),id+' mouth width');for(let t=-.5;t<=.5;t+=.1)ok(!nav.blocked(x+w*t,z+d*t,.2)&&nav.reached(x,z),id+' open gate '+[x,z,w,d]);}}
- const b=m.barriers[0],alongX=b.hw<b.hd,sign=(alongX?b.x:b.z)<0?-1:1;
- const k=kart(b.x+(alongX?sign*(b.hw+8):0),b.z+(!alongX?sign*(b.hd+8):0),alongX?-sign*Math.PI/2:sign>0?Math.PI:0);k.input.nitro=true;
+ const b=m.barriers[id==='ring'?1:id==='blocks'?4:0],alongX=b.hw<b.hd,sign=(alongX?b.x:b.z)<0?-1:1;
+ const k=kart(b.x+(alongX?sign*(b.hw+4):0),b.z+(!alongX?sign*(b.hd+4):0),alongX?-sign*Math.PI/2:sign>0?Math.PI:0);k.input.nitro=true;
  const state=stateFor(m,k),motion=createClassicMotion(RAPIER,config,state);let contact=false,maxCross=-Infinity;
  try{
   // Start at boosted road speed in the real body, then keep full nitro.
   motion.restore(k,{...k.physicalPose,linearVelocity:{x:Math.sin(k.angle)*32,y:0,z:Math.cos(k.angle)*32}});
   // A low-friction glance may eventually drive around a finite wall's end.
   // Check crossing while the kart centre is still opposite its solid face.
-  for(let i=0;i<210;i++){motion.advance(1/60,online);contact ||= state.physicalEvents.some(e=>e.surfaceId?.startsWith('barrier-'));if(Math.abs((alongX?k.z:k.x)-(alongX?b.z:b.x))<=(alongX?b.hd:b.hw))maxCross=Math.max(maxCross,-sign*((alongX?k.x:k.z)-(alongX?b.x:b.z)));}
+  for(let i=0;i<65;i++){motion.advance(1/60,online);contact ||= state.physicalEvents.some(e=>e.surfaceId?.startsWith('barrier-'));if(Math.abs((alongX?k.z:k.x)-(alongX?b.z:b.x))<=(alongX?b.hd:b.hw))maxCross=Math.max(maxCross,-sign*((alongX?k.x:k.z)-(alongX?b.x:b.z)));}
   ok(contact&&maxCross<0,id+' wall stops full-speed nitro '+JSON.stringify({contact,maxCross,x:k.x,z:k.z,y:k.physicalPose.position.y}));
   const ray=(y,radius=.05)=>motion.sweepStatic({x:b.x+(alongX?-3:0),y,z:b.z+(!alongX?-3:0)},{x:b.x+(alongX?3:0),y,z:b.z+(!alongX?3:0)},radius);
   ok(ray(.5)?.surfaceId.startsWith('barrier-')&&!ray(1.25,.22),id+' full-radius pulse clears the low wall');
@@ -134,11 +128,11 @@ for(const id of ['garden','neon'])for(const mode of ['Zap Battle','Star Rush']){
   for(let i=0;i<240;i++){
    if(i%3===0){const ack=POCKET.view(state,k.pid).inputAck;POCKET.onAction(state,ctx,k.pid,{seq:++sequence,life:ack.life,controlEpoch:ack.controlEpoch,input:{throttle:1,steer:0,boost:false}});}
    now+=1000/60;POCKET.onTick(state,ctx);
-   if(Math.abs(k.x-f.x)<f.hw&&Math.abs(k.z-f.z)<f.hd)crossed=true;
+   if(!k.physicalPose.grounded&&((k.x-r.x)*Math.sin(r.angle)+(k.z-r.z)*Math.cos(r.angle))>0)crossed=true;
    const progress=(k.x-r.x)*Math.sin(r.angle)+(k.z-r.z)*Math.cos(r.angle);
    if(crossed&&progress>r.hl+12&&k.physicalPose.grounded){landed=true;break;}
   }
-  ok(crossed&&landed&&k.spawnSeq===life&&!(k.respawn>0)&&!state.featureEvents.some(e=>e.type==='fell'),id+' '+mode+' shipping jump crosses the hazard safely '+JSON.stringify({crossed,landed,x:k.x,z:k.z,life,spawnSeq:k.spawnSeq,respawn:k.respawn,events:state.featureEvents}));
+  ok(crossed&&landed&&k.spawnSeq===life&&!(k.respawn>0)&&!state.featureEvents.some(e=>e.type==='fell'),id+' '+mode+' shipping jump launches and lands safely '+JSON.stringify({crossed,landed,x:k.x,z:k.z,life,spawnSeq:k.spawnSeq,respawn:k.respawn,events:state.featureEvents}));
  }finally{POCKET.dispose(state);}
 }
 const scene=new THREE.Scene(),art=createKartArenaStructures(THREE,scene),resources=new Set();

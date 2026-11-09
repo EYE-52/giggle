@@ -1282,6 +1282,7 @@ function createKartGame(config) {
       simAt: state.lastTick,
       map: {
         id: state.map,
+        revision: mapD.revision,
         label: mapD.label,
         theme: mapD.theme,
         half,

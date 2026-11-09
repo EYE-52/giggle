@@ -22,6 +22,11 @@ export function classicStatics(map,terrain=createRoadTerrain(map)){
   for(const [i,s]of(map.surfaces||[]).entries())out.push({id:'grip-'+i,shape:'box',half:{x:s.hw,y:.01,z:s.hd},position:{x:s.x,y:-.005,z:s.z},grip:1});
   for(const [i,b]of(map.blocks||[]).entries()){
     out.push({id:'cover-'+i,shape:'box',half:{x:b.hw,y:.75,z:b.hd},position:{x:b.x,y:.75,z:b.z}});
+    // Authored landmark parts travel in the same snapshot as their hull.
+    // Water is paint; every stone fountain part is a real finite collider.
+    for(const [j,p]of(b.pieces||[]).entries())if(p.material!=='water')out.push({
+      id:'cover-piece-'+i+'-'+j,shape:'box',half:{x:p.w/2,y:p.h/2,z:p.d/2},position:{x:b.x,y:p.y,z:b.z},
+    });
     const minDim=Math.min(b.hw,b.hd)*2;
     if(map.id==='ring'||map.id==='blocks'){
       const fit=Math.max(.3,Math.min(1,(b.hw*2-.6)/1.72,(b.hd*2-.6)/1.72));

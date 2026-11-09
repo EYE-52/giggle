@@ -40,8 +40,8 @@ metrics.cityBlocks=world.group.getObjectByName('neon-city')?.count||0;check(metr
 await R.init();
 const online=new Set(['driver']);
 for(const id of maps.mapIds())for(const angle of [Math.PI,Math.PI/2]){
- const map={id,...maps.mapDef(id)},k={pid:'driver',x:0,z:0,angle:0,speed:0,health:2,weapon:'trishot',ammo:2,hits:4,deaths:1,input:{steer:0,throttle:0},spawnSeq:1},state={...map,map:id,mode:'battle',karts:[k],physicalEvents:[],physicalEventSeq:0,featureEvents:[],featureEventSeq:0};
- const motion=createClassicMotion(R,C,state);motion.restore(k,{...k.physicalPose,position:{x:0,y:angle===Math.PI?.4:1.3,z:0},rotation:{x:0,y:0,z:Math.sin(angle/2),w:Math.cos(angle/2)},linearVelocity:{x:0,y:0,z:0},angularVelocity:{x:0,y:0,z:0}});
+ const map={id,...maps.mapDef(id)},k={pid:'driver',x:id==='garden'?-12:0,z:0,angle:0,speed:0,health:2,weapon:'trishot',ammo:2,hits:4,deaths:1,input:{steer:0,throttle:0},spawnSeq:1},state={...map,map:id,mode:'battle',karts:[k],physicalEvents:[],physicalEventSeq:0,featureEvents:[],featureEventSeq:0};
+ const motion=createClassicMotion(R,C,state);motion.restore(k,{...k.physicalPose,position:{x:k.x,y:angle===Math.PI?.4:1.3,z:0},rotation:{x:0,y:0,z:Math.sin(angle/2),w:Math.cos(angle/2)},linearVelocity:{x:0,y:0,z:0},angularVelocity:{x:0,y:0,z:0}});
  let uprightAt=null;
  for(let tick=0;tick<600;tick++){motion.advance(1/60,online);const p=k.physicalPose;if(uprightAt===null&&1-2*(p.rotation.x*p.rotation.x+p.rotation.z*p.rotation.z)>.9)uprightAt=(tick+1)/60;}
  metrics.recovery.push({id,roll:angle,up:1-2*(k.physicalPose.rotation.x**2+k.physicalPose.rotation.z**2),uprightAt,epoch:k.physicalPose.epoch});
