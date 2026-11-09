@@ -13,9 +13,9 @@ const types={'.mjs':'text/javascript','.js':'text/javascript','.html':'text/html
     if(p==='/js/renderers/three-view.js')body=body.toString().replace('built = await hooks.build(THREE, helper);','$&\nglobalThis.kartCameraProbe?.built(built);');
     res.setHeader('Content-Type',types[path.extname(file)]||'application/octet-stream');res.end(body);
   }catch(e){res.writeHead(404);res.end(e.message);}});
-  await new Promise(r=>server.listen(0,'127.0.0.1',r));let browser;const results=[];
+  await new Promise(r=>server.listen(Number(process.env.KART_BROWSER_PORT)||0,'127.0.0.1',r));let browser;const results=[];
   try{
-    browser=await chromium.launch({headless:true,args:['--use-angle=metal','--ignore-gpu-blocklist']});
+    browser=await chromium.launch({executablePath:process.env.KART_BROWSER||'/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',headless:true,args:['--use-angle=metal','--ignore-gpu-blocklist']});
     const cases=[['garden','cannon','fox',false],['ring','cannon','fox',false],['garden','mouth','fox',false],['garden','rear','fox',false],['garden','rear','bunny',false],['garden','rear','panda',false],['garden','rear','raccoon',false],['skyport','wall','fox',true],['harbor','wall','raccoon',true]];
     for(const [width,height]of [[1280,800],[390,844]])for(const [map,scene,driver,raised]of cases.filter(c=>!process.env.KART_CAMERA_QUICK||c[0]==='garden'&&['cannon','rear'].includes(c[1])&&['fox','raccoon'].includes(c[2]))){
       const context=await browser.newContext({viewport:{width,height},deviceScaleFactor:1,hasTouch:width<500}),page=await context.newPage(),errors=[];

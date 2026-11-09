@@ -19,10 +19,10 @@ export function createKartWarmupLibrary(THREE,scene,assets,combat){
 // Borrow the shipping object only during a synchronous submission: its exact
 // instance binding state stays cached, with all live state restored before
 // every await. Hidden pools never become visible in the live scene.
-export async function warmKartRenderer(THREE,renderer,scene,camera,{roots=[],priorityRoots=[],
+export async function warmKartRenderer(THREE,renderer,scene,camera,{roots=[],priorityRoots=[],requiredRoots=[],
   isAlive=()=>true,budgetMs=Infinity,signal,onProgress,yieldTask}={}){
-  const scheduler=createKartWarmupScheduler({budgetMs,signal,isAlive,onProgress,yieldTask});
-  const sources=new Set(),optional=new Set(),priority=new Set(),lights=[],textures=new Set();
+  const scheduler=createKartWarmupScheduler({budgetMs:requiredRoots.length?Infinity:budgetMs,signal,isAlive,onProgress,yieldTask});
+  const sources=new Set(),optional=new Set(),priority=new Set(),required=new Set(),lights=[],textures=new Set();
   const renderable=o=>o.isMesh||o.isSprite||o.isLine||o.isPoints;
   const visit=(o,set,hidden=false)=>{
     if(!o||o.name==='OriginalKartBody'||(!hidden&&!o.visible))return;
@@ -31,8 +31,10 @@ export async function warmKartRenderer(THREE,renderer,scene,camera,{roots=[],pri
   };
   for(const root of roots)visit(root,optional,true);
   for(const root of priorityRoots)visit(root,priority,true);
+  for(const root of requiredRoots)visit(root,required,true);
   visit(scene,sources);
   for(const source of optional)sources.add(source);
+  for(const source of required)sources.add(source);
   // Visible scenery, seated drivers and pickups precede rare weapons and
   // alternate drivers; shadow-off variants come last.
   const ordered=[...sources].sort((a,b)=>(priority.has(b)?2:optional.has(b)?0:1)-(priority.has(a)?2:optional.has(a)?0:1));
@@ -90,7 +92,35 @@ export async function warmKartRenderer(THREE,renderer,scene,camera,{roots=[],pri
       }
     };
     await warmTexture(scene.background);await warmTexture(scene.environment);
-    for(const shadows of modes)for(const source of ordered){
+    // Finish both shadow modes for combat before starting the optional
+    // scenery budget. A time cap must not defer the first weapon upload.
+    const stages=required.size?[ordered.filter(o=>required.has(o)),ordered.filter(o=>!required.has(o))]:[ordered];
+    for(let stage=0;stage<stages.length;stage++){
+    if(required.size&&stage===1)scheduler.setBudget(budgetMs);
+    if(required.size&&stage===0){
+      // Submit the combat library together, then link/reflect once per mode.
+      // Buffer uploads are submitted by render(). A GPU fence may depend on
+      // presenting the canvas, which cannot happen while build is awaiting us.
+      for(const shadows of modes){
+        for(const object of stages[stage]){
+          for(const m of Array.isArray(object.material)?object.material:[object.material])if(m){
+            for(const value of Object.values(m))await warmTexture(value);
+            for(const uniform of Object.values(m.uniforms||{}))for(const value of Array.isArray(uniform.value)?uniform.value:[uniform.value])await warmTexture(value);
+          }
+          if(shadows&&object.castShadow&&renderer.renderBufferDirect&&renderer.compile){
+            await step(()=>sample(object,shadows,()=>prepareKartPass(THREE,renderer,()=>renderer.render(staging,camera),{shadowsOnly:true,isAlive:living,wait:false})));
+          }
+          await step(()=>sample(object,shadows,()=>renderer.compile?renderer.compile(object,camera,staging):renderer.compileAsync(object,camera,staging)));
+        }
+        await waitKartPrograms(renderer,living,step);
+        for(const object of stages[stage]){
+          await step(()=>sample(object,shadows,()=>renderer.render(staging,camera)));
+          scheduler.progress(++completed,total);
+        }
+      }
+      continue;
+    }
+    for(const shadows of modes)for(const source of stages[stage]){
       const object=source;
       {
         for(const m of Array.isArray(object.material)?object.material:[object.material])if(m){
@@ -106,14 +136,9 @@ export async function warmKartRenderer(THREE,renderer,scene,camera,{roots=[],pri
         await step(()=>sample(object,shadows,()=>renderer.compile?renderer.compile(object,camera,staging):renderer.compileAsync(object,camera,staging)));
         await waitKartPrograms(renderer,living,step);
         await step(()=>sample(object,shadows,()=>renderer.render(staging,camera)));
-        // A fence is polled, never gl.finish(): a busy GPU must not freeze UI.
-        const gl=renderer.getContext?.();
-        if(gl?.fenceSync){
-          const fence=gl.fenceSync(gl.SYNC_GPU_COMMANDS_COMPLETE,0);
-          if(fence){try{gl.flush();while(await step(()=>gl.clientWaitSync(fence,0,0))===gl.TIMEOUT_EXPIRED){/* yield on each poll */}}finally{gl.deleteSync(fence);}}
-        }
       }
       scheduler.progress(++completed,total);
+    }
     }
   });
 }

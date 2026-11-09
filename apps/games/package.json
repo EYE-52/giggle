@@ -104,7 +104,8 @@
     "test:fill-scenes:browser": "node test/fill-scenes-browser.cjs",
     "test:new-games-b1": "node test/new-games-b1.js",
     "test:new-games-b1:browser": "node test/new-games-b1-browser.cjs",
-    "test:kart-loading": "node test/kart-wasm.mjs && node test/kart-loading.mjs && node test/kart-bundle.js"
+    "test:kart-loading": "node test/kart-wasm.mjs && node test/kart-loading.mjs && node test/kart-bundle.js",
+    "test:kart-weapons-browser": "node test/kart-weapon-system-browser.cjs && node test/kart-weapon-raised-browser.cjs"
   },
   "engines": {
     "node": "24.x"

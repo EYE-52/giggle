@@ -14,7 +14,7 @@ const params=new URLSearchParams(location.search),id=params.get('map')||'garden'
 const map=classic?await(await fetch('/classic-map?id='+id)).json():elevatedMap(id),R=await loadClassicPhysics(),terrain=classic?createRoadTerrain(map):null;
 const solids=classic?classicStatics(map,terrain):elevatedStatics(map),query=createKartPhysics(R,config);for(const s of solids)query.addStatic(s);
 let input={steer:0,throttle:0},seq=0,epoch=0,viewReady=false,built;
-const k={pid:'p0',id:'p0',alive:true,connected:true,spawnSeq:1,controlEpoch:1,health:3,maxHealth:3,nitro:1,hits:0,deaths:0,shield:0,guard:false,weapon:null,ammo:0,respawn:0,speed:0,angle:0,x:0,z:0,input};
+const k={pid:'p0',id:'p0',alive:true,connected:true,spawnSeq:1,controlEpoch:1,health:100,maxHealth:100,nitro:1,hits:0,deaths:0,shield:0,guard:false,weapon:null,ammo:0,respawn:0,speed:0,angle:0,x:0,z:0,input};
 const room={...map,map:id,mode:'battle',karts:[k],physicalEvents:[],physicalEventSeq:0,featureEvents:[],featureEventSeq:0};
 const physics=classic?createClassicMotion(R,config,room):createKartPhysics(R,config);
 if(!classic){for(const s of solids)physics.addStatic(s);physics.addKart(k.id,{position:{x:0,y:.75,z:0}});}

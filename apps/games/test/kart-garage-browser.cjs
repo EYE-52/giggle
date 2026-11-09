@@ -55,6 +55,7 @@ async function run() {
       const context=await browser.newContext({viewport,isMobile:viewport.width<860,hasTouch:viewport.width<860,deviceScaleFactor:1});
       const page=await context.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));
       page.on('console',m=>{if(m.type()==='error'&&!m.text().includes('404'))errors.push(m.text());});
+      await context.route('**/js/renderers/three-view.js',async route=>{const r=await route.fetch();await route.fulfill({response:r,body:(await r.text()).replace("  } catch (e) {\n    signal?.removeEventListener('abort', releaseRenderer);","  } catch (e) {\n    console.error('Garage fixture build failed',e.stack);\n    signal?.removeEventListener('abort', releaseRenderer);")});});
       await page.addInitScript(theme=>document.addEventListener('DOMContentLoaded',()=>document.documentElement.dataset.theme=theme),theme);
       await page.goto(url);await page.waitForFunction(()=>window.garageReady);await page.evaluate(()=>document.fonts.ready);
       await page.waitForFunction(()=>document.querySelector('.pk-garage-thumbnail')?.src.startsWith('data:image/png')&&!document.querySelector('.pk-garage-thumbnail').hidden,{},{timeout:30000}).catch(async error=>{

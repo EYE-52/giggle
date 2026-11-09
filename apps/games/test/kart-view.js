@@ -957,17 +957,23 @@ for (const [t,fns] of window.screen.orientation.events) assert.equal(fns.length,
   for(const [key,file]of [['kart','giggle-kart.meshopt'],['star','giggle-star'],['crate','giggle-crate.meshopt'],['combat','combat/combat.meshopt']]){
     const b=fs.readFileSync(require.resolve('../public/assets/karts/'+file+'.glb'));assets[key]=(await new GLTFLoader().setMeshoptDecoder(MeshoptDecoder).parseAsync(b.buffer.slice(b.byteOffset,b.byteOffset+b.byteLength),'')).scene;
   }
-  let build;const geometries=new Set(),materials=new Set();let compiles=0,warmFrames=0,worldRetired=0,warmupCancels=0;
+  let build;const assetSelections=[];const geometries=new Set(),materials=new Set();let compiles=0,warmFrames=0,worldRetired=0,warmupCancels=0;
   const encounter=root=>{if(!root.visible)return;if(root.isMesh||root.isLine){if(root.geometry)geometries.add(root.geometry);for(const m of Array.isArray(root.material)?root.material:[root.material])if(m)materials.add(m);}for(const child of root.children)encounter(child);};
   const renderer={async compileAsync(scene){compiles++;encounter(scene);},render(scene){warmFrames++;encounter(scene);}};
   const {matchKartDrivers}=await import('../public/js/engines/kart-assets.mjs');
-  Object.assign(context,models,flight,groundMarkers,{matchKartDrivers,createKartCameraCollision,classicStatics,createKartWarmupLibrary,warmKartRenderer:async(T,r,s,c,o)=>{const handle=await warmKartRenderer(T,r,s,c,{...o,budgetMs:Infinity,yieldTask:async()=>{}}),cancel=handle.cancel;handle.cancel=()=>{warmupCancels++;cancel();};return handle;},createKartCombatArt,createKartHealthBars,createKartImpactFX,createKartDrivingFX,loadKartAssets:async(T,scene)=>{const library=new T.Group();library.visible=false;scene.add(library);for(const asset of Object.values(assets))library.add(asset);return assets;},
+  Object.assign(context,models,flight,groundMarkers,{matchKartDrivers,createKartCameraCollision,classicStatics,createKartWarmupLibrary,warmKartRenderer:async(T,r,s,c,o)=>{const handle=await warmKartRenderer(T,r,s,c,{...o,budgetMs:Infinity,yieldTask:async()=>{}}),cancel=handle.cancel;handle.cancel=()=>{warmupCancels++;cancel();};return handle;},createKartCombatArt,createKartHealthBars,createKartImpactFX,createKartDrivingFX,loadKartAssets:async(T,scene,selection)=>{assetSelections.push(selection);const library=new T.Group();library.visible=false;scene.add(library);for(const asset of Object.values(assets))library.add(asset);return assets;},
     createKartWorld:T=>({group:new T.Group(),palette:{horizon:0xd8f3ff},syncMap(){},dispose(){worldRetired++;}}),createKartLighting:()=>()=>{},
     createThreeView:(el,hooks)=>{build=hooks.build;return new Promise(()=>{});}});
   const live=context.makeView({}),el=new Node(),s={...state('drive'),simAt:clock,events:[],zaps:[],grenades:[],mines:[],crates:[],stars:[]};
   Object.assign(s.karts[0],{x:0,z:0,angle:0,speed:0,weapon:null,ammo:0});
-  live.mount(el,api);live.update(el,s,api);
-  const built=await build(THREE,{renderer:()=>renderer,disposeObject(){}});
+  live.mount(el,api);
+  const pendingBuild=build(THREE,{renderer:()=>renderer,disposeObject(){}});
+  await Promise.resolve();await Promise.resolve();
+  assert.equal(assetSelections.length,0,'early scene build waits for the first snapshot instead of loading a full library');
+  live.update(el,s,api);
+  const built=await pendingBuild;
+  assert.equal(assetSelections.length,1,'first snapshot releases one scene asset selection');
+  assert.equal(assetSelections[0].map,s.map,'scene selection uses the accepted map');
   assert.equal(warmupCancels,1,'classic warm-up closes before handing the scene to the render loop');
   assert.ok(compiles>1,'compatibility combat shaders compile in separate small batches');
   assert.equal(warmFrames,compiles,'compatibility combat geometry/effect buffers render before readiness');
@@ -999,12 +1005,12 @@ for (const [t,fns] of window.screen.orientation.events) assert.equal(fns.length,
   // Resume the graphics fixture at fresh clocks after the explicit stall.
   s.simAt=clock;s.simTick=14;live.update(el,s,api);
   const bar=built.scene.getObjectByName('KartHealth:one');
-  assert(bar,'classic player has a prepared scene HP bar');
-  const wounded=structuredClone(s);wounded.karts[0].health=35;wounded.karts[0].maxHealth=100;
+  assert(bar,'classic player has a prepared scene HP bar');built.frame(1/60,clock/1000);assert(!bar.visible,'own HP is shown in the HUD, not over the driving line');
+  const wounded=structuredClone(s);wounded.you='watcher';wounded.youDrive=false;wounded.karts[0].health=35;wounded.karts[0].maxHealth=100;
   live.update(el,wounded,api);built.frame(1/60,clock/1000);
   const [full,...lost]=bar.children;
-  assert(bar.visible&&bar.children.length===2&&bar.children[1].scale.x===.35,'classic damaged kart shows one full and two empty hearts of three');
-  assert(Math.abs(bar.children[1].position.x+1.2*.65)<1e-9,'classic heart pips sit centred over the kart');
+  assert(bar.visible&&bar.children.length===2&&bar.children[1].scale.x===.35,'classic spectator sees the exact remote HP fill');
+  assert(Math.abs(bar.children[1].position.x+1.2*.65)<1e-9,'classic HP fill drains from right to left');
   assert.equal(bar.position.y,3,'classic bar stays above the player, independent of chassis yaw');
   assert(bar.quaternion.equals(built.camera.quaternion),'classic bar faces the current chase camera');
   assert(bar.children.every(o=>o.material.depthTest&&!o.material.depthWrite&&!o.material.map),'classic scene bars are occluded meshes without per-frame texture work');
@@ -1015,6 +1021,10 @@ for (const [t,fns] of window.screen.orientation.events) assert.equal(fns.length,
   live.update(el,{...watcher,karts:[]},api);built.frame(1/60,clock/1000);assert.equal(bar.parent,null,'retired classic player detaches its bar');
   live.dispose();built.dispose();assert.equal(built.scene.getObjectByName('KartHealth:one'),undefined,'classic scene disposal removes health bars');
   assert.equal(worldRetired,1,'classic scene disposal retires pending world image loads');
+  const cancelled=context.makeView({});cancelled.mount(new Node(),api);
+  const cancelledBuild=build(THREE,{renderer:()=>renderer,disposeObject(){}});cancelled.dispose();
+  await assert.rejects(cancelledBuild,/Retired kart scene/);
+  assert.equal(assetSelections.length,1,'dispose before the first snapshot releases the build without fetching assets');
 }
 // Delayed renderer initialization must not expose countdown/GO or running time.
 {

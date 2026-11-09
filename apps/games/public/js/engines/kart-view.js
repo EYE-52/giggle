@@ -191,6 +191,7 @@ export function createKartView(viewConfig) {
   const hooks = cfg.hooks && typeof cfg.hooks === 'object' ? cfg.hooks : {};
 
   let S = null;
+  let firstSnapshot=Promise.resolve(),releaseFirstSnapshot=null;
   let lastSnapshotArrival = null,snapshotOffset=null;
   let apiRef = null;
   let rootEl = null;
@@ -1088,6 +1089,10 @@ export function createKartView(viewConfig) {
   }
 
   async function buildScene(THREE, helper, gen) {
+    // Mount can finish its module imports before the first public snapshot.
+    // Wait for its map/driver list instead of loading the full asset library.
+    await firstSnapshot;
+    if(gen!==mountGen||!S)throw new Error('Retired kart scene');
     const pal = paletteFor(S && S.palette);
     const scene = new THREE.Scene();
     let disposeLighting,warmup;
@@ -1225,6 +1230,7 @@ export function createKartView(viewConfig) {
       const warmLibrary=createKartWarmupLibrary(THREE,scene,assets,combat);
       await waitKartPreparation(disposeLighting.ready,apiRef?.preparationSignal);
       warmup=await warmKartRenderer(THREE,renderer,scene,camera,{isAlive:()=>gen===mountGen,
+        requiredRoots:[warm,reserve,warmLibrary,pops,scene.getObjectByName('KartImpactFX')],
         budgetMs:2000,signal:apiRef?.preparationSignal,priorityRoots:[world.group,...karts.values(),warmLibrary.children[0],drivingFX.particles,drivingFX.speedLines],
         onProgress:({completed,total})=>{if(gen===mountGen){const loading=rootEl?.querySelector('.pk-loading'),text=`Preparing graphics… ${Math.round(completed/total*100)}%`;if(loading&&loading.textContent!==text)loading.textContent=text;}},
         roots:[warm,reserve,warmLibrary,pops,kartLod.object,drivingFX.particles,drivingFX.speedLines,
@@ -1364,7 +1370,7 @@ export function createKartView(viewConfig) {
           const surface=drivingSurfaceAt(mesh.position.x,mesh.position.z),sliding=kartSliding(k,pose,k.pid===S.you&&intentForPrediction().throttle<0);
           skids.track(k.pid,mesh.position.x,mesh.position.z,pose.angle,sliding,surface);
           if(mesh.visible&&S.phase==='drive')drivingFX.track(k.pid,mesh.position.x,mesh.position.y,mesh.position.z,pose.angle,pose.speed??k.speed,sliding,pose.driftCharge??k.driftCharge,surface,(pose.physicalPose||k.physicalPose)?.grounded!==false);
-          healthBars.update(k.pid,k,mesh.position,(S.players||S.participants||[]).find(p=>p.id===k.pid)?.connected!==false);
+          healthBars.update(k.pid,k,mesh.position,(!S.youDrive||k.pid!==S.you)&&(S.players||S.participants||[]).find(p=>p.id===k.pid)?.connected!==false);
           if(!mesh.visible)healthBars.add(k.pid).visible=false;
           const equipped=k.respawn>0?null:k.ammo>0?k.weapon:k.bladesT>0?'blades':k.supernovaT>0?'supernova':k.rammingT>0?'ram':nowMs()<(mesh.userData.fireUntil||0)?mesh.userData.fireKind:null;
           if(mesh.userData.equipped!==equipped) {
@@ -1868,6 +1874,7 @@ export function createKartView(viewConfig) {
     disposeGl();
     hitFx?.dispose();hitFx=null;
     S = null;lastSnapshotArrival=null;snapshotOffset=null;
+    releaseFirstSnapshot?.();releaseFirstSnapshot=null;
     radarCanvas=null;radarAt=-Infinity;radarMap=null;
     feedback.reset();
     apiRef = null;
@@ -1899,6 +1906,7 @@ export function createKartView(viewConfig) {
     ensureKartCss();
     apiRef = api;
     rootEl = el;
+    firstSnapshot=new Promise(resolve=>{releaseFirstSnapshot=resolve;});
     audio=createKartAudio({muted:api.context?.().sound===false});
     // Optional recordings start after every seat has its required scene and
     // physics. They keep their existing gesture, mute and decode lifecycle.
@@ -2227,6 +2235,7 @@ export function createKartView(viewConfig) {
       S = Snew;
       apiRef = api;
     }
+    releaseFirstSnapshot?.();releaseFirstSnapshot=null;
     // Defer optional recordings until all seats finish loading.
     if(!S.preparing)startAudio?.();
     roulette.sync(S.instanceId,S.inputAck?.life??myKart()?.spawnSeq);pickupPrediction.sync(S.instanceId,S.inputAck?.life??myKart()?.spawnSeq);if(S.audioBaseline||S.phase==='done')roulette.skip();

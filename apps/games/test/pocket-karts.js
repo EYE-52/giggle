@@ -460,7 +460,7 @@ async function physicalProduct(){
     const oldLife=victim.spawnSeq;ctx._now+=50;product.onTick(state,ctx);
     const firstRespawn=product.view(state,pid).karts.find(k=>k.pid===pid);
     assert.equal(firstRespawn.spawnSeq,oldLife+1,'rules respawn life advances');
-    assert.equal(firstRespawn.respawn,0);assert.equal(firstRespawn.health,3);assert.equal(firstRespawn.maxHealth,3);
+    assert.equal(firstRespawn.respawn,0);assert.equal(firstRespawn.health,100);assert.equal(firstRespawn.maxHealth,100);
     assert.ok(Math.abs(firstRespawn.x-firstRespawn.physicalPose.position.x)<.001&&Math.abs(firstRespawn.z-firstRespawn.physicalPose.position.z)<.001,'first respawn public and physical coordinates agree');
     assert.ok(Math.hypot(...Object.values(firstRespawn.physicalPose.linearVelocity))<1e-9,'first respawn has zero physical velocity');
     product.dispose(state);

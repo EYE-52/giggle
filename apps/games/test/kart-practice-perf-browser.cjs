@@ -9,12 +9,12 @@ if (process.env.KART_PERF_SERVER === '1') {
   const Module = require('node:module'), compile = Module.prototype._compile;
   Module.prototype._compile = function (source, file) {
     if (file.endsWith('/kart-elevated-combat.js')) source = source.replace('function dispose() {', `global.__perfGive = weapon => {
-      const k = [...karts.values()][0]; if (!k?.alive) return false;
+      const k = [...karts.values()][0]; if (!k?.alive || !COMBAT.weapons[weapon]) return false;
       clean(k); k.weapon = weapon; k.ammo = COMBAT.weapons[weapon].ammo || 1; k.fireCd = 0;
       emit('pickup', k.id, { weapon, position: physics.pose(k.id).position }); return true;
     }; function dispose() {`);
     if (file.endsWith('/kart-rules-battle.js')) source += `\nmodule.exports.__perfGive = (state, weapon) => {
-      const k = state.karts[0]; if (k.respawn > 0) return false;
+      const k = state.karts[0]; if (k.respawn > 0 || !COMBAT.weapons[weapon]) return false;
       k.weapon = weapon; k.ammo = COMBAT.weapons[weapon].ammo || 1; k.fireCd = 0; k.prevAction = false;
       pushEvent(state, 'pickup', k.pid, undefined, weapon); return true;
     };`;
@@ -36,7 +36,7 @@ async function main() {
   const { chromium } = require(process.env.KART_PERF_PLAYWRIGHT || 'playwright');
   const { fork } = require('node:child_process'), net = require('node:net');
   const out = process.env.KART_PERF_OUT || '/tmp/kart-practice-perf'; fs.mkdirSync(out, { recursive: true });
-  const port = await new Promise(resolve => { const s = net.createServer().listen(0, '127.0.0.1', () => { const p = s.address().port; s.close(() => resolve(p)); }); });
+  const port = await new Promise(resolve => { const s = net.createServer().listen(Number(process.env.KART_BROWSER_PORT)||0, '127.0.0.1', () => { const p = s.address().port; s.close(() => resolve(p)); }); });
   const server = fork(__filename, [], { cwd: root, env: { ...process.env, KART_PERF_SERVER: '1', PORT: String(port), HOST: '127.0.0.1', NODE_ENV: 'test', REPORT_DB_PATH: path.join(out, 'reports.json') }, silent: true });
   let log = ''; server.stdout.on('data', d => log += d); server.stderr.on('data', d => log += d);
   const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
@@ -108,16 +108,20 @@ async function main() {
       await host.locator('.pk-stage canvas,.pke-stage canvas').click({ force: true });
       await page.keyboard.down('ArrowUp'); await page.keyboard.down('n');
       await sleep(800);await page.keyboard.up('ArrowUp');await page.keyboard.up('n');
-      const weapons = ['machinegun','trishot','missile','cannon','blades','supernova','mine','oil','frost','thunder','boomerang','ram','nuke'];
+      const weapons = ['machinegun','trishot','missile','cannon','blades','supernova','mine','frost','ram','nuke'];
       let next = 0, id = 0;
       const seconds = Number(process.env.KART_PERF_SECONDS || 120);
       while (Date.now() - readyWall < seconds * 1000) {
         const age = Date.now() - readyWall;
         if (next < weapons.length && age >= 12000 + next * 6500) {
           const weapon = weapons[next++], request = ++id;
-          const ok = await new Promise(resolve => {
-            const receive = m => { if (m.id === request) { server.off('message', receive); resolve(m.ok); } };
-            server.on('message', receive); server.send({ weapon, id: request });
+          const ok = await new Promise((resolve,reject) => {
+            const cleanup=()=>{clearTimeout(timeout);server.off('message',receive);server.off('exit',exited);};
+            const exited=()=>{cleanup();reject(Error('Test server exited while granting '+weapon));};
+            const receive=m=>{if(m.id===request){cleanup();resolve(m.ok);}};
+            const timeout=setTimeout(()=>{cleanup();reject(Error('Test grant timed out: '+weapon));},5000);
+            server.on('message',receive);server.once('exit',exited);
+            server.send({weapon,id:request},error=>{if(error){cleanup();reject(error);}});
           });
           if (!ok) throw Error('Could not grant ' + weapon);
           await host.evaluate(w => window.__perfMark('grant:' + w), weapon);

@@ -286,6 +286,7 @@ export function createElevatedKartView() {
       shadows.update();
       const warmLibrary=createKartWarmupLibrary(THREE,scene,assets,art);
       warmup=await warmKartRenderer(THREE,renderer,scene,camera,{isAlive:()=>gen===generation,
+        requiredRoots:[...warm,warmLibrary,scene.getObjectByName('KartImpactFX')],
         budgetMs:2000,signal:api?.preparationSignal,priorityRoots:[world.group,...models.values(),pickups.mesh,drivingFX.particles,drivingFX.speedLines],
         onProgress:({completed,total})=>{if(gen===generation){const loading=$('loading'),text=`Preparing graphics… ${Math.round(completed/total*100)}%`;if(loading&&loading.textContent!==text)loading.textContent=text;}},
         roots:[...warm,warmLibrary,arena.root,drivingFX.particles,drivingFX.speedLines,scene.getObjectByName('KartSkidMarks'),
@@ -355,7 +356,7 @@ export function createElevatedKartView() {
           const exploding=wrecks.get(k.id);model.visible=!k.out&&(k.alive||!!exploding);model.scale.setScalar(1);
           model.userData.poseEpoch=p.epoch;model.position.copy(p.position);model.quaternion.set(p.rotation.x,p.rotation.y,p.rotation.z,p.rotation.w);model.userData.kart.inner.position.y=CONFIG.chassis.modelOriginY;
           if(exploding){model.position.copy(exploding.position);if(!helper.reducedMotion()){model.position.y+=Math.sin(exploding.age/.65*Math.PI)*.8;model.rotateZ(exploding.age*1.6);model.scale.setScalar(Math.max(.15,1-exploding.age/.65));}}
-          healthBars.update(k.id,k,model.position);
+          healthBars.update(k.id,k,model.position,!S.youDrive||k.id!==S.you);
           {const q=model.quaternion;skidGround=model.position.y+CONFIG.chassis.modelOriginY;slidePose.angle=Math.atan2(2*(q.w*q.y+q.x*q.z),1-2*(q.x*q.x+q.y*q.y));slidePose.physicalPose.linearVelocity=p.linearVelocity;slidePose.physicalPose.grounded=p.grounded!==false;
             const sliding=k.alive&&kartSliding(moving,slidePose,k.id===S.you&&intent().brake>0),surface=surfaceProfile(moving.surface);
             skids.track(k.id,model.position.x,model.position.z,slidePose.angle,sliding,surface);

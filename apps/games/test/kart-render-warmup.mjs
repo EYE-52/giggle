@@ -48,7 +48,7 @@ for(const fallback of [false,true]){
   };
   const before=stats(scene),nodes=[];scene.traverse(o=>nodes.push([o,o.visible,o.frustumCulled]));
   await warmKartRenderer(tracked,renderer,scene,camera,{yieldTask:async()=>{},roots:[reserve,library,...fx.objects(),scene.getObjectByName('KartImpactFX'),zero,lod.object]});
-  ok(compiles>1&&renders===compiles&&deleted===renders&&waits>renders,'separate compile/upload batches and nonblocking GPU fences');
+  ok(compiles>1&&renders===compiles&&deleted===0&&waits===0,'compile and upload before play without waiting for an unpresented canvas fence');
   ok(viewport.z===800&&viewport.w===600&&scissor.z===800&&!scissorTest,'viewport and scissor restored');
   assert.deepEqual(stats(scene),before,'warmup adds no gameplay draws or triangles');checks++;
   for(const [o,visible,culled]of nodes){assert.equal(o.visible,visible);assert.equal(o.frustumCulled,culled);}
@@ -141,7 +141,7 @@ for(const fail of ['compile','retired']){
   ok(!mesh.visible&&mesh.count===0,'failure restores visibility and capacity: '+fail);
   ok(rendered===0,'failed/retired compile never renders');
 }
-console.log(JSON.stringify({pass:true,checks,scope:'Shipping GLBs and fallback, all 13 weapons, first-use material/texture/geometry coverage, every driver, unchanged draws/triangles and loading lifecycle; real WebGL checked separately.'}));
+console.log(JSON.stringify({pass:true,checks,scope:'Shipping GLBs and fallback, all ten weapons plus legacy asset compatibility, first-use material/texture/geometry coverage, every driver, unchanged draws/triangles and loading lifecycle; real WebGL checked separately.'}));
 
 // Once all jobs finish, quality switches select cached, reflected shaders,
 // including materials hidden until the first weapon/status use.
@@ -165,4 +165,17 @@ console.log(JSON.stringify({pass:true,checks,scope:'Shipping GLBs and fallback, 
  await warmKartRenderer(THREE,renderer,scene,camera,{yieldTask:async()=>{}});
  assert(compiles>0&&draws>0&&reflected>0,'submission, reflection and warm draw all run');
  mesh.geometry.dispose();mesh.material.dispose();
+}
+
+// A short optional budget must never postpone first-fire GPU resources.
+{
+ const scene=new THREE.Scene(),camera=new THREE.Camera(),combat=new THREE.Mesh(new THREE.BoxGeometry(),new THREE.MeshBasicMaterial()),scenery=new THREE.Mesh(new THREE.BoxGeometry(),new THREE.MeshBasicMaterial());
+ combat.name='RequiredWeapon';scenery.name='OptionalScenery';combat.visible=false;scene.add(combat,scenery);
+ const compiled=[],drawn=[],renderer={shadowMap:{enabled:true},async compileAsync(object){compiled.push([object.name,this.shadowMap.enabled]);},render(staging){drawn.push(staging.children.find(o=>o.isMesh)?.name);}};
+ const handle=await warmKartRenderer(THREE,renderer,scene,camera,{requiredRoots:[combat],roots:[scenery],budgetMs:0,yieldTask:async()=>{}});
+ await handle.done.catch(()=>{});
+ assert.deepEqual(compiled,[['RequiredWeapon',true],['RequiredWeapon',false]],'both combat quality modes finish before the optional budget starts');
+ assert.deepEqual(drawn,['RequiredWeapon','RequiredWeapon']);assert(handle.skipped,'the zero optional budget is still enforced');
+ assert(!combat.visible&&renderer.shadowMap.enabled,'warm-up restores the hidden pool and current shadow mode');
+ for(const mesh of [combat,scenery]){mesh.geometry.dispose();mesh.material.dispose();}
 }

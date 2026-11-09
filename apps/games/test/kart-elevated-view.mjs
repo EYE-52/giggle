@@ -264,10 +264,11 @@ globalThis.createImageBitmap=async blob=>{const bytes=Buffer.from(await blob.arr
 // compiles, reflection or uploads. Exercise the real elevated view handoff.
 {
   const r=rig({graphics:true,warmupBudget:0});r.render();await r.settle();
-  await r.view.ready();r.key('KeyW');
-  check('expired warm-up still allows raised driving',r.sent.at(-1).throttle===1&&r.node('loading').hidden);
+  await r.view.ready();const prepared={compiles:r.renderStats.compiles,warmFrames:r.renderStats.warmFrames};
+  check('required weapon buffers warm before Ready even with no optional budget',prepared.compiles>0&&prepared.warmFrames>0&&r.renderStats.warmObjects.has('CombatMuzzleFlash'));r.key('KeyW');
+  check('expired optional warm-up still allows raised driving',r.sent.at(-1).throttle===1&&r.node('loading').hidden);
   for(let frame=0;frame<120;frame++){r.advance(16);r.frame();await r.flush();}
-  check('no optional compile or hidden render after raised Ready/input',r.renderStats.compiles===0&&r.renderStats.warmFrames===0);
+  check('no optional compile or hidden render after raised Ready/input',r.renderStats.compiles===prepared.compiles&&r.renderStats.warmFrames===prepared.warmFrames);
   r.view.dispose();
 }
 {
@@ -540,24 +541,24 @@ for(const missingDrivers of [['bunny'],['fox','bunny','panda','raccoon']]){
   const scene=r.loads.at(-1).handle.built.scene,model=scene.children.filter(o=>o.name==='GiggleKart')[0];
   const flashes=scene.children.filter(o=>o.name==='CombatMuzzleFlash'),allocation=r.allocations();
   const bar=scene.getObjectByName('KartHealth:a'),otherBar=scene.getObjectByName('KartHealth:b');
-  check('elevated full-health players prepare hidden scene bars before live play',bar&&bar.visible&&otherBar&&otherBar.visible);
+  check('own HP stays in the HUD while full-health rivals have an overhead bar',bar&&!bar.visible&&otherBar&&otherBar.visible);
   check('all twelve muzzle flashes and each active kart are prepared before gameplay',flashes.length===12&&scene.children.filter(o=>o.name==='GiggleKart').length===start.karts.length);
   const hearts=()=>r.node('health').children;
-  check('elevated HUD starts with three full hearts',r.node('health').dataset.hp==='100'&&r.node('health').getAttribute('aria-label')==='100 of 100 HP');
-  const hit=structuredClone(start);hit.simTick=2;hit.simAt=100;hit.karts[0].health=95;hit.events=[{id:1,type:'hit',pid:'b',other:'a',damage:5,health:95,maxHealth:100,weapon:'machinegun',position:{x:0,y:1,z:3}}];
+  check('elevated HUD starts at 100 HP',r.node('health').dataset.hp==='100'&&r.node('health').getAttribute('aria-label')==='100 of 100 HP');
+  const hit=structuredClone(start);hit.simTick=2;hit.simAt=100;hit.karts[0].health=95;hit.karts[1].health=65;hit.events=[{id:1,type:'hit',pid:'b',other:'a',damage:5,health:95,maxHealth:100,weapon:'machinegun',position:{x:0,y:1,z:3}}];
   r.render(hit);r.frame();
-  check('nonlethal accepted hit empties one HUD heart without hiding the kart',r.node('health').getAttribute('aria-label')==='95 of 100 HP'&&r.node('health').querySelector('.kart-hp-fill').style.transform==='scaleX(0.95)'&&model.visible);
-  check('only the heart just lost pops',r.node('health').getAttribute('data-shake')!==null);
+  check('nonlethal accepted hit changes the HP fill without hiding the kart',r.node('health').getAttribute('aria-label')==='95 of 100 HP'&&r.node('health').querySelector('.kart-hp-fill').style.transform==='scaleX(0.95)'&&model.visible);
+  check('HP loss triggers one HUD pop',r.node('health').getAttribute('data-shake')!==null);
   const [track,fullHeart]=bar.children;
-  check('elevated scene hearts show authoritative 2 of 3 above the world chassis',bar.visible&&bar.children.length===2&&bar.children[1].scale.x===.95&&Math.abs(bar.position.y-model.position.y-3)<1e-9);
-  check('elevated billboard faces the final chase camera and remains depth occluded',bar.quaternion.equals(r.loads.at(-1).handle.built.camera.quaternion)&&bar.children.every(o=>o.material.depthTest&&!o.material.depthWrite&&!o.material.map));
+  check('rival bar shows exact authoritative HP while the own overhead bar stays hidden',!bar.visible&&otherBar.visible&&otherBar.children.length===2&&otherBar.children[1].scale.x===.65);
+  check('elevated billboard faces the final chase camera and remains depth occluded',otherBar.quaternion.equals(r.loads.at(-1).handle.built.camera.quaternion)&&otherBar.children.every(o=>o.material.depthTest&&!o.material.depthWrite&&!o.material.map));
   check('first elevated damage adds no graphics resources',JSON.stringify(r.allocations())===JSON.stringify(allocation));
   const flash=r.el.querySelector('.kart-hitfx-flash');
   check('self hit flashes the screen edge once',flash.getAttribute('data-on')==='');
   flash.removeAttribute('data-on');r.render(hit);r.frame();check('repeated authoritative hit does not replay damage',flash.getAttribute('data-on')===null);
-  const landed=structuredClone(hit);landed.simTick=2;landed.events=[...hit.events,{id:'landed',type:'hit',pid:'a',other:'b',damage:2,health:1,maxHealth:3,weapon:'missile',position:{x:10,y:1,z:0}}];
+  const landed=structuredClone(hit);landed.simTick=2;landed.events=[...hit.events,{id:'landed',type:'hit',pid:'a',other:'b',damage:65,health:35,maxHealth:100,weapon:'missile',position:{x:10,y:1,z:0}}];
   r.render(landed);r.frame();
-  check('own landed hit shows the hit marker and heart count toast',r.el.querySelector('.kart-hitfx-marker').getAttribute('data-on')===''&&r.el.querySelector('.kart-hitfx-toast').textContent==='−2 HP');
+  check('own landed hit shows the hit marker and HP toast',r.el.querySelector('.kart-hitfx-marker').getAttribute('data-on')===''&&r.el.querySelector('.kart-hitfx-toast').textContent==='−65 HP');
   const fire=structuredClone(hit);fire.simTick=3;fire.simAt=150;fire.events=[{id:2,type:'fire',weapon:'missile',pid:'a',position:{x:4,y:1,z:5},direction:{x:1,y:0,z:0}}];
   r.render(fire);r.frame();
   const muzzle=flashes.find(o=>o.visible);
@@ -584,8 +585,8 @@ for(const missingDrivers of [['bunny'],['fox','bunny','panda','raccoon']]){
   r.advance(700);r.frame(.1);check('wreck retires after its bounded collapse animation',!model.visible);
   const respawn=structuredClone(start);respawn.simTick=ko.simTick+1;respawn.simAt=r.api.now();respawn.karts[0].spawnSeq=2;respawn.karts[0].pose.position={x:20,y:.64,z:20};
   r.render(respawn);r.frame();
-  check('new life restores three full hearts and actual spawn without stale wreck transform',model.visible&&model.scale.x===1&&model.position.x===20&&model.position.z===20&&r.node('health').dataset.hp==='100'&&r.node('health').dataset.life==='2');
-  check('elevated full-health respawn shows its overhead bar',bar.visible);
+  check('new life restores 100 HP and actual spawn without stale wreck transform',model.visible&&model.scale.x===1&&model.position.x===20&&model.position.z===20&&r.node('health').dataset.hp==='100'&&r.node('health').dataset.life==='2');
+  check('own respawn keeps the overhead bar hidden',!bar.visible);
   const watch=structuredClone(respawn);watch.simTick=respawn.simTick+1;watch.simAt=r.api.now();watch.you='watcher';watch.youDrive=false;watch.karts[1].health=1;watch.karts[1].pose.position.y=7;r.render(watch);r.frame();check('watcher has no invented personal health bar',r.node('health').hidden);
   check('watcher sees remote wounded player at its elevated world height',otherBar.visible&&Math.abs(otherBar.position.y-scene.children.filter(o=>o.name==='GiggleKart')[1].position.y-3)<1e-9&&otherBar.children[1].scale.x===.01);
   const offline=structuredClone(watch);offline.simTick=watch.simTick+1;offline.simAt=r.api.now();offline.karts[1].connected=false;r.render(offline);r.frame();check('disconnected elevated player hides its overhead bar',!otherBar.visible);

@@ -68,4 +68,4 @@ assert(!quietScene.getObjectByName('ThunderSkyFlash'),'retired lightning allocat
 quietArsenal.update(.601);assert(!quietArsenal.active(),'reduced lightning still retires on time');quietArsenal.dispose();
 quiet.dispose();quiet.trail(blade,.05);
 art.dispose();impact.dispose();arsenal.dispose();
-console.log('KART_WEAPON_FX_BUDGET_PASS: all 13 weapons reuse render resources; world-space trails, <=4 projectile meshes, idle uploads and all effect retirement budgets');
+console.log('KART_WEAPON_FX_BUDGET_PASS: all ten weapons reuse render resources; world-space trails, <=4 projectile meshes, idle uploads and all effect retirement budgets');

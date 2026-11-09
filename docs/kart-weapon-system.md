@@ -2,7 +2,7 @@
 
 ## Rules and final roster
 
-Every kart starts with **100 HP**. Only the server applies damage, scores a knockout at zero, and restores 100 HP on respawn. Spawn protection and Supernova block damage. The HUD shows an exact HP number and a bar; rivals carry compact bars, including at full HP. Damage numbers, hit markers, a brief flinch and a toy-parts knockout burst replace heart feedback.
+Every kart starts with **100 HP**. Only the server applies damage, scores a knockout at zero, and restores 100 HP on respawn. Spawn protection and Supernova block damage. The HUD shows an exact HP number and a bar; rivals carry compact bars, including at full HP. Your own overhead bar stays hidden because your HP is already in the HUD. Damage numbers, hit markers, a brief flinch and a toy-parts knockout burst replace heart feedback.
 
 Keep ten clear roles: Machine Gun (tracking), Tri-Shot (spread), Missile (homing), Cannon (aimed explosive), Mine (rear trap), Blades (close defence), Frost Bomb (slow/area), Turbo Ram (chase/contact), Supernova (defend/area), Nuke (rare warned area). Remove Oil (spin is hard to read), Boomerang (outbound/harmless return is unclear) and Thunder (instant cone duplicates aimed fire). Removed IDs cannot be granted or fired. Historical asset files are not playable roster entries.
 
@@ -14,7 +14,7 @@ Solid chunky toys with broad coloured housings, cream rims, dark bores and a dar
 
 Models use shared procedural geometry/materials, no new textures or GLBs and no Meshy generation. Mounted models target under 3,000 triangles; projectiles under 800. Instances are reserved and warmed by the existing combat preparation path. No new loader/vendor/host or world/rendering-pipeline work belongs here.
 
-The bottom weapon slot reserves its size and shows a large matching vector icon, name, ready/firing/charging state, ammo number and up to six ammo pips. Large clips group equal portions into pips. Touch has a separate large Fire control. Keyboard shows Space. At 390×844 the slot stays between the drive controls without changing layout. Both Day and Night use the existing soft arcade tokens.
+The desktop weapon card reserves 256×96 pixels and shows the icon, name, state, ammo and up to six grouped ammo pips. At 390×844, touch uses a fixed 72×80 round dock beside the 68px Fire button at the lower right. It shows a large icon, ammo badge, pips and a ready ring; its full name and state remain in the accessible label. The road and the centre of the kart stay clear. The stick drives forwards and backwards, so redundant gas/reverse buttons are hidden on phones. Both Day and Night use the existing soft arcade tokens.
 
 ## The original thirteen, including retirement decisions
 
@@ -22,19 +22,19 @@ All accepted hits: exact HP loss, white hit marker, short impact sound and victi
 
 | Weapon | Role; silhouette; colour | Kart mount and matching HUD icon | Pickup / fire / telegraph | Projectile or area; hit / KO; sound | Damage and ideal TTK |
 | --- | --- | --- | --- | --- | --- |
-| Machine Gun | Track; single long barrel and side drum; amber | Amber block receiver, brass drum, cream brake; drum-gun icon | Amber ready lamp, short reveal; dry flash, receiver kick | Thin white slugs with short amber streaks; ticks, rat-tat, KO boom | 30 × 5; 20 hits, 1.58s + flight |
-| Tri-Shot | Close fan; three broad separated bores; coral | Coral three-bore block and three ready lights; triple-bore icon | Coral pickup pop; three simultaneous flashes and kick | Three gold slugs at ±8°; triple clack, hit ticks, KO boom | 9 × 150/9; 6 pellets, .28s + flight |
+| Machine Gun | Track; single long barrel and side drum; amber | Amber receiver, large side drum and visible feed rack; drum-gun icon | Amber ready lamp, short reveal; dry flash, receiver kick | Thin white slugs with short amber streaks; ticks, rat-tat, KO boom | 30 × 5; 20 hits, 1.58s + flight |
+| Tri-Shot | Close fan; three broad separated bores; coral | Coral three-bore block, three tall rear ammo pods and ready lights; triple-bore icon | Coral pickup pop; three simultaneous flashes and kick | Three gold slugs at ±8°; triple clack, hit ticks, KO boom | 9 × 150/9; 6 pellets, .28s + flight |
 | Mine | Rear trap; stacked discs; red | Rear-facing red cassette with three discs; disc icon | Red reveal; rack pops each disc backwards | Low red cap, .7s arm, 12s life, clear 4m blast ring; trip click / thump / KO burst | Centre 90, radius 4m; usually three swept traps after arming |
 | Oil (removed) | Rear disruption; purple tank / drop | Retired tank/drop art | No pickup or fire | Replaced by Mine's clear trap role; no active effects/sound | Not playable |
 | Boomerang (removed) | Curved sweep; orange V | Retired V/cradle art | No pickup or fire | Harmless return was unclear; no active effects/sound | Not playable |
-| Homing Missile | Chase front target; finned nose / tube; scarlet | Red and cream wide tube with top fin; rocket icon | Red ready lamp and front lock; kick / exhaust | Scarlet finned rocket, .18s straight launch then gentle homing; whoosh / bass impact / KO burst | Centre/direct 65, radius 3m; two hits/pickups |
-| Cannon | Aimed explosive; huge round bore; blue / brass | Broad blue breech, brass rim, short dark bore; cannon icon | Brass ready lamp; strongest gun kick and warm flash | Steel-blue ball, shallow arc, 2.8m ring; bass thud / heavy impact / KO burst | Centre/direct 70; two hits/pickups |
-| Blades | Close defence; three broad rotor paddles; mint | Mint rotor in dark hub; three-paddle icon | Mint reveal; hub unfolds and motor starts | Three visible blades orbit for 6s, real contact only, never through cover; buzz / metal clash / KO burst | 100 on contact; instant after contact |
-| Frost Bomb | Slow group; faceted ice capsule; ice blue | Blue capsule in broad cradle; snow capsule icon | Blue ready core; cold flash / lob | .9s fuse, 4.5m snow ring; landed damage slows 2s; glass pop / ice crack / KO burst | Centre 45; three central hits/pickups |
+| Homing Missile | Chase front target; finned nose / tube; scarlet | Red cross-tail fins, closed tail, cream bands and a loaded cream rocket; rocket icon | Red ready lamp and front lock; kick / exhaust | Scarlet finned rocket, .18s straight launch then gentle homing; whoosh / bass impact / KO burst | Centre/direct 65, radius 3m; two hits/pickups |
+| Cannon | Aimed explosive; huge round bore; blue / brass | Closed blue breech, broad side cheeks, brass bridge and forward bore; cannon icon | Brass ready lamp; strongest gun kick and warm flash | Steel-blue ball, shallow arc, 2.8m ring; bass thud / heavy impact / KO burst | Centre/direct 70; two hits/pickups |
+| Blades | Close defence; three broad rotor paddles; mint | Raised mint rotor on a dark mast; three-paddle icon | Mint reveal; hub unfolds and motor starts | Three visible blades orbit for 6s, real contact only, never through cover; buzz / metal clash / KO burst | 100 on contact; instant after contact |
+| Frost Bomb | Slow group; faceted ice capsule; ice blue | Faceted blue capsule, white snowflake and twin side crystals; snow capsule icon | Blue ready core; cold flash / lob | .9s fuse, 4.5m snow ring; landed damage slows 2s; glass pop / ice crack / KO burst | Centre 45; three central hits/pickups |
 | Thunder (removed) | Instant front cone; yellow fork | Retired fork/bolt art | No pickup or fire | Narrow invisible targeting duplicated aimed guns; no active effects/sound | Not playable |
 | Turbo Ram | Chase/contact; twin bumper wedges; lime | Lime broad forward bumper horns; double wedge icon | Lime ready bar; 3s rush with engine rise | Clear active bumper, actual hull reach; bumper sparks / clang / KO burst | 100 on contact; instant after contact |
 | Supernova | Defend then area; caged core; magenta | Magenta core inside broad cage ribs; caged-star icon | Pink ready lamp; 3s visible charge and protection | Expanding protective bubble, then clear 9m ring; rising hum / deep pop / KO burst | Centre 90; 3s charge, two pickups |
-| Nuke | Rare area clear; large finned capsule; hazard gold | Gold warhead, dark waist, broad cradle; capsule icon | Gold ready core; heavy kick and warning pulses | Lobbed capsule, 2.5s fuse classic / 3.5s raised, final 1.2s 14m warning ring; deep blast / KO burst | Centre 120; one central blast after fuse |
+| Nuke | Rare area clear; large finned capsule; hazard gold | Gold warhead, dark waist and broad hazard-striped cradle; capsule icon | Gold ready core; heavy kick and warning pulses | Lobbed capsule, 2.5s fuse classic / 3.5s raised, final 1.2s 14m warning ring; deep blast / KO burst | Centre 120; one central blast after fuse |
 
 ## Prediction and authority
 
@@ -44,19 +44,29 @@ Keep swept hull hits, cover-first wall ordering, sphere clearance between barrel
 
 ## Verification record
 
-Implemented locally on `claude/kart-weapons-nov9`. No push or deployment. No Meshy models were generated: balance **3,076 before / 3,076 after; spend 0 credits**. Every new mounted model uses shared, merged geometry: **160–1,620 triangles, 3–4 meshes**, below the 3,000-triangle target. Reused compressed Nuke projectile source has 464 triangles; the other active shots remain small shared procedural models or existing compact canisters. Both renderers prepare their weapon, projectile, trap and FX pools before play. Raised mount reserves now cover the actual roster size, including 32-driver arenas.
+Implemented locally on `claude/kart-weapons-nov9`. No push or deployment. No Meshy models were generated: balance **3,076 before / 3,076 after; spend 0 credits**. Every new mounted model uses shared, merged geometry: **160–912 triangles, 3–4 meshes**, below the 3,000-triangle target. Reused compressed Nuke projectile source has 464 triangles; the other active shots remain small shared procedural models or existing compact canisters. Both renderers prepare their weapon, projectile, trap and FX pools before play. Raised mount reserves now cover the actual roster size, including 32-driver arenas.
 
-### Checks and measurements
+### Integration and current checks
 
-- **104 distinct Node kart test files passed**, including every non-browser kart command listed in package scripts and the new `kart-weapon-system.mjs` regression. The initial busy-machine `kart-classic-rapier` run hit the harness timeout; its unchanged standalone rerun passed. A final focused run also passed view/input, health, physical fire, feedback, event delivery, immutable transport and shot retirement checks after the last fixes.
-- The existing garage Chrome suite passed all **10 cases**, including desktop, tablet, 320/390/430px phone layouts and Day/Night.
-- The real 32-driver server/Chrome test passed: **32/32 connected, 31.7 binary updates/s, 15.6m browser movement, no page/console/server errors**. This busy-machine SwiftShader run measured **2.7 FPS**, worst frame 2,483ms and 539 draw calls/frame. This does **not** prove smooth hardware rendering or 60 FPS. The requested FPS is reported without reducing game detail to improve the benchmark.
-- Classic live practice moved **15.20m** through ordinary keyboard input. Its HP stayed at 100. Gallery inventory, projectile positions and firing events are declared snapshots, not claims of natural combat or server-issued damage. Actual collection, inputs, collisions, HP, scoring and protection are independently covered with real authorities/Rapier and production Room/WebSocket tests.
-- Chrome captured **160 weapon pictures**: ten weapons × mounted/firing × desktop/390×844 phone × Day/Night × classic/raised. Both gallery runs logged zero browser errors. All slot names stayed visible, their 256×96 layout stayed fixed, and no sideways scroll was measured. Raised portrait controls sit above a separate weapon footer, leaving the driver's kart clear. Touch has a labelled Fire button. Contact sheets were visually inspected; the earlier hidden-name, radar overlap and covered-kart problems were corrected.
+Merged `claude/game-fixes-nov9` (`f1721ca`) as merge commit `56f2b92`. Streamed Wasm, early shared warming, match-only assets, selected drivers, delayed optional audio, the redesigned maps and the other game fixes remain alongside the 100 HP / ten-weapon system. Packed thumbnails now contain the exact ten authored SVGs. `kart-runtime.mjs` is rebuilt from the combined sources; its byte-for-byte bundle check passes.
 
-### Pickup latency A/B
+A browser check found an early-mount race: scene imports could finish before the first snapshot supplied a map and driver list. Scene setup now waits for that snapshot without fetching a full fallback library. Disposal releases the wait without starting requests. The classic view test covers both cases. The GPU fixture now supplies complete physical poses and starts with the four selected drivers, matching the production contract. Required combat shaders, both shadow modes and buffer uploads now finish before Ready. They are submitted in batches; optional scenery retains its 2,000ms budget. Warm-up does not wait on GPU fences that may depend on presenting the canvas. Disposal and timeout still stop all background work before play.
 
-Controlled Chrome simulation, 12 samples per RTT. The old path waits one RTT for the accepted pickup; the new path calls the shared presentation predictor at local contact. Inventory and damage are never predicted.
+- **114 Node kart test files passed**, including the external production acceptance workload with `KART_ACCEPTANCE_UPSTREAM=8290`. That workload ran 72 legal WebSocket drivers across nine simultaneous full timed matches.
+- The full `npm test` completed successfully after the startup guard, required combat warming and their regressions.
+- The final real 32-driver Chrome test passed: **32/32 connected, 30.9 binary updates/s, 84.7m movement, no errors**. Its forced software-rendering run measured **10.9 FPS**, worst frame 1,450ms and 298 draw calls/frame. An earlier busy-machine run measured 3.9 FPS. Neither establishes smooth 32-player hardware rendering.
+- The native Metal first-use check passed **24 seconds per map, four selected drivers and all ten weapons** on Skyport, Foundry and Neon: **zero program, buffer or texture creation during play**, and no render frames over 50ms. Before the required pass, the same fixture recorded 12/188/4 new programs/buffers/textures on the raised maps and 10/203/3 on Neon. This is a renderer fixture, not a network or physical-phone benchmark.
+- The garage Chrome suite passed all **10 cases**, including both themes and 320/390/430px phones.
+- The camera Chrome suite passed all **18 cases**, including both view sizes, four drivers, cannon mouths and raised walls.
+- The real firing/retirement Chrome suite passed all **ten weapons on Rookie Ring and Skyport**, including packet stalls, visibility changes and frozen frames. No stale projectile retirement was reported.
+- The real practice performance check passed **120 seconds each on Rookie Ring and Skyport**, firing all ten weapons with no browser errors or frame gaps. Native Chrome rendered 7,185 and 7,192 frames respectively (about 60 FPS); startup long tasks are recorded separately in its report.
+- The cold-load Chrome check passed at **150ms latency, 1.6 Mbps and 4× CPU slowdown**: host ready 4.78s, both seats ready 6.26s, usable 6.50s after Play. Both seats used streamed Wasm and WebGL; no browser errors occurred. Early warming had already started before Play.
+- Chrome captured **240 weapon pictures**: ten weapons × rear mounted / 3/4 mounted / firing × desktop / 390×844 phone × Day / Night × classic / raised. Both gallery runs logged zero browser errors. The galleries use the production bundler with declared snapshot inventory/poses and a declared 3/4 camera; actual authority checks are separate.
+- The phone dock stays **72×80**, the desktop card **256×96** across weapons and firing states. Browser checks assert no sideways scroll and keep the phone dock outside the centre driving line. The road is clear on both renderers. Rear silhouette sheets and full phone HUD pictures were inspected; a coplanar Mine-rack face found during review was separated to remove shimmer.
+
+### Controlled pickup latency A/B
+
+Controlled Chrome simulation from the initial weapon pass, 12 samples per RTT. The old path waits one RTT for the accepted pickup; the new path calls the shared presentation predictor at local contact. Inventory and damage are never predicted.
 
 | Simulated RTT | Server-only cue callback | Local cue callback |
 | --- | ---: | ---: |
@@ -68,7 +78,7 @@ These are callback timestamps, not visible-pixel or WAN latency. The new callbac
 
 ### Chrome weapon checklist
 
-All checks below are visual acceptance of the real production renderer with declared snapshot inventory. Both maps/devices/themes have mounted and firing captures. Use the physics/Room tests for authority conclusions.
+All checks below are visual acceptance of the real production renderer with declared snapshot inventory. Both maps/devices/themes have rear, 3/4 and firing captures. Phone names stay accessible while the dock shows the icon and ammo. Use the physics/Room tests for authority conclusions.
 
 | Weapon | Own and rival mount | Named slot / ammo | Fire or active effect | Day/Night + desktop/phone + classic/raised |
 | --- | --- | --- | --- | --- |
@@ -91,8 +101,10 @@ Local evidence is in `apps/games/artifacts/kart-weapons/` (screenshots/videos ar
 
 - `desktop-day-machinegun-mounted.png`, `phone-night-cannon-mounted.png`
 - `raised-phone-day-machinegun-mounted.png`, `raised-phone-night-supernova-firing.png`
-- `review-*.png`: eight full-roster contact sheets
-- `browser-results.json`, `raised-browser-results.json`, `contact-metrics.json`, `final-tests.json`
+- `*-mounted-three-quarter.png`: all ten angled mounts
+- `review-v2-*.png`: eight rear/3/4 full-roster contact sheets
+- `browser-results.json`, `raised-browser-results.json`, `all-kart-results.json`, `extra-browser-results.json`
+- `full-npm-test-final.log`, `loading/result.json`, `retirement/` and `camera/`
 - `kart-32-browser.json` and `kart-32-browser.png`; `video/` contains the classic gallery recording
 
 From `apps/games`, with the local server on 8290:
@@ -101,8 +113,7 @@ From `apps/games`, with the local server on 8290:
 node test/kart-weapon-system.mjs
 node test/kart-health.mjs
 node test/kart-sustained-contact.mjs
-NODE_PATH=/private/tmp/codex-driving-browser/node_modules node test/kart-weapon-system-browser.cjs
-NODE_PATH=/private/tmp/codex-driving-browser/node_modules node test/kart-weapon-raised-browser.cjs
+NODE_PATH=/private/tmp/codex-driving-browser/node_modules npm run test:kart-weapons-browser
 ```
 
 The garage and 32-driver browser tests each own their server; stop the practice server first and use `GARAGE_TEST_PORT=8290` or `KART32_PORT=8290`. Chrome path is `/Applications/Google Chrome.app/Contents/MacOS/Google Chrome`.

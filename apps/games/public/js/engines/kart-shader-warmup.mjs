@@ -30,7 +30,7 @@ export async function waitKartPrograms(renderer,isAlive=()=>true,step=work=>{if(
 // does not visit. Use the real object, camera and render target so instancing,
 // alpha cutouts, shadow sides and offscreen colour space match the later draw.
 // No async work runs while the renderer method or object is temporarily changed.
-export async function prepareKartPass(THREE,renderer,draw,{shadowsOnly=false,isAlive=()=>true}={}){
+export async function prepareKartPass(THREE,renderer,draw,{shadowsOnly=false,isAlive=()=>true,wait=true}={}){
   const direct=renderer.renderBufferDirect,empty=new THREE.Scene();
   let result;
   renderer.renderBufferDirect=function(camera,scene,geometry,material,object){
@@ -42,6 +42,6 @@ export async function prepareKartPass(THREE,renderer,draw,{shadowsOnly=false,isA
   };
   try{result=draw();}
   finally{renderer.renderBufferDirect=direct;}
-  try{await waitKartPrograms(renderer,isAlive);return result;}
+  try{if(wait)await waitKartPrograms(renderer,isAlive);return result;}
   catch(error){result?.dispose?.();throw error;}
 }
