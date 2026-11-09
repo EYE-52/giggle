@@ -37,7 +37,7 @@ function bounds(history) {
   let lo = 1;
   let hi = 100;
   for (const h of history || []) {
-    if (h.result === 'correct') { lo = h.guess; hi = h.guess; continue; }
+    if (h.result === 'correct') { if (h.guess != null) { lo = h.guess; hi = h.guess; } continue; }
     if (h.dir === 'higher') lo = Math.max(lo, h.guess + 1);
     else if (h.dir === 'lower') hi = Math.min(hi, h.guess - 1);
   }
@@ -90,7 +90,7 @@ const view = {
       const finished = S.last.finished || [];
       const rows = finished.map((f) =>
         `<li class="wg-row${f.pid === S.me ? ' is-you' : ''}"><span class="wg-who">${esc(nameOf(S, f.pid))}${f.pid === S.me ? ' <small>(you)</small>' : ''}</span>`
-        + `<span class="wg-ans">${f.tries} ${esc(f.tries === 1 ? t.try || 'try' : t.tries || 'tries')}${f.rank === 1 ? ' <span class="wg-tag is-good">Fewest</span>' : ''}</span>`
+        + `<span class="wg-ans">${f.tries} ${esc(f.tries === 1 ? t.try || 'try' : t.tries || 'tries')}${f.rank === 1 ? ' <span class="wg-tag is-good">First</span>' : ''}</span>`
         + `<span class="wg-pts">+${f.pts}</span></li>`).join('');
       const watch = S.spectator || !(S.players || []).some((p) => p.id === S.me);
       const isHost = S.me === S.hostId && !watch;
@@ -204,7 +204,7 @@ const view = {
     const pins = el.querySelector('#nPins');
     if (pins) {
       const last = new Map();
-      for (const h of S.history || []) { last.delete(h.guess); last.set(h.guess, h); }
+      for (const h of S.history || []) { if (h.guess == null) continue; last.delete(h.guess); last.set(h.guess, h); }
       // Keep exact ruler positions, but prefer recent pins when neighbours
       // would overlap. The public log still contains every guess.
       const width = pins.clientWidth || 300;
@@ -245,7 +245,7 @@ const view = {
     if (mineEl) {
       mineEl.textContent = S.spectator ? 'You are watching.' : found
         ? (t.found || 'Found it! Waiting for the round to end.')
-        : mine.length ? `${t.your_tries || 'Your tries'} (${mine.length}): ${mine.join(', ')}` : 'Fewest tries wins the round.';
+        : mine.length ? `${t.your_tries || 'Your tries'} (${mine.length}): ${mine.join(', ')}` : 'First to find it wins the round.';
       mineEl.classList?.toggle('is-good', found);
     }
     const tries = el.querySelector('#nTries');
@@ -262,7 +262,7 @@ const view = {
       el._feedKey = feedKey;
       const scrollTop = feed.scrollTop;
       feed.innerHTML = [...(S.history || [])].reverse().slice(0, 200).map((h) =>
-        `<div class="nh-hint${h.pid === S.me ? ' is-you' : ''}"><span class="nh-who">${esc(nameOf(S, h.pid))}</span><span class="nh-guess">${h.guess}</span>`
+        `<div class="nh-hint${h.pid === S.me ? ' is-you' : ''}"><span class="nh-who">${esc(nameOf(S, h.pid))}</span><span class="nh-guess">${h.guess == null ? '?' : h.guess}</span>`
         + `<span class="nh-dir">${h.result === 'correct' ? '<span class="wg-tag is-good">Found it</span>' : `<span class="wg-tag">${h.dir === 'higher' ? 'Go higher' : 'Go lower'}</span>`}</span>`
         + `<span class="nh-flavor">${esc(h.flavor || h.result || '')}</span></div>`).join('')
         || `<p class="wg-feed-empty">${esc(t.no_guesses || 'No guesses yet — be the first!')}</p>`;

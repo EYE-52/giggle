@@ -13,13 +13,13 @@ const manifest = {
   sameRoom: false,
   players: { min: 2, max: 20 },
   guide: {
-    goal: 'Find the hidden number from 1 to 100 in the fewest tries.',
+    goal: 'Find the hidden number from 1 to 100 before everyone else.',
     tips: [
       'Each guess tells you to go higher or lower.',
       'From your second guess on, you also hear warmer or colder.',
-      'Everyone sees every guess and hint, so watch the others.',
+      'Everyone sees guesses and hints; a found number stays hidden until round end.',
       'The first correct guess starts a short overtime for the rest.',
-      'Fewest tries ranks first: 100, 70, 50, 30, then 20 points.',
+      'First to find it ranks first: 100, 70, 50, 30, then 20 points.',
     ],
   },
   settings: [
@@ -90,10 +90,11 @@ function nextRound(state, ctx) {
 function endRound(state, ctx) {
   if (state.phase !== 'hunt' && state.phase !== 'overtime') return;
   state.phase = 'roundEnd';
-  const ranked = [...state.finished].sort((a, b) => a.tries - b.tries);
+  // Finding it first decides the rank (state.finished is in arrival order), so
+  // nobody can wait, copy the found number and win on tries.
+  const ranked = [...state.finished];
   ranked.forEach((f) => {
-    // Fewest tries decides the rank; arrival order cannot break an equal score.
-    const rank = ranked.findIndex(other => other.tries === f.tries);
+    const rank = ranked.indexOf(f);
     f.rank = rank + 1;
     const pts = RANK_PTS[Math.min(rank, RANK_PTS.length - 1)];
     f.pts = pts;
@@ -101,7 +102,7 @@ function endRound(state, ctx) {
     ctx.award(f.pid, pts);
   });
   if (ranked.length) {
-    for (const f of ranked.filter(f => f.tries === ranked[0].tries)) {
+    for (const f of ranked.slice(0, 1)) {
       state.wins[f.pid] = (state.wins[f.pid] || 0) + 1;
     }
   }
@@ -187,6 +188,13 @@ function view(state, pid, ctx) {
   const { secret, hints, ...rest } = state;
   void secret;
   void hints;
+  // While the hunt is on, other players' correct guesses are hidden (the try still
+  // counts), so the found number cannot simply be copied during overtime.
+  if (state.phase === 'hunt' || state.phase === 'overtime') {
+    rest.history = state.history.map((h) => (h.result === 'correct' && h.pid !== pid ? { ...h, guess: null } : h));
+    rest.guesses = Object.fromEntries(Object.entries(state.guesses).map(([p, list]) => [p,
+      p !== pid && state.finished.some((f) => f.pid === p) ? [...list.slice(0, -1), null] : list]));
+  }
   return { ...rest, hostId: ctx && ctx.hostId ? ctx.hostId() : state.hostId };
 }
 

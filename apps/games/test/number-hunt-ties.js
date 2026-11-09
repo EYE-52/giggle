@@ -13,13 +13,19 @@ const s = game.create(ctx);
 s.secret = 42;
 const act = (pid, guess) => game.onAction(s, ctx, pid, { guess });
 act('c', 10); act('d', 11); act('d', 12);
-act('a', 42); act('b', 42); act('c', 42); act('d', 42);
+act('a', 42);
+// While the hunt is on, nobody else can read the found number (the try still counts).
+{ const v = game.view(s, 'b', ctx);
+  assert.equal(v.history.find(h => h.pid === 'a' && h.result === 'correct').guess, null, 'found number hidden from others');
+  assert.deepEqual(v.guesses.a, [null], 'finder try counted, value hidden');
+  assert.equal(game.view(s, 'a', ctx).history.find(h => h.pid === 'a').guess, 42, 'finder still sees own guess'); }
+act('b', 42); act('c', 42); act('d', 42);
 assert.equal(s.phase, 'roundEnd');
-assert.deepEqual(s.last.finished.map(f => [f.pid, f.rank, f.pts]), [['a', 1, 100], ['b', 1, 100], ['c', 3, 50], ['d', 4, 30]]);
-assert.deepEqual(s.wins, { a: 1, b: 1 });
-assert.deepEqual(awards, { a: 100, b: 100, c: 50, d: 30 });
+assert.deepEqual(s.last.finished.map(f => [f.pid, f.rank, f.pts]), [['a', 1, 100], ['b', 2, 70], ['c', 3, 50], ['d', 4, 30]]);
+assert.deepEqual(s.wins, { a: 1 }, 'first to find wins the round');
+assert.deepEqual(awards, { a: 100, b: 70, c: 50, d: 30 });
 act('b', 42); now = s.endsAt; timers[0]();
-assert.deepEqual(awards, { a: 100, b: 100, c: 50, d: 30 }, 'stale timer and duplicate hit cannot reward twice');
+assert.deepEqual(awards, { a: 100, b: 70, c: 50, d: 30 }, 'stale timer and duplicate hit cannot reward twice');
 // Room routing must project the same tied score to players, reconnects and a watcher.
 {
   const { Room } = require('../server/room');
@@ -37,8 +43,8 @@ assert.deepEqual(awards, { a: 100, b: 100, c: 50, d: 30 }, 'stale timer and dupl
     room.onAction(sockets[1],{guess:secret},{i:room.game.instanceId,w:room._actionToken()});
     const result=snapshot(sockets[0]);
     assert.equal(result.phase,'roundEnd');
-    assert.deepEqual(result.last.finished.map(f=>f.pts),[100,100]);
-    assert(seats.every(p=>result.wins[p.id]===1&&result.scores[p.id]===100));
+    assert.deepEqual(result.last.finished.map(f=>f.pts),[100,70],'arrival order ranks');
+    assert(result.wins[seats[0].id]===1&&result.scores[seats[0].id]===100&&result.scores[seats[1].id]===70);
     const watcher=socket();room.addPlayer('Late observer',watcher);room.broadcastState();
     assert.equal(snapshot(watcher).spectator,true);
     assert.deepEqual(snapshot(watcher).scores,result.scores);
@@ -60,12 +66,12 @@ assert.deepEqual(awards, { a: 100, b: 100, c: 50, d: 30 }, 'stale timer and dupl
     const source = fs.readFileSync(require.resolve('../public/js/games/number-hunt.js'), 'utf8').replace("'../util.js'", JSON.stringify(util)).replace("'../kit.js'", JSON.stringify(require('./_kit-url')(util)));
     const view = (await import(data(source))).default, el = surface(global.document);
     view.render(el, { ...game.view(s, 'a'), players, me: 'a' }, {});
-    assert.equal(el.querySelectorAll('.wg-tag.is-good').length, 2, 'all equally best hunters marked Fewest');
+    assert.equal(el.querySelectorAll('.wg-tag.is-good').length, 1, 'only the first finder is marked First');
     assert.equal(el.querySelectorAll('script').length, 0);
     assert(el.textContent.includes('1 try') && el.textContent.includes('+100'), 'single Number Hunt try is singular');
-    assert(el.textContent.includes('2 tries') && el.textContent.includes('+50'), 'multiple Number Hunt tries stay plural');
+    assert(el.textContent.includes('2 tries') && el.textContent.includes('+70'), 'multiple Number Hunt tries stay plural');
     view.render(el, { ...game.view(s, 'watch'), phase: 'done', players, me: 'watch', spectator: true, totals: { d: 9999 } }, {});
-    assert.deepEqual(el.querySelectorAll('.gk-rank').map(n => n.textContent), ['1', '1', '3', '4']);
+    assert.deepEqual(el.querySelectorAll('.gk-rank').map(n => n.textContent), ['1', '2', '3', '4'], 'distinct points give distinct final ranks');
     assert(!el.textContent.includes('9999'));
     view.dispose(el);
     const reactionSource = fs.readFileSync(require.resolve('../public/js/games/reaction-tap.js'), 'utf8').replace("'../util.js'", JSON.stringify(util)).replace("'../kit.js'", JSON.stringify(require('./_kit-url')(util)));
