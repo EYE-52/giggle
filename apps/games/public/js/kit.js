@@ -243,7 +243,7 @@ export function syncHudTimer(root, S, now, { show = hudTimerShown(S), endsAt = S
  *   scores   defaults to S.scores; score: false hides the points line
  *   family   'party' (default) or 'arcade' */
 function liveDotsHtml(S) {
-  const round = Math.max(0, Math.min(Number(S?.round) || 0, Number(S?.rounds) || Infinity));
+  const round = Math.max(1, Math.min(Number(S?.round) || 1, Number(S?.rounds) || Infinity));
   const rounds = Number(S?.rounds) || 0;
   if (rounds > 0 && rounds <= 20) {
     return `<ol class="pl-dots" aria-label="${esc(roundLabel(round || 1, rounds))}">${Array.from({ length: rounds }, (_, i) => `<li class="${i + 1 < round ? 'is-done' : i + 1 === round ? 'is-now' : ''}"></li>`).join('')}</ol>`;
@@ -314,6 +314,7 @@ export function paintLiveStrip(scene, S, opts = {}) {
   const box = strip.querySelector('.pl-dotsbox');
   if (box && box.plHtml !== dots) { box.innerHTML = dots; box.plHtml = dots; }
   const seats = liveSeatsHtml(S, opts);
+  strip.style?.setProperty?.('--pl-visible-seats', String(Math.min(3, Math.max(1, S.players?.length || 1))));
   const list = strip.querySelector('.pl-seats');
   if (list && list.plHtml !== seats) { list.innerHTML = seats; list.plHtml = seats; }
   return strip;

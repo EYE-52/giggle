@@ -53,3 +53,7 @@
 #gbody .es-world .es-tile {
   font-size: clamp(24px, calc(208px / var(--es-size)), 52px);
 }
+
+@media (max-width: 560px) {
+  .es-world .es-board { max-width: calc(4 * var(--space-64)); }
+}

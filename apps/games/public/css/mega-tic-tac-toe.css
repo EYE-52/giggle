@@ -21,3 +21,5 @@
 [data-theme="night"] .mt-game .mt-small.is-open .mt-rim {
   filter: drop-shadow(0 0 6px color-mix(in srgb, var(--fam) 45%, transparent));
 }
+
+.mt-game .mt-cell { stroke: var(--line-strong); }

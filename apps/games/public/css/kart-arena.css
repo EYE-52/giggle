@@ -643,3 +643,7 @@ body.game-immersive:has(.pk) #gbody[data-layout="immersive"] > #rematch #hostWai
  .pk.pk-touch-enabled #pk-tn{right:var(--space-8);bottom:calc(var(--space-64) + var(--space-16))}
  .pk.pk-touch-enabled #pk-th{right:var(--space-8);bottom:calc(var(--space-48)*3)}
 }
+
+@media (max-width: 480px) and (orientation: portrait) {
+  .pk .pk-clock { top: calc(var(--control-h-sm) + var(--space-12)); }
+}

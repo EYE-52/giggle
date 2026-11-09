@@ -134,3 +134,15 @@
 #gbody .rt.pl-fill #rTip { height:var(--space-48); min-height:var(--space-48); overflow:auto; }
 @media (max-width:560px) { #gbody .rt.pl-fill .rt-pad { grid-template-rows:var(--space-40) clamp(120px,22vh,200px) 2.3em; } }
 #gbody .rt.pl-fill .gk-hud .gk-hud-phase.is-foul:not(:empty) { color:var(--ink); }
+
+@media (min-width: 1100px) {
+  #gbody .rt.pl-fill { position: relative; padding-right: calc(4 * var(--space-64) + var(--space-16)); }
+  #gbody .rt.pl-fill > .gk-hud { width: 100%; }
+  #gbody .rt.pl-fill > .pl-live { position: absolute; right: 0; top: 50%; transform: translateY(-50%); width: calc(4 * var(--space-64)); }
+  #gbody .rt.pl-fill > .pl-live .pl-seats { grid-template-columns: minmax(0, 1fr); }
+}
+
+@media (max-width: 560px) {
+  #gbody .rt.pl-fill :is(#rInstruction, #rStatus) { height: var(--space-32); min-height: var(--space-32); }
+  #gbody .rt.pl-fill #rTip { height: var(--space-24); min-height: var(--space-24); }
+}

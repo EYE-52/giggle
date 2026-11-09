@@ -87,7 +87,7 @@ export default partyRound({
       status: S.myLocked
         ? "Words locked. Wait for the others."
         : S.myFeedback ||
-          "Trace touching tiles, or type. Shared words cancel out.",
+          "Trace touching tiles or type. Shared words cancel.",
     };
   },
   patch({ el, S, local, send, refresh, watching }) {

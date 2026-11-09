@@ -182,7 +182,7 @@ assert.equal(registry.get('charades').manifest.settings[0].def, null, 'Charades 
   ctx.gone(def, state, 'p3');
   assert.equal(state.phase, 'roundEnd', 'the gone hunter is not waited for');
   assert.equal(state.last.finished[0].pts, 100);
-  assert.equal(state.last.finished[1].pts, 100, 'equal tries share first place');
+  assert.equal(state.last.finished[1].pts, 70, 'first to find ranks first; the second finder gets second place');
   def.onEnd(state, ctx, { reason: 'host' });
   assert.equal(state.phase, 'done');
 }

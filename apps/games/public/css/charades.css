@@ -144,3 +144,8 @@ body.game-playing[data-game="charades"] {
 /* The fixed log scrolls whole rows, with room below the last guess. */
 .ch.ck .ch-feed { height:calc(4 * var(--control-h-sm) + 4 * var(--space-8)); padding:0 0 var(--space-8); overflow-y:auto; overscroll-behavior:contain; scrollbar-width:thin; scroll-snap-type:y proximity; }
 .ch.ck .ch-feed > * { flex-shrink:0; scroll-snap-align:start; }
+
+@media (min-width: 1100px) {
+  .ch.ck:not(.gk-final) { min-height: calc(100dvh - 2 * var(--space-64)); align-content: center; }
+  .ch.ck:not(.gk-final) > .ch-players { align-self: center; }
+}

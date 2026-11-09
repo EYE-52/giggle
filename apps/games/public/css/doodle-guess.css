@@ -539,3 +539,7 @@ html body.game-playing:has(.sk-doodle.dg) .game-report-icon { color: var(--ink);
 /* Score copy stays readable on the sketchbook's tinted surfaces. */
 .dg .dg-found b,.dg .dg-feed li.dg-correct :is(span,strong),.dg .dg-result-pts { color:var(--dg-score-ink); }
 .dg .dg-chat :is(.dg-label,.dg-roster small,.dg-found,.dg-feed-empty) { color:var(--ink); }
+
+@media (max-width: 560px) {
+  .dg .dg-hud .gk-hud-phase { display: block; }
+}

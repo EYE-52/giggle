@@ -1,0 +1,34 @@
+{
+  "games": 72,
+  "sessions": 144,
+  "sizes": {
+    "desktop": [
+      1440,
+      900
+    ],
+    "phone": [
+      390,
+      844
+    ]
+  },
+  "pairGapMs": 6000,
+  "screenshots": 288,
+  "pageErrors": 0,
+  "horizontalOverflows": 0,
+  "observedLayoutShifts": 0,
+  "hudAndRosterMovesOver1px": [],
+  "fullNpmTest": {
+    "result": "passed",
+    "exitCode": 0,
+    "log": "npm-test-final.log",
+    "portPreload": "test-ports.cjs"
+  },
+  "focusedLiveChecks": "regressions.json",
+  "nightSamples": "regressions-night.json",
+  "kartStarting": "kart-start.json",
+  "findingDecisions": {
+    "false positive": 106,
+    "fixed": 273,
+    "deferred": 79
+  }
+}

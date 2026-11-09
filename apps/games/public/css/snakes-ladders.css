@@ -46,3 +46,5 @@
 .sl-game .sl-confetti { pointer-events: none; }
 .sl-game .sl-confetti rect { fill: var(--piece); }
 .sl-game .sl-roll-reason { height: 1.4em; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+
+.sl-game .sl-number { paint-order: stroke fill; stroke: var(--card); stroke-width: 3; stroke-linejoin: round; }

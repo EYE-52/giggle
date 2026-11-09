@@ -28,6 +28,11 @@ function board(S) {
     const [x, y] = point(i + 1);
     return `<g><rect class="sl-square sl-shade-${(Math.floor(i / 10) + i) % 3}" x="${x - 25}" y="${y - 25}" width="50" height="50"/><text class="sl-number" x="${x - 20}" y="${y - 11}">${i + 1}</text></g>`;
   }).join('');
+  // Print square labels above the snakes and ladders, like a real board.
+  const numbers = Array.from({ length: 100 }, (_, i) => {
+    const [x, y] = point(i + 1);
+    return `<text class="sl-number" x="${x - 20}" y="${y - 11}">${i + 1}</text>`;
+  }).join('');
   const pawns = S.seats.map((pid, i) => {
     if (S.out.includes(pid)) return '';
     const [x, y] = point(Math.max(1, S.positions[pid]));
@@ -35,7 +40,7 @@ function board(S) {
     return `<g class="sl-pawn b5-seat-${i}" data-sl-pawn="${i}" data-square="${S.positions[pid]}" transform="translate(${x + ox} ${y + oy})"><g class="sl-pawn-motion"><circle class="sl-pawn-shadow" cy="5" r="11"/><circle class="sl-pawn-piece" r="10"/><text y="4">${i + 1}</text></g></g>`;
   }).join('');
   const last = S.lastMove ? point(S.lastMove.to) : null;
-  return `<div class="sl-scene"><svg class="sl-board" viewBox="-8 -8 516 516" role="img" aria-label="Garden trail from 1 to 100, eight snakes and eight ladders"><rect class="sl-frame" x="-8" y="-8" width="516" height="516" rx="18"/>${cells}<g pointer-events="none">${Object.entries(S.ladders).map(([a, b]) => ladder(a, b)).join('')}${Object.entries(S.snakes).map(([a, b], i) => snake(a, b, i)).join('')}${last ? `<circle class="sl-last" cx="${last[0]}" cy="${last[1]}" r="22"/>` : ''}${pawns}<g class="sl-pop" opacity="0"><circle r="15"/></g><g class="sl-confetti" aria-hidden="true">${Array.from({length: 18}, (_, i) => `<rect class="b5-seat-${i % 6}" width="5" height="9" rx="2" opacity="0"/>`).join('')}</g></g></svg><p class="sl-trail-note">${esc(b5Text(S, 'trailNote'))}</p></div>`;
+  return `<div class="sl-scene"><svg class="sl-board" viewBox="-8 -8 516 516" role="img" aria-label="Garden trail from 1 to 100, eight snakes and eight ladders"><rect class="sl-frame" x="-8" y="-8" width="516" height="516" rx="18"/>${cells}<g pointer-events="none">${Object.entries(S.ladders).map(([a, b]) => ladder(a, b)).join('')}${Object.entries(S.snakes).map(([a, b], i) => snake(a, b, i)).join('')}${last ? `<circle class="sl-last" cx="${last[0]}" cy="${last[1]}" r="22"/>` : ''}${numbers}${pawns}<g class="sl-pop" opacity="0"><circle r="15"/></g><g class="sl-confetti" aria-hidden="true">${Array.from({length: 18}, (_, i) => `<rect class="b5-seat-${i % 6}" width="5" height="9" rx="2" opacity="0"/>`).join('')}</g></g></svg><p class="sl-trail-note">${esc(b5Text(S, 'trailNote'))}</p></div>`;
 }
 
 // Draw at authority's final square; animate only a child relative to it.

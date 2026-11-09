@@ -22,3 +22,7 @@
 .lips-world .lips-silent h4 {
   max-width: 22ch;
 }
+
+@media (max-width: 560px) {
+  .lips-world .lips-silent.wp-card { height: calc((4 * var(--space-64) - var(--space-16)) / var(--round-zoom, 1)); }
+}

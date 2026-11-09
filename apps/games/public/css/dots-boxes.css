@@ -1,5 +1,5 @@
 .db-game .db-paper { fill: var(--card); stroke: var(--line-strong); stroke-width: 4; }
-.db-game .db-margin { stroke: color-mix(in srgb, var(--melon) 40%, transparent); stroke-width: 3; }
+.db-game .db-margin { display: none; }
 .db-game .db-dots { fill: var(--ink); }
 .db-game .db-edge path { stroke: var(--line-strong); stroke-width: 6; stroke-linecap: round; pointer-events: none; }
 .db-game .db-hit { fill: transparent; stroke: transparent; }

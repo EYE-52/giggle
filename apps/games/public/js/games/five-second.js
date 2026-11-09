@@ -75,8 +75,10 @@ export default {
     if (S.phase !== 'done') {
       const performer = S.phase === 'reveal' ? S.last?.performer || S.performer : S.performer;
       const others = (S.players || []).filter((p) => !p.left && p.id !== performer).map((p) => p.id);
+      const hasAnswers = (S.phase === 'reveal' ? S.last?.answers ?? S.answers : S.answers)?.length > 0;
+      const performerStatus = S.phase === 'answer' ? 'Answering' : S.spokenMode ? 'Spoken answers' : hasAnswers ? 'Answered' : 'No answer';
       paintLiveStrip(el.querySelector?.('[data-scene="five-second"]'), S, {
-        roles: performer ? { [performer]: S.phase === 'answer' ? 'Answering' : 'Answered' } : {}, actors: others,
+        roles: performer ? { [performer]: performerStatus } : {}, actors: others,
         acted: S.phase === 'vote' ? S.voted || [] : [], verb: 'Judged', waiting: S.phase === 'vote' ? 'Judging' : false,
         gains: S.phase === 'reveal' ? S.last?.points || {} : {},
       });

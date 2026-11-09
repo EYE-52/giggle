@@ -349,3 +349,19 @@
     transition: none !important;
   }
 }
+
+@media (max-width: 560px) {
+  #gbody .b2-scene .b2-play { grid-template-rows: calc(var(--space-64) + var(--space-32)) calc(2 * var(--space-64) + var(--space-32)); }
+  #gbody .b2-scene.whisp-world .b2-prompt.party-prompt { min-height: var(--space-64); }
+}
+
+/* The feedback slot is one caption line, not an empty extra button row. */
+#gbody .b2-scene:not(.odd-world) .b2-actions { grid-template-rows: var(--space-32) var(--control-h-lg) var(--space-24); }
+@media (min-width: 1100px) {
+  #gbody .b2-scene.pl-fill { min-height: var(--pl-stage-height); align-content: center; padding-top: var(--space-64); }
+  #gbody .b2-scene.pl-fill > .party-hud { position: absolute; top: var(--space-8); left: 0; width: 100%; }
+}
+@media (max-width: 560px) {
+  #gbody .b2-scene .b2-prompt.party-prompt { min-height: var(--space-64); padding: var(--space-12); }
+  #gbody .b2-scene .b2-actions { gap: var(--space-4); }
+}
