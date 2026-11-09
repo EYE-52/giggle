@@ -961,7 +961,8 @@ for (const [t,fns] of window.screen.orientation.events) assert.equal(fns.length,
   let build;const geometries=new Set(),materials=new Set();let compiles=0,warmFrames=0,worldRetired=0,warmupCancels=0;
   const encounter=root=>{if(!root.visible)return;if(root.isMesh||root.isLine){if(root.geometry)geometries.add(root.geometry);for(const m of Array.isArray(root.material)?root.material:[root.material])if(m)materials.add(m);}for(const child of root.children)encounter(child);};
   const renderer={async compileAsync(scene){compiles++;encounter(scene);},render(scene){warmFrames++;encounter(scene);}};
-  Object.assign(context,models,flight,groundMarkers,{createKartCameraCollision,classicStatics,createKartWarmupLibrary,warmKartRenderer:async(T,r,s,c,o)=>{const handle=await warmKartRenderer(T,r,s,c,{...o,budgetMs:Infinity,yieldTask:async()=>{}}),cancel=handle.cancel;handle.cancel=()=>{warmupCancels++;cancel();};return handle;},createKartCombatArt,createKartHealthBars,createKartImpactFX,createKartDrivingFX,loadKartAssets:async(T,scene)=>{const library=new T.Group();library.visible=false;scene.add(library);for(const asset of Object.values(assets))library.add(asset);return assets;},
+  const {matchKartDrivers}=await import('../public/js/engines/kart-assets.mjs');
+  Object.assign(context,models,flight,groundMarkers,{matchKartDrivers,createKartCameraCollision,classicStatics,createKartWarmupLibrary,warmKartRenderer:async(T,r,s,c,o)=>{const handle=await warmKartRenderer(T,r,s,c,{...o,budgetMs:Infinity,yieldTask:async()=>{}}),cancel=handle.cancel;handle.cancel=()=>{warmupCancels++;cancel();};return handle;},createKartCombatArt,createKartHealthBars,createKartImpactFX,createKartDrivingFX,loadKartAssets:async(T,scene)=>{const library=new T.Group();library.visible=false;scene.add(library);for(const asset of Object.values(assets))library.add(asset);return assets;},
     createKartWorld:T=>({group:new T.Group(),palette:{horizon:0xd8f3ff},syncMap(){},dispose(){worldRetired++;}}),createKartLighting:()=>()=>{},
     createThreeView:(el,hooks)=>{build=hooks.build;return new Promise(()=>{});}});
   const live=context.makeView({}),el=new Node(),s={...state('drive'),simAt:clock,events:[],zaps:[],grenades:[],mines:[],crates:[],stars:[]};
@@ -1026,8 +1027,8 @@ for (const [t,fns] of window.screen.orientation.events) assert.equal(fns.length,
   const shellAudio=new Promise(resolve=>{resolveShellAudio=resolve;});
   const delayedApi={...api,announce:message=>announcements.push(message),audioPrepare:()=>{shellPreps++;return shellAudio;}};
   delayed.mount(el,delayedApi);
-  const preparedAudio=audios.at(-1);assert.equal(preparedAudio.preps,1,'audio prepares before classic graphics/readiness');
-  assert.equal(shellPreps,1,'classic loading also prepares the shell audio bank');
+  const preparedAudio=audios.at(-1);assert.equal(preparedAudio.preps,0,'recording downloads wait behind required graphics/physics');
+  assert.equal(shellPreps,0,'shell samples do not compete with required graphics/physics');
   delayed.update(el,state('countdown'),delayedApi);
   assert.equal(el.querySelector('#pk-count').hidden,true,'graphics pending suppresses countdown');
   assert.equal(el.querySelector('#pk-count').textContent,'','graphics pending has no stale GO');
@@ -1036,7 +1037,7 @@ for (const [t,fns] of window.screen.orientation.events) assert.equal(fns.length,
   timers.fn();
   assert.equal(el.querySelector('#pk-timer').textContent,'–:––','timer repaint cannot bypass delayed graphics');
   assert(el.querySelector('#pk-boost').querySelector('.kart-item-art').innerHTML.includes('<svg'),'equipped player retains the loading fallback before thumbnails decode');
-  globalThis.Image=class{async decode(){const data=fs.readFileSync(require.resolve('../public'+this.src));if(this.src.endsWith('.svg'))assert.match(data.toString(),/<svg/);else assert.equal(data.subarray(0,8).toString('hex'),'89504e470d0a1a0a');}};
+  globalThis.Image=class{async decode(){const data=this.src.startsWith('data:')?Buffer.from(this.src.split(',')[1],'base64'):fs.readFileSync(require.resolve('../public'+this.src));if(this.src.endsWith('.svg')||this.src.startsWith('data:image/svg+xml'))assert.match(data.toString(),/<svg/);else assert.equal(data.subarray(0,8).toString('hex'),'89504e470d0a1a0a');}};
   const {loadKartWeaponThumbnails}=await import('../public/js/engines/kart-assets.mjs');
   await loadKartWeaponThumbnails();
   resolveGraphics({fallback:false,firstFrame:Promise.resolve(),dispose(){}});
@@ -1044,16 +1045,18 @@ for (const [t,fns] of window.screen.orientation.events) assert.equal(fns.length,
   preparedAudio.readyWait=new Promise(resolve=>{resolveAudio=resolve;});
   const pendingReady=delayed.ready().then(()=>{audioReady=true;});
   await Promise.resolve();await Promise.resolve();
-  assert.equal(audioReady,false,'classic loading waits for audio preparation');
+  await new Promise(resolve=>setImmediate(resolve));
+  assert.equal(preparedAudio.preps,1);assert.equal(shellPreps,1);
+  assert.equal(audioReady,true,'optional recordings do not hold a real graphics-ready arena');
   resolveAudio(true);await Promise.resolve();await Promise.resolve();
-  assert.equal(audioReady,false,'classic loading also waits for the shell audio decode');
+  assert.equal(audioReady,true,'shell audio decoding also continues in the background');
   resolveShellAudio(true);await pendingReady;
   const deadline=new AbortController();delayedApi.preparationSignal=deadline.signal;
   preparedAudio.readyWait=new Promise(()=>{});
   const slowAudio=delayed.ready();deadline.abort();await slowAudio;
   assert.equal(preparedAudio.preps,1,'classic optional audio timeout keeps the prepared game and context');
-  assert(el.querySelector('#pk-boost').querySelector('.kart-item-art').innerHTML.includes('/weapon-thumbnails/machinegun.svg'),'graphics-ready repaints already-equipped item without weapon/ammo change');
-  assert(el.querySelector('#pk-tb').innerHTML.includes('/weapon-thumbnails/machinegun.svg'),'graphics-ready also repaints the touch action icon');
+  assert(el.querySelector('#pk-boost').querySelector('.kart-item-art').innerHTML.includes('data:image/svg+xml;base64,'),'graphics-ready repaints already-equipped item without weapon/ammo change');
+  assert(el.querySelector('#pk-tb').innerHTML.includes('data:image/svg+xml;base64,'),'graphics-ready also repaints the touch action icon');
   delayed.update(el,{...state('countdown'),preparing:true},delayedApi);
   timers.fn();
   assert.equal(el.querySelector('#pk-count').hidden,true,'ready graphics do not bypass Room preparation');

@@ -1,3 +1,4 @@
+import {warmPracticeKart} from './kart-warmup.mjs';
 import { practiceContext } from './util.js';
 import { practiceSupport } from './practice-support.mjs';
 import { wsTargetFromConfig } from './netconfig.js';
@@ -39,10 +40,20 @@ function seatLabel(tab, n) {
   tab.replaceChildren(long, short);
 }
 function chosen() { return games.find(game => game.id === gameSelect.value); }
+// Native lazy images can fetch thousands of pixels ahead, which includes
+// this entire small catalogue. Request only tiles near the actual viewport.
+const artObserver=typeof IntersectionObserver==='function'?new IntersectionObserver(entries=>{
+  for(const {target,isIntersecting} of entries)if(isIntersecting){
+    target.src=target.dataset.artSrc;delete target.dataset.artSrc;artObserver.unobserve(target);
+  }
+},{rootMargin:'120px'}):null;
 const artSrc = game => game.art && /^img\/games\/[a-z0-9-]+\.(svg|png|webp)$/.test(game.art) ? '/' + game.art : `/img/games/${game.id}.png`;
 function artImage(game, className) {
   const img = document.createElement('img');
-  img.className = className; img.alt = ''; img.decoding = 'async'; img.src = artSrc(game);
+  img.className = className; img.alt = '';
+  img.decoding = 'async';
+  if(className==='practice-tile-art'&&artObserver){img.dataset.artSrc=artSrc(game);img.fetchPriority='low';artObserver.observe(img);}
+  else img.src=artSrc(game);
   img.onerror = () => img.remove();
   return img;
 }
@@ -51,6 +62,7 @@ function artImage(game, className) {
 function preview(kicker) {
   const game = chosen();
   if (!game || session) return;
+  warmPracticeKart(game.id);
   let section = table.querySelector(':scope > .practice-preview');
   if (!section) {
     section = document.createElement('section');
@@ -274,6 +286,7 @@ function makeSeat(n, src) {
 function start(event) {
   event.preventDefault();
   if (session || stopping) return;
+  artObserver?.disconnect();
   const game = chosen(), support = practiceSupport(game);
   const requestedCount = Number(countSelect.value);
   if (!support || !Number.isInteger(requestedCount) || requestedCount < support.minSeats || requestedCount > support.maxSeats) return;
@@ -353,7 +366,7 @@ window.addEventListener('message', event => {
   if (seat.connected) { clearTimeout(seat.timer); seat.loading.hidden = true; }
   if (n === 1 && seats.size === 1 && seat.connected && /^[A-HJ-NP-Z2-9]{4}$/.test(event.data.code || '')) {
     try {
-      for (let number = 2; number <= count; number++) makeSeat(number, `/r/${event.data.code}?practice=${session}&seat=${number}`);
+      for (let number = 2; number <= count; number++) makeSeat(number, `/r/${event.data.code}?practice=${session}&seat=${number}&game=${encodeURIComponent(chosen().id)}`);
     } catch { status('Could not open the other seats. End practice and try again.'); return; }
   }
   const connected = [...seats.values()].filter(value => value.connected).length;

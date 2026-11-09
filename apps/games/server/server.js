@@ -9,6 +9,7 @@
 
 const fs = require('fs');
 const http = require('http');
+const {createBrotliCompress, constants: zlibConstants} = require('node:zlib');
 const path = require('path');
 const WebSocket = require('ws');
 const { Rooms, validJoinName, SEAT_REMOVED_CODE, SEAT_REMOVED_REASON } = require('./room');
@@ -337,8 +338,18 @@ const server = http.createServer(async (req, res) => {
     return;
   }
   setFraming();
-  res.writeHead(200, { 'Content-Type': MIME[path.extname(file)] || 'application/octet-stream' });
-  fs.createReadStream(file).pipe(res);
+  const ext = path.extname(file);
+  // Match the frontend CDN: stream compressible code/wasm on the local and
+  // standalone host too. No generated files or changes to release bytes.
+  const acceptsBrotli = (req.headers['accept-encoding'] || '').split(',').some(value=>
+    value.trim().split(';')[0]==='br'&&!/;\s*q=0(?:\.0*)?\s*$/.test(value));
+  const brotli = acceptsBrotli &&
+    ['.js', '.mjs', '.wasm', '.css', '.json', '.svg', '.glb'].includes(ext);
+  res.writeHead(200, { 'Content-Type': MIME[ext] || 'application/octet-stream',
+    'Vary': 'Accept-Encoding', ...(brotli ? {'Content-Encoding': 'br'} : {}) });
+  const source = fs.createReadStream(file);
+  if (brotli) source.pipe(createBrotliCompress({params:{[zlibConstants.BROTLI_PARAM_QUALITY]:4}})).pipe(res);
+  else source.pipe(res);
 });
 
 /* WS origin gate: standalone play (no Origin, or same-host Origin over LAN /
@@ -619,6 +630,13 @@ function handle(ws, msg) {
       }));
       room.broadcastLobby();
       if (room.game) room.broadcastState();
+      break;
+    }
+    case 'pick-game': {
+      if (!leaseAllows(ws)) return;
+      const room = wsRoom.get(ws), me = room?.bySocket(ws);
+      if (!room || !me || room.game || !room.canControl(me.id) || !registry.get(msg.game)) return;
+      if (room.pickedGame !== msg.game) { room.pickedGame = msg.game; room.broadcastLobby(); }
       break;
     }
     case 'configure': {

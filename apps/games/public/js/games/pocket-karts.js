@@ -2,8 +2,7 @@
  * view factory (public/js/engines/kart-view.js). No simulation, scene,
  * or HUD source lives here — the factory owns all of it; this file only
  * declares Pocket Karts' title. */
-import { createKartView } from '../engines/kart-view.js';
-import {createElevatedKartView} from '../engines/kart-elevated-view.js';
+import {createKartView,createElevatedKartView} from '../engines/kart-runtime.mjs';
 
 // A profile change owns a complete scene lifecycle, so elevated terrain
 // never leaks into the planar compatibility renderer on a rematch.

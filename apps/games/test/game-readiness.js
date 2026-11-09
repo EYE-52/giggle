@@ -121,6 +121,12 @@ async function rooms() {
     const karts = make(); karts.room.startGame(registry.get('pocket-karts'), { ready: true }, karts.ps[0].id); await flush();
     const initialKart = stateOf(karts.socks[0]); await advance(4000); karts.room.onTick();
     assert.equal(karts.room.game.state.phase, 'countdown'); assert.equal(karts.room.game.state.lastTick, initialKart.simAt, 'held physics never advances early');
+    const loadingGame=karts.room.game,heldNow=karts.room._gameNow();
+    await advance(36000);
+    assert.equal(karts.room.game,loadingGame,'a slow kart download does not retire the match');
+    assert.equal(loadingGame.preparing,true);assert.equal(loadingGame.readyDeadline,null);
+    assert.equal(karts.room._gameNow(),heldNow,'download wait does not spend match time');
+    assert.equal(stateOf(karts.socks[0]).readyDeadline,null,'clients see the continued wait');
     readyAll(karts.room); await advance(3000);
     for (const ws of karts.socks) ws.bufferedAmount = 9000;
     karts.room.onTick();
@@ -161,6 +167,10 @@ async function network() {
     const a = await connect(); send(a, { t: 'create', name: 'Ready A' }); await until(() => a.sent.some(m => m.t === 'hello'));
     const code = a.sent.find(m => m.t === 'hello').code;
     const b = await connect(); send(b, { t: 'join', name: 'Ready B', code }); await until(() => b.sent.some(m => m.t === 'hello'));
+    send(b,{t:'pick-game',game:'pocket-karts'});await sleep(40);
+    assert.equal(a.sent.findLast(m=>m.t==='room')?.room.pickedGame,undefined,'a guest cannot trigger room-wide engine downloads');
+    send(a,{t:'pick-game',game:'pocket-karts'});
+    await until(()=>b.sent.findLast(m=>m.t==='room')?.room.pickedGame==='pocket-karts');
     send(a, { t: 'start', game: 'typing-race', ready: true, settings: { rounds: 1, raceSeconds: 15 } });
     await until(() => stateOf(a)?.preparing);
     const first = stateOf(a);

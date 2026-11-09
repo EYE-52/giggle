@@ -21,6 +21,7 @@
  * process and reused by every kart).
  */
 
+import {KART_LOOK_DRIVERS} from './kart-looks.mjs';
 import {KART_PHYSICS_CONFIG as CONFIG} from './kart-physics-config.mjs';
 
 const PAINT_NAME = 'KartPaint';
@@ -161,7 +162,8 @@ export function createKartModel(THREE, { assets, color, number = 1, driver } = {
   const variants = assets && assets.kartVariants;
   // A chosen driver id ('fox') picks its own variant; anything else (a pid)
   // hashes to a stable one.
-  const chosen = variants?.find(v => v.userData.driver != null && v.userData.driver === driver);
+  const driverId = KART_LOOK_DRIVERS.some(d=>d.id===driver) ? driver : KART_LOOK_DRIVERS[kartDriverIndex(driver,KART_LOOK_DRIVERS.length)].id;
+  const chosen = variants?.find(v => v.userData.driver != null && v.userData.driver === driverId);
   const template = chosen || (variants?.length ? variants[kartDriverIndex(driver, variants.length)] : assets && assets.kart);
   if (!template) {
     rootGroup.userData.missing = 'kart';

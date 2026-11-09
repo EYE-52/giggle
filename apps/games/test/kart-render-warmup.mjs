@@ -84,7 +84,8 @@ for(const fallback of [false,true]){
   const renderer={shadowMap:{enabled:true,needsUpdate:false},info:{programs},
     compile(object,c,target){
       assert.equal(c,camera);ok(object.children.length===0,'shadow submission compiles only this object');
-      ok(object.material===depth&&!target.environment,'exact depth material with an empty shadow scene');
+      if(object.material!==depth){ok(object.material===material,'ordinary submission keeps its authored material');return;}
+      ok(!target.environment,'exact depth material with an empty shadow scene');
       prepared.add(signature(object,depth));programs.push({reflected:false,isReady:()=>++polls>programs.length,getUniforms(){ok(polls>programs.length,'uniform tables initialize after linking');this.reflected=true;},getAttributes(){ok(this.reflected,'attribute tables initialize during loading');}});
     },
     async compileAsync(){},
@@ -152,4 +153,16 @@ console.log(JSON.stringify({pass:true,checks,scope:'Shipping GLBs and fallback, 
  assert.deepEqual(modes,[true,false],'current shadow mode prepares before the lower priority quality variant');
  ok(renderer.shadowMap.enabled&&ready.has('false')&&ready.has('true'),'original quality restores and adaptive shader is already cached');
  material.dispose();mesh.geometry.dispose();
+}
+
+// Prefer the synchronous submission plus our all-program completion barrier.
+// Three.compileAsync's timer polling can be clamped in hidden practice seats.
+{
+ const scene=new THREE.Scene(),camera=new THREE.Camera(),mesh=new THREE.Mesh(new THREE.BoxGeometry(),new THREE.MeshBasicMaterial());scene.add(mesh);
+ let compiles=0,draws=0,reflected=0;
+ const renderer={compile(){compiles++;},compileAsync(){assert.fail('timer-based compilation used despite compile being available');},
+  info:{programs:[{isReady:()=>true,getUniforms(){reflected++;},getAttributes(){}}]},render(){draws++;}};
+ await warmKartRenderer(THREE,renderer,scene,camera,{yieldTask:async()=>{}});
+ assert(compiles>0&&draws>0&&reflected>0,'submission, reflection and warm draw all run');
+ mesh.geometry.dispose();mesh.material.dispose();
 }
