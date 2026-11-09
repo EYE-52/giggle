@@ -160,7 +160,7 @@
     transform: scale(1);
   }
 }
-@media (max-width: 560px) {
+@container game (max-width: 560px) {
   #gbody .b4-stage.pl-fill {
     gap: var(--space-12);
   }
@@ -212,7 +212,7 @@
 
 /* On a wide screen the controls sit beside the toy, within easy reach.
    The HUD, title and live strip keep a full-width reserved row. */
-@media (min-width: 900px) {
+@container game (min-width: 900px) {
   #gbody .b4-stage.pl-fill {
     width: min(100%, 1000px);
     grid-template-columns: minmax(0, 2fr) minmax(220px, 1fr);
@@ -257,7 +257,7 @@
 #gbody .b4-stage .b4-status {
   min-height: calc(var(--control-h) / var(--b4-zoom, 1));
 }
-@media (min-width: 900px) {
+@container game (min-width: 900px) {
   #gbody .b4-stage .b4-status {
     min-height: calc(var(--space-64) / var(--b4-zoom, 1));
   }
@@ -289,7 +289,7 @@
 }
 .b4-stage .b4-result-value {
   font: var(--text-heading);
-  font-size: clamp(48px, 8vw, 80px);
+  font-size: clamp(48px, 8cqw, 80px);
   line-height: 1.1;
   font-variant-numeric: tabular-nums;
 }
@@ -311,19 +311,19 @@ body:has(.b4-stage) #toast {
   pointer-events: none;
 }
 
-@media (max-width: 560px) {
+@container game (max-width: 560px) {
   #gbody .b4-stage .b4-status { min-height: var(--space-32); }
 }
-@media (min-width: 900px) {
+@container game (min-width: 900px) {
   #gbody .b4-stage .b4-actions { align-self: start; padding-top: var(--space-24); }
 }
 
-@media (min-width: 1100px) {
+@container game (min-width: 1100px) {
   #gbody .b4-stage .b4-field { grid-row: 3 / 5; }
   #gbody .b4-stage > .pl-live { grid-column: 2; grid-row: 4; align-self: start; }
   #gbody .b4-stage > .pl-live .pl-seats { grid-template-columns: minmax(0, 1fr); }
 }
-@media (max-width: 560px) {
+@container game (max-width: 560px) {
   #gbody .b4-stage .b4-title.party-prompt { min-height: var(--space-64); }
   #gbody .b4-stage .b4-actions { gap: var(--space-4); }
   #gbody .b4-stage .b4-status { min-height: var(--space-24); }

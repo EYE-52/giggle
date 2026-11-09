@@ -1,0 +1,9 @@
+{
+  "pass": true,
+  "checks": [
+    "would-you-rather real practice: menu, no reflow, 6 sizes, 2 themes",
+    "word-chain real practice: menu, no reflow, 6 sizes, 2 themes",
+    "chain-reaction real practice: menu, no reflow, 6 sizes, 2 themes"
+  ],
+  "video": "video/page@3074c3239b9051422efd30be45e762fa.webm"
+}

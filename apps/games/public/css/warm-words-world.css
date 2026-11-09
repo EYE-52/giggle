@@ -2,7 +2,7 @@
  * shared guesses. Tokens only (shared parts: compact-answer-games.css). */
 .ww .ww-stage, .ww .ww-result { display: flex; flex-direction: column; gap: 10px; }
 .ww [data-ww-best] { display: flex; flex-direction: column; gap: 4px; min-height: 92px; }
-.ww .ww-best { font: 800 clamp(28px, 4.4vw, 40px)/1.15 var(--font-display); color: var(--ink); overflow-wrap: anywhere; }
+.ww .ww-best { font: 800 clamp(28px, 4.4cqw, 40px)/1.15 var(--font-display); color: var(--ink); overflow-wrap: anywhere; }
 .ww .ww-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; color: var(--ink-dim); font: 600 15px/1.4 var(--font-body); }
 .ww .ww-meter { height: 10px; border-radius: 5px; background: var(--well); border: 1px solid var(--line); overflow: hidden; }
 .ww .ww-fill { height: 100%; width: 0; background: var(--accent); border-radius: 5px; transition: width .25s ease; }
@@ -22,11 +22,11 @@
 
 /* ---- toy box layer (create-kit.css): a tinted meter card, a heat bar
  * with a scale, sticker rows, and a Rules row clear of the home bar ---- */
-.ww.ck .ww-best { font: var(--text-heading); font-size: clamp(30px, 4.4vw, 42px); }
+.ww.ck .ww-best { font: var(--text-heading); font-size: clamp(30px, 4.4cqw, 42px); }
 .ww.ck .ww-meter { height: 18px; border-radius: var(--radius-pill); background: var(--card); border: var(--outline-w) solid var(--outline); }
 /* Width changes snap: only transform and opacity animate. The gradient is
  * pinned to the viewport, so the fill's end colour shows how warm it is. */
-.ww.ck .ww-fill { border-radius: var(--radius-pill); background: linear-gradient(90deg, var(--fam) 0%, var(--warning) 70%, var(--danger) 100%); background-size: 100vw 100%; transition: none; }
+.ww.ck .ww-fill { border-radius: var(--radius-pill); background: linear-gradient(90deg, var(--fam) 0%, var(--warning) 70%, var(--danger) 100%); background-size: 100cqw 100%; transition: none; }
 .ww.ck .ww-scale { display: flex; justify-content: space-between; font: var(--text-caption); color: var(--ink-dim); }
 .ww.ck .ww-feed-head h3 { font: var(--text-title); }
 .ww.ck .ww-row { border: var(--outline-w) solid var(--outline); border-radius: var(--radius-lg); box-shadow: var(--shadow-sticker-sm); }
@@ -47,7 +47,7 @@
 }
 .ww.ck .ww-fill { position: relative; height: 100%; background: transparent; border-radius: 0; }
 .ww.ck .ww-fill::before {
-  content: ""; position: absolute; top: 0; bottom: 0; left: 100%; width: 100vw;
+  content: ""; position: absolute; top: 0; bottom: 0; left: 100%; width: 100cqw;
   background: color-mix(in srgb, var(--card) 72%, transparent);
 }
 .ww.ck .ww-fill::after {

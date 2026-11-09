@@ -1,5 +1,4 @@
-/* The game fits its actual parent, including a one-device shell or a Meet column. */
-#gbody:has(> .bk-game) { container-type:inline-size; --game-viewport-height:100dvh; }
+/* container-fit.css owns the named size container and measured host height. */
 /* Board app layout. A single viewport budget, not a stack of phone patches.
  * Players surround the board. Secondary tasks use the shared floating layer.
  * The sidebar holds the move list or the game's main action (die / fleet).
@@ -18,7 +17,7 @@
 }
 #gbody .bk-game[data-family="board"] :is(.bk-panel,.bk-players) { display:contents; }
 #gbody .bk-game[data-family="board"] .bk-head { grid-area:head; order:initial; display:flex; flex-direction:row; align-items:center; justify-content:center; min-height:0; height:var(--space-48); padding:0; margin:0; overflow:hidden; }
-#gbody .bk-game[data-family="board"] .bk-title { max-width:calc(100vw - 176px); margin:0; font:var(--text-title); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; text-wrap:nowrap; }
+#gbody .bk-game[data-family="board"] .bk-title { max-width:calc(100cqw - 176px); margin:0; font:var(--text-title); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; text-wrap:nowrap; }
 #gbody .bk-game[data-family="board"] .bk-meta { display:none; }
 #gbody .bk-game[data-family="board"] .bk-stage { grid-area:board; order:initial; width:100%; height:auto; min-width:0; max-width:none; max-height:none; align-self:center; justify-self:center; margin:0; }
 #gbody .bk-game[data-family="board"] .bk-player { grid-area:top; height:var(--control-h); min-height:var(--control-h); display:grid; grid-template-columns:var(--space-32) minmax(0,1fr) auto; grid-template-rows:1fr; align-items:center; gap:var(--space-8); padding:var(--space-4) var(--space-8); border:var(--outline-w) solid transparent; border-radius:var(--radius-md); background:color-mix(in srgb,var(--card) 65%,transparent); box-shadow:none; }
@@ -192,3 +191,16 @@
 /* The old fullscreen-tip selector reserved extra phone padding even while
  * the board's app toolbar hid that tip. The workspace owns this row now. */
 body.game-immersive:has(#gameScreenPrompt) #gbody .bk-game[data-family="board"] { padding-block:var(--space-8); }
+/* A short landscape panel has room beside the chart, but not below it. */
+@container game (min-width:760px) and (max-width:999px) and (max-height:640px) {
+ #gbody .bk-game[data-family="board"].fl-game:has(.bk-extra):not(:has(.chhist-wrap)) {
+  --bk-extra-space:var(--control-h-lg);
+  --bk-size:min(calc(100cqw - var(--bk-sidebar) - 3 * var(--space-32)),calc(var(--game-viewport-height) - var(--bk-chrome)));
+  grid-template-columns:minmax(0,var(--bk-size)) var(--bk-sidebar); column-gap:var(--space-24);
+  grid-template-rows:var(--space-48) var(--bk-roster) calc(var(--bk-size) + var(--control-h-lg)) var(--bk-bottom) var(--space-48) var(--control-h-sm);
+  grid-template-areas:"head head" "top extra" "board extra" "bottom extra" "status extra" "tools extra";
+ }
+ #gbody .bk-game[data-family="board"].fl-game .fl-placement { grid-template-columns:auto auto; }
+ #gbody .bk-game[data-family="board"].fl-game .fl-placement .fl-place-actions { grid-column:1/-1; grid-row:2; }
+ #gbody .bk-game[data-family="board"].fl-game .fl-reason { grid-row:3; }
+}

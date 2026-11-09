@@ -91,6 +91,14 @@ export function createCanvasView(mountEl, hooks) {
     const w = Math.max(1, Math.floor(mountEl.clientWidth || 320));
     const h = Math.max(1, Math.floor(mountEl.clientHeight || 240));
     const dpr = Math.min(win.devicePixelRatio || 1, maxDpr);
+    if (w === size.w && h === size.h && dpr === size.dpr) return;
+    // Retain pixels even when a paused view has no next animation frame.
+    let retained = null;
+    if (size.w && size.h && typeof ctx.drawImage === 'function') {
+      retained = document.createElement('canvas');
+      retained.width = canvas.width; retained.height = canvas.height;
+      retained.getContext('2d')?.drawImage(canvas, 0, 0);
+    }
     size.w = w;
     size.h = h;
     size.dpr = dpr;
@@ -102,6 +110,11 @@ export function createCanvasView(mountEl, hooks) {
         canvas.style.height = h + 'px';
       }
       if (typeof ctx.setTransform === 'function') ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      if (retained) {
+        const aspect = retained.width / retained.height;
+        const width = Math.min(w, h * aspect), height = width / aspect;
+        ctx.drawImage(retained, (w - width) / 2, (h - height) / 2, width, height);
+      }
     } catch { /* noop: keep last good pixels */ }
     if (typeof hooks.resize === 'function') {
       try { hooks.resize(w, h, dpr); } catch { /* game bug: never break the loop */ }
@@ -114,19 +127,25 @@ export function createCanvasView(mountEl, hooks) {
     return { fallback: true, reason: 'mount-failed' };
   }
 
+  let resizeFrame = null;
+  const scheduleResize = () => {
+    if (resizeFrame !== null || disposed) return;
+    if (typeof win.requestAnimationFrame !== 'function') { doResize(); return; }
+    resizeFrame = win.requestAnimationFrame(() => { resizeFrame = null; doResize(); });
+  };
   let ro = null;
   const ResizeObs = globalThis.ResizeObserver;
   if (typeof ResizeObs === 'function') {
     try {
-      ro = new ResizeObs(doResize);
+      ro = new ResizeObs(scheduleResize);
       ro.observe(mountEl);
     } catch {
       ro = null;
     }
   }
-  track(win, 'resize', doResize);
+  track(win, 'resize', scheduleResize);
   // Orientation / DPR shifts on mobile fire here, not resize.
-  track(win, 'orientationchange', doResize);
+  track(win, 'orientationchange', scheduleResize);
   doResize();
 
   const hasRaf = win && typeof win.requestAnimationFrame === 'function';
@@ -196,6 +215,8 @@ export function createCanvasView(mountEl, hooks) {
     if (disposed) return;
     disposed = true;
     stop();
+    if (resizeFrame !== null) win.cancelAnimationFrame?.(resizeFrame);
+    resizeFrame = null;
     if (ro) {
       try { ro.disconnect(); } catch { /* noop */ }
       ro = null;

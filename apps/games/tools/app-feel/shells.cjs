@@ -1,5 +1,5 @@
 const {chromium}=require('playwright'),fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
-const out=path.resolve(__dirname,'../../../../artifacts/app-feel/after'),base=process.env.APP_FEEL_URL||'http://127.0.0.1:8380';
+const out=path.resolve(process.env.APP_FEEL_ARTIFACTS || path.join(__dirname,'../../../../artifacts/app-feel/after')),base=process.env.APP_FEEL_URL||'http://127.0.0.1:8380';
 (async()=>{const b=await chromium.launch({executablePath:'/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',headless:true});const c=await b.newContext({recordVideo:{dir:path.join(out,'video'),size:{width:1440,height:1100}}}),p=await c.newPage(),checks=[];
 try{
  await p.goto(base+'/practice/?game=chess');await p.locator('#practiceStart').click();await p.waitForFunction(()=>document.querySelector('#practiceStatus').textContent.includes('seats ready'));

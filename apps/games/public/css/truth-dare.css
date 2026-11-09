@@ -44,7 +44,7 @@
 @media (prefers-reduced-motion: no-preference) {
   .party-scene--truth button.td-prompt-option:not(:disabled):active { transform: translateY(var(--lift)); box-shadow: none; }
 }
-@media (max-width: 560px) {
+@container game (max-width: 560px) {
   .party-scene--truth .td-prompt-options { grid-template-columns: minmax(0, 1fr); gap: var(--space-8); }
   .party-scene--truth .td-prompt-option { min-height: var(--control-h-lg); padding: var(--space-12); }
 }
@@ -52,11 +52,11 @@
 .party-scene--truth .party-reveals { margin-top: 0; }
 /* Short panels keep ordinary prompts beside their actions. Longer prompts
  * wrap and remain reachable with natural scrolling. */
-@media (max-height: 640px) {
+@container game (max-height: 640px) {
   #gbody .party-scene--truth > .gk-prompt { font-size: 22px; }
   .party-scene--truth .party-result { padding: 10px 14px; }
 }
-@media (max-height: 500px) {
+@container game (max-height: 500px) {
   #gbody .party-scene--truth { padding: 0 0 12px; }
 }
 .party-scene--truth .gk-results, .party-scene--truth .party-reveals { text-align: left; }
@@ -65,14 +65,14 @@
 #gbody .party-scene--truth.pl-fill > .gk-prompt {
   max-width: none; padding: var(--space-24); background: var(--fam-soft);
   border: var(--outline-w-lg) solid var(--outline); border-radius: var(--radius-xl); box-shadow: var(--shadow-sticker);
-  font-size: clamp(26px, 3.4vw, 36px);
+  font-size: clamp(26px, 3.4cqw, 36px);
 }
 #gbody .party-scene--truth .td-kicker { font: var(--text-title); color: var(--fam-deep); }
 #gbody .party-scene--truth .td-choices:not(.td-decks) .gk-choice { min-height: 80px; justify-content: center; font: 800 26px/1.2 var(--font-display); }
 #gbody .party-scene--truth .td-choices:not(.td-decks) .gk-mark { width: 44px; height: 44px; font-size: 20px; }
 #gbody .party-scene--truth .td-decks .gk-choice { justify-content: center; font: 800 18px/1.2 var(--font-display); }
-#gbody .party-scene--truth .td-spin .gk-wait-title { font-size: clamp(34px, 5vw, 52px); }
-@media (max-width: 560px) {
+#gbody .party-scene--truth .td-spin .gk-wait-title { font-size: clamp(34px, 5cqw, 52px); }
+@container game (max-width: 560px) {
   #gbody .party-scene--truth.pl-fill > .gk-prompt { padding: var(--space-16); font-size: 24px; border-radius: var(--radius-lg); }
   #gbody .party-scene--truth .td-choices:not(.td-decks) .gk-choice { min-height: 64px; font-size: 22px; }
   #gbody .party-scene--truth .td-decks .gk-choice { flex-direction: column; gap: var(--space-4); padding: var(--space-8); font-size: 15px; }
@@ -124,7 +124,7 @@
   border: var(--outline-w-lg) solid var(--outline); border-radius: var(--radius-sm) 0 var(--radius-sm) 0;
   transform: rotate(45deg);
 }
-#gbody .party-scene--truth .td-spin .gk-wait-title { font: var(--text-heading); font-size: clamp(30px, 4.4vw, 44px); }
+#gbody .party-scene--truth .td-spin .gk-wait-title { font: var(--text-heading); font-size: clamp(30px, 4.4cqw, 44px); }
 #gbody .party-scene--truth .td-spin .gk-wait-title.is-landed { color: var(--fam-deep); }
 @media (prefers-reduced-motion: no-preference) {
   .party-scene--truth .td-spin .gk-wait-title.is-landed { animation: td-stamp var(--dur-base) var(--ease) both; }
@@ -147,7 +147,7 @@
 .party-scene--truth .td-banner-text { display: grid; gap: var(--space-4); text-align: left; }
 .party-scene--truth .td-banner-text b { font: var(--text-title); color: var(--fam-deep); }
 .party-scene--truth .td-banner-text span { font: var(--text-body); text-wrap: pretty; }
-@media (max-width: 560px) {
+@container game (max-width: 560px) {
   .party-scene--truth .td-banner { padding: var(--space-12) var(--space-16); gap: var(--space-12); border-radius: var(--radius-lg); }
   .party-scene--truth .td-banner-icon { width: 44px; height: 44px; font-size: 22px; }
 }
@@ -168,14 +168,14 @@
  * the judge's two answers wear status colours. */
 body.game-playing[data-game="truth-dare"] {
   background-image:
-    radial-gradient(80vw 46vh at 50% 110%, color-mix(in srgb, var(--fam) 22%, transparent), transparent 72%),
-    radial-gradient(40vw 26vh at 50% 104%, color-mix(in srgb, var(--sun) 20%, transparent), transparent 70%);
+    radial-gradient(80cqw 46cqh at 50% 110%, color-mix(in srgb, var(--fam) 22%, transparent), transparent 72%),
+    radial-gradient(40cqw 26cqh at 50% 104%, color-mix(in srgb, var(--sun) 20%, transparent), transparent 70%);
   background-attachment: fixed;
 }
 [data-theme="night"] body.game-playing[data-game="truth-dare"] {
   background-image:
-    radial-gradient(80vw 46vh at 50% 110%, color-mix(in srgb, var(--fam) 24%, transparent), transparent 72%),
-    radial-gradient(40vw 26vh at 50% 104%, color-mix(in srgb, var(--sun) 16%, transparent), transparent 70%);
+    radial-gradient(80cqw 46cqh at 50% 110%, color-mix(in srgb, var(--fam) 24%, transparent), transparent 72%),
+    radial-gradient(40cqw 26cqh at 50% 104%, color-mix(in srgb, var(--sun) 16%, transparent), transparent 70%);
 }
 #gbody .party-scene--truth .td-choices[aria-label="Truth or dare"] { --duel-b: var(--fam); }
 #gbody .party-scene--truth .td-choices[aria-label="Truth or dare"] > [data-kind="truth"] { --side: #6a55d8; --on-side: #ffffff; }
@@ -196,7 +196,7 @@ body.game-playing[data-game="truth-dare"] {
 #gbody .party-scene--truth .td-wheel { border-color: var(--fam-lip); box-shadow: 0 var(--lift) 0 var(--fam-lip); }
 #gbody .party-scene--truth .td-pointer { background: var(--sun); border-color: color-mix(in srgb, var(--sun) 70%, #000); }
 #gbody .party-scene--truth .td-banner-icon { border-color: var(--fam-lip); box-shadow: 0 var(--lift-sm) 0 var(--fam-lip); }
-@media (max-width: 560px) {
+@container game (max-width: 560px) {
   #gbody .party-scene--truth .td-choices[aria-label="Truth or dare"] > [data-kind] { min-height: 132px; border-radius: var(--radius-lg); }
   #gbody .party-scene--truth .td-choices[aria-label="Truth or dare"] > [data-kind] .gk-mark { width: 44px; height: 44px; font-size: 20px; }
 }
@@ -211,10 +211,10 @@ body.game-playing[data-game="truth-dare"] {
 /* ==== QC ==== */
 /* The stage glow is a soft wash, not a stain at the bottom of the page. */
 body.game-playing[data-game="truth-dare"] {
-  background-image: radial-gradient(90vw 40vh at 50% 112%, color-mix(in srgb, var(--fam) 9%, transparent), transparent 75%);
+  background-image: radial-gradient(90cqw 40cqh at 50% 112%, color-mix(in srgb, var(--fam) 9%, transparent), transparent 75%);
 }
 [data-theme="night"] body.game-playing[data-game="truth-dare"] {
-  background-image: radial-gradient(90vw 40vh at 50% 112%, color-mix(in srgb, var(--fam) 10%, transparent), transparent 75%);
+  background-image: radial-gradient(90cqw 40cqh at 50% 112%, color-mix(in srgb, var(--fam) 10%, transparent), transparent 75%);
 }
 /* The prompt is the headline card; the "answer out loud" note under it is
  * a quiet dashed instruction, not a second card of the same weight. */

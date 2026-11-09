@@ -5,7 +5,7 @@
 #gbody .likely-world.pl-fill .party-prompt.party-prompt {
   padding: var(--space-24); text-align: center; background: var(--fam-soft);
   border: var(--outline-w-lg) solid var(--outline); border-radius: var(--radius-xl); box-shadow: var(--shadow-sticker);
-  font-size: clamp(26px, 3.4vw, 36px);
+  font-size: clamp(26px, 3.4cqw, 36px);
 }
 .likely-status { min-height: var(--control-h-sm); }
 #gbody .likely-world .gk-choice .likely-initials, #gbody .likely-world .likely-initials {
@@ -29,7 +29,7 @@
 #gbody .likely-world .party-meter > span { background: var(--fam); }
 .likely-voters { margin: 0; }
 .likely-actions[hidden], .likely-actions:not(:has(> :not([hidden]))) { display: none; }
-@media (max-width: 560px) {
+@container game (max-width: 560px) {
   #gbody .likely-world.pl-fill .party-prompt.party-prompt { padding: var(--space-16); font-size: 24px; border-radius: var(--radius-lg); }
   #gbody .likely-world .likely-nominee { min-height: 60px; }
 }
@@ -51,7 +51,7 @@
 .likely-tag.is-top::before { content: "\2605"; margin-right: var(--space-4); }
 .likely-row-head .likely-name { flex: 0 1 auto; }
 .likely-row-head .likely-votes { margin-left: auto; }
-@media (max-width: 560px) {
+@container game (max-width: 560px) {
   /* Compact rows so every nominee and Next fit on the first screen. */
   #gbody .likely-world .likely-row { gap: var(--space-8); padding: var(--space-8) var(--space-12); }
   #gbody .likely-world .likely-row .likely-initials { width: 40px; height: 40px; font-size: 16px; }
@@ -93,13 +93,13 @@ body.game-playing[data-game="most-likely"] {
  * the page, never beige streaks behind the nominees and the edges. */
 body.game-playing[data-game="most-likely"] {
   background-image:
-    linear-gradient(to bottom, transparent 0, var(--bg) 55vh),
+    linear-gradient(to bottom, transparent 0, var(--bg) 55cqh),
     conic-gradient(from 150deg at 8% -6%, transparent 0deg, color-mix(in srgb, var(--fam) 8%, transparent) 14deg, transparent 30deg),
     conic-gradient(from 180deg at 92% -6%, transparent 0deg, color-mix(in srgb, var(--sun) 9%, transparent) 16deg, transparent 32deg);
 }
 [data-theme="night"] body.game-playing[data-game="most-likely"] {
   background-image:
-    linear-gradient(to bottom, transparent 0, var(--bg) 70vh),
+    linear-gradient(to bottom, transparent 0, var(--bg) 70cqh),
     conic-gradient(from 150deg at 8% -6%, transparent 0deg, color-mix(in srgb, var(--fam) 13%, transparent) 14deg, transparent 30deg),
     conic-gradient(from 180deg at 92% -6%, transparent 0deg, color-mix(in srgb, var(--sun) 11%, transparent) 16deg, transparent 32deg);
 }

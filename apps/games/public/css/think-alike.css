@@ -132,7 +132,7 @@
   gap: var(--space-8);
   justify-content: center;
 }
-@media (max-width: 560px) {
+@container game (max-width: 560px) {
   .think-cloud {
     padding: var(--space-24) var(--space-16);
     border-radius: 32px;
@@ -174,7 +174,7 @@
   min-height: calc(48px / var(--round-zoom, 1));
   font: 700 13px/1.35 var(--font-body);
 }
-@media (max-width: 560px) {
+@container game (max-width: 560px) {
   #gbody .think-world .party-prompt.party-prompt {
     font-size: 24px;
     padding: var(--space-12);
@@ -202,6 +202,6 @@
 /* Thought bubbles stay on the play piece without crossing its card rim. */
 .think-cloud::before, .think-cloud::after, .think-dot { display: none; }
 
-@media (min-width: 1100px) {
+@container game (min-width: 1100px) {
   #gbody .think-world.pl-fill { padding-top: var(--space-64); gap: var(--space-12); }
 }

@@ -11,7 +11,7 @@
 .fv-game .fv-swap-reason { min-height: 1.4em; margin: var(--space-4) 0 0; }
 [data-theme="night"] .fv-game .fv-wood { fill: #b98e5a; }
 [data-theme="night"] .fv-game .fv-grid { stroke: #76532e; }
-@media (max-width: 759px) {
+@container game (max-width: 759px) {
   .fv-game { --b5-extra-height: 44px; }
   .fv-game .fv-swap-reason { display: none; }
 }

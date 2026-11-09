@@ -74,13 +74,13 @@
 .fl-game .fl-reason:empty{visibility:hidden}
 .fl-game .fl-ships button:focus-visible{outline:var(--focus-ring);outline-offset:var(--focus-offset)}
 @media (hover:hover){.fl-game .fl-ships button:hover{transform:translateY(-2px)}}
-@media (min-width:760px){
+@container game (min-width:760px) {
  .fl-game .fl-ships button{min-height:var(--control-h-sm);padding:var(--space-4) var(--space-12);gap:0}
  .fl-game .fl-tray-ship{height:16px}
 }
 /* Phones: the whole tray is visible as a three-column grid of compact
  * cards (no sideways scroller that clips the first ship). */
-@media (max-width:759px){
+@container game (max-width:759px) {
  .fl-game .fl-ships{grid-template-columns:repeat(3,minmax(0,1fr))}
  .fl-game .fl-ships button{min-height:var(--control-h-sm);padding:var(--space-8)}
  .fl-game .fl-tray-name{font:var(--text-caption);color:var(--ink);font-weight:800}
@@ -93,7 +93,7 @@
  * two sharing the second row, so no empty slot is left. */
 body[data-game="fleet-duel"]{background:#cfe4f2}
 [data-theme="night"] body[data-game="fleet-duel"]{background:#0b1424}
-@media (max-width:759px){
+@container game (max-width:759px) {
  .fl-game .fl-ships{grid-template-columns:repeat(6,minmax(0,1fr))}
  .fl-game .fl-ships>button{grid-column:span 2}
  .fl-game .fl-ships>button:nth-child(4):nth-last-child(2),.fl-game .fl-ships>button:nth-child(5):last-child{grid-column:span 3}
@@ -114,16 +114,16 @@ body[data-game="fleet-duel"]{background:#cfe4f2}
 /* On phones the selected ship's named Confirm action comes first in the
  * dock, directly below the chart/status. Battle's Fire uses the same slot.
  * The full tray remains mounted, so readiness never moves the chart. */
-@media(max-width:759px){
+@container game (max-width:759px) {
  .fl-game .fl-placement .fl-place-actions { order:-1; }
  .fl-game .fl-fire { align-self:start; }
 }
 
 /* Fit the chart, placement reason, primary and all five ship cards together.
  * Zoom chart keeps precise aiming available on the compact phone chart. */
-@media (max-width: 759px) {
-  #gbody .fl-game .fl-chart-col { width: min(100%, calc(var(--game-viewport-height, 100dvh) - 9 * var(--space-64))); }
-  #gbody .fl-game .fl-chart-tools { flex-wrap: wrap; width: calc(100vw - var(--space-24)); align-self: center; }
+@container game (max-width: 759px) {
+  #gbody .fl-game .fl-chart-col { width: min(100%, calc(var(--game-viewport-height, 100cqh) - 9 * var(--space-64))); }
+  #gbody .fl-game .fl-chart-tools { flex-wrap: wrap; width: calc(100cqw - var(--space-24)); align-self: center; }
   #gbody .fl-game .fl-placement { min-width: 0; width: 100%; gap: var(--space-8); }
   #gbody .fl-game .bk-status { min-height: var(--space-48); height: var(--space-48); }
   #gbody .fl-game .fl-ships { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); min-width: 0; max-width: 100%; overflow: visible; padding: var(--space-4); }

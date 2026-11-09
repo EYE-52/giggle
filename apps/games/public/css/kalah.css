@@ -47,13 +47,13 @@
 /* QC: at night a playable bowl rings in its owner's seed colour (jade or
  * amber, like the stores), not a pale neutral ring. */
 [data-theme="night"] .kl .kl-bowl.is-legal .kl-pit{stroke:color-mix(in srgb,var(--kl-own,var(--fam)) 80%,transparent);stroke-width:5}
-@media (max-width:759px){
+@container game (max-width:759px) {
  .kl .bk-status{order:1}
- .kl.kl-portrait .bk-stage{width:min(100%,560px,calc((100svh - 300px) * var(--bk-aspect)))}
+ .kl.kl-portrait .bk-stage{width:min(100%,560px,calc((100cqh - 300px) * var(--bk-aspect)))}
 }
 
 /* Use the actual play viewport after the phone's full-screen tip, not svh. */
-@media(max-width:759px) and (orientation:portrait){
+@container game (max-width:759px) and (orientation:portrait) {
  .kl { --kl-phone-chrome:calc(4 * var(--space-64) + var(--space-48) + var(--space-40)); }
  .kl:has(.bk-timer.has-timer) { --kl-phone-chrome:calc(4 * var(--space-64) + var(--space-48) + var(--space-40) + var(--control-h-sm) + var(--space-8)); }
  .kl.kl-portrait .bk-stage { width:min(100%,calc((var(--game-viewport-height,100dvh) - var(--kl-phone-chrome)) * var(--bk-aspect))); }

@@ -8,7 +8,7 @@ export default batchView({
   prefix: "si",
   name: "Sketchy Impostor",
   family: "create",
-  field: `<div class="b6-stage si-sketchbook"><canvas class="si-canvas" width="900" height="540" tabindex="0" aria-label="Shared drawing canvas"></canvas><span class="si-page-label"></span></div><div class="b6-tools si-tools"></div>`,
+  field: `<div class="b6-stage si-sketchbook"><canvas class="si-canvas" width="900" height="900" tabindex="0" aria-label="Shared drawing canvas"></canvas><span class="si-page-label"></span></div><div class="b6-tools si-tools"></div>`,
   mount(c) {
     let current = c;
     const input = drawingInput(c.el.querySelector("canvas"), () => ({

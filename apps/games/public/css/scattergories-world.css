@@ -14,12 +14,12 @@
 .sg .sg-cats { display: flex; flex-direction: column; gap: 4px; }
 .sg .sg-cat > summary { color: var(--ink); font-size: 16px; }
 .sg .sg-cat .wg-rows { padding-bottom: 8px; }
-@media (max-width: 560px) {
+@container game (max-width: 560px) {
   .sg .sg-letter { width: 48px; height: 48px; font-size: 28px; }
   .sg .sg-field { grid-template-columns: minmax(0, 1fr); }
   .sg .sg-field label { font-size: 16px; }
 }
-@media (max-height: 560px) { .sg .sg-fields { gap: 6px; } .sg .sg-letter { width: 44px; height: 44px; font-size: 26px; } }
+@container game (max-height: 560px) { .sg .sg-fields { gap: 6px; } .sg .sg-letter { width: 44px; height: 44px; font-size: 26px; } }
 
 /* ---- toy box layer (create-kit.css): the letter as a toy die, numbered
  * category rows on one card, a sticky action bar clear of the home bar ---- */
@@ -50,7 +50,7 @@
 .sg.ck .sg-dots li.is-done { background: var(--fam-soft); border-color: var(--fam); }
 .sg.ck .sg-dots li.is-now { background: var(--fam); border-color: var(--outline); }
 .sg.ck .sg-cat > summary { font: var(--text-button-sm); }
-@media (max-width: 560px) {
+@container game (max-width: 560px) {
   .sg.ck .sg-letter { width: 56px; height: 56px; font-size: 34px; }
 }
 .sg.ck .sg-dots li { width: 14px; height: 14px; }
@@ -61,7 +61,7 @@
 .sg.ck .sg-entry .gk-input { scroll-margin-bottom: 112px; }
 /* The bar reads as a tray the list scrolls under: an ink top edge and a
  * soft fade above it, never a strip that slices a field mid-way. */
-@media (max-width: 700px) {
+@container game (max-width: 700px) {
   .sg.ck .sg-actions { border-top: var(--outline-w) solid var(--outline); border-radius: var(--radius-lg) var(--radius-lg) 0 0; background: var(--card); padding-top: var(--space-12); }
   .sg.ck .sg-actions::before { content: ""; position: absolute; left: 0; right: 0; bottom: 100%; height: var(--space-24); background: linear-gradient(to top, var(--bg), transparent); pointer-events: none; }
   .sg.ck .sg-actions .gk-actions { justify-content: stretch; }
@@ -73,7 +73,7 @@
  * beside its field, so all five rows and Lock in fit on the first screen. */
 .sg.ck .sg-actions { position: static; margin-inline: 0; padding: 0; background: none; border: 0; border-radius: 0; }
 .sg.ck .sg-actions::before { content: none; }
-@media (max-width: 560px) {
+@container game (max-width: 560px) {
   .sg.ck .sg-fields { gap: var(--space-8); padding: var(--space-12); }
   .sg.ck .sg-field { grid-template-columns: minmax(0, 2fr) minmax(0, 3fr); gap: var(--space-8); }
   .sg.ck .sg-field label { font: var(--text-caption); font-weight: 800; color: var(--ink); gap: var(--space-4); }
@@ -107,7 +107,7 @@
   box-shadow: none; font: var(--text-button-sm);
 }
 .sg.ck .sg-actions #scLock { order: 2; min-width: 200px; min-height: var(--control-h-lg); font: var(--text-button); font-size: 19px; }
-@media (max-width: 560px) {
+@container game (max-width: 560px) {
   .sg.ck .sg-letter { width: 52px; height: 52px; font-size: 32px; }
   .sg.ck .sg-fields { padding: 0; gap: var(--space-8); }
   .sg.ck .sg-field { grid-template-columns: minmax(0, 1fr); gap: var(--space-4); padding: var(--space-4) var(--space-8) var(--space-8); box-shadow: var(--shadow-sticker-sm); }
@@ -138,7 +138,7 @@ body.game-playing[data-game="scattergories"] {
   --sg-rule: color-mix(in srgb, var(--fam) 10%, transparent);
   --sg-margin: color-mix(in srgb, #e0475f 26%, transparent);
 }
-@media (max-width: 700px) {
+@container game (max-width: 700px) {
   body.game-playing[data-game="scattergories"] { background-image: repeating-linear-gradient(180deg, transparent 0 35px, var(--sg-rule) 35px 36px); background-attachment: fixed; }
 }
 /* The letter die: family fill on its own darker lip, two pips in the corners. */
@@ -150,7 +150,7 @@ body.game-playing[data-game="scattergories"] {
     var(--fam);
 }
 [data-theme="night"] .sg.ck .sg-letter { box-shadow: 0 var(--lift) 0 var(--fam-lip), 0 0 24px color-mix(in srgb, var(--fam) 40%, transparent); }
-@media (max-width: 560px) {
+@container game (max-width: 560px) {
   .sg.ck .sg-letter {
     background:
       radial-gradient(circle at 10px 10px, color-mix(in srgb, var(--on-fam) 55%, transparent) 0 2.5px, transparent 3px),
@@ -164,7 +164,7 @@ body.game-playing[data-game="scattergories"] {
   content: ""; position: absolute; left: 6px; top: 10px; bottom: 10px; width: 4px; pointer-events: none;
   background: radial-gradient(circle, color-mix(in srgb, var(--fam) 40%, transparent) 0 1.6px, transparent 2px) 0 0 / 4px 8px repeat-y;
 }
-@media (max-width: 560px) { .sg.ck .sg-field { padding-left: calc(var(--space-8) + 8px); } .sg.ck .sg-field::before { left: 4px; } }
+@container game (max-width: 560px) { .sg.ck .sg-field { padding-left: calc(var(--space-8) + 8px); } .sg.ck .sg-field::before { left: 4px; } }
 
 /* QC: each mint strip sits on a lip of its own colour, and in night the
  * answer field is a lifted step of the strip, not a dark hole in it. */

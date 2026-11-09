@@ -24,7 +24,7 @@
 .tt-list .gk-meta { margin-top: 2px; font-weight: 600; }
 .tt-foot { min-height: 48px; }
 
-@media (max-width: 560px) {
+@container game (max-width: 560px) {
   .tt-row { gap: 8px; }
   .tt-row .gk-mark { width: 26px; height: 26px; }
   .tt-lie { min-width: 56px; padding: 0 10px; }
@@ -37,7 +37,7 @@
 
 /* Short frames (a small Giggle panel, zoomed text): tighter rhythm so the
  * question and the main action stay in view. */
-@media (max-height: 560px) {
+@container game (max-height: 560px) {
   .tt-scene { gap: 10px; padding-bottom: 12px; }
   .tt-scene .gk-prompt { font-size: 22px; }
   .tt-scene .gk-sub { font-size: 16px; }
@@ -100,7 +100,7 @@
 #gbody .tt-scene.pl-fill .tt-idea summary:focus-visible { outline: var(--focus-ring); outline-offset: var(--focus-offset); }
 #gbody .tt-scene.pl-fill .tt-idea[open] summary { background: var(--fam-soft); color: var(--fam-deep); }
 #gbody .tt-scene.pl-fill .tt-idea p { margin-top: var(--space-8); font: var(--text-body); color: var(--ink); }
-@media (max-width: 560px) {
+@container game (max-width: 560px) {
   #gbody .tt-scene.pl-fill .tt-row { gap: var(--space-8); padding-left: var(--space-8); }
   #gbody .tt-scene.pl-fill .tt-row .gk-input { font-size: 17px; }
   #gbody .tt-scene.pl-fill .tt-lie { min-width: 64px; }
@@ -135,7 +135,7 @@ body.game-playing[data-game="two-truths"] {
 [data-theme="night"] #gbody .tt-scene.pl-fill > .gk-prompt { box-shadow: 0 var(--lift) 0 var(--outline), 0 0 40px color-mix(in srgb, var(--fam) 16%, transparent); }
 #gbody .tt-scene.pl-fill .tt-lie:has(input:checked) { border-color: var(--danger); box-shadow: 0 var(--lift-sm) 0 color-mix(in srgb, var(--danger) 55%, transparent); }
 #gbody .tt-scene.pl-fill .tt-row:has(.tt-lie input:checked) { border-color: color-mix(in srgb, var(--danger) 35%, var(--outline)); }
-@media (max-width: 560px) {
+@container game (max-width: 560px) {
   #gbody .tt-scene.pl-fill > .gk-prompt { padding-bottom: var(--space-40); }
   #gbody .tt-scene.pl-fill > .gk-prompt::after { left: var(--space-16); right: var(--space-16); bottom: var(--space-8); }
 }

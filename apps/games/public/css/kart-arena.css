@@ -39,7 +39,7 @@
 }
 .pk .pk-stage::before { content:none; }
 /* Arena-only loading pill (the shell's loading card usually covers it). */
-.pk .pk-loading { width:max-content; max-width:calc(100% - 32px); margin:35vh auto 0; padding:12px 24px; color:var(--ink); background:var(--card); border:2px solid var(--pk-rim); border-radius:var(--radius-pill,999px); box-shadow:var(--pk-lip); font:var(--text-title,800 20px/1.25 var(--font-display)); text-align:center; }
+.pk .pk-loading { width:max-content; max-width:calc(100% - 32px); margin:35cqh auto 0; padding:12px 24px; color:var(--ink); background:var(--card); border:2px solid var(--pk-rim); border-radius:var(--radius-pill,999px); box-shadow:var(--pk-lip); font:var(--text-title,800 20px/1.25 var(--font-display)); text-align:center; }
 .pk .pk-fb { width:100%; height:100%; display:block; }
 .pk .pk-hud { z-index:3; padding:0; gap:0; }
 /* A match clock and one edge console; every label has one home. */
@@ -83,9 +83,9 @@
 .pk .pk-leadscore small { font-size:12px; color:var(--pk-dim); }
 .pk .pk-chev { flex:none; color:var(--pk-dim); font-size:12px; }
 .pk .pk-board[open] .pk-chev { transform:rotate(180deg); }
-.pk .pk-standpanel { position:absolute; top:calc(100% + 8px); right:0; width:min(280px,calc(100vw - 24px)); background:var(--pk-panel); border:2px solid var(--pk-rim); border-radius:var(--radius-lg,16px); box-shadow:var(--pk-lip), var(--shadow-card); padding:8px; text-shadow:none; }
+.pk .pk-standpanel { position:absolute; top:calc(100% + 8px); right:0; width:min(280px,calc(100cqw - 24px)); background:var(--pk-panel); border:2px solid var(--pk-rim); border-radius:var(--radius-lg,16px); box-shadow:var(--pk-lip), var(--shadow-card); padding:8px; text-shadow:none; }
 .pk #pk-goal { display:block; padding:4px 8px 8px; border-bottom:2px solid var(--line); margin-bottom:8px; font:var(--text-caption,700 13px/1.4 var(--font-body)); color:var(--pk-dim); }
-.pk .pk-stand { display:flex; flex-direction:column; align-items:stretch; flex-wrap:nowrap; background:none; gap:3px; max-height:min(225px,calc(100dvh - 130px)); overflow:auto; font-size:14px; }
+.pk .pk-stand { display:flex; flex-direction:column; align-items:stretch; flex-wrap:nowrap; background:none; gap:3px; max-height:min(225px,calc(100cqh - 130px)); overflow:auto; font-size:14px; }
 .pk .pk-row { display:grid; grid-template-columns:20px 10px minmax(0,1fr) auto; gap:8px; align-items:center; padding:8px; border-radius:var(--radius-sm,8px); color:var(--pk-text); text-shadow:none; }
 .pk .pk-row.pk-self { background:var(--fam-soft,var(--accent-soft)); box-shadow:inset 0 0 0 2px var(--pk-candy); color:var(--pk-hi); font-weight:800; }
 .pk .pk-score { font-variant-numeric:tabular-nums; }
@@ -149,7 +149,7 @@
 @media (hover:hover) { .pk .pk-help > summary:hover { transform:translateY(-2px); } }
 /* Pause card: soft-rimmed sticker card with one candy Resume. */
 .pk .pk-helpbody {
-  position:absolute; left:0; bottom:calc(100% + 12px); width:min(280px,calc(100vw - 48px));
+  position:absolute; left:0; bottom:calc(100% + 12px); width:min(280px,calc(100cqw - 48px));
   background:var(--card); border:2px solid var(--pk-rim); border-radius:var(--radius-xl,24px);
   box-shadow:0 var(--lift-lg,6px) 0 var(--pk-rim), var(--shadow-card);
   padding:16px; font:600 14px/1.5 var(--font-body); color:var(--ink); z-index:4;
@@ -176,9 +176,9 @@
 /* 98% opaque on purpose: a fully opaque scrolling card lets the compositor
  * cull the 3D canvas under its whole scroll extent, leaving a bare strip
  * below the card. */
-.pk .pk-result { background:color-mix(in srgb, var(--card) 98%, transparent); color:var(--pk-text); border:2px solid var(--pk-rim); border-radius:var(--radius-xl,24px); box-shadow:0 var(--lift-lg,6px) 0 var(--pk-rim), var(--shadow-card); padding:24px; min-width:260px; width:min(440px,calc(100% - 32px)); max-height:calc(100dvh - 270px); overflow:auto; overscroll-behavior:contain; text-align:left; }
+.pk .pk-result { background:color-mix(in srgb, var(--card) 98%, transparent); color:var(--pk-text); border:2px solid var(--pk-rim); border-radius:var(--radius-xl,24px); box-shadow:0 var(--lift-lg,6px) 0 var(--pk-rim), var(--shadow-card); padding:24px; min-width:260px; width:min(440px,calc(100% - 32px)); max-height:calc(100cqh - 270px); overflow:auto; overscroll-behavior:contain; text-align:left; }
 .pk .pk-result:has(.pk-arenas) { width:min(500px,calc(100% - 32px)); }
-.pk .pk-result:has(.pk-garage) { width:min(var(--kart-garage-w),calc(100% - var(--space-32))); box-sizing:border-box; max-height:calc(100dvh - 170px); top:48%; }
+.pk .pk-result:has(.pk-garage) { width:min(var(--kart-garage-w),calc(100% - var(--space-32))); box-sizing:border-box; max-height:calc(100cqh - 170px); top:48%; }
 /* Final scores (shared with elevated arenas: kart-results.mjs). */
 :is(.pk,.pke) .pk-final-title { margin:0; font:800 28px/1.2 var(--font-display); color:var(--ink); text-align:center; }
 :is(.pk,.pke) .pk-final-line { margin:6px 0 16px; min-height:1.45em; font:600 16px/1.45 var(--font-body); color:var(--ink-dim); text-align:center; }
@@ -251,8 +251,8 @@
 .pk .pk-garage-earnings svg { width:var(--space-16); height:var(--space-16); }
 .pk .pk-garage-earnings b { color:var(--ink); font-variant-numeric:tabular-nums; }
 @media (hover:hover) { .pk .pk-upgrade button:not(:disabled):hover { transform:translateY(calc(-1 * var(--lift-sm))); } }
-@media (max-width:1000px) { .pk .pk-garage-body { grid-template-columns:minmax(0,1fr); } .pk .pk-garage-display { flex-direction:row; align-items:center; } .pk .pk-garage-kart { width:var(--kart-garage-preview-w); } .pk .pk-garage-display figcaption { padding:var(--space-16) 0; } .pk .pk-upgrade h5 { min-height:1lh; } .pk .pk-upgrade-desc,.pk .pk-upgrade-reason { min-height:2lh; } }
-@media (max-width:600px) {
+@container game (max-width:1000px) { .pk .pk-garage-body { grid-template-columns:minmax(0,1fr); } .pk .pk-garage-display { flex-direction:row; align-items:center; } .pk .pk-garage-kart { width:var(--kart-garage-preview-w); } .pk .pk-garage-display figcaption { padding:var(--space-16) 0; } .pk .pk-upgrade h5 { min-height:1lh; } .pk .pk-upgrade-desc,.pk .pk-upgrade-reason { min-height:2lh; } }
+@container game (max-width:600px) {
   .pk .pk-garage { padding:var(--space-12); border-radius:var(--radius-lg); }
   .pk .pk-garage-header { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:var(--space-8); }
   .pk .pk-garage h4 { font:var(--text-title); }
@@ -281,7 +281,7 @@
 .pk .pk-arenas header { display:flex; flex-wrap:wrap; align-items:baseline; justify-content:space-between; gap:4px 12px; margin-bottom:12px; }
 .pk .pk-arenas h4 { margin:0; font:var(--text-title,800 20px/1.25 var(--font-display)); color:var(--ink); white-space:nowrap; }
 .pk .pk-arena-note { font-size:13px; color:var(--pk-dim); text-align:right; }
-@media (max-width:480px) { .pk .pk-arenas header { flex-direction:column; align-items:flex-start; } .pk .pk-arena-note { text-align:left; } .pk .pk-result { padding:18px 16px; } }
+@container game (max-width:480px) { .pk .pk-arenas header { flex-direction:column; align-items:flex-start; } .pk .pk-arena-note { text-align:left; } .pk .pk-result { padding:18px 16px; } }
 .pk .pk-arenagrid { display:grid; grid-template-columns:repeat(auto-fill,minmax(128px,1fr)); gap:8px; }
 .pk .pk-arena { position:relative; display:flex; flex-direction:column; align-items:stretch; gap:8px; min-height:44px; padding:8px; border-radius:var(--radius-lg,16px); border:2px solid var(--outline); background:var(--card); box-shadow:0 var(--lift-sm,2px) 0 var(--outline); color:var(--pk-text); cursor:pointer; text-align:left; touch-action:manipulation; transition:transform var(--dur-quick,.2s) var(--ease,ease-out); }
 .pk .pk-arena:disabled { cursor:default; }
@@ -393,17 +393,17 @@
 .pk.pk-touch-enabled .pk-fbnote { bottom:calc(250px + env(safe-area-inset-bottom,0px)); font-size:12px; pointer-events:none; }
 .pk:not(.pk-touch-enabled) .pk-readout { bottom:calc(18px + env(safe-area-inset-bottom,0px)); }
 /* The compact console fits short landscape beside the centered clock. */
-@media (max-width:800px) {
+@container game (max-width:800px) {
   .pk #pk-timer { font-size:23px; padding:5px 12px; }
   .pk .pk-count { font-size:80px; }
-  .pk .pk-result { padding:20px; top:80px; transform:translateX(-50%); max-height:calc(100dvh - 220px); }
+  .pk .pk-result { padding:20px; top:80px; transform:translateX(-50%); max-height:calc(100cqh - 220px); }
   .pk .pk-result h3 { font-size:23px; }
-  .pk .pk-result:has(.pk-garage) { top:80px; max-height:calc(100dvh - 220px); }
-  .pk .pk-result:has(.pk-arenas) { top:80px; max-height:calc(100dvh - 220px); }
+  .pk .pk-result:has(.pk-garage) { top:80px; max-height:calc(100cqh - 220px); }
+  .pk .pk-result:has(.pk-arenas) { top:80px; max-height:calc(100cqh - 220px); }
   .pk .pk-arenagrid { grid-template-columns:repeat(auto-fill,minmax(112px,1fr)); }
 }
 /* Small portrait phones keep the console below the clock to protect both. */
-@media (max-width:480px) and (orientation:portrait) {
+@container game (max-width:480px) and (orientation:portrait) {
   .pk .pk-status { margin-top:52px; }
   .pk .pk-lead { font-size:13px; }
   .pk.pk-touch-enabled .pk-readout {
@@ -413,7 +413,7 @@
   .pk .pk-speed { min-width:0; }
   .pk .pk-speed b { font-size:20px; }
   .pk #pk-map,.pk #pk-handling { display:none; }
-  .pk .pk-helpbody { left:0; right:auto; bottom:calc(100% + 8px); width:min(280px,calc(100vw - 24px)); max-height:min(260px,calc(100dvh - 240px)); overflow:auto; }
+  .pk .pk-helpbody { left:0; right:auto; bottom:calc(100% + 8px); width:min(280px,calc(100cqw - 24px)); max-height:min(260px,calc(100cqh - 240px)); overflow:auto; }
   /* Phone Safari's short viewport frames your kart low: a slim card keeps
    * it in view. Nitro charge rides on the bolt button's ring and drifting
    * tints this card's border, so the meters and subtitle stand down. */
@@ -427,17 +427,17 @@
   .pk.pk-touch-enabled .kart-item-copy strong { font-size:13px; }
 }
 /* Typical portrait phones fit the folded console on the same top edge. */
-@media (min-width:380px) and (max-width:480px) and (orientation:portrait) {
+@container game (min-width:380px) and (max-width:480px) and (orientation:portrait) {
   .pk .pk-status { margin-top:0; }
 }
 /* Very narrow phones: 96px stick still clears the 182px cluster at 320px. */
-@media (max-width:360px) and (orientation:portrait) {
+@container game (max-width:360px) and (orientation:portrait) {
   .pk .pk-stick { width:96px; height:96px; }
   .pk .pk-stick-thumb { width:40px; height:40px; transform:translate(-50%,-50%) translate(calc(var(--pk-sx,0)*24px),calc(var(--pk-sy,0)*24px)); }
 }
 /* Short landscape: compact stick/cluster/instruments, still >=44px. The
  * result card reserves the 66px Rematch bar, its bottom inset and a gap. */
-@media (max-height:500px) and (orientation:landscape) {
+@container game (max-height:500px) and (orientation:landscape) {
   .pk .pk-racestrip { top:max(8px,env(safe-area-inset-top,0px)); left:max(12px,env(safe-area-inset-left,0px)); right:max(8px,env(safe-area-inset-right,0px)); }
   .pk .pk-clock { min-height:36px; }
   .pk #pk-timer { font-size:23px; padding:4px 12px; }
@@ -455,27 +455,27 @@
   .pk #pk-map { display:none; }
   .pk.pk-touch-enabled .pk-radar { width:60px; height:60px; bottom:calc(190px + env(safe-area-inset-bottom,0px)); right:8px; }
   .pk.pk-touch-enabled .pk-cue { top:112px; }
-  .pk .pk-helpbody { left:108px; max-height:calc(100dvh - 212px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px)); overflow:auto; }
-  .pk .pk-result { --pk-result-top:max(64px,calc(52px + env(safe-area-inset-top,0px))); top:var(--pk-result-top); transform:translateX(-50%); max-height:calc(100dvh - var(--pk-result-top) - 104px - env(safe-area-inset-bottom,0px)); padding:12px 20px; }
+  .pk .pk-helpbody { left:108px; max-height:calc(100cqh - 212px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px)); overflow:auto; }
+  .pk .pk-result { --pk-result-top:max(64px,calc(52px + env(safe-area-inset-top,0px))); top:var(--pk-result-top); transform:translateX(-50%); max-height:calc(100cqh - var(--pk-result-top) - 104px - env(safe-area-inset-bottom,0px)); padding:12px 20px; }
   .pk .pk-result .mv { font-size:14px; padding:3px 0; }
   .pk .pk-result h3 { font-size:22px; margin:0 0 6px; }
-  .pk .pk-result:has(.pk-garage) { --pk-result-top:max(60px,calc(52px + env(safe-area-inset-top,0px))); top:var(--pk-result-top); max-height:calc(100dvh - var(--pk-result-top) - 104px - env(safe-area-inset-bottom,0px)); }
-  .pk .pk-result:has(.pk-arenas) { --pk-result-top:max(60px,calc(52px + env(safe-area-inset-top,0px))); top:var(--pk-result-top); max-height:calc(100dvh - var(--pk-result-top) - 104px - env(safe-area-inset-bottom,0px)); }
+  .pk .pk-result:has(.pk-garage) { --pk-result-top:max(60px,calc(52px + env(safe-area-inset-top,0px))); top:var(--pk-result-top); max-height:calc(100cqh - var(--pk-result-top) - 104px - env(safe-area-inset-bottom,0px)); }
+  .pk .pk-result:has(.pk-arenas) { --pk-result-top:max(60px,calc(52px + env(safe-area-inset-top,0px))); top:var(--pk-result-top); max-height:calc(100cqh - var(--pk-result-top) - 104px - env(safe-area-inset-bottom,0px)); }
   .pk .pk-arenagrid { grid-template-columns:repeat(auto-fill,minmax(112px,1fr)); }
   .pk .pk-count { font-size:64px; }
 }
 /* Very short phone landscape (568x320): smallest declared sizes, >=44px. */
-@media (max-height:360px) and (orientation:landscape) {
+@container game (max-height:360px) and (orientation:landscape) {
   .pk .pk-stick { width:94px; height:94px; }
   .pk .pk-stick-thumb { width:40px; height:40px; transform:translate(-50%,-50%) translate(calc(var(--pk-sx,0)*23px),calc(var(--pk-sy,0)*23px)); }
   .pk #pk-tg,.pk #pk-td { width:44px; height:44px; }
   .pk.pk-touch-enabled .pk-readout { bottom:calc(140px + env(safe-area-inset-bottom,0px)); }
   .pk.pk-touch-enabled .pk-radar { width:54px; height:54px; }
 }
-#gbody[data-layout="immersive"] .pk { position:relative; height: 100dvh; min-height:min(520px,100dvh); overflow:hidden; isolation:isolate; }
+#gbody[data-layout="immersive"] .pk { position:relative; height: 100cqh; min-height:min(520px,100cqh); overflow:hidden; isolation:isolate; }
 #gbody[data-layout="immersive"] .pk .pk-stage { position:absolute; inset:0; height:auto; min-height:0; border:0; border-radius:0; box-shadow:none; }
-@media (max-height:500px) and (orientation:landscape) {
-  #gbody[data-layout="immersive"] .pk { min-height:min(340px,100dvh); }
+@container game (max-height:500px) and (orientation:landscape) {
+  #gbody[data-layout="immersive"] .pk { min-height:min(340px,100cqh); }
 }
 /* Room launcher and the rematch row sit on the 3D scene: give them the
  * same card surface as the HUD and leave their buttons to the shell. */
@@ -486,7 +486,7 @@ body.game-immersive:has(.pk) #gbody[data-layout="immersive"] > #rematch button:a
 body.game-immersive:has(.pk) #gbody[data-layout="immersive"] > #rematch button.ghost { min-height:44px; background:var(--card); color:var(--ink); border-color:var(--outline); box-shadow:0 var(--lift-sm,2px) 0 var(--outline); }
 body.game-immersive:has(.pk) #gbody[data-layout="immersive"] > #rematch button.ghost:active { transform:translateY(var(--lift-sm,2px)); box-shadow:none; }
 body.game-immersive:has(.pk) #gbody[data-layout="immersive"] > #rematch #hostWait { margin:0; font-size:13px; line-height:1.4; color:var(--ink-dim); }
-@media (max-height:500px) {
+@container game (max-height:500px) {
   body.game-immersive:has(.pk) #gbody[data-layout="immersive"] > #rematch { bottom:calc(12px + env(safe-area-inset-bottom,0px)); padding:8px; gap:6px; }
   body.game-immersive:has(.pk) #gbody[data-layout="immersive"] > #rematch #hostWait { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 }
@@ -551,7 +551,8 @@ body.game-immersive:has(.pk) #gbody[data-layout="immersive"] > #rematch #hostWai
 /* The drift meter only appears while a drift is charging. */
 .pk .pk-readout:not(.pk-drifting):not(.pk-charged) .pk-driftmeter { display:none; }
 /* Desk and TV screens sit further away: the bare HUD grows with the arena. */
-@media (min-width:1024px) and (min-height:640px) and (pointer:fine) {
+@media (pointer:fine) {
+@container game (min-width:1024px) and (min-height:640px) {
   .pk #pk-timer { font-size:40px; }
   .pk .pk-lead { font-size:20px; } .pk .pk-leadrank { font-size:16px; }
   .pk .pk-tech { min-width:150px; }
@@ -560,6 +561,7 @@ body.game-immersive:has(.pk) #gbody[data-layout="immersive"] > #rematch #hostWai
   .pk .kart-item-art { width:84px; height:84px; }
   .pk .kart-item-art .kart-weapon-thumbnail, .pk .kart-item-art svg { width:64px; height:64px; }
   .pk .kart-item-count { left:64px; }
+}
 }
 
 /* Automatic gearbox badge (kart-gearbox.mjs): a small glass disc that pops
@@ -578,7 +580,7 @@ body.game-immersive:has(.pk) #gbody[data-layout="immersive"] > #rematch #hostWai
 
 /* The north label and player arrows remain readable at phone scale. */
 .pk .pk-radar { width:calc(2 * var(--space-64)); height:calc(2 * var(--space-64)); }
-@media(orientation:portrait){ .pk.pk-touch-enabled .pk-radar { width:calc(var(--space-64) + var(--space-32)); height:calc(var(--space-64) + var(--space-32)); right:var(--space-8); } }
+@container game (orientation:portrait) { .pk.pk-touch-enabled .pk-radar { width:calc(var(--space-64) + var(--space-32)); height:calc(var(--space-64) + var(--space-32)); right:var(--space-8); } }
 .pk #pk-tn.pk-empty { border-style:solid; }
 
 /* Weapon/HP contract: fixed slots, visible names and ammo in both themes. */
@@ -603,23 +605,23 @@ body.game-immersive:has(.pk) #gbody[data-layout="immersive"] > #rematch #hostWai
 .pk .pk-readout,.pk.pk-touch-enabled .pk-readout{width:auto;max-width:none;left:50%;bottom:var(--space-16);transform:translateX(-50%);padding:0}
 .pk.pk-touch-enabled .pk-readout .pk-instruments{display:none}
 .pke .pke-bottom,.pke.pke-touch-mode .pke-bottom{left:50%;bottom:var(--space-16);transform:translateX(-50%)}
-@media(max-width:650px){
+@container game (max-width:650px) {
  :is(.pk,.pke) .kart-item.kart-item{width:calc(var(--space-64)*4);height:calc(var(--space-48)*2)}
  .pk.pk-touch-enabled .pk-readout,.pke.pke-touch-mode .pke-bottom{bottom:calc(var(--space-48)*3 + var(--space-16) + env(safe-area-inset-bottom,0px))}
  .pke.pke-touch-mode .pke-speed{display:none}
  :is(.pk,.pke) .kart-item.kart-item .kart-item-key{display:none}
  :is(.pk,.pke) .kart-hp{width:calc(var(--space-64)*2 + var(--space-32))}
 }
-@media(max-height:450px){.pk.pk-touch-enabled .pk-readout,.pke.pke-touch-mode .pke-bottom{bottom:var(--space-16)}:is(.pk,.pke) .kart-item.kart-item{width:calc(var(--space-64)*3);height:calc(var(--space-48) + var(--space-32));grid-template-columns:var(--space-48) 1fr auto}:is(.pk,.pke) .kart-item.kart-item .kart-item-art,:is(.pk,.pke) .kart-item.kart-item .kart-item-art :is(img,svg){width:var(--space-48);height:var(--space-48)}}
+@container game (max-height:450px) {.pk.pk-touch-enabled .pk-readout,.pke.pke-touch-mode .pke-bottom{bottom:var(--space-16)}:is(.pk,.pke) .kart-item.kart-item{width:calc(var(--space-64)*3);height:calc(var(--space-48) + var(--space-32));grid-template-columns:var(--space-48) 1fr auto}:is(.pk,.pke) .kart-item.kart-item .kart-item-art,:is(.pk,.pke) .kart-item.kart-item .kart-item-art :is(img,svg){width:var(--space-48);height:var(--space-48)}}
 
-@media(max-width:650px){.pk.pk-touch-enabled .pk-radar{width:var(--space-64);height:var(--space-64);bottom:calc(var(--space-48)*6);right:var(--space-8)}.pk:not(.pk-touch-enabled) .pk-radar{bottom:calc(var(--space-48)*3);width:var(--space-64);height:var(--space-64)}}
+@container game (max-width:650px) {.pk.pk-touch-enabled .pk-radar{width:var(--space-64);height:var(--space-64);bottom:calc(var(--space-48)*6);right:var(--space-8)}.pk:not(.pk-touch-enabled) .pk-radar{bottom:calc(var(--space-48)*3);width:var(--space-64);height:var(--space-64)}}
 
 :is(.pk,.pke) .kart-fire-label{position:absolute;left:0;right:0;bottom:var(--space-4);font:var(--text-caption);text-align:center;pointer-events:none}
 .pk #pk-tb .pk-fire-art,.pke [data-use-icon]{transform:translateY(calc(var(--space-4) * -1))}
 .pk #pk-tb .pk-fire-art :is(svg,img),.pke [data-use-icon] :is(svg,img){width:var(--space-32);height:var(--space-32)}
 
 /* Phone weapon dock: outside the centre driving line, beside Fire. */
-@media(max-width:650px){
+@container game (max-width:650px) {
  :is(.pk.pk-touch-enabled,.pke.pke-touch-mode) :is(.pk-readout,.pke-bottom){left:auto;right:calc(var(--space-48)*2 + env(safe-area-inset-right,0px));bottom:calc(var(--space-16) + env(safe-area-inset-bottom,0px));transform:none;max-width:none;width:calc(var(--space-64) + var(--space-8));padding:0;gap:0;z-index:4;pointer-events:none}
  :is(.pk.pk-touch-enabled,.pke.pke-touch-mode) .kart-item.kart-item{display:block;position:relative;width:calc(var(--space-64) + var(--space-8));height:calc(var(--space-64) + var(--space-16));min-height:0;padding:0;border:0;background:none;box-shadow:none}
  :is(.pk.pk-touch-enabled,.pke.pke-touch-mode) .kart-item.kart-item .kart-item-art{width:var(--space-64);height:var(--space-64);margin:0 auto;border:var(--space-4) solid var(--outline);border-radius:50%;background:var(--card);box-shadow:var(--shadow-sticker)}
@@ -633,7 +635,7 @@ body.game-immersive:has(.pk) #gbody[data-layout="immersive"] > #rematch #hostWai
  :is(.pk.pk-touch-enabled,.pke.pke-touch-mode) :is(.pk-instruments,.pke-instruments){display:none}
 }
 
-@media(max-width:650px){
+@container game (max-width:650px) {
  .pk.pk-touch-enabled .pk-touch{display:block;bottom:calc(var(--space-16) + env(safe-area-inset-bottom,0px));height:calc(var(--space-48)*4 + var(--space-16));padding:0}
  .pk.pk-touch-enabled .pk-stick{position:absolute;left:var(--space-16);bottom:0;width:calc(var(--space-48)*2);height:calc(var(--space-48)*2)}
  .pk.pk-touch-enabled .pk-tright{position:absolute;right:calc(var(--space-16) + env(safe-area-inset-right,0px));bottom:0;display:block;width:calc(var(--space-64) + var(--space-4));height:100%;pointer-events:none}
@@ -644,6 +646,6 @@ body.game-immersive:has(.pk) #gbody[data-layout="immersive"] > #rematch #hostWai
  .pk.pk-touch-enabled #pk-th{right:var(--space-8);bottom:calc(var(--space-48)*3)}
 }
 
-@media (max-width: 480px) and (orientation: portrait) {
+@container game (max-width: 480px) and (orientation: portrait) {
   .pk .pk-clock { top: calc(var(--control-h-sm) + var(--space-12)); }
 }

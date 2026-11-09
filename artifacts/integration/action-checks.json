@@ -1,0 +1,9 @@
+{
+  "pass": true,
+  "checks": [
+    "Resign confirmation, authority result, sheet closure and usable Rematch",
+    "Draw notification, other seat reply, settled result and modal closure",
+    "Chess flip follows board orientation and keeps player identity"
+  ],
+  "video": "video/page@d7f7b18047a93d7ff275ca2937825f6f.webm"
+}

@@ -276,7 +276,7 @@ async function part1() {
     assert(viewSrc.includes('100dvh') === false, 'viewport sizing lives in CSS, not JS');
     const css = fs.readFileSync(path.join(ROOT, 'public/css/kart-arena.css'), 'utf8');
     assert(css.includes('#gbody[data-layout="immersive"] .pk'), 'immersive stage scoping present');
-    assert(css.includes('height: 100dvh'), 'full-viewport stage rule present');
+    assert(css.includes('height: 100cqh'), 'stage uses its container height');
     assert(css.includes('body.game-immersive:has(.pk)'), 'room/rematch kart scoping present');
     assert(css.includes('.pk-board[open]'), 'board open-state rule present');
     for (const key of ['Daybreak', 'Sunset', 'Starlight']) {

@@ -29,7 +29,7 @@
 .ck[data-family] .wg-well {
   background: var(--well); border: var(--outline-w) solid var(--line-strong); border-radius: var(--radius-lg);
 }
-@media (max-width: 560px) {
+@container game (max-width: 560px) {
   .ck[data-family] :is(.gk-card, .wg-panel, .ck-card) { padding: var(--space-16); }
 }
 
@@ -49,7 +49,7 @@
   font: var(--text-button-sm); font-variant-numeric: tabular-nums;
 }
 .ck[data-family] .gk-hud-timer:empty { visibility: hidden; }
-@media (max-width: 560px) {
+@container game (max-width: 560px) {
   .ck[data-family] .gk-hud { gap: var(--space-4) var(--space-8); }
   .ck[data-family] .gk-hud-round { min-height: 28px; padding: 2px var(--space-8); font: var(--text-caption); font-weight: 800; }
   .ck[data-family] .gk-hud-timer { min-width: 3.6em; min-height: 28px; padding: 2px var(--space-4); }
@@ -153,7 +153,7 @@
 .ck[data-family] .ck-tile.is-blank { color: transparent; background: var(--card); box-shadow: inset 0 -4px 0 var(--fam-soft), var(--shadow-sticker-sm); }
 .ck[data-family] .ck-tile.is-gap { width: var(--space-16); border: 0; background: none; box-shadow: none; }
 .ck[data-family] .ck-tile.is-mark { background: var(--well); color: var(--ink-dim); }
-@media (max-width: 560px) {
+@container game (max-width: 560px) {
   .ck[data-family] .ck-tiles { gap: var(--space-4); }
   .ck[data-family] .ck-tile { width: 34px; height: 42px; font-size: 21px; border-radius: var(--radius-sm); }
   .ck[data-family] .ck-tile.is-gap { width: var(--space-8); }
@@ -185,7 +185,7 @@
 .ck[data-family] .ck-player.is-on .ck-pstate { color: var(--fam-deep); font-weight: 800; }
 .ck[data-family] .ck-player.is-out { background: var(--well); box-shadow: none; opacity: 1; }
 .ck[data-family] .ck-player.is-out .ck-pname { color: var(--ink-dim); }
-@media (max-width: 560px) {
+@container game (max-width: 560px) {
   .ck[data-family] .ck-roster { grid-template-columns: repeat(auto-fit, minmax(132px, 1fr)); }
 }
 
@@ -198,7 +198,7 @@
 .ck[data-family] .ck-ring.is-urgent .ck-ring-bar { stroke: var(--warning); }
 .ck[data-family] .ck-ring.is-urgent .ck-ring-num { color: var(--ink); }
 .ck[data-family] .ck-ring.is-off { visibility: hidden; }
-@media (max-width: 560px) {
+@container game (max-width: 560px) {
   .ck[data-family] .ck-ring { width: 64px; height: 64px; }
   .ck[data-family] .ck-ring-num { font-size: 22px; }
 }

@@ -3,7 +3,7 @@
 .pick-world { max-width: 880px; }
 .pick-world [hidden] { display: none !important; }
 .pick-body { flex: 1 1 auto; width: 100%; min-width: 0; display: flex; flex-direction: column; gap: var(--space-12); }
-#gbody .pick-world .pick-text { display: block; font: 800 clamp(26px, 3.2vw, 36px)/1.15 var(--font-display); color: var(--ink); overflow-wrap: anywhere; text-wrap: balance; }
+#gbody .pick-world .pick-text { display: block; font: 800 clamp(26px, 3.2cqw, 36px)/1.15 var(--font-display); color: var(--ink); overflow-wrap: anywhere; text-wrap: balance; }
 .pick-world .pl-pick { align-self: flex-start; }
 .pick-result { display: grid; gap: var(--space-8); }
 .pick-choices:not(.is-reveal) .pick-result { display: none; }
@@ -13,7 +13,7 @@
 #gbody .pick-world .pick-count { color: var(--ink); font: var(--text-caption); font-weight: 800; font-variant-numeric: tabular-nums; }
 .pick-status { min-height: var(--control-h-sm); }
 .pick-actions:not(:has(> :not([hidden]))) { display: none; }
-@media (max-width: 560px) {
+@container game (max-width: 560px) {
   #gbody .pl-fill .pick-world .pl-ab.is-duo, #gbody .pick-world.pl-fill .pl-ab.is-duo { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-8); }
   #gbody .pick-world.pl-fill .pl-ab.is-duo > .gk-choice { flex-direction: column; align-items: flex-start; padding: var(--space-12); }
   #gbody .pick-world .pick-text { font-size: 22px; }
@@ -45,7 +45,7 @@
   transform: rotate(-8deg); pointer-events: none;
 }
 #gbody .pick-world .pick-choices.is-reveal::after { display: none; }
-@media (max-width: 560px) {
+@container game (max-width: 560px) {
   #gbody .pick-world .pick-choices > .pick-choice,
   #gbody .pick-world.pl-fill .pl-ab.is-duo > .gk-choice { align-items: center; min-height: 148px; padding: var(--space-16) var(--space-12); }
   #gbody .pick-world .pick-text { font: 800 22px/1.2 var(--font-display); }
@@ -76,7 +76,7 @@ body.game-playing[data-game="pick-one"] {
   border-color: color-mix(in srgb, var(--sun) 70%, #000);
   box-shadow: 0 var(--lift) 0 color-mix(in srgb, var(--sun) 70%, #000);
 }
-@media (max-width: 560px) {
+@container game (max-width: 560px) {
   #gbody .pick-world .pick-choices > .pick-choice::before { inset: var(--space-4); border-radius: calc(var(--radius-lg) - var(--space-4)); }
 }
 

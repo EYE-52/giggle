@@ -17,7 +17,7 @@
 
 /* Short frames (a small Giggle panel, zoomed text): tighter rhythm so the
  * question and the main action stay in view. */
-@media (max-height: 560px) {
+@container game (max-height: 560px) {
   .rt-scene { gap: 10px; padding-bottom: 12px; }
   .rt-scene .gk-prompt { font-size: 22px; }
   .rt-scene .gk-sub { font-size: 16px; }
@@ -47,7 +47,7 @@
 #gbody .rt-scene .rt-chip.is-crown { background: var(--sun-soft); }
 #gbody .rt-scene .rt-chip b { font-size: 17px; line-height: 1; }
 #gbody .rt-scene.pl-fill .rt-foot #rtNext { min-width: 200px; }
-@media (max-width: 560px) {
+@container game (max-width: 560px) {
   #gbody .rt-scene .rt-target { font-size: 17px; }
   #gbody .rt-scene.pl-fill .rt-foot, #gbody .rt-scene.pl-fill .rt-foot #rtNext { width: 100%; }
 }
@@ -79,7 +79,7 @@ body #gbody .rt-scene.pl-fill > .gk-prompt.gk-prompt {
 #gbody .rt-scene .rt-target { border-color: color-mix(in srgb,var(--fam) 32%,var(--card)); box-shadow: 0 var(--lift-sm) 0 color-mix(in srgb,var(--fam) 32%,var(--card)); }
 #gbody .rt-scene :is(.rt-chip,.gk-input,.rt-target .pl-face) { border-color:color-mix(in srgb,var(--fam) 24%,var(--card)); }
 #gbody .rt-scene .rt-list .gk-choice:not(.is-correct):not(.is-wrong):hover { border-color: var(--outline); }
-@media (max-width: 560px) {
+@container game (max-width: 560px) {
   body #gbody .rt-scene.pl-fill > .gk-prompt.gk-prompt { border-radius: 40% 40% var(--radius-lg) var(--radius-lg) / 48px 48px var(--radius-lg) var(--radius-lg); padding-top: var(--space-32); }
 }
 

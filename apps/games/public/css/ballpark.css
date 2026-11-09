@@ -40,7 +40,7 @@
   flex: 1;
   width: 0;
   min-width: 0;
-  font-size: clamp(40px, 6vw, 64px);
+  font-size: clamp(40px, 6cqw, 64px);
   text-align: center;
   padding: var(--space-8);
   min-height: 96px;
@@ -87,7 +87,7 @@
   font: var(--text-caption);
 }
 .ballpark-truth strong {
-  font: 800 clamp(38px, 7vw, 64px) / 1.1 var(--font-display);
+  font: 800 clamp(38px, 7cqw, 64px) / 1.1 var(--font-display);
   overflow-wrap: anywhere;
   font-variant-numeric: tabular-nums;
 }
@@ -205,7 +205,7 @@
 .ballpark-fact p {
   font: var(--text-body);
 }
-@media (max-width: 560px) {
+@container game (max-width: 560px) {
   .ballpark-ticket {
     padding: var(--space-16);
   }
@@ -240,13 +240,13 @@
   min-height: calc(48px / var(--round-zoom, 1));
   font: 700 13px/1.35 var(--font-body);
 }
-@media (max-width: 560px) {
+@container game (max-width: 560px) {
   #gbody .ballpark-world .party-prompt.party-prompt {
     font-size: 24px;
     padding: var(--space-12);
   }
 }
-@media (min-width: 561px) {
+@container game (min-width: 561px) {
   #gbody .ballpark-world .party-prompt.party-prompt {
     font-size: 30px;
     padding: var(--space-16);
@@ -261,7 +261,7 @@
     font-size: 56px;
   }
 }
-@media (min-width: 561px) {
+@container game (min-width: 561px) {
   #gbody .ballpark-world.pl-fill[data-phase="reveal"] {
     display: grid;
     grid-template-columns: 260px minmax(0, 1fr);

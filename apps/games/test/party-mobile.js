@@ -694,8 +694,8 @@ if (require.main === module) (async () => {
       /::(?:before|after)/.test(selector)&&/z-index\s*:\s*-\d/.test(body)&&/pointer-events\s*:\s*none/.test(body)?'':rule);
     assert(!/position\s*:\s*(fixed|sticky)/.test(foregroundCss), 'no fixed chrome covers prompts or fields; scenery stays behind them');
     assert(css.includes('overflow-wrap: anywhere'), 'long content wraps instead of overflowing');
-    assert(css.includes('@media (max-height: 500px)'), 'short landscape keeps prompts readable');
-    assert(css.includes('@media (max-width: 640px)'), 'narrow phones reflow choice grids');
+    assert(css.includes('@container game (max-height: 500px)'), 'short landscape keeps prompts readable');
+    assert(css.includes('@container game (max-width: 640px)'), 'narrow phones reflow choice grids');
     const btnRule = css.slice(css.indexOf('.party-scene .btn {'), css.indexOf('.party-scene .btn {') + 200);
     const btnMin = /min-height:\s*(\d+)px/.exec(btnRule);
     assert(btnMin && Number(btnMin[1]) >= 44 && btnRule.includes('min-width: 44px'), 'owned buttons keep 44px targets');

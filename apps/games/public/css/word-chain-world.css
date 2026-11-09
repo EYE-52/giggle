@@ -2,7 +2,7 @@
  * players. Flat, tokens only (shared parts: compact-answer-games.css). */
 .wc .wc-target { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .wc .wc-target .gk-meta { margin: 0; }
-.wc .wc-word { font-size: clamp(30px, 5vw, 44px); }
+.wc .wc-word { font-size: clamp(30px, 5cqw, 44px); }
 /* The waiting line takes the input row's place and height. */
 .wc .wc-waiting {
   justify-content: flex-start; min-height: 48px; padding: 0 14px; margin: 0;
@@ -19,7 +19,7 @@
  * 24px reserve even for one line. Keep the current dictionary message fully
  * readable without pushing Challenge/Players down when it arrives. */
 .wc #wcFeedback { min-height: 2.9em; min-height: 2lh; }
-@media (max-width: 480px) {
+@container game (max-width: 480px) {
   .wc #wcFeedback { min-height: 5.8em; min-height: 4lh; }
 }
 .wc .wc-ribbon { flex-wrap: nowrap; overflow-x: auto; overscroll-behavior-x: contain; padding: 2px; scrollbar-width: thin; }
@@ -39,7 +39,7 @@
 /* ---- toy box layer (create-kit.css): the word on a tinted card, the
  * chain as linked stickers, players with hearts ---- */
 .wc.ck .wc-target { gap: var(--space-8); }
-.wc.ck .wc-word { font: var(--text-heading); font-size: clamp(34px, 5vw, 48px); color: var(--ink); }
+.wc.ck .wc-word { font: var(--text-heading); font-size: clamp(34px, 5cqw, 48px); color: var(--ink); }
 .wc.ck .wc-waiting { border-width: var(--outline-w); border-radius: var(--radius-lg); }
 .wc.ck .wc-chain, .wc.ck .wc-players { display: flex; flex-direction: column; gap: var(--space-12); }
 .wc.ck .wc-ribbon { align-items: center; gap: var(--space-4); padding: var(--space-4) 2px var(--space-8); }
@@ -58,7 +58,7 @@
 /* The card and the feedback line both reserve room for a two-line notice,
  * and content sits from the top, so a notice never moves the word or field. */
 .wc.ck .wc-target { justify-content: flex-start; min-height: calc(2 * var(--space-24) + 28px + 1.2em * 1 + 3em + 2 * var(--space-8) + 6px); }
-.wc.ck .wc-target .wc-word { font-size: clamp(34px, 5vw, 48px); line-height: 1.2; }
+.wc.ck .wc-target .wc-word { font-size: clamp(34px, 5cqw, 48px); line-height: 1.2; }
 
 /* ---- polish: the word card hugs its content (two caption lines are
  * enough for any notice), the chain wraps without slicing its stickers,
@@ -83,7 +83,7 @@
 .wc.ck .wc-waiting.is-out::before { display: none; }
 /* The challenge count sits right under the waiting line, as one group. */
 .wc.ck .wc-challenge { justify-content: flex-start; margin-top: calc(var(--space-8) * -1); }
-@media (max-width: 480px) {
+@container game (max-width: 480px) {
   .wc.ck .wc-target #wcFeedback { min-height: 2lh; }
 }
 
@@ -128,7 +128,7 @@ body.game-playing[data-game="word-chain"] {
 /* QC: the backdrop links read as a pattern, not as glyphs clipped by the
  * cards: the page is calmer on phones (smaller, fainter links on a grid
  * that starts at the left edge). */
-@media (max-width: 480px) {
+@container game (max-width: 480px) {
   body.game-playing[data-game="word-chain"] {
     --wc-link: color-mix(in srgb, var(--fam) 4.5%, transparent);
     background-size: 84px 64px, 84px 64px;

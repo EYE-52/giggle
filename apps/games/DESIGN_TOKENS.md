@@ -195,3 +195,6 @@ Loading the same panel before the server answers:
 `board-app.css` gives the board the remaining viewport after the title, compact player bars, fixed status and single toolbar. More holds resign/draw; Rules and Flip use labelled icons. Fleet selection uses the same panel while Place/Fire remain visible. SVG chess pieces use their own art palette; UI controls keep the shared tokens.
 
 Meet chrome uses `--app-embed-bg`, `--app-embed-card`, `--app-embed-well`, `--app-embed-ink` and `--app-embed-dim`, defined on `body.is-embed`. These aliases preserve Meet's existing dark palette when a game's standalone skin changes the page colour.
+### Container fit
+
+`--game-paper-min` (180px) is the minimum visible side of a drawing sheet. `--game-board-min` (200px) keeps compact boards usable. These are layout floors, not touch target sizes. `--game-viewport-height` is measured on each `#gbody` from the visible host bounds; it updates once per animation frame. The root is the named `game` size container. Game layout breakpoints use `@container game`; input, hover and reduced motion preferences stay media queries.

@@ -18,7 +18,7 @@
 .nh .nh-guess { font-weight: 800; font-variant-numeric: tabular-nums; text-align: right; }
 .nh .nh-flavor { color: var(--ink-dim); min-width: 0; overflow-wrap: anywhere; }
 .nh .gk-prompt b { color: var(--accent-deep); }
-@media (max-width: 560px) {
+@container game (max-width: 560px) {
   .nh .nh-hint { grid-template-columns: minmax(0, 1fr) 3ch auto; }
   .nh .nh-flavor { grid-column: 1 / -1; }
 }
@@ -41,7 +41,7 @@
 #gbody .nh .gk-input[type="number"] { -moz-appearance: textfield; appearance: textfield; font: 800 22px/1 var(--font-display); }
 #gbody .nh .gk-input[type="number"]::-webkit-inner-spin-button, #gbody .nh .gk-input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
 #gbody .nh.pl-fill .wg-feed { max-height: 180px; }
-@media (max-width: 560px) {
+@container game (max-width: 560px) {
   #gbody .nh.pl-fill .nh-range { padding: var(--space-16); border-radius: var(--radius-lg); }
   #gbody .nh.pl-fill .nh-bounds > span:not(.nh-between) { font-size: 22px; }
 }
@@ -116,7 +116,7 @@
 #gbody .nh.pl-fill .wg-row.is-you { background: var(--fam-soft); }
 #gbody .nh.pl-fill .pl-seat { border-color: var(--outline); background: var(--card); }
 #gbody .nh.pl-fill .pl-seat.is-you { background: var(--fam-soft); }
-@media (max-width: 480px) {
+@container game (max-width: 480px) {
   #gbody .nh.pl-fill .nh-track { height: 32px; }
   #gbody .nh.pl-fill .nh-pin { width: 20px; height: 20px; margin: -10px 0 0 -10px; }
 }
@@ -171,7 +171,7 @@ body[data-game="number-hunt"].game-playing {
 [data-theme="night"] #gbody .nh.pl-fill .nh-range { border-color: color-mix(in srgb, var(--fam) 30%, var(--card)); box-shadow: 0 var(--lift) 0 color-mix(in srgb, var(--fam) 28%, #0b0a14); }
 [data-theme="night"] #gbody .nh.pl-fill .gk-input-row .gk-input { background: var(--well); border-color: color-mix(in srgb, var(--fam) 25%, var(--well)); color: var(--ink); }
 [data-theme="night"] #gbody .nh.pl-fill .gk-input-row .gk-input:disabled { background: var(--card); }
-@media (max-width: 480px) {
+@container game (max-width: 480px) {
   #gbody .nh.pl-fill .nh-track { height: 44px; }
   #gbody .wg.pl-fill.nh > .gk-prompt { font-size: 19px; padding: var(--space-4) var(--space-8); }
 }
@@ -182,7 +182,7 @@ body[data-game="number-hunt"].game-playing {
 .nh .nh-guess-picker .picker-btn{width:var(--control-h);min-height:var(--control-h)}
 #gbody .nh.pl-fill .nh-guess-picker .gk-input:focus-visible{outline:var(--focus-ring);outline-offset:var(--focus-offset)}
 .nh .nh-guess-picker .gk-input::placeholder{font:var(--text-caption)}
-@media(min-width:860px){
+@container game (min-width:860px) {
   .nh #nForm{justify-content:center}
   .nh .nh-guess-picker{flex:0 1 calc(var(--control-h) * 6)}
 }
@@ -203,7 +203,7 @@ body[data-game="number-hunt"].game-playing {
 /* The public log has a useful empty state and keeps the same compact height. */
 #gbody .nh.pl-fill #nFeed { height:calc(var(--space-64) + var(--space-16)); max-height:none; }
 #gbody .nh.pl-fill #nFeed > * { flex:none; }
-@media(max-width:360px){
+@container game (max-width:360px) {
   #gbody .nh.pl-fill .nh-reading {
     grid-template-columns:minmax(0,1fr) var(--space-40);
     grid-template-areas:"label number" "direction direction" "heat heat";
@@ -211,12 +211,12 @@ body[data-game="number-hunt"].game-playing {
   }
 }
 /* Keep the roster in view on wide screens while live clues keep their slots. */
-@media(min-width:1000px){
+@container game (min-width:1000px) {
   #gbody .nh.pl-fill { position:relative; padding-right:calc(4 * var(--space-64) + var(--space-16)); }
   #gbody .nh.pl-fill > .gk-hud { width:calc(100% + 4 * var(--space-64) + var(--space-16)); }
   #gbody .nh.pl-fill > .pl-live {
     position:absolute; right:0; top:calc(var(--space-8) + var(--control-h-sm) + var(--space-16));
-    width:calc(4 * var(--space-64)); max-height:calc(var(--pl-stage-height,100dvh) - var(--space-64) - var(--space-16));
+    width:calc(4 * var(--space-64)); max-height:calc(var(--pl-stage-height,100cqh) - var(--space-64) - var(--space-16));
     overflow:auto; margin:0;
   }
   #gbody .nh.pl-fill > .pl-live .pl-seats { grid-template-columns:minmax(0,1fr); }
@@ -224,7 +224,7 @@ body[data-game="number-hunt"].game-playing {
 /* Fit two normal hint rows on desktop, one taller row on a phone. */
 #gbody .nh.pl-fill #nFeed { scroll-snap-type:y proximity; }
 #gbody .nh.pl-fill #nFeed > .nh-hint { scroll-snap-align:start; }
-@media(min-width:561px){
+@container game (min-width:561px) {
   #gbody .nh.pl-fill #nFeed { height:calc(var(--space-64) + var(--space-32)); }
 }
 

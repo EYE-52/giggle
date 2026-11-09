@@ -25,3 +25,6 @@ body.game-playing:has(.bk-game) .game-screen-toggle { position:fixed; left:auto;
 body.game-playing #roomMenu > summary:active,body.game-playing :is(.game-report-icon,.game-screen-toggle):active { transform:scale(.96); box-shadow:none; }
 /* Game skins may change the table colour, but Meet always owns its chrome. */
 body.is-embed[data-game] { --bg:var(--app-embed-bg); --card:var(--app-embed-card); --well:var(--app-embed-well); --ink:var(--app-embed-ink); --ink-dim:var(--app-embed-dim); }
+
+/* Game Day surfaces can be light while the Meet utilities stay dark. */
+body.is-embed :is(#roomMenu,.game-report-icon,.game-screen-toggle) { --card:var(--app-embed-card); --well:var(--app-embed-well); --ink:var(--app-embed-ink); --ink-dim:var(--app-embed-dim); }

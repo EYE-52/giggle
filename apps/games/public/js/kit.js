@@ -286,9 +286,12 @@ export function paintLiveStrip(scene, S, opts = {}) {
   // Reserve the available stage height, with the roster in normal flow.
   // Document coordinates keep scrolling from growing it on repaint.
   const body = scene.closest?.('#gbody');
-  const top = body?.getBoundingClientRect?.().top;
+  const containerHeight = body?.style?.getPropertyValue?.('--game-viewport-height');
+  const top = containerHeight ? null : body?.getBoundingClientRect?.().top;
   const viewport = document.defaultView?.innerHeight;
-  if (Number.isFinite(top) && viewport > 0) {
+  if (containerHeight) {
+    scene.style?.setProperty?.('--pl-stage-height', 'max(0px, calc(var(--game-viewport-height) - 32px))');
+  } else if (Number.isFinite(top) && viewport > 0) {
     const used = top + (document.defaultView?.scrollY || 0);
     scene.style?.setProperty?.('--pl-stage-height', `${Math.max(0, (viewport - used - 32) / zoom)}px`);
   }

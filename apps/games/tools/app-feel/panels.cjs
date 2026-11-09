@@ -1,7 +1,8 @@
 /* Browser regression for shared panels: source inventory, focus, drafts,
  * outside click, nested dialogs, resized docks and generated guide pages. */
 const {chromium}=require('playwright'),fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
-const root=path.resolve(__dirname,'../..'),out=path.resolve(root,'../../artifacts/app-feel');
+const root=path.resolve(__dirname,'../..'),inventory=path.resolve(root,'../../artifacts/app-feel'),out=path.resolve(process.env.APP_FEEL_ARTIFACTS || inventory);
+fs.mkdirSync(out,{recursive:true});
 const base=process.env.APP_FEEL_URL||'http://127.0.0.1:8380';
 (async()=>{
  const browser=await chromium.launch({executablePath:'/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',headless:true});
@@ -10,7 +11,7 @@ const base=process.env.APP_FEEL_URL||'http://127.0.0.1:8380';
  try{
  await page.route('**/__app-feel-panels',r=>r.fulfill({contentType:'text/html',body:`<!doctype html><html><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="/css/style.css"><link rel="stylesheet" href="/css/app-panels.css"><link rel="stylesheet" href="/css/issues.css"><script defer src="/js/app-panels.js"></script><body><button id="opener">Report</button><main id="test"></main><div id="steady" style="width:200px;height:200px">Play area</div></body></html>`}));
  await page.goto(base+'/__app-feel-panels');
- const classes=[...new Set(JSON.parse(fs.readFileSync(path.join(out,'disclosures.json'),'utf8')).filter(r=>!r.retired).map(r=>r.cls).filter(c=>c!=='dynamic'&&!c.includes('$')&&!c.includes('room-menu')))];
+ const classes=[...new Set(JSON.parse(fs.readFileSync(path.join(inventory,'disclosures.json'),'utf8')).filter(r=>!r.retired).map(r=>r.cls).filter(c=>c!=='dynamic'&&!c.includes('$')&&!c.includes('room-menu')))];
  for(const [width,height]of [[1440,900],[1024,768],[768,1024],[390,844],[420,700],[560,760]])for(const theme of ['day','night']){
   await page.setViewportSize({width,height});await page.evaluate(t=>document.documentElement.dataset.theme=t,theme);
   for(const cls of classes.filter(c=>c!=='chhist-wrap')){

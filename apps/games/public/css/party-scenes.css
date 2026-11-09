@@ -23,7 +23,7 @@
 
 /* ---- prompt, HUD, status lines ---- */
 #gbody .party-scene .party-prompt.party-prompt {
-  font: 800 clamp(26px, 3vw, 32px)/1.2 var(--font-display);
+  font: 800 clamp(26px, 3cqw, 32px)/1.2 var(--font-display);
   letter-spacing: normal; margin: 10px 0 18px; padding: 0; border: 0;
   background: none; color: var(--ink); text-shadow: none; overflow-wrap: anywhere; text-wrap: balance;
 }
@@ -205,15 +205,15 @@
   .party-compose { padding: 14px; }
 
 }
-@media (max-width: 640px) {
+@container game (max-width: 640px) {
   .party-scene { padding: 10px 0 20px; }
-  #gbody .party-scene .party-prompt.party-prompt { font-size: clamp(22px, 6vw, 26px); }
+  #gbody .party-scene .party-prompt.party-prompt { font-size: clamp(22px, 6cqw, 26px); }
 
   #gbody .party-scene .party-choice { font-size: 16px; }
   #gbody .party-scene--hot .party-choice { font-size: 18px; min-height: 72px; padding: 14px; }
   #gbody .party-scene .party-hud, #gbody .party-scene .party-hud > * { font-size: 13px; }
 }
-@media (max-height: 500px) {
+@container game (max-height: 500px) {
   .party-scene { padding-top: 8px; }
   #gbody .party-scene .party-prompt.party-prompt { margin-bottom: 12px; }
 
@@ -225,10 +225,10 @@
 }
 /* Kit columns own their rhythm (gk-stack gaps); small frames stay compact. */
 #gbody .party-scene.gk-stack > .party-prompt.party-prompt { margin: 0; }
-@media (max-height: 640px) {
+@container game (max-height: 640px) {
   .party-scene.gk-stack { padding-top: 4px; gap: 10px; }
 }
-@media (max-height: 640px) {
+@container game (max-height: 640px) {
   .party-scene--rank .party-rank-list { gap: 6px; }
   .party-scene--rank .party-rank-item { min-height: 48px; padding: 2px 10px; }
   .party-scene--poll .gk-sub { display: none; }
@@ -238,7 +238,7 @@
 @container party (min-width: 480px) and (max-width: 640px) {
   .party-poll-options { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
-@media (max-height: 640px) {
+@container game (max-height: 640px) {
   /* The Lock / Update button already says whether the ladder is saved. */
   .party-scene--rank .js-feedback { display: none; }
   .party-scene--rank .party-rank-list { gap: 4px; }
@@ -260,7 +260,7 @@
 /* The reserved stage height stays below the group, never between the
  * round and its roster. The strip shares the stack's normal token gap. */
 #gbody .pl-fill > .pl-live { margin-top:0; }
-@media (max-width: 560px) {
+@container game (max-width: 560px) {
   #gbody .pl-fill { gap: var(--space-16); }
 }
 
@@ -364,7 +364,7 @@
 .pl-unit { font: var(--text-caption); color: var(--ink-dim); }
 .pl-gain { padding: 0 var(--space-4); border-radius: var(--radius-sm); background: var(--success-soft); color: var(--ink); font: var(--text-caption); font-weight: 800; }
 .pl-gain.is-empty { visibility: hidden; }
-@media (max-width: 560px) {
+@container game (max-width: 560px) {
   .pl-live { padding: var(--space-12); gap: var(--space-8); border-radius: var(--radius-lg); box-shadow: var(--shadow-sticker-sm); }
   .pl-seats { display: flex; overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: none; padding-bottom: 2px; }
   .pl-seat {
@@ -377,7 +377,7 @@
 }
 /* Very short frames (a landscape phone, a small call panel): no stretching,
  * the round comes first. */
-@media (max-height: 480px) {
+@container game (max-height: 480px) {
   #gbody .pl-fill { min-height: 0; }
 }
 
@@ -440,13 +440,13 @@
   min-height: 0; padding: var(--space-16) var(--space-24) var(--space-24);
   border-radius: var(--radius-xl); box-shadow: var(--shadow-sticker-lg);
   background: color-mix(in srgb, var(--side) 8%, var(--card));
-  font: 800 clamp(22px, 2.6vw, 28px)/1.2 var(--font-display); text-wrap: balance;
+  font: 800 clamp(22px, 2.6cqw, 28px)/1.2 var(--font-display); text-wrap: balance;
 }
 /* The second side of a duel is ink on card, so A and B never read as players. */
 #gbody .pl-fill .pl-ab > :nth-child(2) { --side: var(--ink); --on-side: var(--card); }
 #gbody .pl-fill .pl-ab .gk-mark { width: 48px; height: 48px; font-size: 24px; }
 #gbody .pl-fill .pl-ab > :is(.is-selected, .is-picked, [aria-pressed="true"]) { background: color-mix(in srgb, var(--side) 22%, var(--card)); }
-@media (max-width: 560px) {
+@container game (max-width: 560px) {
   #gbody .pl-fill .pl-ab { grid-template-columns: minmax(0, 1fr); gap: var(--space-12); }
   #gbody .pl-fill .pl-ab > :is(.gk-choice, .party-choice) {
     flex-direction: row; align-items: center; flex-wrap: wrap; padding: var(--space-16); gap: var(--space-12);
@@ -467,7 +467,7 @@
 /* Between rounds the whole stage is busy for a moment: the primary keeps its
  * look (it is about to work), dimmed, instead of turning into a pale chip. */
 #gbody[aria-busy="true"] .pl-fill .gk-btn.gk-primary:disabled { background: var(--fam); color: var(--on-fam); box-shadow: var(--shadow-sticker); opacity: .7; cursor: wait; }
-@media (max-width: 560px) {
+@container game (max-width: 560px) {
   #gbody .pl-fill .gk-actions.is-center > .gk-btn.gk-primary { flex: 1 1 100%; }
 }
 @media (hover: hover) {
@@ -512,7 +512,7 @@
 #gbody .pl-fill .wg-more { border-top: 0; padding-top: 0; }
 .pl-voter { display: inline-flex; align-items: center; gap: var(--space-4); min-height: 28px; padding: 0 var(--space-8) 0 0; border: var(--outline-w) solid var(--outline); border-radius: var(--radius-pill); background: var(--card); color: var(--ink); font: var(--text-caption); font-weight: 800; }
 .pl-voter > .pl-face { margin: -2px 0 -2px -2px; }
-@media (max-width: 560px) {
+@container game (max-width: 560px) {
   #gbody .pl-fill .pl-ab:not(.is-duo) > :is(.gk-choice, .party-choice) > :not(.gk-mark) { flex: 1 1 0; min-width: 0; }
   /* Short labels (Pick One, Never Ever) stay side by side. */
   #gbody .pl-fill .pl-ab.is-duo { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-8); }
@@ -524,7 +524,7 @@
 #gbody .pl-fill.party-scene--hot .party-prompt.party-prompt {
   padding: var(--space-24); text-align: center; background: var(--fam-soft);
   border: var(--outline-w-lg) solid var(--outline); border-radius: var(--radius-xl); box-shadow: var(--shadow-sticker);
-  font-size: clamp(26px, 3.4vw, 36px);
+  font-size: clamp(26px, 3.4cqw, 36px);
 }
 #gbody .pl-fill .hot-choices > .gk-choice .gk-choice-text { flex: none; font: inherit; }
 .hot-mine {
@@ -535,7 +535,7 @@
 #gbody .hot-mine .hot-mine-kicker { display: inline-flex; align-items: center; gap: var(--space-8); font: var(--text-title); color: var(--ink); }
 #gbody .hot-mine .hot-mine-count { font: var(--text-body); color: var(--ink); font-variant-numeric: tabular-nums; }
 #gbody .hot-mine .hot-mine-count b { font: 800 40px/1 var(--font-display); color: var(--fam-deep); }
-@media (max-width: 560px) {
+@container game (max-width: 560px) {
   #gbody .pl-fill.party-scene--hot .party-prompt.party-prompt { padding: var(--space-16); font-size: 24px; border-radius: var(--radius-lg); }
 }
 /* "Your pick" is a sticker tab on the card's top edge, so locking in never
@@ -551,7 +551,7 @@
 #gbody :is(.rt-scene, .cb-scene, .fa-scene, .bl-scene, .tt-scene).pl-fill > .gk-prompt {
   padding: var(--space-24); text-align: center; background: var(--fam-soft);
   border: var(--outline-w-lg) solid var(--outline); border-radius: var(--radius-xl); box-shadow: var(--shadow-sticker);
-  font: 800 clamp(26px, 3.4vw, 36px)/1.15 var(--font-display); text-wrap: balance;
+  font: 800 clamp(26px, 3.4cqw, 36px)/1.15 var(--font-display); text-wrap: balance;
 }
 #gbody :is(.rt-scene, .cb-scene, .fa-scene, .bl-scene, .tt-scene).pl-fill > .gk-prompt + .gk-sub { text-align: center; }
 #gbody .pl-fill .pb-share { height: 12px; margin-top: var(--space-8); border: var(--outline-w) solid var(--outline); border-radius: var(--radius-pill); background: var(--card); }
@@ -585,8 +585,8 @@
   min-height: 0; padding: var(--space-32) var(--space-24);
   background: var(--fam-soft); border: var(--outline-w-lg) solid var(--outline); border-radius: var(--radius-xl); box-shadow: var(--shadow-sticker);
 }
-#gbody .pl-fill .gk-wait-card .gk-wait-title { font-size: clamp(26px, 3.2vw, 34px); }
-@media (max-width: 560px) {
+#gbody .pl-fill .gk-wait-card .gk-wait-title { font-size: clamp(26px, 3.2cqw, 34px); }
+@container game (max-width: 560px) {
   #gbody :is(.rt-scene, .cb-scene, .fa-scene, .bl-scene, .tt-scene).pl-fill > .gk-prompt { padding: var(--space-16); font-size: 24px; border-radius: var(--radius-lg); }
   #gbody .pl-fill .gk-wait-card { padding: var(--space-24) var(--space-16); border-radius: var(--radius-lg); }
 }
@@ -607,7 +607,7 @@
 #gbody .pl-fill .party-result--winner { background: var(--fam-soft); box-shadow: var(--shadow-sticker), inset 0 0 0 2px var(--fam); }
 #gbody .pl-fill .party-compose { border: var(--outline-w-lg) solid var(--outline); border-radius: var(--radius-xl); box-shadow: var(--shadow-sticker); padding: var(--space-24); }
 #gbody .pl-fill .party-compose input[type="text"] { border: var(--outline-w) solid var(--outline); border-radius: var(--radius-lg); }
-@media (max-width: 560px) {
+@container game (max-width: 560px) {
   #gbody .pl-fill.party-scene--poll .party-choices { grid-template-columns: minmax(0, 1fr); }
   #gbody .pl-fill.party-scene--poll .party-prompt.party-prompt { padding: var(--space-16); border-radius: var(--radius-lg); }
   #gbody .pl-fill .party-compose { padding: var(--space-16); border-radius: var(--radius-lg); }
@@ -625,7 +625,7 @@
 #gbody .pl-fill .party-rank-item .party-actions { gap: var(--space-8); }
 #gbody .pl-fill .party-rank-item .party-actions .btn { border: var(--outline-w) solid var(--outline); border-radius: var(--radius-md); background: var(--card); color: var(--ink); font: 800 20px/1 var(--font-display); box-shadow: var(--shadow-sticker-sm); }
 #gbody .pl-fill .party-rank-item .party-actions .btn:disabled { box-shadow: none; border-color: var(--line); color: var(--ink-dim); background: var(--well); }
-@media (max-width: 560px) {
+@container game (max-width: 560px) {
   #gbody .pl-fill.party-scene--rank .party-prompt.party-prompt { padding: var(--space-12) var(--space-16); border-radius: var(--radius-lg); }
   #gbody .pl-fill .party-rank-item { font-size: 16px; }
 }
@@ -648,7 +648,7 @@
 .party-wheel-name > span { font-size: 13px; }
 /* Phones: the strip is one compact row of seats so it stays on the first
  * screen under the round. */
-@media (max-width: 560px) {
+@container game (max-width: 560px) {
   .pl-live { padding: var(--space-8) var(--space-12) var(--space-12); gap: var(--space-8); }
   .pl-seat {
     flex: 1 0 104px; max-width: 180px; grid-template-columns: auto minmax(0, 1fr); grid-template-areas: "av name" "av pts";
@@ -672,7 +672,7 @@
 #gbody .pl-fill .gk-wait { text-wrap: balance; }
 .pl-live { text-align: left; }
 .pl-points { white-space: nowrap; }
-@media (max-width: 560px) {
+@container game (max-width: 560px) {
   .pl-seat .pl-gain.is-empty { display: none; }
   .pl-seat { flex-basis: 96px; }
 }
@@ -683,7 +683,7 @@
   content: "i"; display: inline-grid; place-items: center; width: 18px; height: 18px; margin-right: var(--space-8);
   border-radius: 50%; background: var(--ink); color: var(--card); font: 800 12px/1 var(--font-display); font-style: italic;
 }
-@media (max-width: 560px) {
+@container game (max-width: 560px) {
   .pl-seat { grid-template-areas: "av name" "av state" "av pts"; }
   .pl-seat .pl-state { display: block; min-height: 0; font: var(--text-caption); }
   #gbody .pl-live :is(.party-more, .wg-more) > summary { padding: 0 var(--space-8); font-size: 13px; }
@@ -692,7 +692,7 @@
 #gbody .pl-fill .gk-hud-timer:empty { visibility:hidden; }
 
 /* Phones: seats share the row (wrapping for big rooms), never scroll sideways. */
-@media (max-width: 560px) {
+@container game (max-width: 560px) {
   .pl-seats { display: grid; grid-template-columns: repeat(auto-fit, minmax(96px, 1fr)); overflow: visible; }
   .pl-seat { max-width: none; min-width: 0; }
 }
@@ -703,7 +703,7 @@
 .pl-dotsbox { min-width: 0; flex: 0 1 auto; }
 .pl-dots { min-width: 0; }
 #gbody .pl-fill :is(input, textarea)::placeholder { color: var(--ink-dim); opacity: 1; }
-@media (max-width: 560px) {
+@container game (max-width: 560px) {
   #gbody .pl-fill.party-scene--poll .party-choice { min-height: var(--control-h); padding-block: var(--space-8); font-size: 18px; }
   #gbody .pl-fill.party-scene--poll .party-choices { gap: var(--space-8); }
 }
@@ -750,7 +750,7 @@ body #gbody .pl-fill :is(button.gk-choice, button.party-choice):not(:disabled):a
 /* Pre-kit wheel: a soft lip, not a hairline ring. */
 .party-wheel { box-shadow: 0 var(--lift) 0 var(--outline); }
 /* A wrapped status line keeps its dot beside the words, not at the far edge. */
-@media (max-width: 560px) {
+@container game (max-width: 560px) {
   #gbody .pl-fill .gk-wait { text-align: left; }
 }
 
@@ -765,7 +765,7 @@ body #gbody .pl-fill :is(button.gk-choice, button.party-choice):not(:disabled):a
  * initials, and every seat keeps the soft card radius on phones too. */
 .pl-badge { right: -8px; bottom: -6px; }
 .pl-seat { border-radius: var(--radius-md); }
-@media (max-width: 560px) {
+@container game (max-width: 560px) {
   .pl-seat { border-radius: var(--radius-md); }
   .pl-avatar { font-size: 13px; }
   .pl-badge { width: 16px; height: 16px; right: -7px; bottom: -6px; font-size: 10px; }
@@ -787,7 +787,7 @@ body #gbody .pl-fill :is(button.gk-choice, button.party-choice):not(:disabled):a
 /* Phase and progress occupy the same tracks even when their copy changes. */
 #gbody .pl-fill :is(.gk-hud,.party-hud) :is(.gk-hud-phase,.party-phase) { justify-self:start; width:max-content; max-width:100%; min-width:0; height:var(--space-32); min-height:var(--space-32); display:block; line-height:var(--space-32); border-radius:var(--radius-pill); text-align:center; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 #gbody .pl-fill :is(.gk-hud,.party-hud) .party-spectator { position:absolute; right:0; top:100%; }
-@media (max-width:560px) {
+@container game (max-width:560px) {
  #gbody .pl-fill > :is(.gk-hud,.party-hud) { grid-template-columns:minmax(0,1fr) minmax(0,1fr) var(--space-64); }
  #gbody .pl-fill .gk-hud-timer { grid-column:3; min-width:0; width:100%; }
  #gbody .pl-fill :is(.gk-hud,.party-hud) .party-spectator { top:auto; bottom:0; }
@@ -808,11 +808,11 @@ body #gbody .pl-fill :is(button.gk-choice, button.party-choice):not(:disabled):a
 /* Points and earned points have separate rows even before the award. */
 .pl-points { display:grid; grid-template-columns:auto auto; justify-content:start; column-gap:var(--space-4); overflow:visible; }
 .pl-gain { grid-column:1 / -1; justify-self:start; min-width:5ch; height:1.4em; text-align:center; }
-@media(max-width:560px){ .pl-seat .pl-gain.is-empty { display:block; } }
+@container game (max-width:560px) { .pl-seat .pl-gain.is-empty { display:block; } }
 
 /* Laptop payoff screens keep their roster and Next action in view. Lists
  * use the available width before they ask for another vertical row. */
-@media(min-width:860px) and (max-height:900px){
+@container game (min-width:860px) and (max-height:900px) {
  #gbody .pl-fill { gap:var(--space-16); }
  #gbody :is(.fa-scene,.bl-scene,.cb-scene,.rt-scene,.tt-scene).pl-fill .gk-choices { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); max-width:none; }
  #gbody .pl-fill > :is(.gk-prompt,.party-prompt) { padding-block:var(--space-16); }
@@ -823,7 +823,7 @@ body #gbody .pl-fill :is(button.gk-choice, button.party-choice):not(:disabled):a
 
 /* Short laptop rounds form one balanced group. The HUD and roster keep
  * their fixed seats, including when a tally or phase label changes. */
-@media(min-width:1100px){
+@container game (min-width:1100px) {
  #gbody .pl-fill:is(.party-scene--hot,.pick-world,.rt-scene) { justify-content:safe center; padding-top:calc(var(--space-8) + var(--control-h-sm) + var(--space-24)); }
  #gbody .pl-fill:is(.party-scene--hot,.pick-world,.rt-scene) > :is(.gk-hud,.party-hud) { position:absolute; top:var(--space-8); left:0; }
 }
@@ -838,21 +838,21 @@ body.game-playing:is([data-game="story-builder"],[data-game="would-you-rather"],
 }
 [data-theme="night"] body.game-playing:is([data-game="story-builder"],[data-game="would-you-rather"],[data-game="hot-takes"],[data-game="pick-one"],[data-game="rapid-polls"])::before { background:color-mix(in srgb,var(--fam) 12%,transparent); }
 .pl-live .pl-seat { grid-template-rows:var(--space-24) var(--space-24) var(--space-40); }
-@media(max-width:560px){ .pl-live .pl-seat { grid-template-rows:var(--space-24) var(--space-40) var(--space-24); } }
+@container game (max-width:560px) { .pl-live .pl-seat { grid-template-rows:var(--space-24) var(--space-40) var(--space-24); } }
 
 /* Desktop party rounds reserve a roster column beside the game. Scores
  * cannot push the payoff or Next below the laptop fold. The HUD spans both
  * columns and the roster's top edge stays fixed across phase updates. */
-@media(min-width:1100px){
+@container game (min-width:1100px) {
  #gbody .pl-fill[data-family="party"]:not(.tq) { position:relative; padding-right:calc(4 * var(--space-64) + var(--space-16)); }
  #gbody .pl-fill[data-family="party"]:not(.tq) > :is(.gk-hud,.party-hud) { width:calc(100% + 4 * var(--space-64) + var(--space-16)); }
- #gbody .pl-fill[data-family="party"]:not(.tq) > .pl-live { position:absolute; right:0; top:calc(var(--space-8) + var(--control-h-sm) + var(--space-16)); width:calc(4 * var(--space-64)); max-height:calc(var(--pl-stage-height,100dvh) - var(--space-64) - var(--space-16)); overflow:auto; margin:0; }
+ #gbody .pl-fill[data-family="party"]:not(.tq) > .pl-live { position:absolute; right:0; top:calc(var(--space-8) + var(--control-h-sm) + var(--space-16)); width:calc(4 * var(--space-64)); max-height:calc(var(--pl-stage-height,100cqh) - var(--space-64) - var(--space-16)); overflow:auto; margin:0; }
  #gbody .pl-fill[data-family="party"]:not(.tq) > .pl-live .pl-seats { grid-template-columns:minmax(0,1fr); }
  #gbody .likely-world .likely-results { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); }
  #gbody .likely-world .likely-row { padding:var(--space-8); }
  #gbody .likely-world .likely-row-body { gap:var(--space-4); }
 }
-@media(min-width:1100px){
+@container game (min-width:1100px) {
  #gbody .pl-fill[data-family="party"]:not(.tq) > .pl-live .pl-head { height:calc(var(--space-48) + var(--space-24)); min-height:calc(var(--space-48) + var(--space-24)); align-content:center; }
  /* An absolute HUD measures from the full stage, including its roster
   * gutter; it must not add that gutter to its width a second time. */
@@ -880,7 +880,7 @@ body.game-playing:is([data-game="story-builder"],[data-game="would-you-rather"],
 #gbody[data-game] .pl-live .pl-dots > li { border-color: var(--line-strong); background: var(--line-strong); }
 #gbody[data-game] .pl-live .pl-dots > li.is-now { background: var(--card); border-color: var(--fam); }
 #gbody[data-game] .pl-live .pl-dots > li.is-done { background: var(--fam); }
-@media (min-width: 1100px) {
+@container game (min-width: 1100px) {
   /* Centre the round and its compact roster as one stage below the HUD. */
   #gbody[data-game] .pl-fill:not(.b4-stage):not(.b6-world):not(.word-party):not(.b2-scene) {
     position: relative; min-height: var(--pl-stage-height); justify-content: safe center;
@@ -895,7 +895,7 @@ body.game-playing:is([data-game="story-builder"],[data-game="would-you-rather"],
   }
   #gbody[data-game] .pl-fill[data-family="party"]:not(.tq) > .pl-live .pl-seats { grid-template-columns: minmax(0, 1fr); }
 }
-@media (max-width: 560px) {
+@container game (max-width: 560px) {
   #gbody[data-game] .pl-fill { gap: var(--space-8); padding-bottom: var(--space-16); }
   #gbody[data-game] .pl-live { padding: var(--space-8); gap: var(--space-8); max-width: 100%; }
   #gbody[data-game] .pl-live .pl-seats {
@@ -917,14 +917,14 @@ body.game-playing:is([data-game="story-builder"],[data-game="would-you-rather"],
   #gbody[data-game] .pl-fill > :is(.gk-prompt, .party-prompt) { min-height: var(--space-64); padding-block: var(--space-12); }
 }
 
-@media (max-width: 560px) {
+@container game (max-width: 560px) {
   #gbody[data-game] .pl-live .pl-seat { min-width: 0; }
   /* Hide only the empty gain, never a player's name or points. */
   #gbody[data-game] .pl-live .pl-gain.is-empty { display: none; }
   #gbody[data-game] .pl-fill > :is(.gk-prompt, .party-prompt) { font: var(--text-heading); }
 }
 
-@media (max-width: 560px) {
+@container game (max-width: 560px) {
   #gbody[data-game] .pl-live .pl-head { min-height: var(--space-24); }
   #gbody[data-game] .pl-live .pl-seat {
     grid-template-columns: minmax(0, 1fr) auto;
@@ -936,11 +936,11 @@ body.game-playing:is([data-game="story-builder"],[data-game="would-you-rather"],
   #gbody[data-game] .pl-live .pl-state { max-width: 100%; }
 }
 
-@media (min-width: 1100px) {
+@container game (min-width: 1100px) {
   #gbody[data-game] .pl-fill[data-family="party"]:not(.tq) > .pl-live { top: 50%; transform: translateY(-50%); }
 }
 
-@media (max-width: 560px) {
+@container game (max-width: 560px) {
   body:is([data-game="bluff"], [data-game="funny-answer"], [data-game="compliment-battle"], [data-game="most-likely"], [data-game="never-ever"], [data-game="two-truths"], [data-game="hot-takes"], [data-game="roast-toast"], [data-game="truth-dare"]) #gbody > .pl-fill {
     position: relative; min-height: var(--pl-stage-height); justify-content: safe center;
     padding-top: calc(var(--space-64) + var(--space-16));
@@ -950,7 +950,7 @@ body.game-playing:is([data-game="story-builder"],[data-game="would-you-rather"],
 
 /* Fast phase changes keep both HUD and roster anchored on phone. The
  * middle stage can change from a prompt to a verdict without moving them. */
-@media (max-width: 560px) {
+@container game (max-width: 560px) {
   body:is([data-game="five-second"], [data-game="pick-one"], [data-game="reaction-tap"]) #gbody > .pl-fill {
     position: relative; height: var(--pl-stage-height); min-height: var(--pl-stage-height);
     padding-top: calc(var(--space-64) + var(--space-16));

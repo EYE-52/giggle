@@ -16,7 +16,7 @@
 
 /* Short frames (a small Giggle panel, zoomed text): tighter rhythm so the
  * question and the main action stay in view. */
-@media (max-height: 560px) {
+@container game (max-height: 560px) {
   .fa-scene { gap: 10px; padding-bottom: 12px; }
   .fa-scene .gk-prompt { font-size: 22px; }
   .fa-scene .gk-sub { font-size: 16px; }
@@ -68,7 +68,7 @@ body.game-playing[data-game="funny-answer"] {
 }
 [data-theme="night"] #gbody .fa-scene.pl-fill > .gk-prompt { box-shadow: 0 var(--lift) 0 var(--outline), 0 0 40px color-mix(in srgb, var(--fam) 16%, transparent); }
 [data-theme="night"] #gbody .fa-scene.pl-fill > .gk-prompt::after { box-shadow: var(--lift-sm) var(--lift-sm) 0 var(--outline); }
-@media (max-width: 560px) { #gbody .fa-scene.pl-fill > .gk-prompt::after { width: 20px; height: 20px; bottom: -11px; } }
+@container game (max-width: 560px) { #gbody .fa-scene.pl-fill > .gk-prompt::after { width: 20px; height: 20px; bottom: -11px; } }
 
 /* QC: unpicked letter discs are peach-tinted chips with a family rim in
  * both themes, never a dark disc in an ink ring on a dark card. */

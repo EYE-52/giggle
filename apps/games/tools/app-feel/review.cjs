@@ -3,7 +3,7 @@
  * Run from apps/games. Screens and recordings are written into this worktree. */
 const { chromium } = require('playwright');
 const fs = require('node:fs'), path = require('node:path'), assert = require('node:assert/strict');
-const out = path.resolve(__dirname, '../../../../artifacts/app-feel/after');
+const out = path.resolve(process.env.APP_FEEL_ARTIFACTS || path.join(__dirname, '../../../../artifacts/app-feel/after'));
 const baselineRef=process.env.APP_FEEL_BASELINE || '6e91b6b626ce350538f19ff6154d34f229678cc6';
 const label=process.env.APP_FEEL_LABEL || '';
 const requestedSeats=Number(process.env.APP_FEEL_SEATS || 0);
@@ -56,6 +56,7 @@ const sizes = [[1440,900],[1024,768],[768,1024],[390,844],[420,700],[560,760]];
     const metrics = await host.evaluate(() => {
      const rect = sel => { const n=document.querySelector(sel); if(!n)return null;const r=n.getBoundingClientRect();return {x:r.x,y:r.y,w:r.width,h:r.height,bottom:r.bottom,right:r.right}; };
      return { viewport:[innerWidth,innerHeight], scrollWidth:document.documentElement.scrollWidth, scrollHeight:document.documentElement.scrollHeight,
+      palette:{ink:getComputedStyle(document.querySelector('.bk-title')).color,background:getComputedStyle(document.body).backgroundColor},
       stage:rect('.bk-stage'), tools:rect('.bk-tools'), status:rect('.bk-status'), extra:rect('.bk-extra'),
       players:[...document.querySelectorAll('.bk-player')].map(n=>{const r=n.getBoundingClientRect();return {y:r.y,bottom:r.bottom};}),
       unhandled:[...document.querySelectorAll('details')].filter(n=>!n.matches('.room-menu,.app-disclosure')).map(n=>n.className) };
@@ -78,6 +79,7 @@ const sizes = [[1440,900],[1024,768],[768,1024],[390,844],[420,700],[560,760]];
     await page.keyboard.press('Escape');
     assert(await host.locator('.bk-help>summary').evaluate(n=>document.activeElement===n),'Escape restores opener');
     if(metrics.scrollWidth>width+1) console.log('OVERFLOW',await host.evaluate(()=>[...document.querySelectorAll('body *')].filter(n=>n.getBoundingClientRect().right>innerWidth+1).slice(0,15).map(n=>({c:n.className,tag:n.tagName,w:n.getBoundingClientRect().width,right:n.getBoundingClientRect().right,overflow:getComputedStyle(n).overflowX}))));
+    if(embed){const luminance=color=>{const rgb=color.match(/[\d.]+/g).slice(0,3).map(v=>{v=Number(v)/255;return v<=.04045?v/12.92:((v+.055)/1.055)**2.4});return rgb[0]*.2126+rgb[1]*.7152+rgb[2]*.0722;};const a=luminance(metrics.palette.ink),b=luminance(metrics.palette.background);assert((Math.max(a,b)+.05)/(Math.min(a,b)+.05)>=4.5,'Meet board title keeps readable contrast '+JSON.stringify(metrics.palette));}
     assert(metrics.scrollWidth<=width+1,game+' fits width '+JSON.stringify({width,height,doc:metrics.scrollWidth,stage:metrics.stage}));
     assert(metrics.stage.x>=0&&metrics.stage.right<=width+1,game+' board fits');
     assert(metrics.stage.bottom<=metrics.viewport[1]+1,game+' board visible');

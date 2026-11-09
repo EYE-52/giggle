@@ -4,7 +4,7 @@
 .cw .cw-tile {
   display: grid; place-items: center; min-width: 0; height: 60px; padding: 0;
   background: var(--card); color: var(--ink); border: 1px solid var(--line-strong); border-radius: 10px;
-  font: 800 clamp(22px, 3.4vw, 32px)/1 var(--font-display); text-transform: uppercase;
+  font: 800 clamp(22px, 3.4cqw, 32px)/1 var(--font-display); text-transform: uppercase;
   transition: background-color .15s ease, border-color .15s ease, color .15s ease;
 }
 .cw button.cw-tile { cursor: pointer; }
@@ -18,7 +18,7 @@
 .cw .cw-word { text-transform: uppercase; letter-spacing: .06em; font-weight: 800; }
 .cw .gk-prompt .cw-word { color: var(--accent-deep); }
 .cw .cw-tools .gk-btn { min-width: 52px; }
-@media (max-width: 560px) {
+@container game (max-width: 560px) {
   .cw .cw-tiles { gap: 5px; }
   .cw .cw-tile { height: 48px; border-radius: 8px; font-size: 22px; }
   .cw .cw-tools { gap: 8px; }
@@ -31,7 +31,7 @@
 .cw.ck .cw-tile {
   height: 64px; background: var(--ck-tile); color: var(--ink);
   border: var(--outline-w) solid var(--outline); border-radius: var(--radius-md);
-  box-shadow: var(--shadow-sticker); font: 800 clamp(24px, 3.4vw, 32px)/1 var(--font-display);
+  box-shadow: var(--shadow-sticker); font: 800 clamp(24px, 3.4cqw, 32px)/1 var(--font-display);
   transition: transform var(--dur-quick) var(--ease);
 }
 @media (hover: hover) { .cw.ck button.cw-tile:hover:not(:disabled) { transform: translateY(-2px); border-color: var(--outline); } }
@@ -50,7 +50,7 @@
 .cw.ck .cw-dots li { width: 12px; height: 12px; border-radius: 50%; background: var(--well); border: var(--outline-w) solid var(--line-strong); }
 .cw.ck .cw-dots li.is-done { background: var(--fam-soft); border-color: var(--fam); }
 .cw.ck .cw-dots li.is-now { background: var(--fam); border-color: var(--outline); }
-@media (max-width: 560px) {
+@container game (max-width: 560px) {
   .cw.ck .cw-tiles { gap: var(--space-4); }
   .cw.ck .cw-tile { height: 50px; font-size: 22px; border-radius: var(--radius-sm); box-shadow: var(--shadow-sticker-sm); }
   .cw.ck .cw-tools .gk-btn { min-height: var(--control-h-sm); }
@@ -78,7 +78,7 @@
 .cw.ck .cw-tools .cw-save + .cw-icon { margin-right: auto; }
 .cw.ck .cw-state { margin: 0; font: var(--text-caption); color: var(--ink-dim); }
 .cw.ck .cw-saved[hidden] { display: none; }
-@media (max-width: 560px) {
+@container game (max-width: 560px) {
   .cw.ck .cw-tools { display: grid; grid-template-columns: minmax(0, 1fr) auto auto auto; }
   .cw.ck .cw-tools .cw-save { min-width: 0; padding-inline: var(--space-12); }
   .cw.ck .cw-tools .cw-save + .cw-icon { margin-right: 0; }
@@ -104,8 +104,8 @@ body.game-playing[data-game="countdown-word"] {
   background-repeat: no-repeat;
   background-attachment: fixed;
 }
-@media (max-width: 1100px) { body.game-playing[data-game="countdown-word"] { background-size: 360px 360px; background-position: calc(100% + 240px) 70%; } }
-@media (max-width: 700px) { body.game-playing[data-game="countdown-word"] { background-image: none; } }
+@container game (max-width: 1100px) { body.game-playing[data-game="countdown-word"] { background-size: 360px 360px; background-position: calc(100% + 240px) 70%; } }
+@container game (max-width: 700px) { body.game-playing[data-game="countdown-word"] { background-image: none; } }
 
 /* Wooden tiles on a rack. */
 .cw.ck {
@@ -124,7 +124,7 @@ body.game-playing[data-game="countdown-word"] {
   color: var(--cw-ink); border-color: var(--cw-wood-deep); box-shadow: 0 var(--lift) 0 var(--cw-wood-deep);
 }
 .cw.ck .cw-tile.is-used { opacity: .4; }
-@media (max-width: 560px) {
+@container game (max-width: 560px) {
   .cw.ck .cw-tiles { padding: 0 var(--space-4) calc(var(--lift-sm) + 12px); }
   .cw.ck .cw-tile, .cw.ck span.cw-tile { box-shadow: 0 var(--lift-sm) 0 var(--cw-wood-deep); }
 }
@@ -132,10 +132,10 @@ body.game-playing[data-game="countdown-word"] {
 /* QC: the clock face is a whole clock centred behind the play column (it
  * frames the cards), not half a dial cut off by the right edge. */
 body.game-playing[data-game="countdown-word"] {
-  background-size: min(760px, 92vw) min(760px, 92vw);
+  background-size: min(760px, 92cqw) min(760px, 92cqw);
   background-position: 50% calc(50% + 40px);
 }
-@media (max-width: 700px) { body.game-playing[data-game="countdown-word"] { background-image: none; } }
+@container game (max-width: 700px) { body.game-playing[data-game="countdown-word"] { background-image: none; } }
 /* QC: a used tile in night is a dim wooden ghost on the card, not wood at
  * 40% opacity over the dark page (which turns muddy brown). */
 [data-theme="night"] .cw.ck .cw-tile.is-used {
@@ -144,7 +144,7 @@ body.game-playing[data-game="countdown-word"] {
   border-color: color-mix(in srgb, var(--cw-wood-deep) 35%, var(--card));
   box-shadow: 0 var(--lift) 0 color-mix(in srgb, var(--cw-wood-deep) 30%, var(--card));
 }
-@media (max-width: 560px) {
+@container game (max-width: 560px) {
   [data-theme="night"] .cw.ck .cw-tile.is-used { box-shadow: 0 var(--lift-sm) 0 color-mix(in srgb, var(--cw-wood-deep) 30%, var(--card)); }
 }
 /* The clock is scenery: its ticks stay faint behind the cards. */
@@ -155,6 +155,6 @@ body.game-playing[data-game="countdown-word"] { --cw-tick: color-mix(in srgb, va
 
 [data-theme="night"] .cw.ck .cw-tile.is-used { color:var(--ink); }
 
-@media (max-width: 560px) {
-  .cw.ck:not(.gk-final) { min-height: calc(100dvh - 2 * var(--space-64)); justify-content: safe center; }
+@container game (max-width: 560px) {
+  .cw.ck:not(.gk-final) { min-height: calc(100cqh - 2 * var(--space-64)); justify-content: safe center; }
 }

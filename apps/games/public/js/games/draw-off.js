@@ -8,7 +8,7 @@ export default batchView({
   prefix: "do",
   name: "Draw Off",
   family: "create",
-  field: `<div class="b6-stage do-easel"><canvas width="900" height="540" tabindex="0" aria-label="Drawing canvas"></canvas><span class="do-gallery-label"></span></div><div class="b6-tools do-tools"></div>`,
+  field: `<div class="b6-stage do-easel"><canvas width="900" height="900" tabindex="0" aria-label="Drawing canvas"></canvas><span class="do-gallery-label"></span></div><div class="b6-tools do-tools"></div>`,
   mount(c) {
     let current = c;
     const canvas = c.el.querySelector("canvas");

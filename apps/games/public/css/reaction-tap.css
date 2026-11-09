@@ -10,7 +10,7 @@
 #gbody .rt.pl-fill .rt-pad {
   flex: 1 1 auto;
   display: grid; grid-template-rows: auto auto; align-content: center; justify-items: center; gap: var(--space-16);
-  min-height: clamp(240px, 40vh, 360px); max-height: 50vh;
+  min-height: clamp(240px, 40cqh, 360px); max-height: 50cqh;
   padding: var(--space-24);
   background: var(--card); color: var(--ink);
   font: var(--text-heading); text-wrap: balance;
@@ -18,11 +18,11 @@
 }
 #gbody .rt.pl-fill .rt-pad::before {
   content: "\2022\2022\2022"; display: grid; place-items: center; box-sizing: border-box; color: var(--ink-dim);
-  width: clamp(120px, 22vh, 200px); aspect-ratio: 1;
+  width: clamp(120px, 22cqh, 200px); aspect-ratio: 1;
   border: 4px solid var(--outline); border-radius: 50%;
   background: var(--well);
   box-shadow: inset 0 calc(-1 * var(--space-12)) 0 color-mix(in srgb, var(--outline) 14%, transparent), var(--shadow-sticker-lg);
-  font: 800 clamp(48px, 9vh, 80px)/1 var(--font-display);
+  font: 800 clamp(48px, 9cqh, 80px)/1 var(--font-display);
   transition: transform var(--dur-quick) var(--ease);
 }
 /* Signature: a start-light gantry above the button (2026-11 skin). Red and
@@ -90,8 +90,8 @@
 #gbody .rt.pl-fill .pl-seat { border-color: var(--outline); background: var(--card); }
 #gbody .rt.pl-fill .pl-seat.is-you { background: var(--fam-soft); }
 
-@media (max-width: 560px) {
-  #gbody .rt.pl-fill .rt-pad { min-height: clamp(220px, 38vh, 320px); padding: var(--space-16); gap: var(--space-12); }
+@container game (max-width: 560px) {
+  #gbody .rt.pl-fill .rt-pad { min-height: clamp(220px, 38cqh, 320px); padding: var(--space-16); gap: var(--space-12); }
   #gbody .rt.pl-fill .rt-pad::after { width: 120px; height: 40px;
     background:
       radial-gradient(circle at 20px 50%, var(--rt-red) 0 11px, transparent 12px),
@@ -126,23 +126,23 @@
 #gbody .rt.pl-fill .pl-badge { width: 16px; height: 16px; right: -8px; bottom: -8px; font-size: 10px; }
 
 /* The lights, physical target and label own separate, fixed cabinet rows. */
-#gbody .rt.pl-fill .rt-pad { position:relative; grid-template-areas:"lights" "target" "label"; grid-template-rows:52px clamp(120px,22vh,200px) 2.3em; }
-#gbody .rt.pl-fill .rt-pad::before { position:absolute; grid-area:target; inset:0; margin:auto; height:clamp(120px,22vh,200px); }
+#gbody .rt.pl-fill .rt-pad { position:relative; grid-template-areas:"lights" "target" "label"; grid-template-rows:52px clamp(120px,22cqh,200px) 2.3em; }
+#gbody .rt.pl-fill .rt-pad::before { position:absolute; grid-area:target; inset:0; margin:auto; height:clamp(120px,22cqh,200px); }
 #gbody .rt.pl-fill .rt-pad::after { grid-area:lights; }
 #gbody .rt.pl-fill .rt-pad-label { grid-area:label; display:grid; place-items:center; width:100%; height:2.3em; overflow:auto; font-variant-numeric:tabular-nums; }
 #gbody .rt.pl-fill :is(#rInstruction,#rStatus) { height:var(--space-64); min-height:var(--space-64); overflow:auto; }
 #gbody .rt.pl-fill #rTip { height:var(--space-48); min-height:var(--space-48); overflow:auto; }
-@media (max-width:560px) { #gbody .rt.pl-fill .rt-pad { grid-template-rows:var(--space-40) clamp(120px,22vh,200px) 2.3em; } }
+@container game (max-width:560px) { #gbody .rt.pl-fill .rt-pad { grid-template-rows:var(--space-40) clamp(120px,22cqh,200px) 2.3em; } }
 #gbody .rt.pl-fill .gk-hud .gk-hud-phase.is-foul:not(:empty) { color:var(--ink); }
 
-@media (min-width: 1100px) {
+@container game (min-width: 1100px) {
   #gbody .rt.pl-fill { position: relative; padding-right: calc(4 * var(--space-64) + var(--space-16)); }
   #gbody .rt.pl-fill > .gk-hud { width: 100%; }
   #gbody .rt.pl-fill > .pl-live { position: absolute; right: 0; top: 50%; transform: translateY(-50%); width: calc(4 * var(--space-64)); }
   #gbody .rt.pl-fill > .pl-live .pl-seats { grid-template-columns: minmax(0, 1fr); }
 }
 
-@media (max-width: 560px) {
+@container game (max-width: 560px) {
   #gbody .rt.pl-fill :is(#rInstruction, #rStatus) { height: var(--space-32); min-height: var(--space-32); }
   #gbody .rt.pl-fill #rTip { height: var(--space-24); min-height: var(--space-24); }
 }

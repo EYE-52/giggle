@@ -100,6 +100,7 @@ export function reset(opts = {}) {
     for (const resolve of previous.waiters) resolve(null);
     previous.waiters.length = 0;
     previous.untrack?.();
+    previous.unfit?.();
   }
   if (opts.rematch && previous) holdSnapshot(previous.el);
   else if (previous) clearSnapshot(previous.el);
@@ -144,7 +145,8 @@ function styles() {
 }
 
 function declaredStyles(active) {
-  for (const href of active.view.styles || []) {
+  const fit = typeof ResizeObserver === 'function' && active.el.getBoundingClientRect;
+  for (const href of [...(active.view.styles || []), ...(fit ? ['/css/container-fit.css'] : [])]) {
     let link = styles().find(link => link.getAttribute('href') === href);
     if (!link) {
       link = document.createElement('link');
@@ -316,6 +318,11 @@ async function drive(active) {
       active.view = mod.default;
       declaredStyles(active);
       await Promise.all([...active.requiredStyles].map(link => resource(link, signal, () => !!link.sheet || styleStates.get(link) === 'load')));
+      if (typeof ResizeObserver === 'function' && active.el.getBoundingClientRect) {
+        const { observeGameContainer } = await import('./container-fit.js');
+        if (cur !== active) return;
+        active.unfit = observeGameContainer(active.el);
+      }
       if (typeof active.view.mount === 'function') await waitFor(active.view.mount(active.el, active.api), signal);
     }
     while (cur === active && active.painted !== active.version) {

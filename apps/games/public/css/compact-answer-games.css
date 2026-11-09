@@ -8,7 +8,7 @@
 }
 .word-live *, .word-live *::before, .word-live *::after { box-sizing:border-box; }
 .word-live [hidden] { display:none!important; }
-#gbody .word-live h3 { font:800 clamp(26px,3vw,36px)/1.3 var(--font-body); margin:0 0 18px; color:var(--ink); text-shadow:none; }
+#gbody .word-live h3 { font:800 clamp(26px,3cqw,36px)/1.3 var(--font-body); margin:0 0 18px; color:var(--ink); text-shadow:none; }
 #gbody .word-live h4 { font:800 20px/1.4 var(--font-body); margin:20px 0 10px; color:var(--ink); }
 #gbody .word-live .muted { color:var(--ink-dim); font:600 17px/1.5 var(--font-body); opacity:1; margin:10px 0; }
 .word-live input::placeholder { color:var(--ink-dim); opacity:1; }
@@ -25,7 +25,7 @@
 .word-live details>summary { min-height:44px; padding:10px 0; font:700 17px/1.4 var(--font-body); color:var(--ink-dim); cursor:pointer; }
 .word-live details p { margin:8px 0 16px; }
 
-@media (max-width:600px) { .word-live { padding:12px 0 22px; }#gbody .word-live h3 { font-size:26px; }.word-live .row>input { flex-basis:100%; } }
+@container game (max-width:600px) { .word-live { padding:12px 0 22px; }#gbody .word-live h3 { font-size:26px; }.word-live .row>input { flex-basis:100%; } }
 @media (prefers-reduced-motion:reduce) { .word-live *, .word-live *::before, .word-live *::after { animation:none!important; transition:none!important; scroll-behavior:auto!important; } }
 
 /* ==========================================================================
@@ -37,7 +37,7 @@
  * so nothing jumps between phases.
  * ========================================================================== */
 .wg { padding: 4px 0 20px; color: var(--ink); font: 400 17px/1.45 var(--font-body); overflow-wrap: anywhere; }
-.wg.gk-final { padding: clamp(16px, 4vh, 40px) 0 8px; }
+.wg.gk-final { padding: clamp(16px, 4cqh, 40px) 0 8px; }
 .wg *, .wg *::before, .wg *::after { box-sizing: border-box; }
 .wg [hidden] { display: none !important; }
 .wg :is(button, summary) { touch-action: manipulation; }
@@ -113,7 +113,7 @@
 .wg-feed:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
 .wg-feed-empty { margin: 0; padding: 12px 0; color: var(--ink-dim); font: 600 15px/1.5 var(--font-body); }
 
-@media (max-width: 560px) {
+@container game (max-width: 560px) {
   .wg { padding-top: 0; font-size: 16px; }
   .wg-row { grid-template-columns: minmax(0, 1fr) auto; padding: 8px 12px; }
   .wg-row .wg-ans { grid-column: 1 / -1; grid-row: 2; }
@@ -132,9 +132,9 @@
 
 /* Reaction Tap: one large pad; green only when the server says go. */
 .rt .rt-pad {
-  display: grid; place-items: center; width: 100%; min-height: clamp(180px, 34vh, 300px); padding: 20px;
+  display: grid; place-items: center; width: 100%; min-height: clamp(180px, 34cqh, 300px); padding: 20px;
   border: 1px solid var(--line-strong); border-radius: 16px; background: var(--well); color: var(--ink);
-  font: 800 clamp(26px, 4.4vw, 40px)/1.2 var(--font-display); text-align: center; cursor: pointer;
+  font: 800 clamp(26px, 4.4cqw, 40px)/1.2 var(--font-display); text-align: center; cursor: pointer;
   touch-action: manipulation; user-select: none; -webkit-user-select: none;
 }
 .rt .rt-pad.is-go { background: var(--green); border-color: var(--green); color: var(--on-success); }
@@ -146,7 +146,7 @@
 
 /* Typing Race: the sentence, the field, one flat lane per racer. */
 .tr .tr-target {
-  max-height: 9.5em; overflow: auto; font: 600 clamp(19px, 2.4vw, 22px)/1.55 var(--font-body);
+  max-height: 9.5em; overflow: auto; font: 600 clamp(19px, 2.4cqw, 22px)/1.55 var(--font-body);
   color: var(--ink); white-space: pre-wrap; overflow-wrap: anywhere;
 }
 .tr .tr-target .typing-correct { background: color-mix(in srgb, var(--green) 26%, transparent); color: var(--ink); border-radius: 3px; }
@@ -173,7 +173,7 @@
 #gbody .wg.pl-fill > .gk-prompt {
   padding: var(--space-24); text-align: center; background: var(--fam-soft);
   border: var(--outline-w-lg) solid var(--outline); border-radius: var(--radius-xl); box-shadow: var(--shadow-sticker);
-  font: 800 clamp(26px, 3.2vw, 34px)/1.2 var(--font-display);
+  font: 800 clamp(26px, 3.2cqw, 34px)/1.2 var(--font-display);
 }
 #gbody .wg.pl-fill .wg-status { min-height: 24px; text-align: center; color: var(--ink); font: 700 17px/1.4 var(--font-body); }
 #gbody .wg.pl-fill .wg-status:empty { visibility: hidden; }
@@ -190,7 +190,7 @@
 #gbody .mt.pl-fill .mt-obj.is-hit { background: var(--success-soft); box-shadow: var(--shadow-sticker-sm), inset 0 0 0 2px var(--success); }
 #gbody .mt.pl-fill .mt-name { font: 800 17px/1.2 var(--font-display); }
 /* Reaction Tap: the pad is a big sticker button. */
-#gbody .rt.pl-fill .rt-pad { min-height: clamp(200px, 36vh, 340px); border: var(--outline-w-lg) solid var(--outline); border-radius: var(--radius-xl); box-shadow: var(--shadow-sticker-lg); }
+#gbody .rt.pl-fill .rt-pad { min-height: clamp(200px, 36cqh, 340px); border: var(--outline-w-lg) solid var(--outline); border-radius: var(--radius-xl); box-shadow: var(--shadow-sticker-lg); }
 #gbody .rt.pl-fill .rt-pad.is-go { background: var(--success); color: var(--on-success); border-color: var(--outline); }
 #gbody .rt.pl-fill .rt-pad.is-tapped { background: var(--fam-soft); border-color: var(--outline); }
 #gbody .rt.pl-fill .rt-pad.is-fouled { background: var(--danger-soft); border-color: var(--outline); }
@@ -201,7 +201,7 @@
 #gbody .tr.pl-fill .tr-track { height: 20px; border: var(--outline-w) solid var(--outline); border-radius: var(--radius-pill); background: var(--well); }
 #gbody .tr.pl-fill .tr-fill { border-radius: inherit; }
 #gbody .tr.pl-fill .tr-name { font: 800 16px/1.3 var(--font-display); }
-@media (max-width: 560px) {
+@container game (max-width: 560px) {
   #gbody .wg.pl-fill > .gk-prompt { padding: var(--space-16); font-size: 24px; border-radius: var(--radius-lg); }
   #gbody .wg.pl-fill[data-game="trivia"] .gk-choice { min-height: 60px; font-size: 18px; }
   #gbody .mt.pl-fill .mt-tray { padding: var(--space-12); gap: var(--space-8); border-radius: var(--radius-lg); }
@@ -211,7 +211,7 @@
 #gbody .tr.pl-fill .tr-input { min-height: var(--control-h-lg); }
 /* Trivia answers are short: two columns on phones keep the question, all
  * four answers and the strip on one screen. */
-@media (max-width: 560px) {
+@container game (max-width: 560px) {
   #gbody .wg.pl-fill[data-game="trivia"] .gk-choices { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-8); }
   #gbody .wg.pl-fill[data-game="trivia"] .gk-choice { padding: var(--space-8) var(--space-12); gap: var(--space-8); }
 }
@@ -222,7 +222,7 @@
 #gbody .tr.pl-fill .tr-target .typing-correct { background: var(--success-soft); color: var(--ink); }
 #gbody .tr.pl-fill .tr-target .typing-next { outline: 2px solid var(--fam-deep); outline-offset: 1px; }
 /* Memory Tray on phones: shorter tiles keep the tray and the strip on one screen. */
-@media (max-width: 560px) {
+@container game (max-width: 560px) {
   #gbody .mt.pl-fill .mt-obj { min-height: 44px; padding: var(--space-4) var(--space-8); }
   #gbody .mt.pl-fill .mt-obj svg { width: 28px; height: 28px; }
 }

@@ -34,11 +34,11 @@ html[data-theme=night] .ld-game .ld-base,body.is-embed .ld-game .ld-base{fill:#e
 .ld-game .ld-choices button.is-legal{border-color:var(--accent);background:var(--accent-soft)}
 .ld-game .ld-choices button[aria-disabled=true]{cursor:default;opacity:.55}
 .ld-game .ld-dice:focus-visible,.ld-game .ld-choices button:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
-@media (max-width:759px){.ld-game .bk-players{grid-template-columns:repeat(2,minmax(0,1fr))}.ld-game .ld-dock{grid-template-columns:88px minmax(0,1fr)}.ld-game .ld-dice{width:88px;min-height:92px}}
+@container game (max-width:759px) {.ld-game .bk-players{grid-template-columns:repeat(2,minmax(0,1fr))}.ld-game .ld-dock{grid-template-columns:88px minmax(0,1fr)}.ld-game .ld-dice{width:88px;min-height:92px}}
 @media(prefers-reduced-motion:reduce){.ld-game .ld-dice.is-rolling .ld-face,.ld-game .ld-dice.is-ready{animation:none}}
 /* Phones: the die sits right under the board and the board leaves room for it,
  * so Roll is on screen without scrolling. */
-@media (max-width:759px) and (orientation:portrait){.ld-game .bk-extra{order:3}.ld-game .bk-status{order:4;min-height:0}.ld-game .ld-stage.bk-stage{width:min(100%,560px,calc(100svh - 300px));min-width:min(100%,280px)}}
+@container game (max-width:759px) and (orientation:portrait) {.ld-game .bk-extra{order:3}.ld-game .bk-status{order:4;min-height:0}.ld-game .ld-stage.bk-stage{width:min(100%,560px,calc(100cqh - 300px));min-width:min(100%,280px)}}
 /* Toy board and a die tray that explains itself.
  * - The board sits in an ink rim with a hard shadow.
  * - Pawn buttons are real disabled buttons until a move is possible, and a
@@ -64,9 +64,9 @@ html[data-theme=night] .ld-game .ld-base,body.is-embed .ld-game .ld-base{fill:#e
 .ld-game .ld-choices button.is-legal:active{transform:translateY(var(--lift-sm));box-shadow:none}
 .ld-game .ld-dice:focus-visible,.ld-game .ld-choices button:focus-visible{outline:var(--focus-ring);outline-offset:var(--focus-offset)}
 .ld-game .ld-reason{grid-column:1/-1;min-height:1.4em;margin:0;font:var(--text-caption);color:var(--ink-dim)}
-@media (max-width:759px) and (orientation:portrait){
+@container game (max-width:759px) and (orientation:portrait) {
  .ld-game .bk-status{order:1;min-height:0;padding:var(--space-8) var(--space-16)}
- .ld-game .ld-stage.bk-stage{width:min(100%,560px,calc(100svh - 372px))}
+ .ld-game .ld-stage.bk-stage{width:min(100%,560px,calc(100cqh - 372px))}
 }
 /* QC: Ludo's family colour is red, so the turn banner reads as a neutral
  * card. At night the pawn buttons
@@ -90,7 +90,7 @@ body[data-game="ludo"]{background:#f0dcd9}
 /* Portrait play owns the actual game viewport, including the screen bar's
  * deduction. The board gets the free grid row, rather than a svh estimate
  * that pushes Roll below the frame and makes native focus scroll the page. */
-@media (max-width:759px) and (orientation:portrait) {
+@container game (max-width:759px) and (orientation:portrait) {
  .bk-game.ld-game { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); grid-template-rows:var(--space-48) var(--ld-roster-h,var(--space-64)) calc(var(--space-64) + var(--space-24)) auto minmax(0,1fr) auto var(--control-h-sm); gap:var(--space-8); height:var(--game-viewport-height,100dvh); min-height:0; padding:var(--space-12) var(--space-12) max(var(--space-12),env(safe-area-inset-bottom)); }
  .ld-game .bk-head { grid-column:1/-1; grid-row:1; min-height:0; }
  .ld-game .bk-title { font:var(--text-title); }
@@ -99,13 +99,13 @@ body[data-game="ludo"]{background:#f0dcd9}
  #gbody .ld-game .bk-status { grid-column:1/-1; grid-row:3; height:calc(var(--space-64) + var(--space-24)); min-height:calc(var(--space-64) + var(--space-24)); }
  .ld-game .ld-reason { height:auto; min-height:0; flex-shrink:0; }
  .ld-game .bk-timer { grid-column:1/-1; grid-row:4; }
- .ld-game .ld-stage.bk-stage { grid-column:1/-1; grid-row:5; width:auto; height:min(100%,calc(100vw - 2 * var(--space-12))); min-width:0; max-width:100%; max-height:100%; aspect-ratio:1; margin:0; align-self:center; justify-self:center; }
+ .ld-game .ld-stage.bk-stage { grid-column:1/-1; grid-row:5; width:auto; height:min(100%,calc(100cqw - 2 * var(--space-12))); min-width:0; max-width:100%; max-height:100%; aspect-ratio:1; margin:0; align-self:center; justify-self:center; }
  .ld-game .ld-board { width:100%; height:100%; }
  .ld-game .bk-extra { grid-column:1/-1; grid-row:6; }
  .ld-game .bk-actions { grid-column:1; grid-row:7; position:relative; height:var(--control-h-sm); min-height:var(--control-h-sm); }
  .ld-game :is(.bk-row-confirm,.bk-row-offer) { position:absolute; bottom:0; left:0; z-index:40; width:calc(200% + var(--space-8)); padding:var(--space-12); border:var(--outline-w) solid var(--outline); border-radius:var(--radius-lg); background:var(--card); box-shadow:var(--shadow-card); }
  .ld-game .bk-tools { grid-column:2; grid-row:7; position:relative; }
- .ld-game .bk-help-body { position:absolute; bottom:calc(100% + var(--space-8)); right:0; z-index:40; width:calc(200% + var(--space-8)); max-height:50dvh; overflow:auto; padding:var(--space-16); border:var(--outline-w) solid var(--outline); border-radius:var(--radius-lg); background:var(--card); box-shadow:var(--shadow-card); }
+ .ld-game .bk-help-body { position:absolute; bottom:calc(100% + var(--space-8)); right:0; z-index:40; width:calc(200% + var(--space-8)); max-height:50cqh; overflow:auto; padding:var(--space-16); border:var(--outline-w) solid var(--outline); border-radius:var(--radius-lg); background:var(--card); box-shadow:var(--shadow-card); }
 }
 .ld-game .ld-dice.is-ready { background:color-mix(in srgb,var(--fam) 80%,var(--ink)); }
 
@@ -113,6 +113,6 @@ body[data-game="ludo"]{background:#f0dcd9}
 .ld-game .ld-die-lip { fill: #b7996a; }
 .ld-game .ld-dice:active { transform: translateY(var(--lift-sm)); box-shadow: none; }
 
-@media (max-width: 759px) and (orientation: portrait) {
+@container game (max-width: 759px) and (orientation: portrait) {
   .ld-game .bk-head { padding-inline-start: calc(3 * (var(--control-h-sm) + var(--space-8)) + var(--space-8)); }
 }

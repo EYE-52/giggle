@@ -14,7 +14,7 @@ let color = '#111111', size = 7, tool = 'pen';
 let drawing = false, cur = [], pending = [], activeInk = null;
 let gestureId = 0, chunk = 0, sample = 0, previewAt = 0;
 let lastKey = '', revision = 0, visibleStrokes = [], snapshot = null, cueBaseline = null;
-let capturedPointer = null, bound = [], clock = null, feedKey = '', resizeObserver = null;
+let capturedPointer = null, bound = [], clock = null, feedKey = '', resizeObserver = null, resizeFrame = 0;
 /* Night turns the sheet into a chalkboard (doodle-guess.css): the same ink
  * is drawn in chalk tones there, so black reads white and yellow stays bright.
  * Only the local rendering changes; strokes still carry the palette colour. */
@@ -50,6 +50,7 @@ function unbindAll() {
   for (const [target, type, fn, opts] of bound) target.removeEventListener(type, fn, opts);
   bound = [];
   resizeObserver?.disconnect(); resizeObserver = null;
+  if (resizeFrame) cancelAnimationFrame(resizeFrame); resizeFrame = 0;
   if (clock !== null) clearInterval(clock);
   clock = null;
 }
@@ -225,7 +226,7 @@ export default {
         el.innerHTML = `<div class="sk sk-doodle dg ck dg-live" data-family="create">
           <div class="dg-stage"><section class="dg-drawing" aria-label="Shared drawing">${headerHtml(S)}
           <div class="dg-view-controls"><div class="dg-artist gk-meta">${S.spectator ? '<span class="dg-watching">Watching</span> · ' : ''}${artist ? 'You are drawing' : `${esc(nameOf(S, S.drawer))} ${S.phase === 'draw' ? 'is drawing' : 'drew this'}`}</div><div class="dg-view-actions"><button type="button" class="gk-btn" id="dGuesses" data-watchok aria-expanded="true" aria-controls="dChat">Guesses</button><button type="button" class="gk-btn" id="dFocus" data-watchok aria-pressed="false" aria-label="Focus canvas">Focus</button>${artist ? '<button type="button" class="gk-btn" id="dTools" aria-expanded="true" aria-controls="dToolsRail" hidden>Tools</button>' : ''}</div></div>
-            <div class="dg-easel"><span class="dg-easel-cap" aria-hidden="true"></span><div class="dg-frame"><div class="sk-canvaswrap"><canvas class="doodle" id="dCanvas" data-drawable="${artist}" width="880" height="520" tabindex="0" aria-label="${artist ? 'Your drawing canvas' : 'Drawing to guess'}"></canvas>${S.phase === 'draw' && !artist ? `<p class="dg-canvas-empty" aria-hidden="true"><b>${esc(nameOf(S, S.drawer))} is drawing…</b><span>Lines appear here</span></p>` : ''}</div></div>
+            <div class="dg-easel"><span class="dg-easel-cap" aria-hidden="true"></span><div class="dg-frame"><div class="sk-canvaswrap"><canvas class="doodle" id="dCanvas" data-drawable="${artist}" width="880" height="880" tabindex="0" aria-label="${artist ? 'Your drawing canvas' : 'Drawing to guess'}"></canvas>${S.phase === 'draw' && !artist ? `<p class="dg-canvas-empty" aria-hidden="true"><b>${esc(nameOf(S, S.drawer))} is drawing…</b><span>Lines appear here</span></p>` : ''}</div></div>
             <div class="dg-zoom" aria-label="Canvas view"><button type="button" id="dPan" data-watchok aria-pressed="false">Pan</button><button type="button" id="dZoomOut" data-watchok aria-label="Zoom out">−</button><span id="dZoomValue">100%</span><button type="button" id="dZoomIn" data-watchok aria-label="Zoom in">+</button><button type="button" id="dFit" data-watchok>Fit</button></div>${artist ? toolsHtml() : `<div class="dg-shelf">${S.phase === 'reveal' ? 'Round finished. See the points in Guesses.' : S.spectator ? 'Watch the sketch and the room’s guesses.' : 'See it? Make your guess in the room panel.'}</div>`}</div>
           </section><aside class="dg-chat" id="dChat" aria-label="Room guesses"><ol class="dg-roster" aria-label="Players and scores">${rosterHtml(S)}</ol><div class="dg-chat-head"><b>Guesses</b><span class="sk-outcomes" aria-label="Correct guesses">${outcomesHtml(S)}</span></div>
             <ol id="dFeed" class="dg-feed" role="log" aria-live="polite" aria-relevant="additions">${feedHtml(S)}</ol>
@@ -255,9 +256,9 @@ function wire(el, api) {
   const toolsButton = el.querySelector('#dTools');
   const toolsRail = el.querySelector('.dg-tools');
   if (toolsRail) toolsRail.id = 'dToolsRail';
-  let focused = false, zoom = 1, panX = 0, panY = 0, hand = false, panStart = null;
+  let chatChosen = false, focused = false, zoom = 1, panX = 0, panY = 0, hand = false, panStart = null;
   const viewport = cv?.closest('.sk-canvaswrap');
-  if (isArtist(snapshot) && typeof matchMedia === 'function' && matchMedia('(max-width:700px)').matches) {
+  if (isArtist(snapshot) && el.getBoundingClientRect?.().width <= 700) {
     scene.classList.add('is-chat-collapsed');
     el.querySelector('#dGuesses').setAttribute('aria-expanded', 'false');
   }
@@ -268,14 +269,14 @@ function wire(el, api) {
     // When the frame is wider or taller than the paper, the paper keeps an
     // even desk margin and sits centred; a frame cut to the paper's shape
     // (phones) is filled edge to edge.
-    const banded = Math.abs(r.width / r.height - 880 / 520) > 0.04;
+    const banded = Math.abs(r.width / r.height - 880 / cv.height) > 0.04;
     // When height limits the paper, the side bands already frame it: spend no
     // height on a margin there, so the drawing surface stays as large as it can.
-    const heightBound = r.width / r.height > 880 / 520;
+    const heightBound = r.width / r.height > 880 / cv.height;
     // A thin even margin keeps the paper's outline visible on all four sides.
     const margin = zoom > 1 || !banded ? 0 : heightBound ? Math.min(8, r.height * 0.03) : Math.min(16, r.width * 0.03, r.height * 0.04);
-    const scale = Math.min((r.width - 2 * margin) / 880, (r.height - 2 * margin) / 520) * zoom;
-    const width = 880 * scale, height = 520 * scale;
+    const scale = Math.min((r.width - 2 * margin) / cv.width, (r.height - 2 * margin) / cv.height) * zoom;
+    const width = cv.width * scale, height = cv.height * scale;
     panX = Math.max(-Math.max(0, (width - r.width) / 2), Math.min(Math.max(0, (width - r.width) / 2), panX));
     panY = Math.max(-Math.max(0, (height - r.height) / 2), Math.min(Math.max(0, (height - r.height) / 2), panY));
     cv.setAttribute('style', `width:${width}px;height:${height}px;left:50%;top:50%;transform:translate(calc(-50% + ${panX}px),calc(-50% + ${panY}px));cursor:${hand ? 'grab' : isArtist(snapshot) ? 'crosshair' : zoom > 1 ? 'grab' : 'default'}`);
@@ -291,6 +292,7 @@ function wire(el, api) {
   on(el.querySelector('#dFit'), 'click', () => { up(); zoom = 1; panX = panY = 0; hand = false; syncView(); });
   on(el.querySelector('#dPan'), 'click', () => { up(); hand = !hand; syncView(); });
   on(el.querySelector('#dGuesses'), 'click', event => {
+    chatChosen = true;
     const hidden = scene.classList.toggle('is-chat-collapsed');
     el.querySelector('#dGuesses').setAttribute('aria-expanded', String(!hidden));
   });
@@ -299,7 +301,7 @@ function wire(el, api) {
     // Focus uses the same node and normalized drawing coordinate space.
     if (drawing) up();
     focused = active;
-    zoom = active && typeof matchMedia === 'function' && matchMedia('(max-width:600px)').matches ? 3 : 1; panX = panY = 0;
+    zoom = 1; panX = panY = 0;
     scene.classList.toggle('is-canvas-focused', active);
     scene.classList.toggle('is-tools-collapsed', active && !!toolsRail);
     focusButton.textContent = active ? 'Exit' : 'Focus';
@@ -452,8 +454,15 @@ function wire(el, api) {
     on(cv, 'touchstart', down, { passive: false }); on(cv, 'touchmove', move, { passive: false });
     on(target, 'touchend', up); on(target, 'touchcancel', up);
   }
-  on(target, 'resize', () => { up(); syncView(); });
-  if (typeof ResizeObserver === 'function' && viewport) { const observer = new ResizeObserver(() => { if (resizeObserver !== observer) return; up(); syncView(); }); resizeObserver = observer; observer.observe(viewport); }
+  const resizeView = () => { if (!resizeFrame) resizeFrame = requestAnimationFrame(() => { resizeFrame = 0; up();
+    if (!chatChosen && isArtist(snapshot)) {
+      const collapsed = el.getBoundingClientRect().width <= 700;
+      scene.classList.toggle('is-chat-collapsed', collapsed);
+      el.querySelector('#dGuesses').setAttribute('aria-expanded', String(!collapsed));
+    }
+    syncView(); }); };
+  on(target, 'resize', resizeView);
+  if (typeof ResizeObserver === 'function' && viewport) { const observer = new ResizeObserver(() => { if (resizeObserver === observer) resizeView(); }); resizeObserver = observer; observer.observe(viewport); observer.observe(el); }
   on(cv, 'keydown', event => {
     const shifts = { ArrowLeft: [44, 0], ArrowRight: [-44, 0], ArrowUp: [0, 44], ArrowDown: [0, -44] };
     if (zoom > 1 && shifts[event.key]) { event.preventDefault(); up(); panX += shifts[event.key][0]; panY += shifts[event.key][1]; syncView(); }
