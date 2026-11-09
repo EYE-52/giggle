@@ -1,6 +1,7 @@
 /* The five new boards use the existing board panel and HUD clock. Each game
  * supplies its own art and short status model. All mutable UI state is local
  * to a mount, so rematches and separate practice frames cannot share caches. */
+import { motionClock, motionReduced, diceSVG, diceTrack, DICE_MS } from './board-motion.js';
 import { esc, nameOf } from '../util.js';
 import { syncHudTimer, stopHudTimer } from '../kit.js';
 import { bkPanelHTML, bkPaint, bkClick, bkDispose, bkDrawState, bkRank, bkHeadline, bkHost } from './board-kit.js';
@@ -11,17 +12,14 @@ export const b5Can = S => S.phase === 'play' && !S.preparing && !S.spectator && 
   S.youAre === S.turn && !S.out.includes(S.seats[S.youAre]) && !S.finished?.includes(S.seats[S.youAre]);
 export const b5Chip = i => `<span class="b5-token b5-seat-${i}" aria-hidden="true">${i + 1}</span>`;
 
-export function b5Die(value, animate = false) {
-  const dots = { 1: [4], 2: [0, 8], 3: [0, 4, 8], 4: [0, 2, 6, 8], 5: [0, 2, 4, 6, 8], 6: [0, 2, 3, 5, 6, 8] }[value || 1];
-  return `<div class="b5-die${animate ? ' is-rolling' : ''}" role="img" aria-label="Die: ${value || 'not rolled'}">${Array.from({ length: 9 }, (_, i) => `<i${dots.includes(i) ? ' class="is-pip"' : ''}></i>`).join('')}</div>`;
-}
+export const b5Die = value => diceSVG(value);
 
 export function createBatch5View(config) {
   function draw(el, c, animate = false) {
     const stage = el.querySelector('.b5-playfield');
     const focused = document.activeElement?.closest?.('[data-cell],[data-edge]');
     const focusId = focused && stage.contains(focused) ? focused.id : null;
-    stage.innerHTML = config.board(c.S, animate);
+    stage.innerHTML = config.board(c.S.preparing && c.released ? c.released : c.S, animate);
     for (const target of stage.querySelectorAll('[data-cell],[data-edge]')) {
       target.setAttribute('tabindex', Number(target.dataset.cell ?? target.dataset.edge) === c.cursor ? '0' : '-1');
     }
@@ -44,10 +42,10 @@ export function createBatch5View(config) {
         S.preparing ? 'Getting the table ready…' : c.pending ? 'Sending your move…' : c.retry ? 'Move not confirmed. Try again.' :
           b5Can(S) ? b5Text(S, 'yourTurn') : b5Text(S, 'waiting', { name: nameOf(S, S.seats[S.turn]) }),
       hint: S.spectator || S.youAre === null ? 'Watching this table' : config.hint(S),
-      done, player: !!me && !S.out.includes(me) && !S.finished?.includes(me), busy: c.pending || !!S.preparing,
+      done, player: !!me && !S.out.includes(me) && !S.finished?.includes(me), busy: c.pending || c.animating || !!S.preparing,
       draw: S.seats.length === 2, actions: true, armed: c.armed,
       drawOffer: bkDrawState(S, me), drawBlocked: S.drawBlocked === me,
-      final: done ? {
+      final: done && !c.animating ? {
         headline: winners.length ? bkHeadline(winners.map(pid => nameOf(S, pid))) : 'Game ended',
         detail: [detail, winners.length > 1 ? winners.map(pid => nameOf(S, pid)).join(' · ') : ''].filter(Boolean).join(' '),
         rows: bkRank(S.seats.map((pid, i) => ({ name: nameOf(S, pid), points: S.scores[pid] || 0, you: pid === me, order: i }))),
@@ -67,8 +65,8 @@ export function createBatch5View(config) {
     const reason = el.querySelector('.b5-action-reason');
     reason.textContent = c.pending ? 'Sending your move…' : S.drawOffer === me ? 'Waiting for the draw reply' :
       S.drawBlocked === me ? 'Play a move before offering again' : '';
-    config.paint?.(el, S, c.pending);
-    const can = b5Can(S) && !c.pending;
+    config.paint?.(el, S, c.pending, c.animating);
+    const can = b5Can(S) && !c.pending && !c.animating;
     for (const target of el.querySelectorAll('[data-cell],[data-edge]')) {
       const value = Number(target.dataset.cell ?? target.dataset.edge);
       target.setAttribute('aria-disabled', String(!can || !S.legal.includes(value)));
@@ -80,7 +78,7 @@ export function createBatch5View(config) {
 
   function send(el, c, action) {
     const S = c.S;
-    if (c.pending || S.preparing || S.phase !== 'play' || S.spectator || S.youAre === null ||
+    if (c.pending || c.animating || S.preparing || S.phase !== 'play' || S.spectator || S.youAre === null ||
         S.out.includes(S.seats[S.youAre]) || S.finished?.includes(S.seats[S.youAre])) return;
     c.pending = true; c.retry = false; c.armed = false;
     clearTimeout(c.pendingTimer);
@@ -98,7 +96,7 @@ export function createBatch5View(config) {
     mount(el) {
       // game-host loads styles in the declared order. Appending another copy
       // of board-duels here would put its phone defaults after our layout.
-      const c = el._b5 = { bound: [], pending: false, retry: false, armed: false, rev: -1, cursor: 0 };
+      const c = el._b5 = { motion: motionClock(), animating: false, bound: [], pending: false, retry: false, armed: false, rev: -1, cursor: 0 };
       el.innerHTML = `<section class="bk-game b5-game ${config.prefix}" data-family="board" aria-label="${esc(config.title)}">
         <div class="b5-hud gk-hud"><span class="b5-hud-label"></span><span class="b5-hud-turn"></span><span class="gk-hud-timer" aria-hidden="true"></span></div>
         <div class="bk-stage b5-playfield"></div>
@@ -141,10 +139,12 @@ export function createBatch5View(config) {
       if (!c || (c.instance && c.instance !== S.instanceId)) { this.dispose(el); this.mount(el); }
       const state = el._b5, previous = state.S;
       if (previous && previous.instanceId === S.instanceId && S.rev < state.rev) return;
+      if (S.audioBaseline) state.resultsPending = false;
       state.S = S; state.api = api; state.instance = S.instanceId;
       const changed = state.rev !== S.rev || previous?.youAre !== S.youAre || previous?.spectator !== S.spectator;
-      const animate = !!previous && S.rev > (state.releasedRev ?? -1) && !S.audioBaseline && !S.preparing && S.lastMove?.rev === S.rev;
-      if (changed || animate) {
+      const animate = !!previous && previous.youAre === S.youAre && previous.spectator === S.spectator && S.rev === (state.releasedRev ?? -1) + 1 && !S.audioBaseline && !S.preparing && S.lastMove?.rev === S.rev;
+      if (changed || animate || S.audioBaseline) {
+        state.motion.stop(); state.animating = false;
         clearTimeout(state.pendingTimer); state.pending = false; state.retry = false; state.armed = false;
         draw(el, state, animate);
         if (animate) api.cue?.(S.lastMove?.die ? 'dice' : 'piece', { id: `${S.instanceId}:${S.rev}` });
@@ -154,14 +154,32 @@ export function createBatch5View(config) {
         help.innerHTML = (S.strings?.help || []).map(t => `<p>${esc(t)}</p>`).join('');
         help.dataset.ready = S.instanceId;
       }
+      if (S.phase === 'done' && previous?.phase === 'play' && !S.audioBaseline) state.resultsPending = true;
+      state.animating = state.animating || (animate && !!S.lastMove?.die);
       paint(el, state);
-      if (S.phase === 'done' && previous?.phase === 'play' && !S.audioBaseline) api.resultsReady?.(S.instanceId);
+      if (!state.animating || motionReduced()) diceTrack(el, S.die)(DICE_MS);
+      const settle = () => {
+        state.animating = false;
+        paint(el, state);
+        if (state.resultsPending) { state.resultsPending = false; api.resultsReady?.(S.instanceId); }
+      };
+      if (animate && S.lastMove?.die) {
+        const reduced = motionReduced(), die = diceTrack(el, S.die);
+        const trail = !reduced && config.motion?.(el, S);
+        const duration = reduced ? 120 : Math.max(DICE_MS, trail?.duration || 0);
+        const svg = el.querySelector(`[data-sl-pawn="${S.lastMove.side}"]`)?.querySelector('.sl-pawn-motion') || el.querySelector('.bm-die-body');
+        state.motion.play(duration, ms => {
+          if (reduced) { svg?.setAttribute('opacity', String(.55 + .45 * ms / duration)); return; }
+          die(ms); trail?.frame(ms);
+        }, () => { trail?.finish?.(); settle(); });
+      } else if (!state.animating && state.resultsPending) settle();
       state.rev = S.rev;
-      if (!S.preparing || S.audioBaseline) state.releasedRev = S.rev;
+      if (!S.preparing || S.audioBaseline) { state.releasedRev = S.rev; state.released = S; }
     },
     dispose(el) {
       const c = el?._b5;
       if (c) {
+        c.motion.stop();
         clearTimeout(c.pendingTimer);
         c.bound.forEach(([type, fn]) => el.removeEventListener(type, fn));
         bkDispose(el); stopHudTimer(el); delete el._b5;

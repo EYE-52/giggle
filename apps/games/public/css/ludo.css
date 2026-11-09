@@ -19,17 +19,15 @@ html[data-theme=night] .ld-game .ld-base,body.is-embed .ld-game .ld-base{fill:#e
 .ld-game .ld-glow{fill:#ffffff;fill-opacity:.75;stroke:var(--accent);stroke-width:4}
 .ld-game .ld-dock{display:grid;grid-template-columns:96px minmax(0,1fr);gap:10px;align-items:stretch}
 .ld-game .ld-dice{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:var(--space-4);width:96px;min-height:96px;padding:var(--space-8);border:var(--outline-w) solid var(--line-strong);border-radius:var(--radius-lg);background:var(--card);color:var(--ink-dim);font:inherit;cursor:pointer;touch-action:manipulation;transition:transform var(--dur-quick) var(--ease)}
-.ld-game .ld-dice.is-ready{border-color:var(--outline);background:var(--fam);color:var(--on-fam);box-shadow:var(--shadow-sticker);animation:ld-nudge 1.6s var(--ease) infinite}
+.ld-game .ld-dice.is-ready{border-color:var(--outline);background:var(--fam);color:var(--on-fam);box-shadow:var(--shadow-sticker)}
 .ld-game .ld-dice.is-ready:active{transform:translateY(var(--lift));box-shadow:none;animation:none}
-@keyframes ld-nudge{0%,70%,100%{transform:none}80%{transform:translateY(-4px) rotate(-4deg)}90%{transform:translateY(-2px) rotate(3deg)}}
 .ld-game .ld-dice:disabled,.ld-game .ld-dice[aria-disabled=true]{cursor:default}
 .ld-game .ld-face{display:block;width:52px;height:52px}
 .ld-game .ld-face svg{width:100%;height:100%}
 .ld-game .ld-die-face{fill:#ffffff;stroke:#c9c6bb;stroke-width:2}
 .ld-game .ld-pip{fill:#23252b}
 .ld-game .ld-roll-label{font:var(--text-button-sm)}
-.ld-game .ld-dice.is-rolling .ld-face{animation:ld-roll .55s ease-out both}
-@keyframes ld-roll{0%{transform:rotate(0) scale(1)}40%{transform:rotate(200deg) scale(.85)}100%{transform:rotate(360deg) scale(1)}}
+
 .ld-game .ld-choices{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
 .ld-game .ld-choices button{display:flex;align-items:center;justify-content:center;gap:4px;min-width:44px;min-height:44px;padding:2px 6px;border:1px solid var(--line);border-radius:10px;background:var(--card);color:var(--ink);font:700 14px/1.2 var(--font-body);cursor:pointer}
 .ld-game .ld-choices svg{width:30px;height:30px;overflow:visible;flex:none}
@@ -110,3 +108,11 @@ body[data-game="ludo"]{background:#f0dcd9}
  .ld-game .bk-help-body { position:absolute; bottom:calc(100% + var(--space-8)); right:0; z-index:40; width:calc(200% + var(--space-8)); max-height:50dvh; overflow:auto; padding:var(--space-16); border:var(--outline-w) solid var(--outline); border-radius:var(--radius-lg); background:var(--card); box-shadow:var(--shadow-card); }
 }
 .ld-game .ld-dice.is-ready { background:color-mix(in srgb,var(--fam) 80%,var(--ink)); }
+
+/* The die tumbles inside its SVG; the tray and its label stay still. */
+.ld-game .ld-die-lip { fill: #b7996a; }
+.ld-game .ld-dice:active { transform: translateY(var(--lift-sm)); box-shadow: none; }
+
+@media (max-width: 759px) and (orientation: portrait) {
+  .ld-game .bk-head { padding-inline-start: calc(3 * (var(--control-h-sm) + var(--space-8)) + var(--space-8)); }
+}

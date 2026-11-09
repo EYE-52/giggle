@@ -31,16 +31,17 @@ function rig(game,{reduced=false}={}){
  const document={activeElement:null,createElement(tag){return new Node(tag,this)},getElementById(id){return this.root.querySelector('#'+id)}};
  document.root=new Node('document',document);document.head=document.root.appendChild(new Node('head',document));document.body=document.root.appendChild(new Node('body',document));document.activeElement=document.body;
  const el=document.body.appendChild(new Node('main',document)),roomButton=document.body.appendChild(new Node('button',document,{id:'room'}));
- const timers=new Map(),sent=[],ready=[],rooms=[],cues=[];let sequence=0,clock=0,host=true,roomActionPending=false;
+ const frames=new Map(),timers=new Map(),sent=[],ready=[],rooms=[],cues=[];let sequence=0,clock=0,host=true,roomActionPending=false;
  const api={cue:(name,options)=>cues.push({name,...options}),context:()=>({isHost:host,roomActionPending}),focus:n=>n?.focus(),send:a=>sent.push(a),resultsReady:i=>ready.push(i),rematch:()=>rooms.push('rematch'),lobby:()=>rooms.push('lobby')};
- const context=vm.createContext({document,esc:s=>String(s),nameOf:(S,pid)=>S.players.find(p=>p.id===pid)?.name||'?',matchMedia:()=>({matches:reduced}),setTimeout(fn,ms){const n=++sequence;timers.set(n,{fn,ms,at:clock+ms});return n},clearTimeout(n){timers.delete(n)}});
+ const context=vm.createContext({document,performance:{now:()=>clock},requestAnimationFrame(fn){const n=++sequence;frames.set(n,fn);return n},cancelAnimationFrame(n){frames.delete(n)},esc:s=>String(s),nameOf:(S,pid)=>S.players.find(p=>p.id===pid)?.name||'?',matchMedia:()=>({matches:reduced}),setTimeout(fn,ms){const n=++sequence;timers.set(n,{fn,ms,at:clock+ms});return n},clearTimeout(n){timers.delete(n)}});
+ vm.runInContext(fs.readFileSync(path.join(__dirname,'../public/js/games/board-motion.js'),'utf8').replace(/^export /gm,''),context);
  const kit=path.join(__dirname,'../public/js/games/board-kit.js');vm.runInContext(fs.readFileSync(kit,'utf8').replace(/^export /gm,''),context,{filename:kit});const file=path.join(__dirname,'../public/js/games/'+game+'.js');vm.runInContext(fs.readFileSync(file,'utf8').replace(/^import[^;]+;\s*/gm,'').replace('export default','globalThis.view='),context,{filename:file});
  const def=require('../games/'+game+'/server'),awards=[],ctx={allPlayers:()=>[{id:'a',name:'Anika'},{id:'b',name:'Bastian'}],award:(...a)=>awards.push(a)};let state=def.create(ctx);
  const S=(pid='a',instance='one')=>({...def.view(state,pid),players:ctx.allPlayers(),me:pid,spectator:!state.seats.includes(pid),instanceId:instance});
  function render(pid='a',instance='one'){const snapshot=S(pid,instance);ok(!('hostId' in snapshot));context.view.render(el,snapshot,api);return snapshot;}
  function action(a,pid=state.seats[state.turn]){def.onAction(state,ctx,pid,{...a,rev:def.view(state,pid).actionRev??state.rev});}
- function advance(ms){clock+=ms;for(const [n,t]of [...timers])if(t.at<=clock){timers.delete(n);t.fn();}}
- return {game,el,document,roomButton,api,view:context.view,sent,ready,rooms,cues,timers,def,ctx,awards,S,render,action,advance,setHost(v){host=v},setRoomPending(v){roomActionPending=v},get state(){return state},setState(s){state=s}};
+ function advance(ms){clock+=ms;for(const [n,fn]of [...frames]){frames.delete(n);fn(clock);}for(const [n,t]of [...timers])if(t.at<=clock){timers.delete(n);t.fn();}}
+ return {game,frames:game==='ludo'?frames:undefined,el,document,roomButton,api,view:context.view,sent,ready,rooms,cues,timers,def,ctx,awards,S,render,action,advance,setHost(v){host=v},setRoomPending(v){roomActionPending=v},get state(){return state},setState(s){state=s}};
 }
 function main(){
 for(const game of ['ludo','fleet-duel']){
@@ -76,29 +77,32 @@ for(const game of ['ludo','fleet-duel']){
 for(const reduced of [false,true])for(const die of [1,2,3,4,5,6]){
  const r=rig('ludo',{reduced});r.state.pawns[0][0]=10;r.render();r.el.querySelector('[data-roll]').dispatch('click');eq(r.sent.length,1);eq(r.el._ludo.dieShown,1,'pending roll invents no result');
  const crypto=require('node:crypto'),original=crypto.randomInt;try{crypto.randomInt=()=>die;r.action(r.sent[0],'a');}finally{crypto.randomInt=original;}r.render();eq(r.el._ludo.dieShown,die,'cube pose uses only authoritative die');
- if(!reduced){ok(r.el._ludo.settling&&r.el._ludo.rolling);ok(r.el.querySelector('.bk-status').textContent.includes('Rolling'));eq(r.el.querySelector('[data-choice="0"]').getAttribute('aria-disabled'),'true');r.el.querySelector('[data-choice="0"]').dispatch('click');eq(r.sent.length,1,'pawn choice blocked during die tumble');r.render();eq(r.timers.size,1,'duplicate snapshot does not restart die settlement');r.roomButton.focus();r.advance(549);ok(r.el._ludo.settling);r.advance(1);eq(r.document.activeElement,r.roomButton,'die settlement preserves Room focus');}
+ if(!reduced){ok(r.el._ludo.settling&&r.el._ludo.rolling);ok(r.el.querySelector('.bk-status').textContent.includes('Rolling'));eq(r.el.querySelector('[data-choice="0"]').getAttribute('aria-disabled'),'true');r.el.querySelector('[data-choice="0"]').dispatch('click');eq(r.sent.length,1,'pawn choice blocked during die tumble');r.render();eq(r.frames.size,1,'duplicate snapshot does not restart die settlement');r.roomButton.focus();r.advance(549);ok(r.el._ludo.settling);r.advance(1);eq(r.document.activeElement,r.roomButton,'die settlement preserves Room focus');}
  ok(!r.el._ludo.settling&&!r.el._ludo.rolling,'reduced motion or settled roll is stable');eq(r.el.querySelector('.ld-roll-label').textContent,'Move','die affordance names pawn-choice phase');ok(r.el.querySelector('[data-roll]').getAttribute('aria-label').includes(`Die shows ${die}`),'die accessible value follows authority');eq(r.el.querySelector('[data-choice="0"]').getAttribute('aria-disabled'),'false');r.el.querySelector('[data-choice="0"]').dispatch('click');eq(r.sent.length,2,'selection becomes usable only after settlement');r.view.dispose(r.el);eq(r.timers.size,0);
 }
 {
- const r=rig('ludo');r.render();r.state.phase='move';r.state.die=6;r.state.rev=1;r.state.lastMove={kind:'roll',die:6,side:0,rev:1};r.render();const retired=[...r.timers.values()][0].fn;r.setState(r.def.create(r.ctx));r.render('a','fresh');eq(r.timers.size,0,'new instance cancels die tumble');retired();ok(!r.el._ludo.rolling&&!r.el._ludo.settling,'retired die callback cannot mutate new game');
+ const r=rig('ludo');r.render();r.state.phase='move';r.state.die=6;r.state.rev=1;r.state.lastMove={kind:'roll',die:6,side:0,rev:1};r.render();const retired=[...r.frames.values()][0];r.setState(r.def.create(r.ctx));r.render('a','fresh');eq(r.frames.size,0,'new instance cancels die tumble');retired();ok(!r.el._ludo.rolling&&!r.el._ludo.settling,'retired die callback cannot mutate new game');
  const reconnect=rig('ludo');reconnect.setState({...r.state,phase:'move',die:6,rev:1,lastMove:{kind:'roll',die:6,side:0,rev:1}});reconnect.render();ok(!reconnect.el._ludo.rolling&&!reconnect.el._ludo.settling,'same roll on first reconnect mount does not tumble again');eq(reconnect.el._ludo.dieShown,6);eq(reconnect.timers.size,0);
 }
 for(const game of ['ludo','fleet-duel'])for(const reduced of [false,true]){
  const r=rig(game,{reduced});r.render();
  if(game==='ludo'){r.state.pawns[0]=[56,56,56,55];r.state.phase='move';r.state.die=1;r.state.rev++;r.render();r.action({move:3});}
  else{r.action({auto:true},'a');r.action({auto:true},'b');r.action({ready:true},'a');r.action({ready:true},'b');r.render();const fleet=r.state.fleets[1];for(let ship=0;ship<5;ship++)for(let i=0;i<[5,4,3,3,2][ship];i++)r.state.shots[0][fleet[ship].at+i*(fleet[ship].vertical?10:1)]=2;const last=fleet[4].at;r.state.shots[0][last]=0;r.action({fire:last},'a');}
- r.render();if(!reduced){eq(r.ready,[],'final animation delays result');ok(r.el.querySelector('.bk-final').hidden);r.render();eq(r.timers.size,1,'duplicate done keeps one settlement');r.advance(700);}eq(r.ready,['one'],'result presentation fires once after settlement');ok(!r.el.querySelector('.bk-final').hidden);r.render();r.advance(5000);eq(r.ready,['one']);eq(r.awards.length,game==='ludo'?2:1,'authority awarded once (Ludo also places second)');
+ r.render();if(!reduced){eq(r.ready,[],'final animation delays result');ok(r.el.querySelector('.bk-final').hidden);r.render();eq((game==='ludo'?r.frames:r.timers).size,1,'duplicate done keeps one settlement');r.advance(700);}eq(r.ready,['one'],'result presentation fires once after settlement');ok(!r.el.querySelector('.bk-final').hidden);r.render();r.advance(5000);eq(r.ready,['one']);eq(r.awards.length,game==='ludo'?2:1,'authority awarded once (Ludo also places second)');
 }
 {
  const r=rig('ludo');r.render();r.action({roll:true});r.render();eq(r.cues,[],'die remains quiet until its actual face settles');
- const timer=[...r.timers.keys()][0];r.advance(300);r.render();eq([...r.timers.keys()],[timer],'mid-roll heartbeat cannot extend the deadline');r.advance(249);eq(r.cues,[]);r.advance(1);eq(r.cues.map(c=>c.name),['dice']);r.render();r.advance(3000);eq(r.cues.length,1,'accepted die face has one cue');
+ const timer=[...r.frames.keys()][0];r.advance(300);const running=[...r.frames.keys()];r.render();eq([...r.frames.keys()],running,'mid-roll heartbeat cannot extend the deadline');r.advance(249);eq(r.cues,[]);r.advance(1);eq(r.cues.map(c=>c.name),['dice']);r.render();r.advance(3000);eq(r.cues.length,1,'accepted die face has one cue');
  const q=rig('ludo');q.render();q.action({roll:true});q.render();q.view.render(q.el,{...q.S(),audioBaseline:true},q.api);q.advance(550);eq(q.cues,[],'reconnect during tumble cancels delayed die sound');
 }
 {
  // This declared unit position supplies one legal, authoritative capture.
  const r=rig('ludo');r.state.phase='move';r.state.die=1;r.state.pawns[0][0]=5;r.state.pawns[1][0]=32;r.render();r.action({move:0});r.render();eq(r.state.lastMove.captured.length,1,'authority actually captured a pawn');
- const actor=r.el.querySelector('#ld-pawn-0-0'),victim=r.el.querySelector('#ld-pawn-1-0'),motion=victim.querySelector('animateMotion');ok(motion,'captured pawn returns to its actual yard');eq(motion.getAttribute('keyTimes'),'0;.68;1','victim stays at the landing until the mover arrives');
- const coords=n=>n.getAttribute('transform').match(/translate\(([-.\d]+) ([-.\d]+)\)/).slice(1).map(Number),a=coords(actor),b=coords(victim),start=motion.getAttribute('values').split(';')[0].split(',').map(Number);ok(Math.abs(start[0]+b[0]-a[0])<1e-8&&Math.abs(start[1]+b[1]-a[1])<1e-8,'capture return starts at the real landing square');
+ const actor=r.el.querySelector('#ld-pawn-0-0'),victim=r.el.querySelector('#ld-pawn-1-0');
+ const track=r.el._ludo.tracks.find(t=>t.captured);ok(track,'captured pawn returns to its actual yard');
+ const coords=n=>n.getAttribute('transform').match(/translate\(([-.\d]+) ([-.\d]+)\)/).slice(1).map(Number),a=coords(actor),b=coords(victim);
+ const moving=victim.querySelector('.ld-pawn-motion').getAttribute('transform').match(/translate\(([-.\d]+) ([-.\d]+)\)/).slice(1).map(Number);
+ ok(Math.abs(moving[0]+b[0]-a[0])<1e-8&&Math.abs(moving[1]+b[1]-a[1])<1e-8,'capture return starts at the real landing square');
  r.advance(550);ok(r.el._ludo.settling,'capture return stays locked after actor landing');eq(r.cues,[]);r.advance(210);ok(!r.el._ludo.settling);eq(r.cues.map(c=>c.name),['capture']);r.render();eq(r.cues.length,1);
 }
 {
@@ -107,8 +111,8 @@ for(const game of ['ludo','fleet-duel'])for(const reduced of [false,true]){
  r.el.querySelector('[data-tab="own"]').dispatch('click');r.el.querySelector('[data-square="99"]').dispatch('click');ok(r.el.querySelector('.fl-impact'),'view actions cannot erase an active impact');const timer=[...r.timers.keys()][0];r.advance(200);r.render();eq([...r.timers.keys()],[timer],'mid-impact heartbeat preserves completion time');r.advance(500);eq(r.cues.length,2,'shot sound does not replay at settlement or heartbeat');r.view.dispose(r.el);
 }
 for(const game of ['ludo','fleet-duel']){
- const r=rig(game),key=game==='ludo'?'_ludo':'_fleet';r.render();if(game==='fleet-duel'){r.action({auto:true},'a');r.action({auto:true},'b');r.action({ready:true},'a');r.action({ready:true},'b');r.render();r.action({fire:0},'a')}else r.action({roll:true});r.render();const retired=[...r.timers.values()][0].fn;
- if(game==='fleet-duel')r.action({fire:0},'b');else r.action(r.state.phase==='move'?{move:r.S(r.state.seats[r.state.turn]).legal[0]}:{roll:true});r.render();const timer=[...r.timers.keys()][0],cues=r.cues.length;retired();ok(r.el[key].settling,'retired same-instance completion cannot settle a later action');eq([...r.timers.keys()],[timer]);eq(r.cues.length,cues,'retired completion stays silent');r.advance(1000);ok(!r.el[key].settling);r.view.dispose(r.el);
+ const r=rig(game),key=game==='ludo'?'_ludo':'_fleet';r.render();if(game==='fleet-duel'){r.action({auto:true},'a');r.action({auto:true},'b');r.action({ready:true},'a');r.action({ready:true},'b');r.render();r.action({fire:0},'a')}else r.action({roll:true});r.render();const retired=game==='ludo'?[...r.frames.values()][0]:[...r.timers.values()][0].fn;
+ if(game==='fleet-duel')r.action({fire:0},'b');else r.action(r.state.phase==='move'?{move:r.S(r.state.seats[r.state.turn]).legal[0]}:{roll:true});r.render();const scheduled=r.frames||r.timers,timer=[...scheduled.keys()][0],cues=r.cues.length;retired();ok(r.el[key].settling,'retired same-instance completion cannot settle a later action');eq([...scheduled.keys()],[timer]);eq(r.cues.length,cues,'retired completion stays silent');r.advance(1000);ok(!r.el[key].settling);r.view.dispose(r.el);
 }
 {
  const r=rig('fleet-duel');r.render();const stage=r.el.querySelector('.fl-stage');stage.rect={left:10,right:110,top:30,bottom:130};stage.scrollLeft=15;stage.scrollTop=20;

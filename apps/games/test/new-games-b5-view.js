@@ -16,10 +16,12 @@ const old = read('test/board-duels-view.js');
 const nodeSource = old.slice(old.indexOf('class Node {'), old.indexOf('// The shared board panel'));
 const plain = s => s.replace(/^import[^;]+;\s*/gm, '').replace(/^export \{[^;]+;\s*/gm, '').replace(/^export /gm, '');
 
-function rig(id) {
-  let timerId = 0;
+function rig(id, {reduced = true} = {}) {
+  let timerId = 0, clock = 0;
+  const frames = new Map();
   const timers = new Map(), sends = [], results = [], rooms = [];
   const sandbox = vm.createContext({
+    matchMedia: () => ({matches:reduced}),performance:{now:()=>clock},requestAnimationFrame(fn){frames.set(++timerId,fn);return timerId},cancelAnimationFrame:id=>frames.delete(id),
     setTimeout(fn) { timers.set(++timerId, fn); return timerId; }, clearTimeout: id => timers.delete(id),
     setInterval(fn) { timers.set(++timerId, fn); return timerId; }, clearInterval: id => timers.delete(id),
     syncHudTimer() {}, stopHudTimer() {},
@@ -41,6 +43,7 @@ function rig(id) {
     globalThis.el = document.root.appendChild(new Node('main', document));
   `, sandbox);
   vm.runInContext(plain(read('public/js/games/board-kit.js')), sandbox);
+  vm.runInContext(plain(read('public/js/games/board-motion.js')), sandbox);
   vm.runInContext(plain(read('public/js/games/batch5-kit.js')), sandbox);
   vm.runInContext(plain(read(`public/js/games/${id}.js`)).replace('default createBatch5View', 'globalThis.view = createBatch5View'), sandbox);
   const def = require(`../games/${id}/server`);
@@ -54,10 +57,11 @@ function rig(id) {
     sandbox.view.update(sandbox.el, S, api); return S;
   };
   sandbox.view.mount(sandbox.el, api);
-  return { ...sandbox, def, ctx, api, sends, timers, results, rooms, render,
+  return { ...sandbox, def, ctx, api, sends, timers, frames, results, rooms, render, advance(ms){clock+=ms;for(const [id,fn] of [...frames]){frames.delete(id);fn(clock);}},
     get state() { return state; }, fresh() { state = def.create(ctx); }, host: value => { host = value; } };
 }
 
+function main() {
 for (const id of ids) {
   const r = rig(id); r.render();
   eq(r.document.head.querySelectorAll('link').length, 0, 'mount preserves the host stylesheet order');
@@ -74,7 +78,7 @@ for (const id of ids) {
   eq(r.sends.length, 1, id + ': rapid clicks deduplicated');
   eq(r.sends[0].rev, 0, 'current revision attached');
   r.def.onAction(r.state, r.ctx, 'a', r.sends[0]); r.render();
-  eq(r.state.rev, 1); eq(r.timers.size, 0, 'ack clears pending timer');
+  eq(r.state.rev, 1); eq(r.timers.size, 0, 'ack clears pending timer'); r.advance(120);
   if (id === 'five-row') {
     r.render('b'); click('[data-swap]'); eq(r.sends[1], { swap: true, rev: 1 });
     r.def.onAction(r.state, r.ctx, 'b', r.sends[1]); r.render('b'); eq(r.state.colours, [2, 1]);
@@ -117,3 +121,7 @@ for (const id of ids) {
   r.view.dispose(r.el);
 }
 console.log(`NEW_GAMES_B5_VIEW_PASS: ${checks} real module action and lifecycle checks (DOM double, no layout claim)`);
+
+}
+module.exports = {rig};
+if (require.main === module) main();
