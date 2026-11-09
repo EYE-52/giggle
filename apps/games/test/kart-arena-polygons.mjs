@@ -1,3 +1,4 @@
+import {arenaScale} from '../public/js/engines/kart-arena-authoring.mjs';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
 import R from '@dimforge/rapier3d-compat';
@@ -17,3 +18,6 @@ try{
  assert.throws(()=>arenaPolygonFloor('bad',[[0,0],[10,0],[3,3],[10,10],[0,10]]),/Convex/);
 }finally{physics.dispose();}
 console.log('PASS bounded polygon slab: analytic/physics support, normals, tiled UVs, 90m seam drive, finite camera underside and no square fallback');
+
+const shared={x:20,y:8,z:12},scaled=arenaScale({levels:[{y:8}],colliders:[arenaPolygonFloor('floor-raised',[[0,0],[20,0],[20,20],[0,20]],{y:8})],features:{land:shared},routes:[{points:[shared]}],playBounds:{halfX:20,halfZ:20,outline:[[0,0],[20,20]]},belts:[{x:10,y:8,z:10,halfX:4,halfZ:6}]},.5);
+assert.equal(scaled.features.land.x,10,'shared point scales exactly once');assert.equal(scaled.routes[0].points[0].y,4);assert.equal(scaled.colliders[0].surfaceY,4);assert.deepEqual(scaled.colliders[0].polygon,[[0,0],[10,0],[10,10],[0,10]]);assert.equal(raisedSurfaceHeight(scaled.colliders[0],8,8),4);assert(!Number.isFinite(raisedSurfaceHeight(scaled.colliders[0],12,8)));assert.equal(scaled.belts[0].halfX,2);assert.equal(scaled.belts[0].halfZ,3);

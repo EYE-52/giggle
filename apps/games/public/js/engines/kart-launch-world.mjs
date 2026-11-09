@@ -25,14 +25,14 @@ export function createKartLaunchWorld(THREE,{scene,map,palette='Daybreak',lighti
  function add(parent,g,m,p=[0,0,0],scale=[1,1,1],rotation=[0,0,0]){const mesh=new THREE.Mesh(g,m);mesh.position.set(...p);mesh.scale.set(...scale);mesh.rotation.set(...rotation);mesh.receiveShadow=true;mesh.castShadow=false;parent.add(mesh);return mesh;}
  for(const d of map.colliders.flatMap(d=>d.parts||[d])){
   const g=new THREE.Group();g.name=d.id;g.position.copy(d.position);if(d.rotation)g.quaternion.copy(d.rotation);solids.add(g);
-  const m=d.material==='market-pink'?M.pink:d.material==='market-cyan'?M.blue:d.material==='ice'?M.ice:d.material==='fountain'?M.fountain:d.material==='fountain-core'?M.yellow:d.material==='hedge'?M.green:d.material==='pillar'?(map.artId==='garden'?M.fountain:M.dark):d.material==='barrier'?M.dark:d.material==='toy-blue'?M.blue:d.shape==='deck'||d.shape==='wedge'?tierMaterials[Math.max(0,map.levels.slice(1).findIndex(l=>l.y>=d.position.y+d.half.y-.1))]||M.deck:d.id.startsWith('floor')?M.road:M.cover;
+  const m=d.material==='market-pink'?M.pink:d.material==='market-cyan'?M.blue:d.material==='ice'?M.ice:d.material==='fountain'?M.fountain:d.material==='fountain-core'?M.yellow:d.material==='hedge'?M.green:d.material==='pillar'?(map.artId==='garden'?M.fountain:M.dark):d.material==='barrier'?M.dark:d.material==='toy-blue'?M.blue:d.shape==='deck'||d.shape==='wedge'||d.surfaceY>0?tierMaterials[Math.max(0,map.levels.slice(1).findIndex(l=>l.y>=(d.surfaceY??d.position.y+d.half.y)-.1))]||M.deck:d.id.startsWith('floor')?M.road:M.cover;
   let skin;if(d.shape==='trimesh'){skin=new THREE.BufferGeometry();skin.setAttribute('position',new THREE.BufferAttribute(d.vertices,3));skin.setIndex(new THREE.BufferAttribute(d.indices,1));skin=skin.toNonIndexed();skin.computeVertexNormals();skin.setAttribute('uv',new THREE.BufferAttribute(new Float32Array(skin.attributes.position.count*2),2));}
   const geometry=geo(skin||(d.id.startsWith('floor')?new THREE.BoxGeometry(d.half.x*2,d.half.y*2,d.half.z*2):solidGeometry(THREE,d)));
   // Bake metre-scale UVs before merging. No per-mesh shader or draw call.
   if(m.map){const p=geometry.attributes.position,n=geometry.attributes.normal,uv=geometry.attributes.uv;
    for(let i=0;i<p.count;i++){const nx=Math.abs(n.getX(i)),ny=Math.abs(n.getY(i)),nz=Math.abs(n.getZ(i));const u=ny>nx&&ny>nz?p.getX(i):nx>nz?p.getZ(i):p.getX(i),v=ny>nx&&ny>nz?p.getZ(i):p.getY(i);uv.setXY(i,(u+d.position.x)/4,(v+(ny>nx&&ny>nz?d.position.z:d.position.y))/4);}
   }
-  const body=add(g,geometry,m);body.name=d.id+'-body';body.castShadow=!d.id.startsWith('floor');if(d.role==='fountain-core')body.visible=false;
+  const body=add(g,geometry,m);body.name=d.id+'-body';body.castShadow=!d.id.startsWith('floor');if(['fountain-core','furnace-core'].includes(d.role))body.visible=false;
   if(map.artId==='ring'&&d.id==='arch')for(let x=-d.half.x+4;x<d.half.x;x+=8)add(g,geo(new THREE.BoxGeometry(6.8,.4,.04)),x<0?M.blue:M.cover,[x,0,d.half.z-.03]);
   const cameraBody=new THREE.Mesh(d.shape==='wedge'||d.shape==='trimesh'?geometry:geo(new THREE.BoxGeometry(d.half.x*2,d.half.y*2,d.half.z*2)),m);cameraBody.visible=false;cameraBody.userData.cameraCollider=true;g.add(cameraBody);
   colliderMeshes.set(d.id,{group:g,body,cameraBody,descriptor:structuredClone(d)});
@@ -62,7 +62,7 @@ export function createKartLaunchWorld(THREE,{scene,map,palette='Daybreak',lighti
   for(const dx of[-1.6,0,1.6]){add(soft,unit,M.dark,[x+dx,y-.3,z+d.half.z-.01],[.06,1.2,.025]);add(soft,unit,M.yellow,[x+dx,y+.35,z+d.half.z-.005],[.65,.15,.025]);}
   add(soft,unit,d.id.startsWith('west')?M.cover:M.blue,[x,y+d.half.y-.12,z],[d.half.x*1.95,.2,d.half.z*1.95]);
  }
- const readability=createRaisedReadability(THREE,{parent:soft,map:{...map,id:map.artId,colliders:map.colliders.filter(d=>d.material!=='barrier'&&d.role!=='fountain-core')},geometry:geo,material:mat,texture});
+ const readability=createRaisedReadability(THREE,{parent:soft,map:{...map,id:map.artId,colliders:map.colliders.filter(d=>d.material!=='barrier'&&!['fountain-core','furnace-core'].includes(d.role))},geometry:geo,material:mat,texture});
  // Repeated school lane ticks follow both ground escape loops. The centre is
  // kept quiet so silhouettes and the next turn remain readable at kart height.
  if(map.artId==='ring'){
@@ -88,13 +88,13 @@ export function createKartLaunchWorld(THREE,{scene,map,palette='Daybreak',lighti
  addLaunchDetails(THREE,{map,soft,scenery,geo,add,M:{...M,own:mat},glow,unit});
  // A low ground apron is scenery only. The shaped driving slabs and guards
  // above it are the complete physical footprint; there is no square collider.
- const ground=material('backdrop-ground',map.artId==='frost'?0x4686ad:map.artId==='neon'?0x304c68:['harbor','skyport'].includes(map.artId)?0x438fa7:0x82b59a);
+ const ground=material('backdrop-ground',map.artId==='foundry'?0x674c42:map.artId==='frost'?0x4686ad:map.artId==='neon'?0x304c68:['harbor','skyport'].includes(map.artId)?0x438fa7:0x82b59a);
  add(scenery,geo(new THREE.CylinderGeometry(map.half+18,map.half+23,3,12)),ground,[0,-3.1,0]);
  const sky=createKartSky(THREE,{parent:scenery,radius:330,geometry:geo,material:mat});
  const backdrop=createKartBackdrop(THREE,{parent:scenery,theme:map.backdrop||map.artId,radius:map.half+130,geometry:geo,material:mat,texture,isAlive:()=>!disposed});
  // Trees sit outside the guarded road and never hide a route decision.
  const trunk=material('trunk',0x89704e),leaf=material('leaf',map.artId==='frost'?0xd7edf2:0x4a9672),trunkG=geo(new THREE.CylinderGeometry(.4,.6,3,6)),leafG=geo(new THREE.IcosahedronGeometry(2.6,0));
- for(let i=0;i<12;i++){const angle=i*Math.PI/6,r=map.half+10,x=Math.cos(angle)*r,z=Math.sin(angle)*r;add(scenery,trunkG,trunk,[x,-.3,z]);add(scenery,leafG,leaf,[x,2.2,z]);}
+ for(let i=0;i<(map.artId==='foundry'?0:12);i++){const angle=i*Math.PI/6,r=map.half+10,x=Math.cos(angle)*r,z=Math.sin(angle)*r;add(scenery,trunkG,trunk,[x,-.3,z]);add(scenery,leafG,leaf,[x,2.2,z]);}
  for(const parent of[solids,scenery,soft])for(const {mesh}of mergeStaticMeshes(THREE,parent))geo(mesh.geometry);
  const sun=new THREE.DirectionalLight(0xffedce,1.75),hemi=new THREE.HemisphereLight(0xe4eeff,0x819d87,1.25);sun.castShadow=true;sun.shadow.mapSize.set(1024,1024);sun.shadow.bias=-.0004;sun.shadow.normalBias=.06;Object.assign(sun.shadow.camera,{left:-map.half-10,right:map.half+10,top:map.half+10,bottom:-map.half-10,near:5,far:220});sun.position.set(-45,75,35);if(lighting)group.add(sun,hemi,sun.target);
  const fixed=palette==='Starlight'?1:palette==='Sunset'?.65:0;

@@ -80,4 +80,42 @@ export function addLaunchDetails(THREE,{map,soft,scenery,geo,add,M,glow,unit}){
   for(const d of map.colliders.filter(d=>d.shape==='deck')){const y=d.position.y+d.half.y+.02;for(let x=-d.half.x+3;x<d.half.x-2;x+=6)add(soft,flat,glow,[d.position.x+x,y,d.position.z],[.25,1,.7]);}
  }
 
+ if(map.artId==='harbor'){
+  for(const d of map.colliders.filter(d=>d.material==='cargo')){const {x,y,z}=d.position,h=d.half;
+   for(const side of[-1,1]){add(soft,unit,M.blue,[x,y,z+side*(h.z-.01)],[h.x*1.88,h.y*1.8,.02]);for(let dx=-h.x+.35;dx<h.x;dx+=.65)add(soft,unit,M.edge,[x+dx,y,z+side*(h.z-.005)],[.08,h.y*1.7,.025]);
+    for(const dx of[-h.x*.55,h.x*.55])add(soft,unit,M.dark,[x+dx,y,z+side*(h.z-.003)],[.08,h.y*1.5,.03]);
+    add(soft,unit,M.white,[x,y+.2,z+side*(h.z-.001)],[1.5,.5,.035]);}
+   for(let dx=-h.x+.4;dx<h.x;dx+=.8)add(soft,unit,M.dark,[x+dx,y+h.y-.01,z],[.12,.025,h.z*1.8]);
+  }
+  // Warehouse windows line the protected lookout rim, inside the guard.
+  const top=map.levels[2].y,z=map.colliders.find(d=>d.id==='lookout-0')?.position.z||44;
+  for(let x=-26;x<=26;x+=4){add(soft,unit,M.blue,[x,top+.08,z+3.7],[2.2,.08,1]);add(soft,unit,glow,[x,top+.13,z+3.7],[1.8,.03,.6]);}
+  // The orange loading crane frames the water beyond the playable fingers.
+  const cx=map.playBounds.halfX+12,cz=8;add(scenery,unit,M.cover,[cx,9,cz],[2,22,2]);add(scenery,unit,M.cover,[cx-13,19,cz],[29,1.8,2]);
+  for(let t=0;t<6;t++)add(scenery,unit,M.dark,[cx-25+t*5,19,cz],[.3,3,1.8],[0,0,.65]);add(scenery,unit,M.dark,[cx-24,13,cz],[.15,12,.15]);add(scenery,unit,M.yellow,[cx-24,7,cz],[1.6,.6,1.6]);
+  // Mooring bollards sit outside the ground fence, never in a departure lane.
+  const bollard=geo(new THREE.CylinderGeometry(.5,.7,1.2,8));for(const side of[-1,1])for(let zz=-24;zz<=24;zz+=16)add(scenery,bollard,M.yellow,[side*(map.playBounds.halfX+2),-.2,zz]);
+ }
+
+ if(map.artId==='foundry'){
+  const scale=map.artScale||1,hot=new THREE.MeshLambertMaterial({color:0xffb04f,emissive:0xf76b30,emissiveIntensity:.85});M.own(hot);
+  const cyl=geo(new THREE.CylinderGeometry(1,1,1,16)),ring=geo(new THREE.TorusGeometry(1,.055,5,24).rotateX(Math.PI/2));
+  add(soft,cyl,M.dark,[0,8*scale,0],[12*scale,16*scale,12*scale]);
+  for(const y of[1,5,10,15])add(soft,ring,M.edge,[0,y*scale,0],[12.3*scale,scale,12.3*scale]);
+  for(let i=0;i<12;i++){const a=i*Math.PI/6,x=Math.cos(a)*11.95*scale,z=Math.sin(a)*11.95*scale;
+   add(soft,unit,hot,[x,6*scale,z],[3.3*scale,6*scale,.1*scale],[0,Math.PI/2-a,0]);add(soft,unit,M.yellow,[x,13.5*scale,z],[.35*scale,5*scale,.2*scale],[0,Math.PI/2-a,0]);}
+  add(soft,geo(new THREE.CylinderGeometry(9,12,2,16)),M.cover,[0,17*scale,0],[scale,scale,scale]);
+  // Flush belts show their direction without adding moving rigid bodies.
+  for(const b of map.belts){add(soft,flat,M.dark,[b.x,b.y+.022,b.z],[b.halfX*2,1,b.halfZ*2]);const alongX=Math.abs(b.velocity.x)>0,sign=Math.sign(alongX?b.velocity.x:b.velocity.z),length=2*(alongX?b.halfX:b.halfZ);
+   for(let t=-length/2+1;t<length/2;t+=2*scale)for(const side of[-1,1])add(soft,flat,M.yellow,[b.x+(alongX?t:side*1.25*scale),b.y+.027,b.z+(alongX?side*1.25*scale:t)],[2*scale,1,.16*scale],[0,alongX?side*sign*.6:Math.PI/2-side*sign*.6,0]);
+   for(const side of[-1,1])add(soft,flat,M.edge,[b.x+(alongX?0:side*b.halfX),b.y+.029,b.z+(alongX?side*b.halfZ:0)],[alongX?b.halfX*2:.16*scale,1,alongX?.16*scale:b.halfZ*2]);
+  }
+  for(const d of map.colliders.filter(d=>d.role==='tunnel'))for(const side of[-1,1]){const {x,y,z}=d.position;add(soft,unit,M.yellow,[x,y-.15,z+side*(d.half.z-.05)],[d.half.x*2,.15,.12]);for(let t=-d.half.x+1;t<d.half.x;t+=3*scale)add(soft,unit,glow,[x+t,y-d.half.y+.04,z],[.8*scale,.05,1.4*scale]);}
+  for(const d of map.colliders.filter(d=>d.material==='tank')){const {x,y,z}=d.position,h=d.half;for(const yy of[-.65,.65])add(soft,unit,M.blue,[x,y+yy*h.y,z],[h.x*1.98,.3,h.z*1.98]);add(soft,cyl,M.dark,[x,y+h.y-.02,z],[h.x*.6,.06,h.z*.6]);}
+  // West blue tank cage and east orange crane give all rings a compass.
+  const west=-(map.playBounds.halfX+10);for(const z of[-10,0,10]){add(scenery,cyl,M.blue,[west,3,z],[3,8,3]);for(const y of[0,5])add(scenery,ring,M.white,[west,y,z],[3.2,1,3.2]);}
+  for(const x of[west-4,west+4])add(scenery,unit,M.dark,[x,5,0],[.4,13,29]);
+  const east=map.playBounds.halfX+10;add(scenery,unit,M.cover,[east,8,12],[2,20,2]);add(scenery,unit,M.cover,[east-9,17,12],[22,1.4,2]);for(let k=0;k<5;k++)add(scenery,unit,M.dark,[east-18+k*4,17,12],[.2,2.7,1.7],[0,0,.65]);add(scenery,unit,M.dark,[east-18,12,12],[.12,10,.12]);add(scenery,unit,hot,[east-18,7,12],[1.2,.5,1.2]);
+ }
+
 }

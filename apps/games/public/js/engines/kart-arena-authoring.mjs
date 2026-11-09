@@ -60,15 +60,18 @@ export function arenaGuardGroup(id,parts){
 // Variant geometry may shrink uniformly, preserving ramp grades and all
 // support/proxy transforms. Quaternions, indices, angles and colours do not scale.
 export function arenaScale(source,factor){
- const map=structuredClone(source);
+ const map=structuredClone(source),seen=new WeakSet();
  function visit(value){
-  if(!value||typeof value!=='object')return;
+  if(!value||typeof value!=='object'||seen.has(value))return;seen.add(value);
   if(value instanceof Float32Array){for(let i=0;i<value.length;i++)value[i]*=factor;return;}
   if(ArrayBuffer.isView(value)||Number.isFinite(value.w))return;
   if(['x','y','z'].every(k=>Number.isFinite(value[k])))for(const k of['x','y','z'])value[k]*=factor;
   if(Number.isFinite(value.apex))value.apex*=factor;
+  if(Number.isFinite(value.surfaceY))value.surfaceY*=factor;
+  if(value.polygon)value.polygon=value.polygon.map(p=>p.map(n=>n*factor));
   for(const child of Object.values(value))visit(child);
  }
  visit(map);for(const level of map.levels)level.y*=factor;map.playBounds.halfX*=factor;map.playBounds.halfZ*=factor;map.playBounds.outline=map.playBounds.outline.map(r=>r.map(n=>n*factor));
+ for(const b of map.belts||[]){b.halfX*=factor;b.halfZ*=factor;}
  if(map.reviewPoses)map.reviewPoses=map.reviewPoses.map(p=>p.map((n,i)=>i<3?n*factor:n));map.artScale=factor;return map;
 }
