@@ -12,7 +12,7 @@
   min-height: 152px;
 }
 .ch .ch-stage-text { display: flex; flex-direction: column; align-items: flex-start; gap: var(--space-12); min-width: 0; }
-.ch .ch-secret { font: var(--text-heading); font-size: clamp(32px, 5vw, 44px); color: var(--fam-deep); }
+.ch .ch-secret { font: var(--text-heading); font-size: clamp(32px, 5cqw, 44px); color: var(--fam-deep); }
 .ch .ch-mask { justify-content: flex-start; margin: 0; letter-spacing: 0; }
 .ch .ch-found { display: none; }
 .ch[data-phase="reveal"] .ch-found { display: flex; }
@@ -29,10 +29,10 @@
 .ch .ch-who { font-weight: 800; }
 .ch .ch-txt { min-width: 0; overflow-wrap: anywhere; }
 .ch .ch-empty { min-height: 140px; }
-@media (max-width: 560px) {
+@container game (max-width: 560px) {
   .ch .ch-stage { min-height: 0; gap: var(--space-12); }
 }
-@media (max-height: 520px) {
+@container game (max-height: 520px) {
   .ch .ch-stage { min-height: 0; }
 }
 
@@ -44,7 +44,7 @@
 .ch.ck .ch-mask .ck-tile { width: 48px; height: 56px; font-size: 28px; }
 .ch.ck .ch-mask .ck-tile.is-blank { box-shadow: inset 0 -8px 0 var(--fam-soft), var(--shadow-sticker-sm); }
 .ch.ck .ch-mask .ck-tile.is-gap { width: var(--space-16); }
-@media (max-width: 560px) {
+@container game (max-width: 560px) {
   .ch.ck .ch-mask .ck-tile { width: 36px; height: 44px; font-size: 22px; }
   .ch.ck .ch-mask .ck-tile.is-gap { width: var(--space-8); }
 }
@@ -53,7 +53,7 @@
 .ch.ck .ch-guess.ck-row { background: var(--well); border: 0; box-shadow: none; border-radius: var(--radius-md); }
 /* Wide screens: the play column on the left, the players on a right rail,
  * so the roster never drops below the fold as tries pile up. */
-@media (min-width: 1100px) {
+@container game (min-width: 1100px) {
   .ch.ck:not(.gk-final) {
     display: grid; grid-template-columns: minmax(0, 1fr) 280px; align-content: start; align-items: start;
     column-gap: var(--space-24); row-gap: var(--space-16); max-width: 1080px;
@@ -87,7 +87,7 @@ body.game-playing[data-game="charades"] {
   --ch-floor: #6a4a33; --ch-floor-deep: #4a3222; --ch-spot: rgb(255 226 160 / .2);
 }
 /* Phones and narrow frames: no room beside the column, keep the valance. */
-@media (max-width: 1000px) {
+@container game (max-width: 1000px) {
   body.game-playing[data-game="charades"] { background-size: 36px 18px, 0 0, 0 0; }
 }
 
@@ -115,14 +115,14 @@ body.game-playing[data-game="charades"] {
 
 /* QC (phones): a long word stays on one row. Tiles shrink to fit the
  * longest word (--ch-len, set by the game) across the card. */
-@media (max-width: 560px) {
-  .ch.ck .ch-mask { --ch-tile: clamp(20px, calc((100vw - 76px) / var(--ch-len, 8) - 4px), 36px); }
+@container game (max-width: 560px) {
+  .ch.ck .ch-mask { --ch-tile: clamp(20px, calc((100cqw - 76px) / var(--ch-len, 8) - 4px), 36px); }
   .ch.ck .ch-mask .ck-tile:not(.is-gap) { width: var(--ch-tile); height: calc(var(--ch-tile) * 1.22); font-size: calc(var(--ch-tile) * .6); }
 }
 /* QC (phones and narrow frames): the valance hangs along the top of the
  * stage card instead of the page top, where it ran behind the title bar's
  * buttons. */
-@media (max-width: 1000px) {
+@container game (max-width: 1000px) {
   body.game-playing[data-game="charades"] { background-image: none; }
   .ch.ck[data-family] .ch-stage.ck-card.is-tint {
     padding-top: calc(var(--space-16) + 14px);
@@ -145,7 +145,7 @@ body.game-playing[data-game="charades"] {
 .ch.ck .ch-feed { height:calc(4 * var(--control-h-sm) + 4 * var(--space-8)); padding:0 0 var(--space-8); overflow-y:auto; overscroll-behavior:contain; scrollbar-width:thin; scroll-snap-type:y proximity; }
 .ch.ck .ch-feed > * { flex-shrink:0; scroll-snap-align:start; }
 
-@media (min-width: 1100px) {
-  .ch.ck:not(.gk-final) { min-height: calc(100dvh - 2 * var(--space-64)); align-content: center; }
+@container game (min-width: 1100px) {
+  .ch.ck:not(.gk-final) { min-height: calc(100cqh - 2 * var(--space-64)); align-content: center; }
   .ch.ck:not(.gk-final) > .ch-players { align-self: center; }
 }

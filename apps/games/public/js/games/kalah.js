@@ -2,6 +2,7 @@ import { esc, nameOf } from '../util.js';
 import { bkEnsureCss, bkRemoveCss, bkPanelHTML, bkPaint, bkClick, bkDispose, bkDrawState, bkTimer, bkMeta, bkRank, bkHeadline, bkReason, bkHost } from './board-kit.js';
 
 let root, art, api, state, baseline, instance = '', revision = -1, flipped = false, cursor = 0, portrait = false;
+let layoutObserver = null, layoutFrame = 0;
 let pending = null, pendingTimer = 0, frame = 0, moving = null, armed = false, resultReady = '', bound = [];
 const storeOf = side => side ? 13 : 6;
 const owner = i => i > 6 ? 1 : 0;
@@ -154,7 +155,8 @@ export default {
     this.dispose(); api = suppliedApi;
     bkEnsureCss();
     if (!document.getElementById('kalah-css')) { const css = document.createElement('link'); css.id = 'kalah-css'; css.rel = 'stylesheet'; css.href = '/css/kalah.css'; document.head.appendChild(css); }
-    portrait = window.matchMedia('(orientation: portrait)').matches;
+    const bounds = el.getBoundingClientRect?.();
+    portrait = bounds ? bounds.width < bounds.height : window.matchMedia('(orientation: portrait)').matches;
     el.innerHTML = `<section class="bk-game kl" data-family="board" aria-label="Kalah"><div class="bk-stage kl-board"><svg class="kl-art" viewBox="0 0 840 360" role="group" aria-label="Kalah board"></svg></div>${bkPanelHTML({ title: 'Kalah', flip: true, help: [] })}</section>`;
     root = el.querySelector('.kl'); art = root.querySelector('.kl-art');
     const sendFlag = action => { if (state?.youAre !== null && !state?.spectator) send(action); };
@@ -186,7 +188,17 @@ export default {
       directional.sort((a, b) => { const x = point(a), y = point(b); return Math.hypot(x.x - targetPoint.x, x.y - targetPoint.y) - Math.hypot(y.x - targetPoint.x, y.y - targetPoint.y); });
       cursor = directional[0]; paint(); art.querySelector(`[data-pit="${cursor}"]`)?.focus({ preventScroll: true });
     });
-    listen(window, 'resize', () => { portrait = window.matchMedia('(orientation: portrait)').matches; paint(); });
+    const resize = () => {
+      if (layoutFrame) return;
+      layoutFrame = requestAnimationFrame(() => {
+        layoutFrame = 0;
+        const bounds = el.getBoundingClientRect?.();
+        const next = bounds ? bounds.width < bounds.height : window.matchMedia('(orientation: portrait)').matches;
+        if (portrait !== next) { portrait = next; paint(); }
+      });
+    };
+    listen(window, 'resize', resize);
+    if (typeof ResizeObserver === 'function') { layoutObserver = new ResizeObserver(resize); layoutObserver.observe(el); }
   },
   update(el, snapshot, suppliedApi) {
     api = suppliedApi;
@@ -210,6 +222,8 @@ export default {
     if (!snapshot.preparing && snapshot.phase === 'play' && (prior?.preparing === true || prior?.turn !== snapshot.turn || prior?.youAre !== snapshot.youAre || prior?.spectator !== snapshot.spectator)) api.announce?.(myTurn() ? text('yourTurn') : nameOf(snapshot, snapshot.seats[snapshot.turn]) + ' · ' + text('waiting'));
   },
   dispose() {
+    layoutObserver?.disconnect(); layoutObserver = null;
+    if (layoutFrame) cancelAnimationFrame(layoutFrame); layoutFrame = 0;
     if (frame) cancelAnimationFrame(frame);
     if (pendingTimer) clearTimeout(pendingTimer); pendingTimer = 0;
     bound.forEach(([node, type, fn]) => node.removeEventListener(type, fn)); bound = [];

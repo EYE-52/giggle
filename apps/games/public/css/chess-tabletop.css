@@ -53,7 +53,7 @@
 .ch-tabletop .promo>span,.ch-tabletop .promo [data-promo-x]{grid-column:1 / -1;font-weight:800}
 .ch-tabletop .promo .btn{display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:0;min-height:44px;padding:4px;border:1px solid var(--line-strong);border-radius:10px;background:var(--well);color:var(--ink);font:700 13px/1.2 var(--font-body);cursor:pointer}
 .ch-tabletop .promo .ch-piece{width:54px;height:54px;object-fit:contain}
-@media (max-width:759px){.ch-tabletop .sq small{font-size:9px}.ch-tabletop .ch-frame{padding:5px}}
+@container game (max-width:759px) {.ch-tabletop .sq small{font-size:9px}.ch-tabletop .ch-frame{padding:5px}}
 /* Wooden board on a table (2026-11 skin). Maple and walnut squares in a
  * wood frame that sits on its own darker wood lip; the page is a warm table
  * top by day and a dark walnut table at night. No ink rims: white pieces get
@@ -97,12 +97,12 @@
 .ch-tabletop .ch-captured>span{font:var(--text-caption);color:var(--ink-dim)}
 .ch-tabletop .promo{border:var(--outline-w-lg) solid var(--outline);border-radius:var(--radius-xl);box-shadow:var(--shadow-sticker-lg),var(--shadow-card)}
 .ch-tabletop .promo .btn{border:var(--outline-w) solid var(--outline);border-radius:var(--radius-md);background:var(--card);font:var(--text-caption);color:var(--ink);box-shadow:var(--shadow-sticker-sm)}
-@media (max-width:759px){.ch-tabletop .ch-frame{padding:var(--space-8);border-radius:var(--radius-lg)}.ch-tabletop .sq small{font-size:10px}}
+@container game (max-width:759px) {.ch-tabletop .ch-frame{padding:var(--space-8);border-radius:var(--radius-lg)}.ch-tabletop .sq small{font-size:10px}}
 /* QC: the white pawn chip in the panel gets the same brown edge as white
  * pieces on the board, and on phones the pieces sit a little smaller with
  * the coordinates tucked into the corners, so letters never touch a base. */
 .ch-tabletop .ch-chip .ch-piece[src*="chess/w"]{filter:drop-shadow(0 0 1px #4a2c14) drop-shadow(0 1px 1px #4a2c1466)}
-@media (max-width:759px){
+@container game (max-width:759px) {
  .ch-tabletop .ch-piece-slot .ch-piece{width:86%;height:86%;margin:7% 7% 0}
  .ch-tabletop .sq small{font-size:9px;opacity:.85}
  .ch-tabletop .ch-file{right:2px;bottom:1px}.ch-tabletop .ch-rank{left:2px;top:2px}
@@ -117,12 +117,12 @@
 
 /* Phone tools stay below a board sized to the actual play viewport.
  * Moves/captures open in their own popover instead of pushing the board. */
-@media(max-width:759px){
+@container game (max-width:759px) {
  .ch-tabletop { --ch-phone-chrome:calc(4 * var(--space-64) + 2 * var(--control-h-sm) + var(--space-48) + var(--space-32)); }
  .ch-tabletop .chboard-col { width:min(100%,calc(var(--game-viewport-height,100dvh) - var(--ch-phone-chrome))); }
  .ch-tabletop .bk-extra { position:relative; height:var(--control-h-sm); }
  .ch-tabletop .chhist-wrap { position:absolute; bottom:0; left:0; width:100%; z-index:35; }
- .ch-tabletop .chhist-wrap[open] { max-height:calc(100dvh - var(--space-64)); overflow:auto; background:var(--card); box-shadow:var(--shadow-card); }
+ .ch-tabletop .chhist-wrap[open] { max-height:calc(100cqh - var(--space-64)); overflow:auto; background:var(--card); box-shadow:var(--shadow-card); }
  .ch-tabletop .ch-capture-rail { margin:var(--space-8); }
  .ch-tabletop .chhist-wrap>summary { min-height:var(--control-h-sm); }
 }

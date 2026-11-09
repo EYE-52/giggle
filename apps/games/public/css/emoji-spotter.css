@@ -23,7 +23,7 @@
   background: transparent;
   box-shadow: none;
   border-radius: var(--radius-sm);
-  font-size: clamp(24px, 5vw, 40px);
+  font-size: clamp(24px, 5cqw, 40px);
   line-height: 1;
   opacity: 1;
 }
@@ -54,6 +54,6 @@
   font-size: clamp(24px, calc(208px / var(--es-size)), 52px);
 }
 
-@media (max-width: 560px) {
+@container game (max-width: 560px) {
   .es-world .es-board { max-width: calc(4 * var(--space-64)); }
 }

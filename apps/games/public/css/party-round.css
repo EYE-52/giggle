@@ -19,7 +19,7 @@
   border-radius: var(--radius-xl);
   background: var(--fam-soft);
   box-shadow: var(--shadow-sticker);
-  font: 800 clamp(26px, 3.4vw, 36px) / 1.15 var(--font-display);
+  font: 800 clamp(26px, 3.4cqw, 36px) / 1.15 var(--font-display);
   overflow-wrap: anywhere;
 }
 #gbody .party-round .party-hud {
@@ -142,7 +142,7 @@
     transform: translateY(0) scale(1);
   }
 }
-@media (max-width: 560px) {
+@container game (max-width: 560px) {
   #gbody .party-round.pl-fill {
     gap: var(--space-16);
   }
@@ -190,7 +190,7 @@
   display: grid;
   place-items: center;
 }
-@media (max-width: 560px) {
+@container game (max-width: 560px) {
   #gbody .party-round .pl-seats {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }

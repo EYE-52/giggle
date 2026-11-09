@@ -107,7 +107,7 @@
 /* Phones: the name rides above its lane so the road gets the full width.
  * Lanes stretch: the desktop grid's centring made each lane shrink to its
  * name and left a narrow road in the middle of the card. */
-@media (max-width: 480px) {
+@container game (max-width: 480px) {
   #gbody .tr.pl-fill .tr-lanes { display: flex; flex-direction: column; justify-content: center; align-items: stretch; padding: var(--space-12); border-radius: var(--radius-lg); }
   #gbody .tr.pl-fill .tr-lane { display: grid; width: 100%; min-width: 0; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "name meta" "track track"; gap: var(--space-4) var(--space-12); }
   #gbody .tr.pl-fill .tr-name { grid-area: name; }

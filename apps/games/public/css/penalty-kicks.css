@@ -91,7 +91,7 @@
 #gbody .pk6-world .pl-points {
   min-height: 20px;
 }
-@media (max-width: 700px) {
+@container game (max-width: 700px) {
   #gbody .pk6-world .b6-stage {
     height: calc(3 * var(--space-64) + var(--space-32));
   }
@@ -105,7 +105,7 @@
     padding-block: var(--space-4);
   }
 }
-@media (min-width: 701px) {
+@container game (min-width: 701px) {
   .pk6-world .b6-field {
     grid-template-columns: minmax(0, 1.8fr) minmax(320px, 1fr);
     align-items: center;
@@ -123,7 +123,7 @@
 /* The goal itself is the aiming control. These transparent targets sit on
    the projected goal mouth, never in a separate row of word buttons. */
 #gbody .pk6-world .pk6-pitch {
-  height: clamp(320px, calc(100dvh - 360px), 520px);
+  height: clamp(320px, calc(100cqh - 360px), 520px);
   grid-row: auto;
   grid-column: auto;
 }
@@ -270,7 +270,7 @@
 .pk6-world .b6-pop {
   animation: none;
 }
-@media (min-width: 701px) {
+@container game (min-width: 701px) {
   #gbody .pk6-world.pl-fill {
     grid-template-columns: minmax(0, 3fr) minmax(240px, 1fr);
     column-gap: var(--space-16);
@@ -300,9 +300,9 @@
     align-self: start;
   }
 }
-@media (max-width: 700px) {
+@container game (max-width: 700px) {
   #gbody .pk6-world .pk6-pitch {
-    height: clamp(224px, calc(100dvh - 520px), 280px);
+    height: clamp(224px, calc(100cqh - 520px), 280px);
   }
   .pk6-world .pk6-controls {
     min-height: var(--control-h);

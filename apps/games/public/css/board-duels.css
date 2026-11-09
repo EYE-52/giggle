@@ -99,7 +99,7 @@
 
 /* Phone: one steady column. The panel's parts take their order around
  * the board; every part keeps its space between turns. */
-@media (max-width:759px){
+@container game (max-width:759px) {
  .bk-game{display:flex;flex-direction:column;align-items:stretch;gap:10px;padding:12px 12px 20px;--bk-top:0px}
  .bk-panel{display:contents}
  .bk-head{order:0;min-height:44px;padding:0 0 0 104px;justify-content:center}
@@ -120,12 +120,12 @@
  .bk-final{padding:12px;gap:8px}
  .bk-final-actions .bk-btn{min-height:48px}
 }
-@media (max-width:359px){.bk-head{padding-left:96px}.bk-title{font-size:20px}.bk-side{font-size:12px}}
+@container game (max-width:359px) {.bk-head{padding-left:96px}.bk-title{font-size:20px}.bk-side{font-size:12px}}
 /* Short landscape: keep the board visible and scroll only the sidebar.
  * Room/Report occupy a separate row above its clipped scrollport, so a
  * scrolled result, focused action or help heading cannot pass beneath them. */
-@media (orientation:landscape) and (max-height:500px) and (min-width:560px){
- .bk-game{display:grid;grid-template-columns:minmax(0,1fr) clamp(220px,32vw,280px);grid-template-rows:minmax(0,1fr);height:var(--game-viewport-height,100svh);padding:12px;--bk-top:12px;gap:12px}
+@container game (orientation:landscape) and (max-height:500px) and (min-width:560px) {
+ .bk-game{display:grid;grid-template-columns:minmax(0,1fr) clamp(220px,32cqw,280px);grid-template-rows:minmax(0,1fr);height:var(--game-viewport-height,100svh);padding:12px;--bk-top:12px;gap:12px}
  .bk-stage{grid-column:1;grid-row:1;width:min(100%,calc((var(--game-viewport-height,100svh) - max(var(--space-12),env(safe-area-inset-top)) - max(var(--space-12),env(safe-area-inset-bottom))) * var(--bk-aspect)));align-self:center;margin-top:0}
  .bk-panel{display:flex;grid-column:2;grid-row:1;margin-top:52px;max-height:calc(var(--game-viewport-height,100svh) - max(var(--space-12),env(safe-area-inset-top)) - max(var(--space-12),env(safe-area-inset-bottom)) - 52px);overflow:auto;overscroll-behavior:contain;scroll-padding-block:8px;gap:8px}
  .bk-panel>*{flex-shrink:0}
@@ -133,10 +133,10 @@
  .bk-players{display:flex;flex-direction:column}
  .bk-title{font-size:20px}
  .bk-player{min-height:48px}
- body.game-playing.game-immersive:has(.bk-game) .room-menu{left:calc(100vw - clamp(220px,32vw,280px) - 12px);right:auto}
+ body.game-playing.game-immersive:has(.bk-game) .room-menu{left:calc(100cqw - clamp(220px,32cqw,280px) - 12px);right:auto}
  body.game-playing.game-immersive:has(.bk-game) .room-menu>summary{width:44px;min-width:44px;justify-content:center;padding:0}
  body.game-playing.game-immersive:has(.bk-game) .room-menu>summary>span{display:none}
- body.game-playing.game-immersive:has(.bk-game) :is(.game-report-icon,.game-screen-toggle){left:calc(100vw - clamp(220px,32vw,280px) + 40px);right:auto}
+ body.game-playing.game-immersive:has(.bk-game) :is(.game-report-icon,.game-screen-toggle){left:calc(100cqw - clamp(220px,32cqw,280px) + 40px);right:auto}
 }
 @media (prefers-reduced-motion:reduce){.bk-game *{animation:none!important;transition:none!important}}
 #gbody[data-layout=immersive]:has(>.bk-game){min-height:var(--game-viewport-height,100svh);background:var(--bg)}
@@ -163,7 +163,7 @@
 /* Chess extras in the same sticker set. */
 .bk-game.ch-tabletop .ch-capture-rail{border:var(--outline-w) solid var(--line-strong);border-radius:var(--radius-lg);background:var(--card)}
 .bk-game.ch-tabletop .chhist-wrap{margin-top:0;border:var(--outline-w) solid var(--outline);border-radius:var(--radius-lg);box-shadow:var(--shadow-sticker-sm)}
-@media (max-width:759px){.bk-tools{order:7}.bk-actions{order:6}.bk-status{min-height:4.4em}.bk-name{font-size:16px}}
+@container game (max-width:759px) {.bk-tools{order:7}.bk-actions{order:6}.bk-status{min-height:4.4em}.bk-name{font-size:16px}}
 
 /* Calm controls, a centred stage and a result sticker on the board.
  * - Desktop: the board column is only as wide as the board, and the board
@@ -174,7 +174,7 @@
  * - How to play and Moves are plain disclosure rows, not buttons.
  * - Hints, rings and ranks read the board family colour, never the party
  *   accent. */
-@media (min-width:760px) and (min-height:501px){
+@container game (min-width:760px) and (min-height:501px) {
  .bk-game{grid-template-columns:minmax(0,calc((var(--game-viewport-height,100svh) - var(--bk-top) - 20px) * var(--bk-aspect))) var(--bk-panel);justify-content:center;column-gap:var(--space-32)}
 }
 .bk-game{--bk-hint:color-mix(in srgb,var(--bk-fam) 60%,transparent)}
@@ -214,7 +214,7 @@
 /* Result sticker: the board itself says the game is over. */
 .bk-stage[data-bk-result]::after{content:attr(data-bk-result);position:absolute;left:50%;top:var(--space-16);z-index:30;max-width:calc(100% - var(--space-32));padding:var(--space-8) var(--space-24);border:var(--outline-w-lg) solid var(--outline);border-radius:var(--radius-xl);background:var(--bk-fam);color:var(--on-fam,#fff);box-shadow:var(--shadow-sticker-lg);font:var(--text-heading);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;pointer-events:none;transform:translateX(-50%);animation:bk-result-pop var(--dur-slow,.5s) var(--ease,cubic-bezier(.22,1,.36,1)) both}
 @keyframes bk-result-pop{from{transform:translateX(-50%) scale(.96)}to{transform:translateX(-50%) scale(1)}}
-@media (max-width:759px){
+@container game (max-width:759px) {
  .bk-stage[data-bk-result]::after{top:var(--space-8);padding:var(--space-4) var(--space-16);font:var(--text-title)}
  .bk-row-play,.bk-tools{justify-content:flex-start}
 }
@@ -223,7 +223,7 @@
 /* QC: the status banner is a compact row, not a tall box. Games whose
  * status never carries a hint line keep only one line of space; Kalah and
  * Checkers (status + hint) keep room for exactly two lines. */
-@media (max-width:759px){
+@container game (max-width:759px) {
  .bk-status{min-height:0;padding:var(--space-8) var(--space-16)}
  .bk-game:is(.kl,.ck) .bk-status{min-height:calc(2 * var(--space-8) + 2 * var(--outline-w,2px) + 1.25 * 17px + 1.45 * 14px)}
 }
@@ -238,7 +238,7 @@
 .bk-actions[hidden] { display:block!important; visibility:hidden; pointer-events:none; }
 .bk-timer.has-timer[hidden] { display:grid!important; visibility:hidden; }
 .bk-final { position:fixed; z-index:80; top:50%; left:50%; transform:translate(-50%,-50%); width:min(calc(100% - var(--space-32)),calc(var(--bk-panel) + var(--space-64))); max-height:calc(var(--game-viewport-height,100dvh) - var(--space-48)); overflow:auto; overscroll-behavior:contain; box-shadow:var(--shadow-card); }
-@media (max-width:759px) {
+@container game (max-width:759px) {
  .bk-game > *, .bk-panel > * { flex-shrink:0; }
  .bk-stage { flex:none; }
  .bk-status,.bk-game:is(.ld-game,.kl,.ck) .bk-status { height:var(--space-64); min-height:var(--space-64); }
@@ -255,7 +255,7 @@
 
 /* Phone replies share one 44px action slot. The question opens over its
  * own status/action well; it never inserts another row before the board. */
-@media(max-width:759px){
+@container game (max-width:759px) {
  .bk-game { gap:var(--space-8); }
  .bk-actions { position:relative; height:var(--control-h-sm); min-height:var(--control-h-sm); }
  .bk-row-confirm,.bk-row-offer { position:absolute; z-index:40; bottom:0; left:0; width:100%; padding:var(--space-12); border:var(--outline-w) solid var(--outline); border-radius:var(--radius-lg); background:var(--card); box-shadow:var(--shadow-card); }
@@ -266,19 +266,19 @@
 .bk-row-offer .bk-primary { background:var(--bk-fam-soft); color:var(--ink); border-color:var(--bk-fam-deep); }
 .bk-row-offer .bk-btn { opacity:1; color:var(--ink); }
 .bk-row-offer .bk-btn:disabled { background:var(--well); color:var(--ink-dim); opacity:1; }
-@media(max-width:759px){
+@container game (max-width:759px) {
  .bk-game:not(.ld-game) :is(.bk-row-confirm,.bk-row-offer) { padding:0; border:0; border-radius:0; box-shadow:none; background:transparent; }
  .bk-game:not(.ld-game) :is(.bk-row-confirm,.bk-row-offer) .bk-btn { min-height:var(--control-h-sm); height:var(--control-h-sm); }
  .bk-game:not(.ld-game) :is(.bk-row-confirm,.bk-row-offer) .bk-ask { position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); }
 }
 
 /* Utilities occupy their own phone row, above the title and every square. */
-@media (max-width: 759px) {
+@container game (max-width: 759px) {
   #gbody .bk-game { padding-top: calc(var(--control-h-sm) + var(--space-24)); padding-bottom: max(var(--space-16), env(safe-area-inset-bottom)); }
   #gbody .bk-game .bk-head { padding-left: 0; min-height: var(--space-48); }
   #gbody .bk-game .bk-actions { min-height: var(--control-h-sm); }
 }
-@media (min-width: 760px) and (min-height: 501px) {
+@container game (min-width: 760px) and (min-height: 501px) {
   /* The compact panel is centred beside the board, not a tall empty rail. */
   #gbody .bk-game { padding-bottom: var(--space-32); }
   #gbody .bk-game .bk-stage { align-self: center; margin-top: 0; }
@@ -286,6 +286,6 @@
   #gbody .bk-game .bk-actions { min-height: var(--control-h-sm); }
 }
 
-@media (max-width: 759px) {
+@container game (max-width: 759px) {
   body:has(#gameScreenPrompt:not([hidden])) #gbody .bk-game { padding-top: var(--space-12); }
 }

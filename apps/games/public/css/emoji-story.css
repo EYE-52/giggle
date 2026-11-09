@@ -3,20 +3,20 @@
 .es-center { text-align: center; }
 .es-emoji {
   margin: 0; padding: 14px 16px; text-align: center; overflow-wrap: anywhere;
-  font: 400 clamp(36px, 6vw, 52px)/1.25 var(--font-body); letter-spacing: .06em;
+  font: 400 clamp(36px, 6cqw, 52px)/1.25 var(--font-body); letter-spacing: .06em;
   background: var(--card); border: 1px solid var(--line); border-radius: var(--gk-radius, 12px);
 }
 .es-solved { font: 600 17px/1.45 var(--font-body); text-align: center; }
 .es-error:empty, #eGuessStatus[hidden] { display: none; }
 .es-error { color: var(--melon-deep); font-weight: 700; }
 .es-foot { min-height: 48px; display: flex; flex-direction: column; gap: 4px; }
-@media (max-width: 560px), (max-height: 560px) {
+@container game (max-width: 560px), (max-height: 560px) {
   .es-emoji { font-size: 34px; padding: 10px 12px; }
 }
 
 /* Short frames (a small Giggle panel, zoomed text): tighter rhythm so the
  * question and the main action stay in view. */
-@media (max-height: 560px) {
+@container game (max-height: 560px) {
   .es-scene { gap: 10px; padding-bottom: 12px; }
   .es-scene .gk-prompt { font-size: 22px; }
   .es-scene .gk-sub { font-size: 16px; }
@@ -39,7 +39,7 @@
 .es-scene.ck .es-table .wg-chip.is-on small { color: var(--on-fam); }
 .es-scene.ck .es-table .wg-chip b { margin-left: var(--space-8); padding-left: var(--space-8); border-left: var(--outline-w) solid var(--line-strong); font-variant-numeric: tabular-nums; }
 .es-scene.ck .es-table .wg-chip.is-on b { border-left-color: var(--on-fam); }
-@media (max-width: 560px), (max-height: 560px) {
+@container game (max-width: 560px), (max-height: 560px) {
   .es-scene.ck .es-emoji { padding: var(--space-16) var(--space-12); }
   .es-scene.ck .es-teaser { font-size: 26px; }
 }
@@ -49,7 +49,7 @@
 .es-scene.ck .es-slot:nth-child(2) { animation-delay: .15s; } .es-scene.ck .es-slot:nth-child(3) { animation-delay: .3s; }
 .es-scene.ck .es-slot:nth-child(4) { animation-delay: .45s; } .es-scene.ck .es-slot:nth-child(5) { animation-delay: .6s; }
 @keyframes es-wait { from { opacity: .45; transform: translateY(0); } to { opacity: 1; transform: translateY(-4px); } }
-@media (max-width: 560px) { .es-scene.ck .es-slot { width: 48px; height: 48px; } .es-scene.ck .es-slots { gap: var(--space-8); } }
+@container game (max-width: 560px) { .es-scene.ck .es-slot { width: 48px; height: 48px; } .es-scene.ck .es-slots { gap: var(--space-8); } }
 @media (prefers-reduced-motion: reduce) { .es-scene.ck .es-slot { animation: none; } }
 .es-scene.ck .es-wait .gk-wait-card :is(p, .gk-wait) { color: var(--ink); }
 .es-scene.ck .es-table .wg-chip small { white-space: nowrap; }
@@ -74,7 +74,7 @@
 .es-scene.ck .es-wait .gk-wait-card { padding: var(--space-16) var(--space-24); gap: var(--space-8); }
 .es-scene.ck .es-wait .gk-wait-card .gk-wait-title { font: var(--text-title); }
 .es-scene.ck .es-preview-text .es-slot { width: 64px; height: 64px; }
-@media (max-width: 560px) {
+@container game (max-width: 560px) {
   .es-scene.ck .es-slot { width: 52px; height: 52px; border-radius: var(--radius-md); }
   .es-scene.ck .es-preview-text .es-slot { width: 48px; height: 48px; }
   .es-scene.ck .es-wait .gk-wait-card { padding: var(--space-12) var(--space-16); }
@@ -107,7 +107,7 @@ body.game-playing[data-game="emoji-story"] {
 [data-theme="night"] .es-scene.ck .es-emoji { box-shadow: 0 var(--lift-lg) 0 var(--outline), 0 0 40px color-mix(in srgb, var(--fam) 16%, transparent); }
 [data-theme="night"] .es-scene.ck .es-emoji::after { box-shadow: var(--lift-sm) var(--lift-sm) 0 var(--outline); }
 .es-scene.ck .es-emoji + * { margin-top: var(--space-8); }
-@media (max-width: 560px) { .es-scene.ck .es-emoji::after { left: var(--space-24); width: 20px; height: 20px; bottom: -11px; } }
+@container game (max-width: 560px) { .es-scene.ck .es-emoji::after { left: var(--space-24); width: 20px; height: 20px; bottom: -11px; } }
 
 /* ==== QC ==== */
 /* The tail carries the bubble's full lip (straight down, as thick as the

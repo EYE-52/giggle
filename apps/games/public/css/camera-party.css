@@ -53,7 +53,7 @@
 .camera-party .cp-prev[hidden], .camera-party .cp-nextbtn[hidden] { display: inline-flex !important; visibility: hidden; }
 .camera-party .cp-ballot-mid { grid-column: 2; text-align: center; min-width: 0; }
 .camera-party .cp-ballot-name {
-  font: 800 clamp(22px, 3vw, 26px)/1.2 var(--font-display);
+  font: 800 clamp(22px, 3cqw, 26px)/1.2 var(--font-display);
   overflow-wrap: anywhere;
 }
 .camera-party .cp-votebtns { grid-auto-rows: 1fr; }
@@ -108,13 +108,13 @@
 /* Final scores and match scores use the kit rows (gk-results / gk-ranks). */
 .camera-party .cp-final { padding-top: 8px; }
 /* Game over: the kit Final scores block (same place as every other game). */
-.camera-party.gk-final { padding-block: clamp(16px, 4vh, 40px) 8px; }
+.camera-party.gk-final { padding-block: clamp(16px, 4cqh, 40px) 8px; }
 .camera-party.gk-final .cp-final { padding-top: 0; }
 .camera-party .cp-scores { display: flex; flex-direction: column; gap: 6px; }
 .camera-party .cp-scores-title { margin: 6px 0 0; }
 .camera-party .cp-score-list .gk-rank-row { min-height: 44px; padding-block: 6px; }
 
-@media (max-width: 420px) {
+@container game (max-width: 420px) {
   .camera-party { font-size: 16px; }
   .camera-party .cp-ready { width: 100%; }
   .camera-party .cp-vote { font-size: 17px; padding-inline: 10px; }
@@ -160,7 +160,7 @@
 .camera-party .cp-yes .cp-thumb { color: var(--success); }
 .camera-party .cp-no .cp-thumb { color: var(--danger); }
 
-@media (max-width: 560px) {
+@container game (max-width: 560px) {
   .camera-party .cp-prompt-card { min-height: 0; gap: var(--space-12); }
   .camera-party .cp-prompt { font-size: 24px; }
   .camera-party .cp-ready-row { min-height: 80px; }
@@ -196,7 +196,7 @@
 .camera-party.ck .cp-stage .ck-player.is-ready::after { content: "✓"; background: var(--success); color: var(--on-success); }
 .camera-party.ck .cp-call { font: var(--text-caption); color: var(--ink-dim); text-wrap: balance; max-width: 48ch; margin-inline: auto; }
 
-@media (min-width: 1024px) {
+@container game (min-width: 1024px) {
   .camera-party:not(.gk-final) {
     display: grid; grid-template-columns: minmax(0, 1fr) 340px; align-items: start; align-content: start;
     column-gap: var(--space-24); row-gap: var(--space-16); max-width: 1040px;
@@ -276,12 +276,12 @@
     linear-gradient(0deg, color-mix(in srgb, var(--fam) 34%, var(--card)) 0 4px, color-mix(in srgb, var(--fam) 20%, var(--card)) 4px 14px, transparent 14px),
     var(--fam-soft);
 }
-@media (max-width: 560px) {
+@container game (max-width: 560px) {
   .camera-party.ck:is(body[data-game="pose-party"] *) .cp-stage { padding-bottom: calc(var(--space-16) + 14px); }
 }
 /* QC (phones): the timer ring tucks into the prompt card's corner, so the
  * prompt gets the card's full width instead of 60% of it. */
-@media (max-width: 480px) {
+@container game (max-width: 480px) {
   .camera-party.ck .cp-prompt-card { grid-template-columns: minmax(0, 1fr); }
   .camera-party.ck .cp-prompt-card .cp-ring { position: absolute; top: var(--space-12); right: var(--space-12); width: 56px; height: 56px; }
   .camera-party.ck .cp-prompt-card .cp-ring .ck-ring-num { font-size: 18px; }
@@ -291,21 +291,21 @@
 
 /* The call is the stage. Keep this prompt card sized to its copy instead
  * of turning spare viewport height into an empty camera placeholder. */
-@media(min-width:1024px){
+@container game (min-width:1024px) {
  .camera-party:not(.gk-final) { min-height:0; grid-template-rows:repeat(6,auto); }
  .camera-party:not(.gk-final) > .cp-prompt-card { align-self:start; align-content:start; }
  .camera-party:not(.gk-final) > .cp-call { align-self:end; }
 }
-@media(min-width:1024px){ .camera-party:not(.gk-final) > .cp-call { grid-column:1; } }
-@media(max-width:480px){ .camera-party.ck .cp-prompt-card::before { right:calc(var(--space-64) + var(--space-24)); } }
+@container game (min-width:1024px) { .camera-party:not(.gk-final) > .cp-call { grid-column:1; } }
+@container game (max-width:480px) { .camera-party.ck .cp-prompt-card::before { right:calc(var(--space-64) + var(--space-24)); } }
 .camera-party.ck:is(body[data-game="show-and-go"] *) .cp-prompt-card { outline:0; border-style:solid; }
 
-@media (max-width: 560px) {
+@container game (max-width: 560px) {
   .camera-party.ck .cp-prompt-card .cp-ring { position: relative; top: auto; right: auto; justify-self: end; }
   .camera-party.ck .cp-prompt-text > :first-child,
   .camera-party.ck .cp-prompt-text > .cp-kicker:empty + * { margin-right: 0; }
 }
 
-@media (min-width: 1100px) {
-  .camera-party:not(.gk-final) { min-height: calc(100dvh - 2 * var(--space-64)); align-content: center; }
+@container game (min-width: 1100px) {
+  .camera-party:not(.gk-final) { min-height: calc(100cqh - 2 * var(--space-64)); align-content: center; }
 }

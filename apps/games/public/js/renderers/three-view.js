@@ -171,12 +171,17 @@ export async function createThreeView(mountEl, hooks) {
       camera.updateProjectionMatrix();
     }
   };
+  let resizeFrame = null;
+  const scheduleResize = () => {
+    if (disposed || resizeFrame !== null) return;
+    resizeFrame = requestAnimationFrame(() => { resizeFrame = null; doResize(); });
+  };
   let ro = null;
   if (typeof ResizeObserver === 'function') {
-    ro = new ResizeObserver(doResize);
+    ro = new ResizeObserver(scheduleResize);
     ro.observe(mountEl);
   }
-  track(window, 'resize', doResize);
+  track(window, 'resize', scheduleResize);
   doResize();
 
   let lost = false;
@@ -270,6 +275,8 @@ export async function createThreeView(mountEl, hooks) {
   const dispose = () => {
     if (disposed) return;
     disposed = true;
+    if (resizeFrame !== null) cancelAnimationFrame(resizeFrame);
+    resizeFrame = null;
     signal?.removeEventListener('abort', dispose);
     rejectFrame(new Error('3D view retired before a usable frame'));
     try { renderer.setAnimationLoop(null); } catch { /* noop */ }

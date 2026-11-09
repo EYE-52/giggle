@@ -1,0 +1,569 @@
+{
+  "baselineCommit": "6e91b6b626ce350538f19ff6154d34f229678cc6",
+  "games": 72,
+  "measurements": 1224,
+  "beforeFailures": 154,
+  "beforeGamesAffected": 50,
+  "afterFailures": 0,
+  "pageErrors": 0,
+  "themes": [
+    "day",
+    "night"
+  ],
+  "sizes": [
+    [
+      360,
+      640
+    ],
+    [
+      420,
+      700
+    ],
+    [
+      560,
+      760
+    ],
+    [
+      800,
+      600
+    ],
+    [
+      1440,
+      900
+    ],
+    [
+      1024,
+      768
+    ],
+    [
+      768,
+      1024
+    ],
+    [
+      390,
+      844
+    ]
+  ],
+  "wideParent": {
+    "panel": [
+      420,
+      700
+    ],
+    "window": [
+      1440,
+      900
+    ]
+  },
+  "scope": "Chrome real game views with server projections; representative active state per game; real practice input separately verified for four drawing games",
+  "results": [
+    {
+      "id": "would-you-rather",
+      "checked": 17,
+      "beforeFailures": 0,
+      "afterFailures": 0,
+      "minimumVisibleFieldPx": null
+    },
+    {
+      "id": "doodle-guess",
+      "checked": 17,
+      "beforeFailures": 2,
+      "afterFailures": 0,
+      "minimumVisibleFieldPx": 206.3
+    },
+    {
+      "id": "truth-dare",
+      "checked": 17,
+      "beforeFailures": 0,
+      "afterFailures": 0,
+      "minimumVisibleFieldPx": null
+    },
+    {
+      "id": "never-ever",
+      "checked": 17,
+      "beforeFailures": 0,
+      "afterFailures": 0,
+      "minimumVisibleFieldPx": null
+    },
+    {
+      "id": "most-likely",
+      "checked": 17,
+      "beforeFailures": 0,
+      "afterFailures": 0,
+      "minimumVisibleFieldPx": null
+    },
+    {
+      "id": "hot-takes",
+      "checked": 17,
+      "beforeFailures": 1,
+      "afterFailures": 0,
+      "minimumVisibleFieldPx": null
+    },
+    {
+      "id": "rank-it",
+      "checked": 17,
+      "beforeFailures": 9,
+      "afterFailures": 0,
+      "minimumVisibleFieldPx": null
+    },
+    {
+      "id": "two-truths",
+      "checked": 17,
+      "beforeFailures": 3,
+      "afterFailures": 0,
+      "minimumVisibleFieldPx": null
+    },
+    {
+      "id": "funny-answer",
+      "checked": 17,
+      "beforeFailures": 1,
+      "afterFailures": 0,
+      "minimumVisibleFieldPx": null
+    },
+    {
+      "id": "bluff",
+      "checked": 17,
+      "beforeFailures": 1,
+      "afterFailures": 0,
+      "minimumVisibleFieldPx": null
+    },
+    {
+      "id": "story-builder",
+      "checked": 17,
+      "beforeFailures": 1,
+      "afterFailures": 0,
+      "minimumVisibleFieldPx": null
+    },
+    {
+      "id": "emoji-story",
+      "checked": 17,
+      "beforeFailures": 0,
+      "afterFailures": 0,
+      "minimumVisibleFieldPx": null
+    },
+    {
+      "id": "trivia",
+      "checked": 17,
+      "beforeFailures": 0,
+      "afterFailures": 0,
+      "minimumVisibleFieldPx": null
+    },
+    {
+      "id": "scattergories",
+      "checked": 17,
+      "beforeFailures": 9,
+      "afterFailures": 0,
+      "minimumVisibleFieldPx": null
+    },
+    {
+      "id": "word-chain",
+      "checked": 17,
+      "beforeFailures": 0,
+      "afterFailures": 0,
+      "minimumVisibleFieldPx": null
+    },
+    {
+      "id": "countdown-word",
+      "checked": 17,
+      "beforeFailures": 0,
+      "afterFailures": 0,
+      "minimumVisibleFieldPx": null
+    },
+    {
+      "id": "lyric-fill",
+      "checked": 17,
+      "beforeFailures": 0,
+      "afterFailures": 0,
+      "minimumVisibleFieldPx": null
+    },
+    {
+      "id": "five-second",
+      "checked": 17,
+      "beforeFailures": 0,
+      "afterFailures": 0,
+      "minimumVisibleFieldPx": null
+    },
+    {
+      "id": "charades",
+      "checked": 17,
+      "beforeFailures": 1,
+      "afterFailures": 0,
+      "minimumVisibleFieldPx": null
+    },
+    {
+      "id": "twenty-questions",
+      "checked": 17,
+      "beforeFailures": 0,
+      "afterFailures": 0,
+      "minimumVisibleFieldPx": null
+    },
+    {
+      "id": "pick-one",
+      "checked": 17,
+      "beforeFailures": 0,
+      "afterFailures": 0,
+      "minimumVisibleFieldPx": null
+    },
+    {
+      "id": "memory-tray",
+      "checked": 17,
+      "beforeFailures": 0,
+      "afterFailures": 0,
+      "minimumVisibleFieldPx": null
+    },
+    {
+      "id": "rapid-polls",
+      "checked": 17,
+      "beforeFailures": 5,
+      "afterFailures": 0,
+      "minimumVisibleFieldPx": null
+    },
+    {
+      "id": "dare-roulette",
+      "checked": 17,
+      "beforeFailures": 1,
+      "afterFailures": 0,
+      "minimumVisibleFieldPx": null
+    },
+    {
+      "id": "compliment-battle",
+      "checked": 17,
+      "beforeFailures": 1,
+      "afterFailures": 0,
+      "minimumVisibleFieldPx": null
+    },
+    {
+      "id": "roast-toast",
+      "checked": 17,
+      "beforeFailures": 0,
+      "afterFailures": 0,
+      "minimumVisibleFieldPx": null
+    },
+    {
+      "id": "draw-phone",
+      "checked": 17,
+      "beforeFailures": 7,
+      "afterFailures": 0,
+      "minimumVisibleFieldPx": 215.1
+    },
+    {
+      "id": "reaction-tap",
+      "checked": 17,
+      "beforeFailures": 0,
+      "afterFailures": 0,
+      "minimumVisibleFieldPx": null
+    },
+    {
+      "id": "typing-race",
+      "checked": 17,
+      "beforeFailures": 0,
+      "afterFailures": 0,
+      "minimumVisibleFieldPx": null
+    },
+    {
+      "id": "number-hunt",
+      "checked": 17,
+      "beforeFailures": 3,
+      "afterFailures": 0,
+      "minimumVisibleFieldPx": null
+    },
+    {
+      "id": "backronyms",
+      "checked": 17,
+      "beforeFailures": 3,
+      "afterFailures": 0,
+      "minimumVisibleFieldPx": null
+    },
+    {
+      "id": "ballpark",
+      "checked": 17,
+      "beforeFailures": 5,
+      "afterFailures": 0,
+      "minimumVisibleFieldPx": null
+    },
+    {
+      "id": "banned-words",
+      "checked": 17,
+      "beforeFailures": 3,
+      "afterFailures": 0,
+      "minimumVisibleFieldPx": null
+    },
+    {
+      "id": "block-stack",
+      "checked": 17,
+      "beforeFailures": 1,
+      "afterFailures": 0,
+      "minimumVisibleFieldPx": 284
+    },
+    {
+      "id": "chain-reaction",
+      "checked": 17,
+      "beforeFailures": 0,
+      "afterFailures": 0,
+      "minimumVisibleFieldPx": 302
+    },
+    {
+      "id": "checkers",
+      "checked": 17,
+      "beforeFailures": 1,
+      "afterFailures": 0,
+      "minimumVisibleFieldPx": 280
+    },
+    {
+      "id": "chess",
+      "checked": 17,
+      "beforeFailures": 1,
+      "afterFailures": 0,
+      "minimumVisibleFieldPx": 228
+    },
+    {
+      "id": "clue-grid",
+      "checked": 17,
+      "beforeFailures": 3,
+      "afterFailures": 0,
+      "minimumVisibleFieldPx": null
+    },
+    {
+      "id": "color-clash",
+      "checked": 17,
+      "beforeFailures": 1,
+      "afterFailures": 0,
+      "minimumVisibleFieldPx": null
+    },
+    {
+      "id": "dial-in",
+      "checked": 17,
+      "beforeFailures": 7,
+      "afterFailures": 0,
+      "minimumVisibleFieldPx": null
+    },
+    {
+      "id": "dice-fibs",
+      "checked": 17,
+      "beforeFailures": 5,
+      "afterFailures": 0,
+      "minimumVisibleFieldPx": null
+    },
+    {
+      "id": "dots-boxes",
+      "checked": 17,
+      "beforeFailures": 1,
+      "afterFailures": 0,
+      "minimumVisibleFieldPx": 280
+    },
+    {
+      "id": "draw-off",
+      "checked": 17,
+      "beforeFailures": 9,
+      "afterFailures": 0,
+      "minimumVisibleFieldPx": 184
+    },
+    {
+      "id": "echo-pads",
+      "checked": 17,
+      "beforeFailures": 0,
+      "afterFailures": 0,
+      "minimumVisibleFieldPx": null
+    },
+    {
+      "id": "emoji-spotter",
+      "checked": 17,
+      "beforeFailures": 2,
+      "afterFailures": 0,
+      "minimumVisibleFieldPx": null
+    },
+    {
+      "id": "five-row",
+      "checked": 17,
+      "beforeFailures": 1,
+      "afterFailures": 0,
+      "minimumVisibleFieldPx": 280
+    },
+    {
+      "id": "fleet-duel",
+      "checked": 17,
+      "beforeFailures": 7,
+      "afterFailures": 0,
+      "minimumVisibleFieldPx": 200
+    },
+    {
+      "id": "four-in-a-row",
+      "checked": 17,
+      "beforeFailures": 1,
+      "afterFailures": 0,
+      "minimumVisibleFieldPx": 275.7
+    },
+    {
+      "id": "hot-potato",
+      "checked": 17,
+      "beforeFailures": 4,
+      "afterFailures": 0,
+      "minimumVisibleFieldPx": null
+    },
+    {
+      "id": "kalah",
+      "checked": 17,
+      "beforeFailures": 1,
+      "afterFailures": 0,
+      "minimumVisibleFieldPx": 185.1
+    },
+    {
+      "id": "know-me",
+      "checked": 17,
+      "beforeFailures": 3,
+      "afterFailures": 0,
+      "minimumVisibleFieldPx": null
+    },
+    {
+      "id": "letter-lock",
+      "checked": 17,
+      "beforeFailures": 3,
+      "afterFailures": 0,
+      "minimumVisibleFieldPx": null
+    },
+    {
+      "id": "ludo",
+      "checked": 17,
+      "beforeFailures": 3,
+      "afterFailures": 0,
+      "minimumVisibleFieldPx": 200
+    },
+    {
+      "id": "math-dash",
+      "checked": 17,
+      "beforeFailures": 4,
+      "afterFailures": 0,
+      "minimumVisibleFieldPx": null
+    },
+    {
+      "id": "mega-tic-tac-toe",
+      "checked": 17,
+      "beforeFailures": 1,
+      "afterFailures": 0,
+      "minimumVisibleFieldPx": 280
+    },
+    {
+      "id": "moonlit-village",
+      "checked": 17,
+      "beforeFailures": 3,
+      "afterFailures": 0,
+      "minimumVisibleFieldPx": null
+    },
+    {
+      "id": "odd-one-out",
+      "checked": 17,
+      "beforeFailures": 1,
+      "afterFailures": 0,
+      "minimumVisibleFieldPx": null
+    },
+    {
+      "id": "penalty-kicks",
+      "checked": 17,
+      "beforeFailures": 1,
+      "afterFailures": 0,
+      "minimumVisibleFieldPx": 220
+    },
+    {
+      "id": "pig-dice",
+      "checked": 17,
+      "beforeFailures": 0,
+      "afterFailures": 0,
+      "minimumVisibleFieldPx": null
+    },
+    {
+      "id": "pocket-karts",
+      "checked": 17,
+      "beforeFailures": 0,
+      "afterFailures": 0,
+      "minimumVisibleFieldPx": 360
+    },
+    {
+      "id": "pose-party",
+      "checked": 17,
+      "beforeFailures": 1,
+      "afterFailures": 0,
+      "minimumVisibleFieldPx": null
+    },
+    {
+      "id": "read-my-lips",
+      "checked": 17,
+      "beforeFailures": 3,
+      "afterFailures": 0,
+      "minimumVisibleFieldPx": null
+    },
+    {
+      "id": "reversi",
+      "checked": 17,
+      "beforeFailures": 1,
+      "afterFailures": 0,
+      "minimumVisibleFieldPx": 280
+    },
+    {
+      "id": "show-and-go",
+      "checked": 17,
+      "beforeFailures": 1,
+      "afterFailures": 0,
+      "minimumVisibleFieldPx": null
+    },
+    {
+      "id": "sketchy-impostor",
+      "checked": 17,
+      "beforeFailures": 9,
+      "afterFailures": 0,
+      "minimumVisibleFieldPx": 192
+    },
+    {
+      "id": "snakes-ladders",
+      "checked": 17,
+      "beforeFailures": 0,
+      "afterFailures": 0,
+      "minimumVisibleFieldPx": null
+    },
+    {
+      "id": "think-alike",
+      "checked": 17,
+      "beforeFailures": 1,
+      "afterFailures": 0,
+      "minimumVisibleFieldPx": null
+    },
+    {
+      "id": "undercover",
+      "checked": 17,
+      "beforeFailures": 3,
+      "afterFailures": 0,
+      "minimumVisibleFieldPx": null
+    },
+    {
+      "id": "warm-words",
+      "checked": 17,
+      "beforeFailures": 0,
+      "afterFailures": 0,
+      "minimumVisibleFieldPx": null
+    },
+    {
+      "id": "whisper",
+      "checked": 17,
+      "beforeFailures": 5,
+      "afterFailures": 0,
+      "minimumVisibleFieldPx": null
+    },
+    {
+      "id": "who-wrote",
+      "checked": 17,
+      "beforeFailures": 5,
+      "afterFailures": 0,
+      "minimumVisibleFieldPx": null
+    },
+    {
+      "id": "word-grid",
+      "checked": 17,
+      "beforeFailures": 5,
+      "afterFailures": 0,
+      "minimumVisibleFieldPx": null
+    }
+  ],
+  "fullNpmTest": {
+    "exitCode": 0,
+    "command": "NODE_PATH=/private/tmp/codex-driving-browser/node_modules FIT_PORT=8396 FIT_ARTIFACTS=../../artifacts/narrow-fit/test-matrix npm --prefix apps/games test",
+    "log": "artifacts/narrow-fit/npm-test.log"
+  }
+}

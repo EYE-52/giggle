@@ -16,7 +16,7 @@
 
 /* Short frames (a small Giggle panel, zoomed text): tighter rhythm so the
  * question and the main action stay in view. */
-@media (max-height: 560px) {
+@container game (max-height: 560px) {
   .fs-scene { gap: 10px; padding-bottom: 12px; }
   .fs-scene .gk-prompt { font-size: 22px; }
   .fs-scene .gk-sub { font-size: 16px; }
@@ -27,7 +27,7 @@
 #gbody .fs-scene.pl-fill > .gk-prompt {
   padding: var(--space-24); text-align: center; background: var(--fam-soft);
   border: var(--outline-w-lg) solid var(--outline); border-radius: var(--radius-xl); box-shadow: var(--shadow-sticker);
-  font: 800 clamp(28px, 3.6vw, 40px)/1.15 var(--font-display);
+  font: 800 clamp(28px, 3.6cqw, 40px)/1.15 var(--font-display);
 }
 #gbody .fs-scene.pl-fill .gk-hud-timer { min-width: 0; height: 48px; font-size: 28px; }
 #gbody .pl-fill .fs-answers { padding: var(--space-8) var(--space-16); border: var(--outline-w-lg) solid var(--outline); border-radius: var(--radius-xl); box-shadow: var(--shadow-sticker); }
@@ -36,7 +36,7 @@
 #gbody .fs-scene.pl-fill .fs-verdict { min-height: 72px; font: 800 24px/1.2 var(--font-display); }
 #gbody .fs-scene.pl-fill .gk-choices > .fs-verdict:first-child { --side: var(--success); --on-side: var(--on-success); }
 #gbody .fs-scene.pl-fill .gk-choices > .fs-verdict:last-child { --side: var(--danger); --on-side: var(--on-danger); }
-@media (max-width: 560px) {
+@container game (max-width: 560px) {
   #gbody .fs-scene.pl-fill > .gk-prompt { padding: var(--space-16); font-size: 26px; border-radius: var(--radius-lg); }
   #gbody .fs-scene.pl-fill .gk-hud-timer { min-width: 0; height: 44px; font-size: 24px; }
 }
@@ -60,7 +60,7 @@
 #gbody .fs-scene .fs-vote.is-fail { background: var(--danger-soft); }
 #gbody .fs-scene .fs-vote.is-fail b { background: var(--danger); color: var(--on-danger); }
 #gbody .fs-scene.pl-fill #fNext { min-height: var(--control-h-lg); min-width: 200px; font-size: 19px; }
-@media (max-width: 560px) {
+@container game (max-width: 560px) {
   #gbody .fs-scene.pl-fill .fs-foot { width: 100%; }
   #gbody .fs-scene.pl-fill #fNext { width: 100%; }
 }
@@ -96,7 +96,7 @@ body.game-playing[data-game="five-second"] {
   --fs-watch: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='18' r='10.5' fill='none' stroke='%23000' stroke-width='3'/%3E%3Cpath d='M12.5 3.5h7M16 3.5v4M16 18l4.5-4.5M25 8.5l2-2' fill='none' stroke='%23000' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E");
 }
 [data-theme="night"] #gbody .fs-scene.pl-fill > .gk-prompt { box-shadow: 0 var(--lift) 0 var(--outline), 0 0 40px color-mix(in srgb, var(--fam) 16%, transparent); }
-@media (max-width: 560px) {
+@container game (max-width: 560px) {
   #gbody .fs-scene.pl-fill > .gk-prompt { padding-top: var(--space-32); }
   #gbody .fs-scene.pl-fill > .gk-prompt::before { width: 40px; height: 40px; top: -20px; }
   #gbody .fs-scene.pl-fill > .gk-prompt::after { width: 32px; height: 32px; top: -16px; }

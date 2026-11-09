@@ -8,9 +8,9 @@
   box-shadow: var(--shadow-sticker);
 }
 #gbody .never-world .never-lead { margin: 0 0 var(--space-8); font: var(--text-title); color: var(--fam-deep); }
-#gbody .never-world .never-card .gk-prompt { margin: 0; font: 800 clamp(26px, 3.4vw, 38px)/1.15 var(--font-display); }
+#gbody .never-world .never-card .gk-prompt { margin: 0; font: 800 clamp(26px, 3.4cqw, 38px)/1.15 var(--font-display); }
 .never-choice-top { display: flex; align-items: center; gap: var(--space-12); }
-#gbody .never-world .never-choice-label { font: 800 clamp(24px, 2.8vw, 30px)/1.2 var(--font-display); color: var(--ink); overflow-wrap: anywhere; }
+#gbody .never-world .never-choice-label { font: 800 clamp(24px, 2.8cqw, 30px)/1.2 var(--font-display); color: var(--ink); overflow-wrap: anywhere; }
 .never-world .never-pick { align-self: flex-start; }
 .never-result { display: grid; gap: var(--space-8); width: 100%; }
 .never-choices:not(.is-reveal) .never-result { display: none; }
@@ -19,7 +19,7 @@
 #gbody .never-world .never-count { color: var(--ink); font: var(--text-caption); font-weight: 800; font-variant-numeric: tabular-nums; }
 .never-status { min-height: var(--control-h-sm); }
 .never-actions:not(:has(> :not([hidden]))) { display: none; }
-@media (max-width: 560px) {
+@container game (max-width: 560px) {
   .never-card { padding: var(--space-16); border-radius: var(--radius-lg); }
   #gbody .never-world .never-card .gk-prompt { font-size: 24px; }
   #gbody .never-world.pl-fill .pl-ab.is-duo { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-8); }
@@ -56,6 +56,6 @@ body.game-playing[data-game="never-ever"] {
   background: var(--fam); color: var(--on-fam); border: var(--outline-w) solid var(--fam-lip);
   box-shadow: 0 var(--lift-sm) 0 var(--fam-lip); font: 800 16px/1 var(--font-display); transform: rotate(6deg); pointer-events: none;
 }
-@media (max-width: 560px) {
+@container game (max-width: 560px) {
   #gbody .never-world .never-card::after { right: var(--space-12); height: 28px; min-width: 44px; font-size: 14px; }
 }

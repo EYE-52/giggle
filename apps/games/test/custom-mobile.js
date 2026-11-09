@@ -60,7 +60,7 @@ const castleImmersive = read('public/css/castle-immersive.css');
   assert(!/\.pk \.pk-status\s*\{\s*right:/.test(kartCss),
     'dead .pk-status right rule is gone (flex child, never positioned)');
   // Every media override that re-anchors the strip/board must stay inset-aware.
-  const blocks = kartCss.split('@media');
+  const blocks = kartCss.split(/@(?:media|container game)/);
   for (const b of blocks.slice(1)) {
     if (/\.pk \.pk-racestrip\s*\{[^}]*\btop:/.test(b)) {
       assert(b.includes('env(safe-area-inset-top'), `media "${b.slice(0, 60).trim()}…" strip top stays inset-aware`);
@@ -77,14 +77,14 @@ const castleImmersive = read('public/css/castle-immersive.css');
     'kart-arena never overrides result overflow to a non-scrolling value');
   // Touch targets stay >=44px at the smallest declared sizes.
   assert(/#pk-tg,\.pk #pk-td \{[^}]*width:44px/.test(kartCss), 'gas/brake keep 44px at 320px height');
-  const shortStick = kartCss.slice(kartCss.indexOf('@media (max-height:360px)'))
+  const shortStick = kartCss.slice(kartCss.indexOf('@container game (max-height:360px)'))
     .match(/\.pk \.pk-stick \{[^}]*width:(\d+)px/);
   assert(shortStick && Number(shortStick[1]) >= 88, 'stick keeps at least 88px at 320px height');
   assert(kartCss.includes('.pk .pk-upgrade button') && kartCss.includes('min-height:44px'),
     'garage upgrade buttons keep 44px targets');
-  assert(kartCss.includes('100dvh - var(--pk-result-top) - 104px - env(safe-area-inset-bottom,0px)'),
+  assert(kartCss.includes('100cqh - var(--pk-result-top) - 104px - env(safe-area-inset-bottom,0px)'),
     'short-landscape results reserve the Rematch bar, bottom inset and a gap');
-  assert(kartCss.includes('.pk .pk-helpbody { left:108px; max-height:calc(100dvh - 212px'),
+  assert(kartCss.includes('.pk .pk-helpbody { left:108px; max-height:calc(100cqh - 212px'),
     'short-landscape help clears the Room target and has a bounded scroll area');
   const rematchHeight = 66, bottom = 28, gap = 10;
   for (const [height, topInset, bottomInset] of [[320, 0, 0], [390, 0, 21], [320, 47, 21]]) {

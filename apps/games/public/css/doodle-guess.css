@@ -2,11 +2,11 @@
  * guesses beside it. Flat surfaces on the page tokens (Day, Night and Inside
  * Giggle), 1px borders, one accent. Only the drawing paper itself stays
  * white: it is the game art and the eraser paints white. The canvas keeps
- * its 880:520 drawing space at every size. */
+ * its 880 × 880 drawing space at every size. */
 .sk-doodle.dg {
   --dg-line: var(--line);
   --dg-radius: 12px;
-  max-width: none; width: 100%; min-height: 100dvh; margin: 0;
+  max-width: none; width: 100%; min-height: 100cqh; margin: 0;
   padding: 18px 28px 24px;
   background: var(--bg); color: var(--ink);
   border: 0; border-radius: 0; box-shadow: none;
@@ -63,12 +63,12 @@ body:has(.sk-doodle.dg) .game-stage > .specbanner { padding-left: max(124px, env
 .dg .dg-easel-cap, .dg .dg-shelf { display: none; }
 .dg .dg-frame { padding: 10px; }
 .dg .sk-canvaswrap {
-  position: relative; width: 100%; height: clamp(330px, calc(100dvh - 320px), 640px);
+  position: relative; width: 100%; height: clamp(330px, calc(100cqh - 320px), 640px);
   overflow: hidden; background: var(--well); border: 0; border-radius: 8px; box-shadow: none; isolation: isolate; line-height: 0;
 }
 .sk-doodle.dg canvas.doodle {
   position: absolute; display: block; width: 100%; height: auto; max-width: none; max-height: none;
-  margin: 0; padding: 0; border: 0; border-radius: 0; aspect-ratio: 880 / 520;
+  margin: 0; padding: 0; border: 0; border-radius: 0; aspect-ratio: 1;
   background: #fff; /* the paper: game art, the eraser paints white */
   touch-action: pan-y; box-shadow: 0 0 0 1px var(--line); user-select: none; -webkit-user-select: none;
 }
@@ -114,7 +114,7 @@ body:has(.sk-doodle.dg) .game-stage > .specbanner { padding-left: max(124px, env
 .dg .sk-outcomes { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; }
 .dg .dg-found { font-size: 13px; font-weight: 700; color: var(--ink-dim); overflow-wrap: anywhere; }
 .dg .dg-found b { color: var(--green); white-space: nowrap; }
-.dg .dg-feed { flex: 1; list-style: none; margin: 0; padding: 0; overflow: auto; overscroll-behavior: contain; height: clamp(180px, calc(100dvh - 465px), 410px); min-height: 100px; }
+.dg .dg-feed { flex: 1; list-style: none; margin: 0; padding: 0; overflow: auto; overscroll-behavior: contain; height: clamp(180px, calc(100cqh - 465px), 410px); min-height: 100px; }
 .dg .dg-feed li { display: flex; flex-wrap: wrap; gap: 2px 8px; padding: 6px 0; font-size: 16px; line-height: 1.45; overflow-wrap: anywhere; border-bottom: 1px solid var(--line); }
 .dg .dg-feed li:last-child { border-bottom: 0; }
 .dg .dg-feed li b { font-size: 14px; }
@@ -156,12 +156,12 @@ body:has(.sk-doodle.dg) .game-stage > .specbanner { padding-left: max(124px, env
 /* The live desk has one height budget: the header and palette keep their
  * natural height; the drawing viewport and guesses share the rest. */
 .sk-doodle.dg.dg-live { height: 100%; min-height: 0; padding: max(14px, env(safe-area-inset-top)) max(24px, env(safe-area-inset-right)) max(20px, env(safe-area-inset-bottom)) max(124px, env(safe-area-inset-left)); }
-@media (min-width: 701px) and (min-height: 600px) {
-  body:has(.dg-live) .game-stage { height: 100dvh; display: flex; flex-direction: column; }
+@container game (min-width: 701px) and (min-height: 600px) {
+  body:has(.dg-live) .game-stage { height: 100cqh; display: flex; flex-direction: column; }
   body:has(.dg-live) .game-stage > #gbody { flex: 1; min-height: 0; }
   body:has(.dg-live) .game-stage > .specbanner { flex: none; margin-bottom: 0; }
 }
-body:has(.dg-live.is-canvas-focused) .game-stage { height: 100dvh; display: flex; flex-direction: column; }
+body:has(.dg-live.is-canvas-focused) .game-stage { height: 100cqh; display: flex; flex-direction: column; }
 body:has(.dg-live.is-canvas-focused) .game-stage > #gbody { flex: 1; min-height: 0; }
 body:has(.dg-live.is-canvas-focused) .game-stage > .specbanner { flex: none; margin-bottom: 0; }
 .dg-live .dg-stage { height: 100%; min-height: 0; }
@@ -182,9 +182,9 @@ body:has(.dg-live.is-canvas-focused) .game-stage > .specbanner { flex: none; mar
 .dg.is-canvas-focused .dg-header.sk-deskcue { min-height: 0; margin-bottom: 8px; }
 .dg.is-canvas-focused.is-tools-collapsed .dg-tools { display: none; }
 
-@media (max-width: 700px) {
+@container game (max-width: 700px) {
   .sk-doodle.dg { padding: 14px 14px 22px; }
-  .sk-doodle.dg.dg-live { height: auto; min-height: 100dvh; padding: max(14px, env(safe-area-inset-top)) max(14px, env(safe-area-inset-right)) max(22px, env(safe-area-inset-bottom)) max(14px, env(safe-area-inset-left)); }
+  .sk-doodle.dg.dg-live { height: auto; min-height: 100cqh; padding: max(14px, env(safe-area-inset-top)) max(14px, env(safe-area-inset-right)) max(22px, env(safe-area-inset-bottom)) max(14px, env(safe-area-inset-left)); }
   .sk-doodle.dg.dg-pick { padding: max(14px, env(safe-area-inset-top)) 14px 22px; }
   /* The first row clears the fixed Room and Report buttons (14 + 44 + 8 + 44 + 10px). */
   .dg .dg-hud { padding-left: 106px; }
@@ -206,7 +206,7 @@ body:has(.dg-live.is-canvas-focused) .game-stage > .specbanner { flex: none; mar
   .dg .dg-feed { flex: none; height: 140px; }
   .dg .dg-zoom { padding: 0 6px 4px; }
   /* Unzoomed, the page is the paper itself; the guess box sits right under it. */
-  .dg-live:not(.is-canvas-focused) .sk-canvaswrap { height: auto; min-height: 0; aspect-ratio: 880 / 520; }
+  .dg-live:not(.is-canvas-focused) .sk-canvaswrap { height: auto; min-height: 0; aspect-ratio: 1; }
   .dg-live:not(.is-canvas-focused) .dg-composer { order: -1; margin: 0 0 12px; padding: 0 0 12px; border-top: 0; border-bottom: 1px solid var(--line); }
   .dg-live:not(.is-canvas-focused) .dg-result { order: -1; margin: 0 0 12px; padding: 0 0 12px; border-top: 0; border-bottom: 1px solid var(--line); }
   .dg-live:not(.is-canvas-focused) .dg-next-row { order: -1; margin: 0 0 12px; }
@@ -218,14 +218,14 @@ body:has(.dg-live.is-canvas-focused) .game-stage > .specbanner { flex: none; mar
   .dg.is-canvas-focused .dg-word.sk-hintline { font-size: 22px; letter-spacing: 0; }
   .dg.is-canvas-focused .sk-canvaswrap { height: 100%; }
 }
-@media (max-height: 599px) and (min-width: 701px) {
+@container game (max-height: 599px) and (min-width: 701px) {
   body:has(.dg-live.is-canvas-focused) .game-stage { height: auto; display: block; }
-  .sk-doodle.dg.dg-live { height: auto; min-height: 100dvh; padding-top: 12px; padding-bottom: 12px; }
+  .sk-doodle.dg.dg-live { height: auto; min-height: 100cqh; padding-top: 12px; padding-bottom: 12px; }
   .dg .dg-header.sk-deskcue { min-height: 0; margin-bottom: 6px; }
   .dg .dg-stage { grid-template-columns: minmax(0, 1fr) 270px; gap: 14px; height: auto; }
   .dg-live .dg-drawing { grid-template-rows: auto auto auto; }
   .dg-live .dg-easel { grid-template-rows: auto auto auto; }
-  .dg .sk-canvaswrap { height: clamp(160px, calc(100dvh - 245px), 320px); }
+  .dg .sk-canvaswrap { height: clamp(160px, calc(100cqh - 245px), 320px); }
   .dg .dg-feed { min-height: 95px; }
   .dg .dg-roster { max-height: 70px; }
   .dg .dg-tools.sk-toolrail { flex-wrap: nowrap; overflow-x: auto; justify-content: flex-start; }
@@ -238,7 +238,7 @@ body:has(.dg-live.is-canvas-focused) .game-stage > .specbanner { flex: none; mar
 html body.game-playing:has(.sk-doodle.dg) .game-report-icon { color: var(--ink); background: var(--card); border-color: var(--line); }
 /* Small landscape frames (for example a 600×500 call panel): the paper,
  * the tools and the guess box all stay on screen without scrolling. */
-@media (max-width: 700px) and (min-width: 480px) and (max-height: 620px) {
+@container game (max-width: 700px) and (min-width: 480px) and (max-height: 620px) {
   .sk-doodle.dg.dg-live { padding-top: max(10px, env(safe-area-inset-top)); padding-bottom: 10px; }
   .dg .dg-header.sk-deskcue { gap: 2px; margin-bottom: 6px; }
   .dg .dg-word.sk-hintline { font-size: 20px; }
@@ -260,14 +260,14 @@ html body.game-playing:has(.sk-doodle.dg) .game-report-icon { color: var(--ink);
 
 /* Only the HUD clears Room/Report. A full-height left rail wastes paper
  * on short desktops. Keep the full drawing coordinate system and 44px tools. */
-@media (min-width: 701px) and (min-height: 600px) {
+@container game (min-width: 701px) and (min-height: 600px) {
   .sk-doodle.dg.dg-live { padding-left: max(24px, env(safe-area-inset-left)); }
   .dg-live .dg-header.sk-deskcue { padding-left: 100px; min-height: 64px; margin-bottom: 8px; }
-  .dg-live .dg-stage { grid-template-columns: minmax(0, 1fr) clamp(260px, 25vw, 320px); gap: 16px; }
+  .dg-live .dg-stage { grid-template-columns: minmax(0, 1fr) clamp(260px, 25cqw, 320px); gap: 16px; }
   .dg-live.is-chat-collapsed:not(:has(.dg-composer, .dg-next)) .dg-stage,
   .dg-live.is-canvas-focused .dg-stage { grid-template-columns: minmax(0, 1fr); }
 }
-@media (min-width: 1100px) and (min-height: 600px) {
+@container game (min-width: 1100px) and (min-height: 600px) {
   /* Put the small view actions beside the HUD, giving the paper another
    * row of height rather than merely widening its surrounding well. */
   /* Names never resize the actions column. The same tray row stays below
@@ -293,7 +293,7 @@ html body.game-playing:has(.sk-doodle.dg) .game-report-icon { color: var(--ink);
 .dg.ck .dg-tiles { justify-content: flex-start; gap: var(--space-4); }
 .dg.ck .dg-tiles .ck-tile { width: 28px; height: 32px; font-size: 18px; border-radius: var(--radius-sm); }
 .dg.ck .dg-tiles .ck-tile.is-gap { width: var(--space-12); }
-@media (max-width: 700px) {
+@container game (max-width: 700px) {
   .dg.ck .dg-tiles .ck-tile { width: 26px; height: 32px; font-size: 17px; }
   .dg.ck .dg-tiles .ck-tile.is-gap { width: var(--space-8); }
 }
@@ -310,7 +310,7 @@ html body.game-playing:has(.sk-doodle.dg) .game-report-icon { color: var(--ink);
     var(--fam-soft);
 }
 .sk-doodle.dg.ck canvas.doodle { border-radius: var(--radius-sm); box-shadow: 0 0 0 var(--outline-w) var(--outline); }
-@media (max-width: 700px) {
+@container game (max-width: 700px) {
   .dg.ck .dg-easel, .dg.ck .dg-chat { border-radius: var(--radius-lg); box-shadow: var(--shadow-sticker); }
   .dg.ck .dg-frame { padding: var(--space-8); }
   .dg.ck .sk-canvaswrap { border-radius: var(--radius-sm); }
@@ -365,7 +365,7 @@ html body.game-playing:has(.sk-doodle.dg) .game-report-icon { color: var(--ink);
 .dg.ck.dg-pick .gk-choice { min-height: 72px; font: var(--text-title); }
 /* Phone HUD beside Room and Report: the round sticker stays compact so
  * the row never pushes the desk wider than the screen. */
-@media (max-width: 700px) {
+@container game (max-width: 700px) {
   .dg.ck .dg-hud .gk-hud-round { min-height: 28px; padding: 2px var(--space-8); font: var(--text-caption); font-weight: 800; }
   .dg.ck .dg-hud .gk-hud-timer { min-width: 3.6em; min-height: 28px; padding: 2px var(--space-4); }
   .dg.ck .dg-hud .gk-hud-progress { min-width: 0; }
@@ -376,7 +376,7 @@ html body.game-playing:has(.sk-doodle.dg) .game-report-icon { color: var(--ink);
 
 /* ---- polish: pick screen is one centred group with big word cards ---- */
 .sk-doodle.dg.ck.dg-pick {
-  min-height: 100dvh; padding-block:var(--space-64); display: grid; align-content: center; justify-items: center; gap: var(--space-24);
+  min-height: 100cqh; padding-block:var(--space-64); display: grid; align-content: center; justify-items: center; gap: var(--space-24);
 }
 .dg.ck.dg-pick > *, .dg.ck.dg-pick > .dg-header.sk-deskcue { width: 100%; max-width: 760px; margin-inline: auto; margin-bottom: 0; }
 .dg.ck.dg-pick .dg-header.sk-deskcue { min-height: 0; gap: var(--space-16); }
@@ -394,7 +394,7 @@ html body.game-playing:has(.sk-doodle.dg) .game-report-icon { color: var(--ink);
 @media (hover: hover) { .dg.ck.dg-pick .sk-pick .gk-choice:hover:not(:disabled) { transform: translateY(-3px); } }
 .dg.ck.dg-pick .sk-pick .gk-choice:active:not(:disabled) { transform: translateY(var(--lift)); box-shadow: none; }
 .dg.ck.dg-pick .dg-pick-note { font: var(--text-caption); }
-@media (max-width: 700px) {
+@container game (max-width: 700px) {
   .sk-doodle.dg.ck.dg-pick { min-height: 0; padding-block:max(var(--space-16),env(safe-area-inset-top)) max(var(--space-24),env(safe-area-inset-bottom)); align-content: start; }
   .dg.ck.dg-pick .sk-pick .gk-choice { min-height: 72px; flex-direction: row; justify-content: flex-start; }
 }
@@ -432,13 +432,13 @@ html body.game-playing:has(.sk-doodle.dg) .game-report-icon { color: var(--ink);
 .dg.ck .dg-canvas-empty span { font: var(--text-caption); color: var(--ink-dim); }
 
 /* ---- the guesses column hugs its content instead of an empty tall card ---- */
-@media (min-width: 701px) and (min-height: 600px) {
+@container game (min-width: 701px) and (min-height: 600px) {
 
   .dg-live.ck .dg-chat { align-self: start; max-height: 100%; }
   .dg-live.ck .dg-feed { flex: 0 1 auto; }
 }
 .dg.ck .dg-zoom button { padding: 0 var(--space-8); }
-@media (max-width: 700px) {
+@container game (max-width: 700px) {
   .dg.ck .dg-zoom:has(button) { margin: 0 var(--space-8) var(--space-8) auto; padding: 2px; }
   .dg.ck .dg-zoom #dZoomValue { min-width: 3em; }
 }
@@ -496,7 +496,7 @@ html body.game-playing:has(.sk-doodle.dg) .game-report-icon { color: var(--ink);
   background: radial-gradient(circle at 50% 50%, var(--card) 0 3px, color-mix(in srgb, var(--ink) 38%, var(--card)) 3.5px 6px, transparent 6.5px) 0 0 / 26px 18px space no-repeat;
 }
 [data-theme="night"] .dg.ck .dg-easel-cap { display: none; }
-@media (max-width: 700px) { .dg.ck .dg-easel-cap { left: var(--space-16); right: var(--space-16); top: -8px; } }
+@container game (max-width: 700px) { .dg.ck .dg-easel-cap { left: var(--space-16); right: var(--space-16); top: -8px; } }
 
 /* The hidden word: blank tiles sit on a soft family lip. */
 .dg.ck .dg-tiles .ck-tile.is-blank { box-shadow: inset 0 -4px 0 var(--fam-soft), 0 var(--lift-sm) 0 var(--outline); }
@@ -504,7 +504,7 @@ html body.game-playing:has(.sk-doodle.dg) .game-report-icon { color: var(--ink);
 [data-theme="night"] .dg.ck .dg-roster li.is-drawer small { box-shadow: 0 0 12px color-mix(in srgb, var(--fam) 45%, transparent); }
 /* Phones: the board fills its well edge to edge, so the frame is drawn on
  * the well (over the outer 5px of the sheet) instead of around the canvas. */
-@media (max-width: 700px) {
+@container game (max-width: 700px) {
   [data-theme="night"] .dg-live.ck:not(.is-canvas-focused) .sk-canvaswrap::after {
     content: ""; position: absolute; inset: 0; z-index: 2; pointer-events: none;
     border-radius: inherit; box-shadow: inset 0 0 0 5px var(--dg-frame), inset 0 0 0 7px #5b3a22;
@@ -540,6 +540,6 @@ html body.game-playing:has(.sk-doodle.dg) .game-report-icon { color: var(--ink);
 .dg .dg-found b,.dg .dg-feed li.dg-correct :is(span,strong),.dg .dg-result-pts { color:var(--dg-score-ink); }
 .dg .dg-chat :is(.dg-label,.dg-roster small,.dg-found,.dg-feed-empty) { color:var(--ink); }
 
-@media (max-width: 560px) {
+@container game (max-width: 560px) {
   .dg .dg-hud .gk-hud-phase { display: block; }
 }

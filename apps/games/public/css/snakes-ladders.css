@@ -23,15 +23,15 @@
 [data-theme="night"] .sl-game .sl-shade-0 { fill: #bac2a2; }
 [data-theme="night"] .sl-game .sl-shade-1 { fill: #9db590; }
 [data-theme="night"] .sl-game .sl-shade-2 { fill: #abb99a; }
-@media (min-width: 760px) {
+@container game (min-width: 760px) {
   .sl-game .bk-players { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
   /* The printed caption belongs to the stage too. Reserve it before sizing
    * the square, so the bottom rim never pushes past the viewport. */
   .sl-game .bk-stage {
-    width: min(100%, calc(var(--game-viewport-height, 100dvh) - 120px - var(--space-32)));
+    width: min(100%, calc(var(--game-viewport-height, 100cqh) - 120px - var(--space-32)));
   }
 }
-@media (max-width: 759px) {
+@container game (max-width: 759px) {
   .sl-game { --b5-extra-height: 88px; }
   .sl-game .sl-number { font-size: 24px; }
   .sl-game .sl-trail-note { display: none; }

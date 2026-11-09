@@ -11,7 +11,7 @@ const deferred = () => { let resolve; const promise = new Promise(fn => { resolv
 (async () => {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'giggle-gl-ready-'));
   const originalError = console.error;
-  const originals = new Map(['document', 'window', 'ResizeObserver'].map(key => [key, Object.getOwnPropertyDescriptor(global, key)]));
+  const originals = new Map(['document', 'window', 'ResizeObserver', 'requestAnimationFrame', 'cancelAnimationFrame'].map(key => [key, Object.getOwnPropertyDescriptor(global, key)]));
   try {
     const source = fs.readFileSync(process.env.THREE_VIEW_SOURCE || path.join(__dirname, '../public/js/renderers/three-view.js'), 'utf8');
     fs.writeFileSync(path.join(tmp, 'view.mjs'), source.replace("'/vendor/three/three.module.js'", "'./vendor.mjs'"));
@@ -27,6 +27,10 @@ const deferred = () => { let resolve; const promise = new Promise(fn => { resolv
     global.glFixture = { renderers: [], renders: 0, fail: false };
     global.window = { location: { search: '' }, devicePixelRatio: 1, addEventListener() {}, removeEventListener() {} };
     global.document = { createElement() { return { setAttribute() {}, addEventListener() {}, removeEventListener() {}, remove() { this.removed = true; } }; } };
+    const frames=new Map();let nextFrame=0;
+    global.requestAnimationFrame=fn=>{frames.set(++nextFrame,fn);return nextFrame;};
+    global.cancelAnimationFrame=id=>frames.delete(id);
+    const paintFrame=()=>{const jobs=[...frames.values()];frames.clear();jobs.forEach(fn=>fn());};
     const observers=[];
     global.ResizeObserver = class { constructor(fn) {this.callback=fn;observers.push(this);} observe() {} disconnect() {} };
     const { createThreeView } = await import(pathToFileURL(path.join(tmp, 'view.mjs')).href);
@@ -45,15 +49,17 @@ const deferred = () => { let resolve; const promise = new Promise(fn => { resolv
     const resizing=await createThreeView(resizeRoot,{build:()=>({...built(),resize(){sceneResizes++;}})});
     const observer=observers.at(-1),initialSizes=resizing.renderer.sizes.length;
     observer.callback();observer.callback();observer.callback();
+    assert.equal(frames.size,1,'observer bursts schedule one resize per animation frame');paintFrame();
     assert.equal(resizing.renderer.sizes.length,initialSizes,'unchanged ResizeObserver callbacks never reallocate the drawing buffer');
     assert.equal(sceneResizes,1,'unchanged observations do not rebuild scene projections');
     assert.equal(resizing.renderer.ratios.length,1,'stable DPR is assigned once');
-    resizeRoot.clientWidth=640;observer.callback();
+    resizeRoot.clientWidth=640;observer.callback();observer.callback();
+    assert.equal(resizing.renderer.sizes.length,initialSizes,'resize work waits for the next animation frame');paintFrame();
     assert.equal(resizing.renderer.sizes.length,initialSizes+1,'a real width change resizes once');
-    global.window.devicePixelRatio=1.5;observer.callback();
+    global.window.devicePixelRatio=1.5;observer.callback();paintFrame();
     assert.equal(resizing.renderer.sizes.length,initialSizes+2,'a DPR-only change uses Three’s internal resize once');
     assert.equal(resizing.renderer.ratios.at(-1),1.5);assert.equal(sceneResizes,3);
-    global.window.devicePixelRatio=2;observer.callback();
+    global.window.devicePixelRatio=2;observer.callback();paintFrame();
     assert.equal(resizing.renderer.ratios.at(-1),1.75,'existing pixel ratio quality cap is preserved');
     resizing.dispose();const retiredSizes=resizing.renderer.sizes.length,retiredResizes=sceneResizes;
     resizeRoot.clientWidth=999;observer.callback();

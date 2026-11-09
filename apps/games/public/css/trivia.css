@@ -1,7 +1,7 @@
 /* Trivia: on phones the HUD is two tidy rows (question + timer, then phase
  * + locked-in count) so the timer never drops onto a line of its own and
  * push the question card down. Tokens only. */
-@media (max-width: 560px) {
+@container game (max-width: 560px) {
   #gbody [data-game="trivia"] .gk-hud {
     display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "round timer" "phase progress";
     align-items: center; gap: var(--space-8) var(--space-12);
@@ -145,7 +145,7 @@ body.game-playing[data-game="trivia"] {
 #gbody .wg.pl-fill[data-game="trivia"] .wg-status.is-good { color: var(--success); }
 [data-theme="night"] #gbody .wg.pl-fill[data-game="trivia"] .wg-status.is-good { color: var(--success); }
 
-@media (max-width: 560px) {
+@container game (max-width: 560px) {
   #gbody .wg.pl-fill[data-game="trivia"]::before { height: 300px; top: calc(-1 * var(--space-24)); }
   #gbody .wg.pl-fill[data-game="trivia"] > .gk-prompt { padding: var(--space-32) var(--space-16) var(--space-16); }
   #gbody .wg.pl-fill[data-game="trivia"] > .gk-prompt::before { left: var(--space-16); right: var(--space-16); top: var(--space-8); height: 10px; background-size: 20px 10px; background-image: radial-gradient(circle at 5px 5px, var(--qa-c) 0 3px, transparent 4px); }

@@ -43,16 +43,16 @@
  * tilted "hot take" sticker, and the split bar runs from warm to cool. */
 body.game-playing[data-game="hot-takes"] {
   background-image:
-    radial-gradient(90vw 46vh at 50% 108%, color-mix(in srgb, var(--fam) 20%, transparent), transparent 72%),
-    radial-gradient(50vw 30vh at 18% 104%, color-mix(in srgb, var(--fam-arcade) 16%, transparent), transparent 70%),
-    radial-gradient(80vw 30vh at 50% -8%, color-mix(in srgb, #6a55d8 8%, transparent), transparent 70%);
+    radial-gradient(90cqw 46cqh at 50% 108%, color-mix(in srgb, var(--fam) 20%, transparent), transparent 72%),
+    radial-gradient(50cqw 30cqh at 18% 104%, color-mix(in srgb, var(--fam-arcade) 16%, transparent), transparent 70%),
+    radial-gradient(80cqw 30cqh at 50% -8%, color-mix(in srgb, #6a55d8 8%, transparent), transparent 70%);
   background-attachment: fixed;
 }
 [data-theme="night"] body.game-playing[data-game="hot-takes"] {
   background-image:
-    radial-gradient(90vw 46vh at 50% 108%, color-mix(in srgb, var(--fam) 22%, transparent), transparent 72%),
-    radial-gradient(50vw 30vh at 18% 104%, color-mix(in srgb, var(--fam-arcade) 14%, transparent), transparent 70%),
-    radial-gradient(80vw 30vh at 50% -8%, color-mix(in srgb, #a796ff 9%, transparent), transparent 70%);
+    radial-gradient(90cqw 46cqh at 50% 108%, color-mix(in srgb, var(--fam) 22%, transparent), transparent 72%),
+    radial-gradient(50cqw 30cqh at 18% 104%, color-mix(in srgb, var(--fam-arcade) 14%, transparent), transparent 70%),
+    radial-gradient(80cqw 30cqh at 50% -8%, color-mix(in srgb, #a796ff 9%, transparent), transparent 70%);
 }
 #gbody .pl-fill.party-scene--hot .party-prompt.party-prompt { position: relative; }
 #gbody .pl-fill.party-scene--hot .party-prompt.party-prompt::before {
@@ -63,12 +63,12 @@ body.game-playing[data-game="hot-takes"] {
 }
 #gbody .party-scene--hot .hot-split-track > span:first-child { background: linear-gradient(90deg, var(--fam-arcade), var(--fam)); }
 #gbody .party-scene--hot .hot-split-track > span + span { background: linear-gradient(90deg, var(--duel-b), color-mix(in srgb, var(--duel-b) 70%, var(--card))); }
-@media (max-width: 560px) {
+@container game (max-width: 560px) {
   #gbody .pl-fill.party-scene--hot .party-prompt.party-prompt::before { left: var(--space-12); height: 28px; font-size: 14px; }
 }
 /* QC: on phones the "Your vote" tab drops the face and shrinks, so it
  * stays in the card's top-right corner, clear of the check/cross disc. */
-@media (max-width: 560px) {
+@container game (max-width: 560px) {
   #gbody .pl-fill.party-scene--hot .hot-choices .gk-choice .pl-pick { right: var(--space-8); min-height: 24px; padding: 0 var(--space-8); font-size: 12px; }
   #gbody .pl-fill.party-scene--hot .hot-choices .pl-pick .pl-face { display: none; }
 }

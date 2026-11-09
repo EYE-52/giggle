@@ -9,14 +9,14 @@
   gap: var(--space-16);
   padding: var(--space-24) var(--space-16) var(--space-16);
   grid-template-rows: var(--control-h-sm) minmax(0, 1fr);
-  min-height: var(--game-viewport-height, 100dvh);
+  min-height: var(--game-viewport-height, 100cqh);
   font: var(--text-body);
 }
 .b5-game .bk-panel { grid-row: 1 / 3; margin-top: 0; gap: var(--space-8); }
 .b5-game .bk-head { min-height: var(--control-h-sm); }
 .b5-game .bk-title { font: var(--text-heading); }
 .b5-game .bk-meta { font: var(--text-caption); min-height: 1.4em; }
-.b5-game .bk-stage { grid-row: 2; margin: 0; width: min(100%, calc(var(--game-viewport-height, 100dvh) - 120px)); }
+.b5-game .bk-stage { grid-row: 2; margin: 0; width: min(100%, calc(var(--game-viewport-height, 100cqh) - 120px)); }
 .b5-game .b5-hud {
   grid-column: 1; grid-row: 1; width: 100%; margin: 0;
   display: flex; align-items: center; gap: var(--space-8);
@@ -68,8 +68,8 @@
 .b5-game [data-roll]:active { transform: translateY(var(--lift)); box-shadow: none; }
 @media (hover: hover) { .b5-game [role="button"][aria-disabled="false"]:hover > :first-child { stroke: var(--fam); stroke-width: 3; } }
 .b5-game [role="button"][aria-disabled="false"]:active { opacity: .7; }
-@media (min-width: 760px) {
-  .b5-game { grid-template-columns: minmax(0, min(720px, calc(var(--game-viewport-height, 100dvh) - 96px))) var(--bk-panel); justify-content: center; }
+@container game (min-width: 760px) {
+  .b5-game { grid-template-columns: minmax(0, min(720px, calc(var(--game-viewport-height, 100cqh) - 96px))) var(--bk-panel); justify-content: center; }
   /* Menu, report and fullscreen occupy three slots at the viewport's left.
    * Keep HUD text beyond them even when the board column reaches that edge. */
   .b5-game .b5-hud {
@@ -77,7 +77,7 @@
   }
   .b5-game:is(.pd-game, .sl-game)[data-seats="12"] .bk-players { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
-@media (min-width: 760px) and (max-height: 640px) {
+@container game (min-width: 760px) and (max-height: 640px) {
   /* A short desktop still has a sidebar, but not room for four tall seats. */
   .b5-game .bk-players { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .b5-game .bk-stat { width: 3ch; min-width: 3ch; }
@@ -85,8 +85,8 @@
   .b5-game .bk-status { height: 64px; min-height: 64px; }
   .b5-game .bk-status-text { font: var(--text-button); }
 }
-@media (max-width: 759px) {
-  .b5-game { display: flex; gap: var(--space-8); padding: var(--space-8); min-height: var(--game-viewport-height, 100dvh); }
+@container game (max-width: 759px) {
+  .b5-game { display: flex; gap: var(--space-8); padding: var(--space-8); min-height: var(--game-viewport-height, 100cqh); }
   .b5-game .bk-head { order: 0; padding-left: 104px; min-height: 48px; }
   .b5-game .bk-title { font: var(--text-title); }
   .b5-game .bk-panel { display: contents; }
@@ -96,7 +96,7 @@
   .b5-game .bk-stat-label { display: none; }
   .b5-game .bk-stat { width: 3ch; min-width: 3ch; }
   .b5-game .b5-hud { order: 2; height: var(--space-24); min-height: var(--space-24); padding: 0; }
-  .b5-game .bk-stage { order: 3; width: min(100%, calc(var(--game-viewport-height, 100dvh) - 324px)); max-width: 560px; }
+  .b5-game .bk-stage { order: 3; width: min(100%, calc(var(--game-viewport-height, 100cqh) - 324px)); max-width: 560px; }
   .b5-game .bk-status { order: 4; min-height: 64px; height: 64px; }
   .b5-game .bk-status-text { font: var(--text-button); }
   .b5-game .bk-extra { order: 5; }
@@ -118,12 +118,12 @@
  * calculated from the actual roster and action slots, never from a guess
  * about how many rows the sidebar might take. Results keep the first four
  * rows intact and may continue below them after play has ended. */
-@media (max-width: 759px) {
+@container game (max-width: 759px) {
   .b5-game {
     --bk-top: 0px;
     --b5-extra-height: 0px;
     --b5-roster-height: 44px;
-    --b5-board-size: min(100vw - 32px, var(--game-viewport-height, 100dvh) - var(--b5-roster-height) - var(--b5-extra-height) - 244px - var(--b5-footer-extra, 0px));
+    --b5-board-size: min(100cqw - 32px, var(--game-viewport-height, 100cqh) - var(--b5-roster-height) - var(--b5-extra-height) - 244px - var(--b5-footer-extra, 0px));
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
     grid-template-areas: "head head" "players players" "hud hud" "board board" "status status" "extra extra" "actions tools";
@@ -158,21 +158,21 @@
   }
   .b5-game .bk-help[open] { flex-basis: auto; }
 }
-@media (orientation: landscape) and (max-height: 500px) and (min-width: 560px) {
+@container game (orientation: landscape) and (max-height: 500px) and (min-width: 560px) {
   .b5-game {
     display: grid;
     grid-template-columns: minmax(0, 1fr) 264px;
     grid-template-areas: "hud panel" "board panel";
     grid-template-rows: 24px minmax(0, 1fr);
-    height: var(--game-viewport-height, 100dvh);
+    height: var(--game-viewport-height, 100cqh);
     min-height: 0;
     padding: var(--space-8);
     gap: var(--space-8);
   }
-  .b5-game .bk-panel { display: flex; grid-area: panel; margin-top: 52px; max-height: calc(var(--game-viewport-height, 100dvh) - 68px); overflow: auto; }
+  .b5-game .bk-panel { display: flex; grid-area: panel; margin-top: 52px; max-height: calc(var(--game-viewport-height, 100cqh) - 68px); overflow: auto; }
   /* Short landscape moves the utility row above the sidebar instead. */
   .b5-game .b5-hud { padding-inline-start: var(--space-8); }
-  .b5-game .bk-stage { width: min(100%, calc(var(--game-viewport-height, 100dvh) - 48px)); height: auto; }
+  .b5-game .bk-stage { width: min(100%, calc(var(--game-viewport-height, 100cqh) - 48px)); height: auto; }
   .b5-game .bk-head { height: auto; padding-left: 0; flex: none; }
   .b5-game .bk-players { height: auto; flex: none; }
   .b5-game .bk-extra { height: auto; }
@@ -180,7 +180,7 @@
   .b5-game .bk-player { flex: none; }
   .b5-game .bk-final { flex: none; }
 }
-@media (max-width: 359px) {
+@container game (max-width: 359px) {
   .b5-game { --b5-footer-extra: calc(var(--control-h-sm) + var(--space-8)); }
   .b5-game .bk-title { white-space: normal; }
   .b5-game .bk-meta { display: none; }
@@ -188,14 +188,14 @@
   .b5-game .bk-tools { grid-column: 1 / -1; grid-row: 8; }
 }
 /* Two seats per row: give the space to names. The score becomes a compact number; the unit stays in the seat's aria-label. */
-@media (min-width: 760px) {
+@container game (min-width: 760px) {
   .b5-game .bk-player { grid-template-columns: auto minmax(0, 1fr) auto !important; }
   .b5-game .bk-player .bk-stat { width: auto !important; min-width: 3ch !important; height: auto !important; padding: 2px 8px !important; }
   .b5-game .bk-player .bk-stat-label { display: none; }
   .b5-game .bk-player .bk-side { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 }
 
-@media (max-width: 759px) {
+@container game (max-width: 759px) {
   /* Two-line race seats fit their reserved 44px row, including the score. */
   .b5-game:is(.pd-game, .sl-game) .bk-player .bk-stat {
     height: 14px; min-width: 0; width: auto; padding: 0; border: 0;
@@ -204,6 +204,6 @@
   .b5-game:is(.pd-game, .sl-game) .bk-stat-value { min-height: 0; }
 }
 /* Up to four seats on a roomy desktop: one seat per row so full names fit. */
-@media (min-width: 760px) and (min-height: 760px) {
+@container game (min-width: 760px) and (min-height: 760px) {
   .b5-game:is([data-seats="2"], [data-seats="3"], [data-seats="4"]) .bk-players { grid-template-columns: minmax(0, 1fr) !important; }
 }

@@ -171,7 +171,7 @@
     transform: perspective(700px) rotateY(0) translateY(0);
   }
 }
-@media (max-width: 560px) {
+@container game (max-width: 560px) {
   .who-envelope {
     padding: var(--space-16);
   }
@@ -283,7 +283,7 @@
   animation: round-pop var(--dur-slow) var(--ease) both;
 }
 .who-reader {
-  width: min(90vw, 480px);
+  width: min(90cqw, 480px);
   padding: var(--space-24);
   border: var(--outline-w) solid var(--outline);
   border-radius: var(--radius-xl);
@@ -304,7 +304,7 @@
 .who-reader button {
   width: 100%;
 }
-@media (max-width: 560px) {
+@container game (max-width: 560px) {
   .who-notes {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -354,7 +354,7 @@
 .who-match h4 {
   display: none;
 }
-@media (max-width: 560px) {
+@container game (max-width: 560px) {
   .who-note p {
     -webkit-line-clamp: 2;
     min-height: 2.5em;

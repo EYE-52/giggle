@@ -16,7 +16,7 @@
 
 /* Short frames (a small Giggle panel, zoomed text): tighter rhythm so the
  * question and the main action stay in view. */
-@media (max-height: 560px) {
+@container game (max-height: 560px) {
   .bl-scene { gap: 10px; padding-bottom: 12px; }
   .bl-scene .gk-prompt { font-size: 22px; }
   .bl-scene .gk-sub { font-size: 16px; }
@@ -53,7 +53,7 @@ body.game-playing[data-game="bluff"] {
 #gbody .bl-scene.pl-fill > .gk-prompt::before { content: "\2660"; left: var(--space-16); top: var(--space-12); }
 #gbody .bl-scene.pl-fill > .gk-prompt::after { content: "\2666"; right: var(--space-16); bottom: var(--space-12); transform: rotate(180deg); }
 [data-theme="night"] #gbody .bl-scene.pl-fill > .gk-prompt { box-shadow: 0 var(--lift) 0 var(--outline), 0 0 40px color-mix(in srgb, var(--fam) 18%, transparent); }
-@media (max-width: 560px) {
+@container game (max-width: 560px) {
   #gbody .bl-scene.pl-fill > .gk-prompt { padding-inline: var(--space-40); }
   #gbody .bl-scene.pl-fill > .gk-prompt::before, #gbody .bl-scene.pl-fill > .gk-prompt::after { font-size: 20px; }
   #gbody .bl-scene.pl-fill > .gk-prompt::before { left: var(--space-12); top: var(--space-8); }

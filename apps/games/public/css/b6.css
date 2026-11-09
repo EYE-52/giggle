@@ -156,7 +156,7 @@
 .b6-world .b6-view-note {
   font: var(--text-caption);
 }
-@media (max-width: 560px) {
+@container game (max-width: 560px) {
   #gbody .b6-world.pl-fill {
     gap: var(--space-8);
   }
@@ -218,7 +218,7 @@
   min-width: 0;
   width: 100%;
 }
-@media (max-width: 560px) {
+@container game (max-width: 560px) {
   #gbody .b6-world .pl-seats {
     overflow-x: auto;
     overflow-y: hidden;
@@ -232,7 +232,7 @@
 #gbody .b6-world .b6-tools p {
   font: var(--text-caption);
 }
-@media (min-width: 561px) {
+@container game (min-width: 561px) {
   .b6-world .b6-stage {
     height: 224px;
   }
@@ -242,7 +242,7 @@
   min-width: calc(5ch + var(--space-8));
   text-align: center;
 }
-@media (max-width: 560px) {
+@container game (max-width: 560px) {
   #gbody .b6-world .pl-seat {
     min-width: 144px;
     flex-basis: 144px;
@@ -267,12 +267,12 @@
   padding: var(--space-12);
   gap: var(--space-8);
 }
-@media (min-width: 561px) {
+@container game (min-width: 561px) {
   .b6-world .b6-stage {
     height: calc(3 * var(--space-64));
   }
 }
-@media (max-width: 560px) {
+@container game (max-width: 560px) {
   #gbody .b6-world .b6-prompt.party-prompt {
     min-height: calc(var(--space-64) + var(--space-16));
   }
@@ -290,6 +290,6 @@
   display: none;
 }
 
-@media (min-width: 1100px) {
+@container game (min-width: 1100px) {
   #gbody .b6-world.pl-fill { min-height: var(--pl-stage-height); align-content: center; }
 }

@@ -174,7 +174,7 @@
     transform: rotate(0);
   }
 }
-@media (max-width: 560px) {
+@container game (max-width: 560px) {
   .dial-machine {
     padding: var(--space-12);
   }
@@ -228,7 +228,7 @@
 .dial-world[data-phase="reveal"] .pl-live {
   order: 2;
 }
-@media (max-width: 560px) {
+@container game (max-width: 560px) {
   #gbody .dial-world .party-prompt.party-prompt {
     font-size: 24px;
     padding: var(--space-12);
@@ -256,7 +256,7 @@
   width: min(100%, 500px);
   margin-inline: auto;
 }
-@media (min-width: 561px) {
+@container game (min-width: 561px) {
   .dial-play,
   .dial-world[data-phase="reveal"] .dial-play {
     display: grid;
@@ -275,7 +275,7 @@
 /* Spectrum ends are labels, so wrap only between words. */
 .dial-ends { grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: stretch; }
 .dial-ends > span { overflow-wrap: normal; word-break: normal; padding-inline: var(--space-8); font: var(--text-button-sm); display: grid; place-items: center; }
-@media (max-width: 560px) {
+@container game (max-width: 560px) {
   .dial-machine { max-width: calc(3 * var(--space-64) + var(--space-32)); padding-block: var(--space-8); }
   .dial-speech { padding: var(--space-8); }
   .dial-ends > span { font: var(--text-caption); padding-inline: var(--space-4); }

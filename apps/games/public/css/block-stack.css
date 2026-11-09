@@ -21,7 +21,7 @@
 }
 /* The tower is the game: let the view grow with the window instead of a fixed 320px strip. */
 #gbody .bs-world .bs-sky {
-  height: clamp(360px, calc(100dvh - 340px), 780px);
+  height: clamp(360px, calc(100cqh - 340px), 780px);
 }
 .bs-world .bs-sky:focus-visible {
   outline: var(--focus-ring);
@@ -125,7 +125,7 @@
 #gbody .bs-world .pl-points {
   min-height: 20px;
 }
-@media (min-width: 701px) {
+@container game (min-width: 701px) {
   #gbody .bs-world.pl-fill {
     grid-template-columns: minmax(0, 3fr) minmax(220px, 1fr);
     column-gap: var(--space-16);
@@ -161,7 +161,7 @@
 }
 /* Keep the toy skyline large without pushing the drop button off a phone. */
 #gbody .bs-world .bs-sky {
-  height: clamp(320px, calc(100dvh - 340px), 560px);
+  height: clamp(320px, calc(100cqh - 340px), 560px);
 }
 .bs-world .bs-height {
   min-width: calc(3 * var(--space-64));
@@ -175,9 +175,9 @@
 .bs-world .b6-pop {
   animation: none;
 }
-@media (max-width: 700px) {
+@container game (max-width: 700px) {
   #gbody .bs-world .bs-sky {
-    height: clamp(288px, calc(100dvh - 480px), 360px);
+    height: clamp(288px, calc(100cqh - 480px), 360px);
   }
   #gbody .bs-world .pl-head {
     display: none;
@@ -191,7 +191,7 @@
   grid-template-rows: repeat(3, var(--space-24));
 }
 
-@media (min-width: 1100px) {
+@container game (min-width: 1100px) {
   .bs-world .b6-field { grid-row: 3 / 5; }
   .bs-world .b6-actions { align-self: start; }
   #gbody .bs-world > .pl-live { grid-column: 2; grid-row: 4; align-self: start; }

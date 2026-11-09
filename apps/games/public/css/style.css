@@ -74,6 +74,7 @@
   --outline-w: 2px; --outline-w-lg: 3px;
   --lift-sm: 2px; --lift: 4px; --lift-lg: 6px;
   /* Control heights: 44px is the floor for anything tappable. */
+  --game-paper-min: 180px; --game-board-min: 200px;
   --control-h-sm: 44px; --control-h: 48px; --control-h-lg: 56px;
   /* Start menu: room for a guide beside a seat, with laptop margins. */
   --howto-dialog-w: 920px; --howto-dialog-h: 600px;

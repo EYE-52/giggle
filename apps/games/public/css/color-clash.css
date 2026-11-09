@@ -17,7 +17,7 @@
 }
 .cc-world .cc-word {
   font: var(--text-heading);
-  font-size: clamp(34px, 7vw, 48px);
+  font-size: clamp(34px, 7cqw, 48px);
 }
 .cc-world .cc-options {
   display: grid;

@@ -24,7 +24,7 @@ let lastKey = '';
 let canvasFocused = false;
 let toolsVisible = true;
 let capturedPointer = null;
-let zoom = 1, panX = 0, panY = 0, hand = false, panStart = null, resizeObserver = null;
+let zoom = 1, panX = 0, panY = 0, hand = false, panStart = null, resizeObserver = null, resizeFrame = 0;
 let revealedPages = new Set(), savedCounter = 0;
 function reduced() { return typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches; }
 let lastEl = null;
@@ -62,6 +62,7 @@ function unbindAll() {
   }
   bound = [];
   panStart = null; resizeObserver?.disconnect(); resizeObserver = null;
+  if (resizeFrame) cancelAnimationFrame(resizeFrame); resizeFrame = 0;
   finishHeld = () => {};
 }
 
@@ -130,8 +131,8 @@ function syncView(cv) {
   // At Fit the paper keeps an even desk margin on every side, so it always
   // sits centred like a sheet on the desk (no one-sided bands).
   const margin = zoom > 1 ? 0 : Math.min(16, r.width * 0.03, r.height * 0.04);
-  const scale = Math.min((r.width - 2 * margin) / 880, (r.height - 2 * margin) / 520) * zoom;
-  const width = 880 * scale, height = 520 * scale;
+  const scale = Math.min((r.width - 2 * margin) / cv.width, (r.height - 2 * margin) / cv.height) * zoom;
+  const width = cv.width * scale, height = cv.height * scale;
   panX = Math.max(-Math.max(0, (width - r.width) / 2), Math.min(Math.max(0, (width - r.width) / 2), panX));
   panY = Math.max(-Math.max(0, (height - r.height) / 2), Math.min(Math.max(0, (height - r.height) / 2), panY));
   cv.setAttribute('style', `width:${width}px;height:${height}px;left:50%;top:50%;transform:translate(calc(-50% + ${panX}px),calc(-50% + ${panY}px));cursor:${hand ? 'grab' : snapshot?.phase === 'draw' && !snapshot.spectator ? 'crosshair' : zoom > 1 ? 'grab' : 'default'}`);
@@ -236,7 +237,7 @@ function renderDraw(el, S, api) {
   const key = `draw:${S.instanceId || ''}:${S.me || ''}:${!!S.spectator}`;
   if (key !== lastKey) {
     lastKey = key;
-    el.innerHTML = desk(S, `<div class="dp-draw-heading">${prompt(S.spectator ? 'Private sketchbooks are open' : (S.myPrompt || '…'), S.spectator ? 'Watching' : 'Your private prompt')}${S.spectator ? '' : '<div class="dp-view-controls"><button type="button" id="pFocus" aria-label="Focus canvas" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><span class="dp-focus-label">Focus canvas</span></button><button type="button" id="pTools" aria-expanded="true">Tools</button></div>'}${S.spectator ? '' : `<div class="dp-zoom-row">${zoomHtml()}</div>`}</div><div class="sk-drawdesk">${book(`<div class="sk-canvaswrap"><canvas class="doodle" id="pCanvas" data-drawable="${!S.spectator}" width="880" height="520" tabindex="0" aria-label="${S.spectator ? 'Private drawings are hidden until reveal' : 'Your drawing canvas'}"></canvas></div>`)}${S.spectator ? '<p class="dp-watching">The drawings stay private until the stories are read.</p>' : tools()}<div class="dp-done-row">${S.spectator ? '' : `<button type="button" id="pDone" class="gk-btn gk-primary" aria-pressed="${!!S.myDone}">${S.myDone ? 'Keep drawing' : 'Done'}</button>`}<p class="dp-status sk-byline gk-meta">${doneText(S)}</p></div></div>`);
+    el.innerHTML = desk(S, `<div class="dp-draw-heading">${prompt(S.spectator ? 'Private sketchbooks are open' : (S.myPrompt || '…'), S.spectator ? 'Watching' : 'Your private prompt')}${S.spectator ? '' : '<div class="dp-view-controls"><button type="button" id="pFocus" aria-label="Focus canvas" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><span class="dp-focus-label">Focus canvas</span></button><button type="button" id="pTools" aria-expanded="true">Tools</button></div>'}${S.spectator ? '' : `<div class="dp-zoom-row">${zoomHtml()}</div>`}</div><div class="sk-drawdesk">${book(`<div class="sk-canvaswrap"><canvas class="doodle" id="pCanvas" data-drawable="${!S.spectator}" width="880" height="880" tabindex="0" aria-label="${S.spectator ? 'Private drawings are hidden until reveal' : 'Your drawing canvas'}"></canvas></div>`)}${S.spectator ? '<p class="dp-watching">The drawings stay private until the stories are read.</p>' : tools()}<div class="dp-done-row">${S.spectator ? '' : `<button type="button" id="pDone" class="gk-btn gk-primary" aria-pressed="${!!S.myDone}">${S.myDone ? 'Keep drawing' : 'Done'}</button>`}<p class="dp-status sk-byline gk-meta">${doneText(S)}</p></div></div>`);
     wireDraw(el, api, S.spectator);
     wireFocus(el);
     const done = el.querySelector('#pDone');
@@ -278,7 +279,7 @@ function wireFocus(el) {
     toggle?.setAttribute('aria-expanded', String(toolsVisible));
     syncView(cv);
   };
-  if (focus) focus.onclick = () => { finishHeld(); endPan(); canvasFocused = !canvasFocused; if (canvasFocused) toolsVisible = false; zoom = canvasFocused && typeof matchMedia === 'function' && matchMedia('(max-width:600px)').matches ? 3 : 1; panX = panY = 0; sync(); };
+  if (focus) focus.onclick = () => { finishHeld(); endPan(); canvasFocused = !canvasFocused; if (canvasFocused) toolsVisible = false; zoom = 1; panX = panY = 0; sync(); };
   if (toggle) toggle.onclick = () => { finishHeld(); endPan(); toolsVisible = !toolsVisible; sync(); };
   on(typeof document !== 'undefined' ? document : root, 'keydown', e => {
     if (e.key === 'Escape' && canvasFocused && el.contains?.(e.target)) { e.preventDefault(); finishHeld(); endPan(); canvasFocused = false; zoom = 1; panX = panY = 0; sync(); focus?.focus({ preventScroll: true }); }
@@ -321,10 +322,12 @@ function wireFocus(el) {
     const shifts = { ArrowLeft: [44, 0], ArrowRight: [-44, 0], ArrowUp: [0, 44], ArrowDown: [0, -44] };
     if (zoom > 1 && shifts[e.key]) { e.preventDefault(); finishHeld(); endPan(); panX += shifts[e.key][0]; panY += shifts[e.key][1]; sync(); }
   });
-  on(target, 'resize', () => { finishHeld(); endPan(); sync(); }); on(target, 'blur', () => endPan());
+  on(target, 'blur', () => endPan());
   on(typeof document !== 'undefined' ? document : root, 'visibilitychange', () => { if (document.hidden) endPan(); });
   on(typeof document !== 'undefined' ? document : root, 'toggle', e => { if (e.target?.matches?.('.room-menu[open]')) endPan(); }, true);
-  if (typeof ResizeObserver === 'function') { const observer = new ResizeObserver(() => { if (resizeObserver !== observer) return; finishHeld(); endPan(); sync(); }); resizeObserver = observer; observer.observe(cv.closest('.sk-canvaswrap')); }
+  const resizeView = () => { if (!resizeFrame) resizeFrame = requestAnimationFrame(() => { resizeFrame = 0; finishHeld(); endPan(); sync(); }); };
+  on(target, 'resize', resizeView);
+  if (typeof ResizeObserver === 'function') { const observer = new ResizeObserver(() => { if (resizeObserver === observer) resizeView(); }); resizeObserver = observer; observer.observe(cv.closest('.sk-canvaswrap')); }
   sync();
 }
 
@@ -332,7 +335,7 @@ function renderGuess(el, S, api) {
   const key = `guess:${S.instanceId || ''}:${S.me || ''}:${!!S.spectator}`;
   if (key !== lastKey) {
     lastKey = key;
-    el.innerHTML = desk(S, `<div class="dp-caption-heading"><h3 class="gk-prompt">${S.spectator ? 'A page is being passed' : 'What do you see?'}</h3><p class="dp-status gk-meta" id="pGuessStatus">${statusText(S, 'guessed')}</p></div>${book(`<div class="sk-canvaswrap"><canvas class="doodle" id="pCanvas" width="880" height="520" tabindex="0" aria-label="${S.spectator ? 'Private drawings are hidden until reveal' : 'Drawing to describe'}"></canvas></div>${S.spectator ? '' : zoomHtml()}`)}
+    el.innerHTML = desk(S, `<div class="dp-caption-heading"><h3 class="gk-prompt">${S.spectator ? 'A page is being passed' : 'What do you see?'}</h3><p class="dp-status gk-meta" id="pGuessStatus">${statusText(S, 'guessed')}</p></div>${book(`<div class="sk-canvaswrap"><canvas class="doodle" id="pCanvas" width="880" height="880" tabindex="0" aria-label="${S.spectator ? 'Private drawings are hidden until reveal' : 'Drawing to describe'}"></canvas></div>${S.spectator ? '' : zoomHtml()}`)}
       ${S.spectator ? '<p class="dp-watching">The players are writing private captions.</p>' : `<div class="dp-caption-strip"><div class="dp-entry gk-input-row"><input id="pGuess" class="gk-input" aria-label="Caption the drawing" type="text" maxlength="80" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="send" inputmode="text" placeholder="Your caption…" value="${esc(S.myGuess || '')}"><button type="button" class="dp-save gk-btn gk-primary" id="pSend">Save caption</button></div><p class="dp-saved" id="pCaptionSaved" role="status"></p></div>`}`);
     const inp = el.querySelector('#pGuess');
     const send = () => { if (inp && inp.value.trim() && !S.spectator) api.send({ guess: inp.value.trim() }); };
@@ -355,7 +358,7 @@ function renderReveal(el, S, api) {
     unbindAll(); zoom = 1; panX = panY = 0; hand = false;
     lastKey = key;
     el.innerHTML = desk(S, `<div class="dp-story-heading"><h3 class="gk-prompt">Story ${S.revealIdx + 1} of ${chains.length}</h3>${isHost ? `<div class="dp-page-actions gk-actions"><button type="button" id="pPrev" class="dp-page-back gk-btn" aria-label="Previous story" ${S.revealIdx === 0 ? 'disabled' : ''}>←</button><button type="button" id="pNext" class="dp-save gk-btn gk-primary">${S.revealIdx === chains.length - 1 ? 'Final scores' : 'Next'} <span aria-hidden="true">→</span></button></div>` : '<p class="gk-wait dp-status">The host turns the pages</p>'}</div>
-      ${prompt(c.phrase, `Written by ${nameOf(S, c.origin)}`)}${book(`<div class="sk-canvaswrap"><canvas class="doodle" id="pCanvas" width="880" height="520" tabindex="0" aria-label="Chain drawing"></canvas></div>${zoomHtml()}`)}<div class="dp-story-caption${c.survived ? ' is-kept' : ''}"><span class="sk-byline">Drawn by ${esc(nameOf(S, c.drawBy))}</span><p class="sk-phrase">${esc(c.guess || '…')}</p><span class="sk-byline">Captioned by ${esc(nameOf(S, c.guessBy))}</span>${c.survived ? '<p class="dp-kept">The story survived: +50 each for drawing and caption</p>' : ''}</div>`);
+      ${prompt(c.phrase, `Written by ${nameOf(S, c.origin)}`)}${book(`<div class="sk-canvaswrap"><canvas class="doodle" id="pCanvas" width="880" height="880" tabindex="0" aria-label="Chain drawing"></canvas></div>${zoomHtml()}`)}<div class="dp-story-caption${c.survived ? ' is-kept' : ''}"><span class="sk-byline">Drawn by ${esc(nameOf(S, c.drawBy))}</span><p class="sk-phrase">${esc(c.guess || '…')}</p><span class="sk-byline">Captioned by ${esc(nameOf(S, c.guessBy))}</span>${c.survived ? '<p class="dp-kept">The story survived: +50 each for drawing and caption</p>' : ''}</div>`);
     wireFocus(el);
     const nx = el.querySelector('#pNext'); if (nx) nx.onclick = () => api.send({ next: true });
     const pv = el.querySelector('#pPrev'); if (pv) pv.onclick = () => api.send({ prev: true });

@@ -1,0 +1,207 @@
+/* Layout only. A game can sit in a call column or a bounded desktop panel.
+ * Keep a named query container on the root and its shell: rules targeting
+ * #gbody itself can query the shell; its children query the playfield. */
+.game-stage { container: game / inline-size; }
+#gbody {
+  container: game / size;
+  contain: layout style size;
+  width: 100%;
+  height: var(--game-viewport-height, 100dvh);
+  min-width: 0;
+}
+#gbody > * { min-width: 0; max-width: 100%; }
+#gbody :is(input, textarea, select) { min-width: 0; max-width: 100%; }
+/* Paper keeps its logical dimensions. CSS resizing never clears pixels or
+ * changes normalized pointer coordinates; the well may be square. */
+#gbody :is(.do-easel, .si-sketchbook) {
+  display: grid;
+  place-items: center;
+  height: min(100cqw, max(var(--game-paper-min), calc(100cqh - (5 * var(--space-64)))));
+  min-height: calc(var(--game-paper-min) + 2 * var(--space-16));
+  container: paper / size;
+}
+#gbody :is(.do-easel, .si-sketchbook) canvas {
+  width: min(100cqw, 100cqh);
+  height: min(100cqw, 100cqh);
+  max-width: 100%;
+  max-height: 100%;
+  aspect-ratio: 1;
+  object-fit: contain;
+}
+@container game (max-width: 700px) {
+  #gbody .b6-world .b6-scroll { flex-wrap: wrap; justify-content: center; overflow: visible; }
+  #gbody .b6-world .b6-tools { height: auto; }
+  #gbody .b6-world .b6-prompt.party-prompt { min-height: var(--control-h-lg); padding: var(--space-8); }
+}
+/* In a short panel the stage owns the space. Names and tools retain their
+ * normal text and touch sizes; extra history and lists have scrollports. */
+@container game (max-height: 760px) {
+  #gbody .pl-fill { gap: var(--space-8); padding-block: var(--space-8); }
+  #gbody :is(.party-prompt, .b4-title.party-prompt, .b2-prompt.party-prompt) {
+    padding: var(--space-8) var(--space-12);
+    min-height: var(--control-h-lg);
+    margin-block: 0;
+  }
+  #gbody .b6-world .b6-status { min-height: 0; }
+  #gbody :is(.do-easel, .si-sketchbook) {
+    height: min(100cqw, max(var(--game-paper-min), calc(100cqh - (5 * var(--space-64) + var(--space-40)))));
+  }
+}
+/* The drawing desk has a fixed height budget at every width, including a
+ * narrow panel in a wide browser. Chat can expand in its own scrollport. */
+#gbody .sk-doodle.dg.dg-live { height: 100%; min-height: 0; }
+@container game (max-width: 700px) {
+  #gbody .dg-live .dg-stage { grid-template-columns: minmax(0,1fr); grid-template-rows: minmax(0,1fr) auto; }
+  #gbody .dg-live .dg-drawing { min-height: 0; }
+  #gbody .dg-live:not(.is-canvas-focused) .sk-canvaswrap { height: 100%; aspect-ratio: auto; }
+  #gbody .dg-live .dg-chat { max-height: calc(100cqh / 3); overflow: auto; }
+  #gbody .dg-live .dg-feed { min-height: var(--space-40); }
+  #gbody .dg-live:not(:has(.dg-composer, .dg-next)) .dg-chat { max-height: calc(100cqh / 4); }
+  #gbody .sk-phone.dp.dp-draw { padding: var(--space-8); }
+  #gbody .dp-draw .dp-header { margin-bottom: var(--space-4); }
+  #gbody .dp-draw .dp-draw-heading { margin-bottom: var(--space-4); }
+  #gbody .dp-draw .dp-prompt { max-height: var(--space-64); }
+  #gbody .dp-draw .dp-done-row { display: flex; flex-wrap: wrap; }
+  #gbody .dp-draw .dp-done-row .dp-status { margin: 0; }
+  #gbody .dp-draw .dp-ink-feedback { min-height: 0; }
+}
+@container game (max-height: 760px) {
+  #gbody .pl-fill > .gk-hud {
+    grid-template-columns: auto minmax(0,1fr) minmax(0,1fr) var(--space-64);
+    grid-template-rows: var(--control-h-sm);
+    min-height: var(--control-h-sm);
+    gap: var(--space-8);
+    margin: 0;
+  }
+  #gbody .pl-fill > .gk-hud > .gk-hud-round { grid-area: 1 / 1; }
+  #gbody .pl-fill > .gk-hud > .gk-hud-phase { grid-area: 1 / 2; }
+  #gbody .pl-fill > .gk-hud > .gk-hud-progress { grid-area: 1 / 3; text-align: right; }
+  #gbody .pl-fill > .gk-hud > .gk-hud-timer { grid-area: 1 / 4; }
+  #gbody .pl-fill .party-prompt.party-prompt { font: var(--text-title); padding: var(--space-8) var(--space-12); }
+  #gbody .party-round .round-play { max-height: max(var(--game-paper-min), calc(100cqh - (5 * var(--space-64) + var(--space-16)))); min-height: 0; overflow: auto; overscroll-behavior: contain; }
+  #gbody .party-scene--rank .party-rank-list { max-height: max(var(--game-paper-min), calc(100cqh - (5 * var(--space-64) + var(--space-40)))); overflow: auto; overscroll-behavior: contain; }
+  #gbody .party-scene--rank .js-feedback { min-height: 0; padding: var(--space-8); margin: 0; font: var(--text-caption); }
+  #gbody .sg.ck .sg-fields { max-height: max(var(--game-paper-min), calc(100cqh - (4 * var(--space-64) + var(--space-24)))); overflow: auto; overscroll-behavior: contain; }
+  #gbody .b2-scene .b2-play { max-height: max(var(--game-paper-min), calc(100cqh - (4 * var(--space-64) + var(--control-h-sm)))); overflow: auto; overscroll-behavior: contain; }
+  #gbody .word-party .wp-play { max-height: max(var(--game-paper-min), calc(100cqh - (4 * var(--space-64) + var(--control-h-sm)))); min-height: 0; overflow: auto; overscroll-behavior: contain; }
+  #gbody .b4-stage .b4-field { max-height: max(var(--game-paper-min), calc(100cqh - (4 * var(--space-64) + var(--control-h-sm)))); min-height: 0; overflow: auto; overscroll-behavior: contain; }
+  #gbody .b6-world .b6-scroll { flex-wrap: nowrap; overflow-x: auto; justify-content: start; }
+  #gbody .b6-world .b6-tools { min-height: var(--control-h-sm); }
+}
+@container game (max-width: 700px) {
+  #gbody .sk-phone.dp.dp-draw .dp-tools { display: flex; flex-wrap: nowrap; justify-content: start; gap: var(--space-8); max-width: 100%; overflow-x: auto; padding: var(--space-4); }
+  #gbody .dp-draw .dp-tools .dp-group { flex: none; }
+  #gbody .dp-draw .dp-ink-feedback:not(:empty) { flex: 0 0 100%; }
+  #gbody .dp-draw .dp-header.gk-hud { min-height: var(--control-h-sm); height: var(--control-h-sm); }
+}
+/* A small board gets a scrollable history/sidebar, never a postage-stamp
+ * playing surface. Existing pieces, colours and kit controls stay intact. */
+@container game (max-width: 759px) {
+  #gbody .ch-tabletop .chboard-col { width: min(100%, max(var(--game-board-min), calc(100cqh - (5 * var(--space-64) + var(--control-h-lg) + var(--space-4))))); }
+  #gbody .bk-game:not(.ld-game) .bk-stage { max-width: min(100%, max(var(--game-board-min), calc(100cqh - (5 * var(--space-64) + var(--space-40))))); }
+}
+@container game (max-width: 759px) and (orientation: portrait) {
+  #gbody .bk-game.ld-game {
+    --ld-roster-h: var(--space-64);
+    grid-template-rows: var(--space-48) var(--space-64) var(--space-64) auto minmax(var(--game-board-min),1fr) auto var(--control-h-sm);
+    gap: var(--space-4);
+  }
+  #gbody .bk-game.ld-game .bk-status { height: var(--space-64); min-height: var(--space-64); }
+  #gbody .ld-game .bk-players { display: flex; flex-wrap: nowrap; overflow-x: auto; }
+  #gbody .ld-game .bk-player { flex: 1 0 45%; }
+  #gbody .ld-game .ld-dice { min-height: var(--space-64); }
+}
+
+#gbody .dp-header.gk-hud { width: 100%; min-width: 0; grid-template-columns: minmax(0,1fr) auto minmax(0,1fr) var(--space-64); }
+/* A portrait iPad panel needs the same bounded drawing desk as a phone. */
+@container game (min-width: 701px) and (max-width: 1000px) {
+  #gbody .dp-draw .dp-layout { grid-template-columns: minmax(0,1fr); }
+  #gbody .dp-draw .dp-layout { grid-template-rows: minmax(0,1fr) var(--space-32); }
+  #gbody .dp-draw .dp-roster { order: 1; height: var(--space-32); padding: 0; overflow: auto; }
+  #gbody .dp-draw .dp-roster ul { display: flex; gap: var(--space-12); margin: 0; }
+  #gbody .dp-draw .dp-roster li { flex: none; }
+  #gbody .dp-draw .dp-main { min-width: 0; }
+  #gbody .dp-draw .dp-tools { display: flex; flex-wrap: nowrap; overflow-x: auto; justify-content: start; }
+  #gbody .dp-draw .dp-tools .dp-group { flex: none; }
+}
+/* Embedded Day must inherit Day ink and surfaces. The game skin still
+ * supplies its own background and accent, as it does outside Meet. */
+:root:not([data-theme="night"]) body.is-embed[data-game] {
+  --ink: inherit; --ink-dim: inherit; --card: inherit; --well: inherit;
+  --chip: inherit; --input-bg: inherit; --line: inherit; --line-strong: inherit;
+  --outline: inherit; --sun-soft: inherit; --sun-ink: inherit;
+  --success: inherit; --danger: inherit; --warning: inherit;
+  color-scheme: light;
+}
+
+@container game (max-height: 700px) {
+  #gbody .pl-fill.party-scene--poll .rp-builder { gap: var(--space-8); }
+  #gbody .pl-fill.party-scene--poll .rp-q { padding-block: var(--space-8); }
+  #gbody .pl-fill.party-scene--poll .rp-builder > .rp-ask-row { margin-bottom: var(--space-12); }
+}
+@container game (max-height: 760px) {
+  #gbody .b6-world .df-felt { height: min(calc(3 * var(--space-64) + var(--space-32)), max(var(--game-paper-min), calc(100cqh - (5 * var(--space-64) + var(--space-32))))); }
+  #gbody .b4-stage .b4-status { min-height: var(--space-32); }
+  #gbody .b2-scene.whisp-world .b2-prompt.party-prompt { min-height: var(--space-64); }
+  #gbody .fl-game .fl-placement .fl-place-actions { order: -1; }
+}
+@container game (max-width: 700px) {
+  #gbody .do-world .do-tools .tb-chip { font: var(--text-caption); padding-inline: var(--space-4); min-width: var(--control-h-sm); }
+}
+@container game (min-width: 701px) and (max-width: 1000px) and (max-height: 700px) {
+  #gbody .sk-phone.dp.dp-draw { padding: var(--space-8); }
+  #gbody .dp-draw .dp-header { min-height: var(--control-h-sm); height: var(--control-h-sm); margin-bottom: var(--space-8); }
+  #gbody .dp-draw .dp-prompt { padding: var(--space-8); }
+  #gbody .sk-phone.dp.dp-draw .sk-phrase { font: var(--text-title); }
+  #gbody .dp-draw .dp-draw-heading { margin-bottom: var(--space-4); }
+  #gbody .dp-draw .dp-roster-label { display: none; }
+}
+#gbody .dg-live .dg-stage { height: 100%; }
+@container game (max-width: 700px) {
+  #gbody .dg-live .dg-drawing { grid-template-rows: auto auto minmax(0,1fr); }
+  #gbody .dg-live .dg-tools.sk-toolrail { flex-wrap: nowrap; justify-content: start; overflow-x: auto; padding: var(--space-4); }
+  #gbody .dg-live .dg-tools.sk-toolrail > * { flex: none; }
+  #gbody .dg-live .dg-zoom:has(button) { margin: 0; justify-self: end; }
+}
+/* A drawing game's flex shell must not grow the root back to window height
+ * after a bounded host has supplied a smaller height budget. */
+body.game-playing .game-stage > #gbody[data-game][data-layout] { flex: 0 0 var(--game-viewport-height, 100dvh); }
+@container game (max-width: 700px) {
+  #gbody .dg-live .dg-easel { grid-template-rows: minmax(0,1fr) auto auto; }
+}
+
+/* The chart stays large enough to place a ship. The secondary tray can
+ * scroll below the action rather than shrinking the ten-by-ten sea. */
+@container game (max-width: 759px) {
+  #gbody .bk-game.fl-game .fl-chart-col { width: min(100%, max(var(--game-board-min), calc(100cqh - 9 * var(--space-64)))); }
+}
+/* Timed inputs must fit as a whole. A player must never scroll to find a
+ * memory pad, a colour, an emoji, or a digit while the clock is running. */
+@container game (max-height: 760px) {
+  #gbody .b4-stage.pl-fill { gap: var(--space-4); padding-block: var(--space-4); }
+  #gbody .b4-stage.pl-fill .b4-title.party-prompt { min-height: var(--control-h-lg); padding: var(--space-8) var(--space-12); font: var(--text-title); }
+  #gbody .b4-stage .b4-field { max-height: max(var(--game-paper-min), calc(100cqh - (3 * var(--space-64) + var(--space-48)))); }
+  #gbody .b4-stage.ep-world .ep-console { padding: var(--space-8); gap: var(--space-8); }
+  #gbody .b4-stage.ep-world .ep-pads { gap: var(--space-8); }
+  #gbody .b4-stage.ep-world .ep-pad { min-height: calc(var(--space-64) + var(--space-16)); padding: var(--space-8); gap: var(--space-4); }
+  #gbody .b4-stage.es-world .es-board { width: min(100%, calc(100cqh - (4 * var(--space-64) + var(--space-4)))); }
+  #gbody .b4-stage.md-world .md-machine { grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: var(--space-4); padding: var(--space-4); }
+  #gbody .b4-stage.md-world .md-ticket { grid-column: 1 / -1; grid-row: 1; padding: var(--space-4); }
+  #gbody .b4-stage.md-world .md-problem { min-height: var(--space-32); font: var(--text-title); }
+  #gbody .b4-stage.md-world .b4-label { grid-column: 1; grid-row: 2; align-self: center; margin: 0; }
+  #gbody .b4-stage.md-world .b4-input { grid-column: 2; grid-row: 2; min-height: var(--control-h-sm); }
+  #gbody .b4-stage.md-world .md-keys { grid-column: 1 / -1; grid-row: 3; }
+  #gbody .b4-stage.cc-world .cc-card { min-height: calc(2 * var(--space-64)); }
+}
+@container game (min-width: 600px) and (max-height: 760px) {
+  #gbody .b4-stage.md-world .md-machine { gap: var(--space-8); padding: var(--space-8); }
+  #gbody .b4-stage.md-world .md-ticket { grid-column: 1; grid-row: 1; }
+  #gbody .b4-stage.md-world .b4-label { grid-column: 1; grid-row: 2; }
+  #gbody .b4-stage.md-world .b4-input { grid-column: 1; grid-row: 3; }
+  #gbody .b4-stage.md-world .md-keys { grid-column: 2; grid-row: 1 / 4; }
+  #gbody .b4-stage.cc-world .cc-deck { grid-template-columns: minmax(0,1fr) minmax(0,1fr); align-items: stretch; }
+  #gbody .b4-stage.cc-world .cc-options { grid-template-columns: minmax(0,1fr); }
+}
+@container game (max-height: 760px) {
+  #gbody .b4-stage.hp-world .b4-field { max-height: max(var(--game-paper-min), calc(100cqh - 4 * var(--space-64))); }
+}

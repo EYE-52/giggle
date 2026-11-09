@@ -160,7 +160,7 @@
   gap: var(--space-8);
   font: var(--text-caption);
 }
-@media (max-width: 560px) {
+@container game (max-width: 560px) {
   .knowme-options {
     gap: var(--space-12);
   }
@@ -209,7 +209,7 @@
   min-height: calc(48px / var(--round-zoom, 1));
   font: 700 13px/1.35 var(--font-body);
 }
-@media (max-width: 560px) {
+@container game (max-width: 560px) {
   #gbody .knowme-world .party-prompt.party-prompt {
     font-size: 24px;
     padding: var(--space-12);
@@ -266,7 +266,7 @@
     gap: var(--space-4);
   }
 }
-@media (min-width: 561px) {
+@container game (min-width: 561px) {
   .knowme-play {
     grid-template-columns: 180px minmax(0, 1fr);
     align-items: center;
@@ -275,7 +275,7 @@
     grid-column: 1 / -1;
   }
 }
-@media (min-width: 561px) {
+@container game (min-width: 561px) {
   #gbody .knowme-world .party-prompt.party-prompt {
     font-size: 32px;
     padding: var(--space-16);

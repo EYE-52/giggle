@@ -187,3 +187,7 @@ Loading the same panel before the server answers:
 ### Pocket Karts garage
 
 `--kart-garage-w` (880px) caps the results parts bench; `--kart-garage-preview-w` (224px) reserves its desktop display column; `--kart-garage-preview-h` (208px) reserves the thumbnail area before the model is ready. Cards use the existing spacing, type, colour, radius, control and motion tokens.
+
+### Container fit
+
+`--game-paper-min` (180px) is the minimum visible side of a drawing sheet. `--game-board-min` (200px) keeps compact boards usable. These are layout floors, not touch target sizes. `--game-viewport-height` is measured on each `#gbody` from the visible host bounds; it updates once per animation frame. The root is the named `game` size container. Game layout breakpoints use `@container game`; input, hover and reduced motion preferences stay media queries.

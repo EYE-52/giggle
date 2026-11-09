@@ -102,7 +102,7 @@
   min-width: 44px;
   padding: 0;
 }
-@media (max-width: 700px) {
+@container game (max-width: 700px) {
   .df-world .df-tools {
     grid-template-columns: 1fr auto;
     min-height: 104px;
@@ -132,7 +132,7 @@
 .df-world .df-cups {
   min-height: calc(var(--space-64) + var(--space-32));
 }
-@media (min-width: 701px) {
+@container game (min-width: 701px) {
   .df-world .df-felt {
     grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
     align-content: center;
@@ -141,7 +141,7 @@
     grid-column: 1 / -1;
   }
 }
-@media (max-width: 700px) {
+@container game (max-width: 700px) {
   .df-world .df-felt {
     height: calc(4 * var(--space-64));
     align-content: center;
@@ -155,7 +155,7 @@
   white-space: nowrap;
   text-overflow: ellipsis;
 }
-@media (max-width: 700px) {
+@container game (max-width: 700px) {
   .df-world .df-cups {
     gap: var(--space-8);
   }
@@ -172,7 +172,7 @@
 .df-world .df-hand .df-die {
   font-size: 32px;
 }
-@media (max-width: 700px) {
+@container game (max-width: 700px) {
   .df-world .df-bid-sticker .df-die {
     font-size: 24px;
   }

@@ -80,12 +80,12 @@
 .tq-next { min-height: 48px; }
 
 .tq :focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
-@media (min-width: 760px) {
+@container game (min-width: 760px) {
   /* Wide frames: desk and history side by side inside the same centred
    * 760px column every text game uses. */
   .tq-cols { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); align-items: start; }
 }
-@media (max-width: 640px) {
+@container game (max-width: 640px) {
   .tq { padding: 8px 0 20px; gap: 12px; }
   .tq-qtext { font-size: 19px; }
   .tq-answers { gap: 8px; }
@@ -94,7 +94,7 @@
   .tq-arch { padding: 10px 12px; }
   .tq-pill .tq-icon { display: none; }
 }
-@media (max-height: 640px) {
+@container game (max-height: 640px) {
   .tq { gap: 10px; padding-top: 4px; }
   .tq-spot { padding: 10px 14px; gap: 6px; }
   .tq-qtext { font-size: 18px; min-height: 47px; }
@@ -123,7 +123,7 @@
 #gbody .tq.pl-fill .tq-askrow .gk-btn { min-height: var(--control-h-lg); }
 #gbody .tq.pl-fill .tq-ans { border: var(--outline-w) solid var(--outline); border-radius: var(--radius-lg); box-shadow: var(--shadow-sticker-sm); font: 800 17px/1.2 var(--font-display); }
 #gbody .tq.pl-fill .tq-sec { font: var(--text-title); color: var(--ink); }
-@media (max-width: 560px) {
+@container game (max-width: 560px) {
   #gbody .tq.pl-fill .tq-spot, #gbody .tq.pl-fill .tq-arch { padding: var(--space-12) var(--space-16); border-radius: var(--radius-lg); }
 }
 /* Nothing to answer: keep the button row's space. Long history scrolls
@@ -163,7 +163,7 @@
 }
 
 /* Two columns end close together: the history scrolls sooner. */
-@media (min-width: 760px) {
+@container game (min-width: 760px) {
   #gbody .tq.pl-fill .tq-hist { max-height: 260px; }
 }
 
@@ -206,7 +206,7 @@ body.game-playing[data-game="twenty-questions"] {
   color: color-mix(in srgb, var(--fam) 18%, transparent); font: 800 96px/1 var(--font-display); pointer-events: none;
 }
 [data-theme="night"] #gbody .tq.pl-fill .tq-spot { box-shadow: 0 var(--lift) 0 var(--outline), 0 0 40px color-mix(in srgb, var(--fam) 14%, transparent); }
-@media (max-width: 560px) {
+@container game (max-width: 560px) {
   #gbody .tq.pl-fill .tq-spot::after { font-size: 72px; right: var(--space-12); }
 }
 
@@ -218,7 +218,7 @@ body.game-playing[data-game="twenty-questions"] {
     radial-gradient(color-mix(in srgb, var(--fam) 12%, transparent) 1px, transparent 1.5px),
     radial-gradient(color-mix(in srgb, var(--fam) 8%, transparent) 1.5px, transparent 2px);
 }
-@media (max-width: 600px) {
+@container game (max-width: 600px) {
   body.game-playing[data-game="twenty-questions"] {
     background-image:
       radial-gradient(color-mix(in srgb, var(--fam) 8%, transparent) 1px, transparent 1.5px),
@@ -233,7 +233,7 @@ body.game-playing[data-game="twenty-questions"] {
 }
 /* Two columns: the desk stretches to the Answered list's height and its
  * question card fills it, so there is no empty hole under a short card. */
-@media (min-width: 760px) {
+@container game (min-width: 760px) {
   #gbody .tq.pl-fill .tq-cols { align-items: stretch; }
   #gbody .tq.pl-fill .tq-cols > .tq-arch { align-self: start; }
   #gbody .tq.pl-fill .tq-desk { display: flex; flex-direction: column; gap: var(--space-12); }
@@ -267,6 +267,6 @@ body.game-playing[data-game="twenty-questions"] {
 #gbody .tq.pl-fill #tqQWrap { height: calc(var(--space-64) + var(--space-32)); }
 #gbody .tq.pl-fill .tq-hist { height: calc(2 * var(--space-64)); min-height: calc(2 * var(--space-64)); max-height: calc(2 * var(--space-64)); }
 #gbody .tq.pl-fill .tq-roleline { min-height: var(--space-32); }
-@media (max-width: 560px) {
+@container game (max-width: 560px) {
   #gbody .tq.pl-fill .tq-spot::after { right: var(--space-24); }
 }

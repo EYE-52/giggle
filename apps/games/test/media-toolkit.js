@@ -122,7 +122,8 @@ async function testCanvasView() {
     disconnect() { this.disconnected = true; }
   }
   const setTransforms = [];
-  const ctx = { setTransform: (...a) => setTransforms.push(a), fillRect() {} };
+  const restored = [];
+  const ctx = { setTransform: (...a) => setTransforms.push(a), fillRect() {}, drawImage: (...a) => restored.push(a) };
   const removed = [];
   const canvasEl = {
     style: {},
@@ -136,7 +137,8 @@ async function testCanvasView() {
     clientHeight: 360,
     appendChild: (el) => appended.push(el),
   };
-  const doc = { createElement: (tag) => (tag === 'canvas' ? canvasEl : {}) };
+  let canvases = 0;
+  const doc = { createElement: (tag) => (tag === 'canvas' ? (++canvases === 1 ? canvasEl : { getContext: () => ({ drawImage() {} }) }) : {}) };
   const frames = [];
   const resizes = [];
   let disposedHook = 0;
@@ -164,7 +166,11 @@ async function testCanvasView() {
 
     mount.clientWidth = 320;
     roInstances[0].cb();
+    roInstances[0].cb();
+    ok(resizes.length === 1, 'canvas: repeated observer callbacks defer resize');
+    raf.pump(1032);
     ok(canvasEl.width === 640 && resizes.length === 2 && resizes[1][0] === 320, 'canvas: RO resize path');
+    ok(JSON.stringify(restored[0].slice(1)) === JSON.stringify([0,90,320,180]), 'canvas: retained pixels keep their aspect rather than stretching');
 
     view.stop();
     ok(view.running() === false && raf.pending() === 0, 'canvas: stop halts loop');
@@ -196,6 +202,7 @@ async function testCanvasView() {
     ok(view.fallback === false, 'canvas: works without RO');
     mount2.clientWidth = 200;
     win2.dispatch('resize', {});
+    raf2.pump(1000);
     ok(canvas2.width === 200, 'canvas: window-resize fallback path');
     view.dispose();
   });
