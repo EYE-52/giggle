@@ -101,14 +101,15 @@ const flush=async()=>{for(let i=0;i<12;i++)await Promise.resolve();};
   const stopped=await scheduler.run(()=>scheduler.step(()=>assert.fail('retired job ran')));
   stopped.cancel();await assert.rejects(stopped.done,/Retired/);
 }
-// Current driver/pickup and scenery precede rare FX. Shadow-off is last.
+// Current driver/pickup and scenery precede rare FX. Each binding prepares
+// both quality modes before a deadline can stop the next binding.
 {
   const scene=new THREE.Scene(),camera=new THREE.Camera(),order=[],material=new THREE.MeshBasicMaterial(),geometry=new THREE.BoxGeometry();
-  const road=new THREE.Mesh(geometry,material),rare=new THREE.Mesh(geometry,material),kart=new THREE.Mesh(geometry,material);
+  const road=new THREE.Mesh(geometry.clone(),material),rare=new THREE.Mesh(geometry,material.clone()),kart=new THREE.Mesh(geometry,material);
   road.name='road';rare.name='rare';kart.name='kart';scene.add(rare,road,kart);rare.visible=kart.visible=false;
   const renderer={shadowMap:{enabled:true},compileAsync(o){order.push([o.name,this.shadowMap.enabled]);return Promise.resolve();},render(){}};
   await warmKartRenderer(THREE,renderer,scene,camera,{roots:[rare,kart],priorityRoots:[kart],yieldTask:async()=>{}});
-  assert.deepEqual(order,[['kart',true],['road',true],['rare',true],['kart',false],['road',false],['rare',false]]);
-  geometry.dispose();material.dispose();
+  assert.deepEqual(order,[['kart',true],['kart',false],['road',true],['road',false],['rare',true],['rare',false]]);
+  geometry.dispose();material.dispose();road.geometry.dispose();rare.material.dispose();
 }
 console.log('KART_PREPARATION_PASS: loading-only tasks, no post-Ready GPU work, stalled compile, state isolation, cancellation, audio deadline and priority');

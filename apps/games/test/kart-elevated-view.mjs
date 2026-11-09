@@ -259,6 +259,18 @@ for(const mapId of elevatedMapIds)for(const room of [true,false])for(const touch
 // Graphics fixtures decode the actual embedded PNG bytes without a browser.
 globalThis.self=globalThis;
 globalThis.createImageBitmap=async blob=>{const bytes=Buffer.from(await blob.arrayBuffer());return {width:bytes.readUInt32BE(16),height:bytes.readUInt32BE(20),close(){}};};
+// The host's optional audio/asset deadline may expire while GLBs arrive.
+// Required render preparation must still run before the arena becomes ready.
+{
+ const r=rig({graphics:true}),optional=new AbortController();optional.abort();
+ r.api.preparationSignal=optional.signal;r.api.signal=optional.signal;
+ r.render();await r.settle();await r.view.ready();
+ check('expired paint/optional deadline does not skip this arena generation GPU preparation',r.renderStats.compiles>0&&r.node('loading').hidden);
+ const compiled=r.renderStats.compiles;
+ for(let i=0;i<30;i++){r.advance(16);r.frame();await r.flush();}
+ check('required preparation never resumes after Ready',r.renderStats.compiles===compiled);
+ r.view.dispose();
+}
 // If loading runs out of budget, Ready/first input must not resume hidden
 // compiles, reflection or uploads. Exercise the real elevated view handoff.
 {

@@ -492,6 +492,27 @@ export function createKartWorld(THREE, options) {
     }
     return height;
   }
+  // A flat terrain patch can support a trap using one conservative height
+  // bound, instead of thousands of authored base-vertex queries. Include all
+  // visible paint/kerb skins touching its rectangle; hills use the exact fit.
+  propGroundAt.flatSupport=(minX,minZ,maxX,maxZ)=>{
+    if(!terrain)return null;
+    const x0=Math.max(0,Math.min(terrain.segments,propCell(minX))),z0=Math.max(0,Math.min(terrain.segments,propCell(minZ)));
+    const x1=Math.max(0,Math.min(terrain.segments,propCell(maxX)+1)),z1=Math.max(0,Math.min(terrain.segments,propCell(maxZ)+1));
+    const stride=terrain.segments+1,vertices=terrain.vertices,base=vertices[(z0*stride+x0)*3+1];
+    for(let z=z0;z<=z1;z++)for(let x=x0;x<=x1;x++)if(vertices[(z*stride+x)*3+1]!==base)return null;
+    let height=base;
+    for(const p of layout.pads||[])if(maxX>=p.x-p.hw&&minX<=p.x+p.hw&&maxZ>=p.z-p.hd&&minZ<=p.z+p.hd)height=Math.max(height,.065);
+    for(const p of layout.surfaces||[])if(maxX>=p.x-p.hw&&minX<=p.x+p.hw&&maxZ>=p.z-p.hd&&minZ<=p.z+p.hd)height=Math.max(height,.045);
+    for(let z=z0;z<z1;z++)for(let x=x0;x<x1;x++){
+      const faces=propRoadCells.get(z*(terrain.segments+2)+x);if(!faces)continue;
+      for(const {data:d,i}of faces){
+        if(Math.max(d[i],d[i+6],d[i+12])<minX||Math.min(d[i],d[i+6],d[i+12])>maxX||Math.max(d[i+2],d[i+8],d[i+14])<minZ||Math.min(d[i+2],d[i+8],d[i+14])>maxZ)continue;
+        height=Math.max(height,d[i+1],d[i+7],d[i+13]);
+      }
+    }
+    return height;
+  };
   const bound = resolveBound(opts.map, half);
   const wallFace = bound + KART_R;
   const wallOffset = wallFace + 0.5;

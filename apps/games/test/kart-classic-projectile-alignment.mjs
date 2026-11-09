@@ -27,7 +27,7 @@ for(const[key,file]of Object.entries({combat:'combat',pulse:'pulse-mounted',arse
 const get=name=>libs.pulse.getObjectByName(name)||libs.arsenal.getObjectByName(name)||(name!=='ScatterShot'&&libs.secondary.getObjectByName(name))||libs.combat.getObjectByName(name);
 const source=fs.readFileSync(new URL('../public/js/engines/kart-view.js',import.meta.url),'utf8');
 const preparation=source.slice(source.indexOf('function prepareShotContact('),source.indexOf('const cueBounds='));
-const placement=source.slice(source.indexOf('const liveZ = new Set();'),source.indexOf('for (const [zid, mesh] of zaps)'));
+const placement=source.slice(source.indexOf('liveZ.clear();'),source.indexOf('for (const [zid, mesh] of zaps)'));
 const freshness=source.slice(source.indexOf('function ordnanceFresh('),source.indexOf('/* Calibrated server time'));
 assert(freshness.includes('lastSnapshotArrival')&&freshness.includes('connected'));
 assert(preparation.includes('projectileContactInset')&&placement.includes('radius-(c.tipZ||0)-c.contactInset'));
@@ -45,7 +45,7 @@ for(const[tag,assets]of[['shipping',{get}],['fallback',null]]){
   try{for(const kind of kinds){
    const shot=art.projectile(kind),radius=radii[kind],buffers=[];shot.traverse(o=>{if(o.isMesh)buffers.push(o.geometry.attributes.position.array);});
    let calibrations=0;
-   const context=vm.createContext({THREE,lastSnapshotArrival:1000,nowMs:()=>1000,apiRef:{context:()=>({connected:true})},shotContactInsets:new Map(),projectileContactInset:(...args)=>{calibrations++;return projectileContactInset(...args);},zaps:new Map([['a',shot]]),shotPools:new Map(),combat:art,scene:new THREE.Scene(),shotPlayback:{sample:projectilePose},impactFX:{trail(){}},projectilePose,serverNow:()=>1000,shotDirection:new THREE.Vector3(),shotForward:new THREE.Vector3(0,0,1),tmpV:new THREE.Vector3(),dt:1/60,t:0,rm:false});
+   const context=vm.createContext({liveZ:new Set(),THREE,lastSnapshotArrival:1000,nowMs:()=>1000,apiRef:{context:()=>({connected:true})},shotContactInsets:new Map(),projectileContactInset:(...args)=>{calibrations++;return projectileContactInset(...args);},zaps:new Map([['a',shot]]),shotPools:new Map(),combat:art,scene:new THREE.Scene(),shotPlayback:{sample:projectilePose},impactFX:{trail(){}},projectilePose,serverNow:()=>1000,shotDirection:new THREE.Vector3(),shotForward:new THREE.Vector3(0,0,1),tmpV:new THREE.Vector3(),dt:1/60,t:0,rm:false});
    vm.runInContext(freshness+preparation+';globalThis.prepare=prepareShotContact;globalThis.render=function(){'+placement+'};',context);
    context.prepare(shot,kind,radius);assert.equal(calibrations,1);
    const face=map.half+.05,[x,z]=sites[mapId],height=terrain.heightAt(x,z);

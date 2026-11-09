@@ -12,11 +12,12 @@ import {weaponForward,WEAPONS,TRI_FAN} from '../public/js/engines/kart-weapon-co
 import {projectilePose} from '../public/js/engines/kart-flight.mjs';
 await RAPIER.init();
 const classicSource=fs.readFileSync(new URL('../public/js/engines/kart-view.js',import.meta.url),'utf8');
-const classicPlacement=classicSource.slice(classicSource.indexOf('const liveZ = new Set();'),classicSource.indexOf('for (const [zid, mesh] of zaps)'));
+const classicPlacement=classicSource.slice(classicSource.indexOf('liveZ.clear();'),classicSource.indexOf('for (const [zid, mesh] of zaps)'));
 const fallbackStart=classicSource.indexOf('const angle=Number.isFinite(z.vx)');
 const fallbackStroke=classicSource.slice(fallbackStart,classicSource.indexOf('\n    }',fallbackStart));
 const elevatedSource=fs.readFileSync(new URL('../public/js/engines/kart-elevated-view.js',import.meta.url),'utf8');
 const elevatedPlacement=elevatedSource.slice(elevatedSource.indexOf('function movingItems('),elevatedSource.indexOf("helper.canvas().setAttribute('aria-hidden'"));
+assert(classicPlacement.length>100,'production projectile placement was found');
 const degrees=(a,b)=>new THREE.Vector3().copy(a).angleTo(new THREE.Vector3().copy(b))*180/Math.PI;
 let checks=0,maxError=0;
 function checkDirection(a,b,label){const error=degrees(a,b);assert(error<1,label+': '+error);maxError=Math.max(maxError,error);checks++;}
@@ -25,7 +26,7 @@ function draw(kind,shot,profile){
  const o=art.projectile(kind),c=o.userData.combat,radius=combat.config.staticSweepRadii[kind];c.contactRadius=radius;c.contactInset=projectileContactInset(THREE,o,radius);
  const direction=new THREE.Vector3(),nose=new THREE.Vector3(),before=JSON.stringify(shot);
  if(profile==='classic'){
-  const context=vm.createContext({S:{zaps:[shot],simAt:1000},ordnanceFresh:()=>true,ordnanceNow:()=>1000,zaps:new Map([[shot.id,o]]),shotPools:new Map(),combat:art,scene:new THREE.Scene(),shotPlayback:{sample:projectilePose},projectilePose,serverNow:()=>1000,shotDirection:direction,shotForward:new THREE.Vector3(0,0,1),tmpV:new THREE.Vector3(),dt:1/60,t:0,rm:false,impactFX:{trail(){}},prepareShotContact(){throw Error('must be prepared before fire');}});
+  const context=vm.createContext({liveZ:new Set(),liveG:new Set(),S:{zaps:[shot],simAt:1000},ordnanceFresh:()=>true,ordnanceNow:()=>1000,zaps:new Map([[shot.id,o]]),shotPools:new Map(),combat:art,scene:new THREE.Scene(),shotPlayback:{sample:projectilePose},projectilePose,serverNow:()=>1000,shotDirection:direction,shotForward:new THREE.Vector3(0,0,1),tmpV:new THREE.Vector3(),dt:1/60,t:0,rm:false,impactFX:{trail(){}},prepareShotContact(){throw Error('must be prepared before fire');}});
   vm.runInContext('globalThis.draw=()=>{'+classicPlacement+'};',context);context.draw();
   let from,to;
   const canvas=vm.createContext({z:shot,p:shot,px:x=>x,pz:z=>z,ctx:{beginPath(){},moveTo(x,z){from={x,z};},lineTo(x,z){to={x,z};},stroke(){}}});
