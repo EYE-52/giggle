@@ -23,3 +23,7 @@
 .odd-world .odd-piece {
   padding-inline: var(--space-12);
 }
+
+.odd-world .b2-play { grid-template-rows: auto auto; }
+.odd-world .b2-work { max-height: calc(3 * var(--space-64)); }
+#gbody .odd-world .b2-choice { min-height: var(--control-h-lg); }

@@ -413,6 +413,12 @@ function artFail(img) {
 window.__artFail = artFail;
 
 function artImg(g, cls) {
+  if (g.id === 'echo-pads' && cls === 'gthumb') {
+    return '<span class="echo-title-icon" aria-hidden="true"><i>●</i><i>▲</i><i>■</i><i>◆</i></span>';
+  }
+  if (cls === 'gthumb') {
+    return `<span class="play-game-mark" aria-hidden="true">${esc(artInitial(g.name))}</span>`;
+  }
   const src = (g.art && /^img\/games\/[a-z0-9-]+\.(svg|png|webp)$/.test(g.art)) ? '/' + g.art : `/img/games/${g.id}.png`;
   return `<img class="${cls}" src="${src}" alt="" loading="lazy" decoding="async" width="640" height="271" ` +
     `data-art-id="${esc(g.id)}" data-art-name="${esc(g.name)}" onerror="__artFail(this)">`;

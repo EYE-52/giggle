@@ -68,7 +68,7 @@ export default partyRound({
         ? "✓ Estimate locked · waiting for the others."
         : local.text && !valid(S, local.text)
           ? `Use ${S.question?.decimals ? "a number" : "a whole number"} between −1 trillion and 1 trillion.`
-          : `${S.question?.decimals ? "Decimals welcome" : "Use a whole number"} · How close can you get?`,
+          : `${S.question?.decimals ? "Enter a number" : "Enter a whole number"} · How close can you get?`,
     };
   },
   submit({ S, local, send }) {

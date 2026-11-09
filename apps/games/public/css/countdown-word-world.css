@@ -154,3 +154,7 @@ body.game-playing[data-game="countdown-word"] { --cw-tick: color-mix(in srgb, va
 .cw.ck .cw-tile.is-used { opacity:1; background:var(--well); color:var(--ink); box-shadow:none; transform:translateY(var(--lift-sm)); }
 
 [data-theme="night"] .cw.ck .cw-tile.is-used { color:var(--ink); }
+
+@media (max-width: 560px) {
+  .cw.ck:not(.gk-final) { min-height: calc(100dvh - 2 * var(--space-64)); justify-content: safe center; }
+}

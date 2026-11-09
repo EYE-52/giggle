@@ -289,3 +289,7 @@
 #gbody .b6-world .pl-head {
   display: none;
 }
+
+@media (min-width: 1100px) {
+  #gbody .b6-world.pl-fill { min-height: var(--pl-stage-height); align-content: center; }
+}

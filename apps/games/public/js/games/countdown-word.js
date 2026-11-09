@@ -3,7 +3,7 @@
  * kit. Contracts: {word}, {word, lock:true}, {pass:true}, {finish:true},
  * {next:true}. */
 import { esc, countdown, ensureStylesheet } from '../util.js';
-import { hudHtml, roundLabel, progressText, waitingHtml, resultsHtml } from '../kit.js';
+import { timerSlotState, hudHtml, roundLabel, progressText, waitingHtml, resultsHtml } from '../kit.js';
 
 let current = null, clock = null;
 
@@ -30,6 +30,7 @@ function paintClock(el, S, api) {
   const left = S.endsAt > 0 && !S.preparing && S.phase !== 'done' ? countdown(S.endsAt, api?.now) : null;
   const text = left === null ? '' : `${left}s`;
   if (slot.textContent !== text) slot.textContent = text;
+  timerSlotState(slot, left === null ? 0 : S.endsAt, typeof api?.now === 'function' ? api.now() : Date.now());
   slot.classList?.toggle('is-urgent', left !== null && left <= 5 && S.phase === 'make');
 }
 function runClock(el, S, api) {

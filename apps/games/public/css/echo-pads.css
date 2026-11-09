@@ -74,3 +74,10 @@
   align-items: center;
   gap: var(--space-8);
 }
+
+.echo-title-icon { flex: none; display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--space-4); width: var(--space-32); height: var(--space-32); color: var(--fam-deep); }
+.echo-title-icon i { display: grid; place-items: center; border-radius: var(--radius-sm); background: var(--fam-soft); font: var(--text-caption); }
+
+@media (max-width: 560px) {
+  #gbody .ep-world .ep-pad { min-height: calc(var(--space-64) + var(--space-32)); }
+}

@@ -88,3 +88,7 @@
   font: var(--text-button-sm);
   overflow-wrap: anywhere;
 }
+
+@media (max-width: 560px) {
+  .wg3-world .wg3-grid { height: calc((3 * var(--space-64) + var(--space-24)) / var(--round-zoom, 1)); }
+}

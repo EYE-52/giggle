@@ -161,3 +161,7 @@ body.game-playing[data-game="rapid-polls"] {
 
 /* Decorative scene silhouette; colours follow the Day/Night game skin. */
 body.game-playing[data-game="rapid-polls"] { --pl-scene-art:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%201000%20600%22%3E%3Cg%20fill%3D%22none%22%20stroke%3D%22white%22%20stroke-width%3D%228%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M0%20560h295M705%20560h295M30%20550V430h46v120m22%200V365h46v185m22%200V290h46v260m22%200V400h46v150M720%20550V390h46v160m22%200V270h46v280m22%200V330h46v220m22%200V450h46v100M370%20565V450h260v115m-270%200h280M405%20430l-12-70%2092-16%2012%2070zm150-5%2012-70%2065%2012-12%2070M460%20485h80%22%2F%3E%3C%2Fg%3E%3C%2Fsvg%3E"); }
+
+@media (max-width: 560px) {
+  #gbody .pl-fill.party-scene--poll .rp-builder > .rp-ask-row { margin-bottom: var(--space-16); }
+}

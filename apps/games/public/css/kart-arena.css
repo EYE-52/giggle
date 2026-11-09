@@ -589,3 +589,7 @@ body.game-immersive:has(.pk) #gbody[data-layout="immersive"] > #rematch #hostWai
 .pk .pk-radar { width:calc(2 * var(--space-64)); height:calc(2 * var(--space-64)); }
 @media(orientation:portrait){ .pk.pk-touch-enabled .pk-radar { width:calc(var(--space-64) + var(--space-32)); height:calc(var(--space-64) + var(--space-32)); right:var(--space-8); } }
 .pk #pk-tn.pk-empty { border-style:solid; }
+
+@media (max-width: 480px) and (orientation: portrait) {
+  .pk .pk-clock { top: calc(var(--control-h-sm) + var(--space-12)); }
+}

@@ -56,3 +56,13 @@
 .md-world .md-ticket {
   padding: var(--space-8);
 }
+
+@media (max-width: 560px) {
+  .md-world .md-problem { min-height: var(--space-32); }
+  .md-world .md-machine { padding: var(--space-8); }
+}
+
+@media (max-width: 560px) {
+  .md-world .md-machine { gap: var(--space-4); padding: var(--space-4); }
+  .md-world .md-ticket { padding: var(--space-4); }
+}

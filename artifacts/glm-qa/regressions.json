@@ -1,0 +1,167 @@
+[
+  {
+    "game": "hot-takes",
+    "width": 390,
+    "clock": {
+      "a": {
+        "text": "45s",
+        "left": 1
+      },
+      "b": {
+        "text": "39s",
+        "left": 0.867
+      },
+      "elapsed": 6005,
+      "delta": 6
+    }
+  },
+  {
+    "game": "hot-takes",
+    "width": 1440,
+    "clock": {
+      "a": {
+        "text": "46s",
+        "left": 1
+      },
+      "b": {
+        "text": "40s",
+        "left": 0.867
+      },
+      "elapsed": 6005,
+      "delta": 6
+    }
+  },
+  {
+    "game": "dare-roulette",
+    "width": 390,
+    "clock": {
+      "a": {
+        "text": "45s",
+        "left": 1
+      },
+      "b": {
+        "text": "39s",
+        "left": 0.867
+      },
+      "elapsed": 6006,
+      "delta": 6
+    }
+  },
+  {
+    "game": "dare-roulette",
+    "width": 1440,
+    "clock": {
+      "a": {
+        "text": "45s",
+        "left": 1
+      },
+      "b": {
+        "text": "39s",
+        "left": 0.867
+      },
+      "elapsed": 6007,
+      "delta": 6
+    }
+  },
+  {
+    "game": "lyric-fill",
+    "width": 390,
+    "clock": {
+      "a": {
+        "text": "20s",
+        "left": 1
+      },
+      "b": {
+        "text": "14s",
+        "left": 0.7
+      },
+      "elapsed": 6007,
+      "delta": 6
+    }
+  },
+  {
+    "game": "lyric-fill",
+    "width": 1440,
+    "clock": {
+      "a": {
+        "text": "21s",
+        "left": 1
+      },
+      "b": {
+        "text": "14s",
+        "left": 0.7
+      },
+      "elapsed": 6008,
+      "delta": 7
+    }
+  },
+  {
+    "game": "backronyms",
+    "dots": 6,
+    "rounds": 6
+  },
+  {
+    "game": "chess",
+    "g8": "/assets/boards/chess/bn.webp"
+  },
+  {
+    "game": "ballpark",
+    "emptyDisabled": true,
+    "filledEnabled": true
+  },
+  {
+    "game": "fleet-duel",
+    "reason": true,
+    "placedEnabled": true,
+    "allShipsVisible": true
+  },
+  {
+    "game": "five-second",
+    "roles": [
+      "Judging",
+      "No answer",
+      "Judging"
+    ]
+  },
+  {
+    "game": "echo-pads",
+    "scores": {
+      "p6975e932": 0,
+      "p7de26186": 0
+    },
+    "reached": {
+      "p6975e932": 0,
+      "p7de26186": 0
+    }
+  },
+  {
+    "game": "chess",
+    "theme": "night",
+    "overflow": false
+  },
+  {
+    "game": "hot-potato",
+    "theme": "night",
+    "overflow": false
+  },
+  {
+    "game": "dial-in",
+    "theme": "night",
+    "overflow": false
+  },
+  {
+    "game": "draw-off",
+    "theme": "night",
+    "overflow": false
+  },
+  {
+    "game": "word-grid",
+    "theme": "night",
+    "overflow": false
+  },
+  {
+    "game": "backronyms",
+    "theme": "night",
+    "overflow": false
+  }
+]

@@ -2395,3 +2395,14 @@ body.game-playing[data-game] { --ink-dim:color-mix(in srgb,var(--ink) 82%,var(--
 .picker-controls .picker-control-cards button:focus-visible{outline:var(--focus-ring);outline-offset:var(--focus-offset)}
 @media(hover:hover){.picker-controls .picker-control-cards button:hover:not(:disabled){transform:translateY(calc(-1 * var(--lift-sm)))}}
 @media(prefers-reduced-motion:reduce){.picker-controls .picker-control-cards button{transition:none;transform:none}}
+
+@media (max-width: 540px) {
+  /* A small labelled zoom control fits beside the title and two utilities. */
+  .play-toolbar .game-zoom .game-zoom-value { position: static; width: auto; min-width: var(--space-32); height: auto; clip: auto; padding: 0; overflow: visible; font: var(--text-caption); }
+}
+
+/* Cover art belongs on the game shelf. Play titles use a crisp little mark. */
+.play-game-mark { display: grid; place-items: center; flex: none; width: var(--space-32); height: var(--space-32); border: var(--outline-w) solid var(--outline); border-radius: var(--radius-sm); background: var(--fam-soft); color: var(--fam-deep); font: var(--text-title); }
+@media (max-width: 540px) {
+  .play-title .play-game-mark { display: none; }
+}

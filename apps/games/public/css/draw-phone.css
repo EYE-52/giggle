@@ -549,3 +549,7 @@ body.game-playing[data-game="draw-phone"] .game-zoom { display:none; }
 .sk-phone.dp.ck .sk-steps .is-now { color:var(--ink); }
 /* Saved is readable copy; the kept card/check still carries its colour. */
 #gbody .dp.ck :is(.dp-saved,.dp-kept) { color:var(--ink); }
+
+@media (min-width: 1100px) and (min-height: 700px) {
+  .dp.ck.dp-write > .dp-layout { min-height: calc(100dvh - 3 * var(--space-64)); align-items: center; }
+}

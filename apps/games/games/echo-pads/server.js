@@ -9,7 +9,7 @@ const manifest = {
   players: { min: 2, max: 20 },
   art: "img/games/echo-pads.png",
   howto:
-    "Watch the four pads light up, then repeat the sequence. It starts at 3 steps and grows by one each level. A miss knocks you out of the round. Last survivors earn 100; others earn a share for the levels cleared. Clear level 15 to finish.",
+    "Watch the four pads light up, then repeat the sequence. It starts at 3 steps and grows by one each level. A miss knocks you out of the round. Last survivors who clear a level earn 100; others earn a share for the levels cleared. Clear level 15 to finish.",
   guide: {
     goal: "Remember the longest sequence.",
     tips: [
@@ -25,7 +25,7 @@ function finish(s, ctx, winners) {
   const pts = Object.fromEntries(
     s.roster.map((pid) => [
       pid,
-      winners.includes(pid) ? 100 : Math.round((100 * s.reached[pid]) / best),
+      winners.includes(pid) && s.reached[pid] > 0 ? 100 : Math.round((100 * s.reached[pid]) / best),
     ]),
   );
   round.finish(s, ctx, pts, () => start(s, ctx), {

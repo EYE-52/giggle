@@ -179,3 +179,10 @@
 .cg-world .cg-meta > span:last-child:not(.pl-voter) {
   flex: none;
 }
+
+.cg-world .cg-grid.is-setup:has(.cg-team:only-child) { grid-template-columns: minmax(0, 1fr); }
+.cg-world .cg-grid.is-setup .cg-team { justify-content: center; }
+
+@media (max-width: 560px) {
+  .cg-world .cg-grid.is-setup { height: calc(3 * var(--space-64)); }
+}

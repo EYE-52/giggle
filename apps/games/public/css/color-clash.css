@@ -66,3 +66,5 @@
   font: var(--text-caption);
   color: var(--ink-dim);
 }
+
+.cc-world .cc-word { width: 100%; text-align: center; }

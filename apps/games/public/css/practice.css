@@ -133,3 +133,18 @@
   .practice-page *, .practice-page *::after { transition: none; animation: none; }
   .practice-page button:hover, .practice-page button:active, .practice-back:active, .practice-info summary:active { transform: none; }
 }
+
+/* A visible host label replaces the unexplained, floating status speck. */
+.practice-tabs .is-host::after { content: none; }
+.practice-tabs .is-host { text-decoration: underline; text-underline-offset: var(--space-4); }
+.practice-actions .practice-stop { background: var(--danger-soft); border-color: var(--danger); }
+@media (max-width: 600px) {
+  .practice-page.is-running .practice-back { display: grid; }
+  .practice-page.is-running .practice-bar { flex-wrap: wrap; }
+  .practice-page.is-running .practice-controls { flex: 1; }
+  .practice-page.is-running .practice-actions { gap: var(--space-8); }
+  .practice-page.is-running .practice-tabs { scrollbar-width: thin; margin: 0; padding: var(--space-4) 0; }
+}
+
+.practice-page.is-running .practice-tabs::-webkit-scrollbar { display: block; height: var(--space-4); }
+.practice-page.is-running .practice-tabs::-webkit-scrollbar-thumb { background: var(--line-strong); border-radius: var(--radius-pill); }

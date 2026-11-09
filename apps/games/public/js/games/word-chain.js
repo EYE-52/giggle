@@ -2,7 +2,7 @@
  * challenge, the recent chain and who is still in. Built on the game kit.
  * Contracts: {word}, {challenge:true}. */
 import { esc, nameOf, countdown, ensureStylesheet } from '../util.js';
-import { hudHtml, resultsHtml } from '../kit.js';
+import { timerSlotState, hudHtml, resultsHtml } from '../kit.js';
 
 let current = null, clock = null;
 
@@ -29,6 +29,7 @@ function paintClock(el, S, api) {
   const left = S.endsAt > 0 && !S.preparing && S.phase === 'play' ? countdown(S.endsAt, api?.now) : null;
   const text = left === null ? '' : `${left}s`;
   if (slot.textContent !== text) slot.textContent = text;
+  timerSlotState(slot, left === null ? 0 : S.endsAt, typeof api?.now === 'function' ? api.now() : Date.now());
   slot.classList?.toggle('is-urgent', left !== null && left <= 3);
 }
 function runClock(el, S, api) {
