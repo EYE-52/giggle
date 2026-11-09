@@ -299,7 +299,8 @@ async function drive(active) {
   // The kart server allows 30s. Leave six seconds for a busy tab to ACK.
   // This deadline skips optional warm-up; it must never retire a kart game.
   const kart = active.id === 'pocket-karts';
-  const limitMs = kart ? 24000 : active.latest?.meta?.renderer === '3d' ? 28000 : 10000;
+  // A first visit downloads code, styles and art with a cold cache; 10s failed on slower links.
+  const limitMs = kart ? 24000 : active.latest?.meta?.renderer === '3d' ? 28000 : 20000;
   const timeout = setTimeout(() => {
     if (kart) active.preparation.abort();
     else active.controller.abort(new Error('Game preparation timed out'));

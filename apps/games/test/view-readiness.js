@@ -289,7 +289,7 @@ function emitter() {
 
     const timeoutEl = prepared('timeout-off'); let fireTimeout;
     const realTimeout = global.setTimeout;
-    global.setTimeout = (fn, ms) => { if (ms === 10000) fireTimeout = fn; return realTimeout(fn, ms); };
+    global.setTimeout = (fn, ms) => { if (ms === 20000) fireTimeout = fn; return realTimeout(fn, ms); };
     const timedOutLoad = host.show(timeoutEl, 'async-view', snapshot('timeout-off'), visibilityApi);
     global.setTimeout = realTimeout;
     await flush(); await flush(); const timedOutObserver = intersections.at(-1); fireTimeout(); await flush();

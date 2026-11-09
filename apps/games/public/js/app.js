@@ -2826,6 +2826,7 @@ function restorePreparationFocus(el) {
   api.focus(saved.element);
 }
 
+const autoRetried = new Set();
 function paintGameLoadError({ gameId: failedGame, instanceId: failedInstance, window: failedWindow } = {}) {
   runLog.event('load-error');
   const el = document.getElementById('gbody');
@@ -2834,6 +2835,17 @@ function paintGameLoadError({ gameId: failedGame, instanceId: failedInstance, wi
   el.setAttribute('aria-busy', 'false');
   const status = document.getElementById('gamePreparation');
   if (status) status.hidden = true;
+  // One quiet automatic retry per game window: a cold-cache first load or a dropped
+  // asset request usually succeeds the second time, so players never see the error for it.
+  const retryKey = `${failedGame}:${failedInstance}:${failedWindow ?? ''}`;
+  if (!autoRetried.has(retryKey)) {
+    autoRetried.add(retryKey);
+    runLog.event('load-retry');
+    resetView();
+    paintGamePreparation();
+    mountGameBody();
+    return;
+  }
   const g = gameById(gameId);
   el.innerHTML = `<section class="game-load-error" role="alert">${g ? `<span class="load-error-art" aria-hidden="true">${artImg(g, 'load-error-img')}</span>` : ''}<h2>This game couldn’t load</h2><p>Your room is still here. Check your connection and try again, or use Room to go back to the lobby.</p><button type="button" class="btn big" id="retryGameView">Try again</button></section>`;
   el.querySelector('#retryGameView').onclick = () => {
