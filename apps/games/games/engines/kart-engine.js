@@ -1055,7 +1055,7 @@ function createKartGame(config) {
     kart.connected=connected;
     if(connected)return;
     battle.cancelPayload(kart);
-    kart.bladesT=0;kart.supernovaT=0;kart.bladesAge=0;kart.bladesVolley=null;kart.supernovaVolley=null;
+    kart.bladesT=0;kart.supernovaT=0;kart.bladesAge=0;kart.bladesVolley=null;kart.supernovaVolley=null;kart.bladesHits=null;
     battle.resetFireInput(kart);
     kart.input = { steer: 0, throttle: 0, boost: false };
     kart.speed = 0;

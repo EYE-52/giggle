@@ -7,7 +7,8 @@
  * A Tri-Shot adds only its explicit -8/0/+8 degree fan. Missiles acquire a
  * rival at launch, coast straight briefly, then turn at a bounded rate.
  * Machine Gun and Tri-Shot commit their complete pickup on a fresh press.
- * Each pickup hurts each rival once; mine/oil traps are separate.
+ * Blades repeat on a per-rival cooldown; other pickups hurt each rival once.
+ * Mine/oil traps are separate.
  *
  * Sweeps stop at the earliest static surface, hull or expiry. Static cover
  * wins exact ties. Lifecycle caps are 64 shots, 16 traps and 12 canisters.
@@ -16,7 +17,7 @@
  * and wire names remain for old fixtures and already-created bodies.
  */
 
-const {config:COMBAT,damageAt,weaponForRoll} = require('./kart-combat-config');
+const {config:COMBAT,damageAt,weaponForRoll,bladeContact} = require('./kart-combat-config');
 const {normalizeWeapon}=require('./kart-combat-config');
 const {weaponForward,launchVelocity,TRI_FAN,CURATED_MUZZLE,inWeaponCone,WEAPON_FEEL}=require('../../public/js/engines/kart-weapon-contract.mjs');
 const LEGACY={proximity:{bodyRadius:.6,splashRadius:5.5,triggerRadius:3},laser:{speed:190,ttl:.7},bouncer:{speed:48,ttl:3.5,bounces:4},cluster:{fuse:.75,bomblets:5,splashRadius:3}};
@@ -126,7 +127,7 @@ function cancelPayload(kart) {
   payloads.delete(kart);
   if(kart.weapon===payload.weapon){kart.weapon=null;kart.ammo=0;}
 }
-function cancelPayloads(state) {for(const kart of state.karts){cancelPayload(kart);kart.bladesT=0;kart.supernovaT=0;kart.bladesAge=0;kart.bladesVolley=null;kart.supernovaVolley=null;}}
+function cancelPayloads(state) {for(const kart of state.karts){cancelPayload(kart);kart.bladesT=0;kart.supernovaT=0;kart.bladesAge=0;kart.bladesVolley=null;kart.supernovaVolley=null;kart.bladesHits=null;}}
 // Garage coins (battle only, awarded exactly once server-side via econ).
 const COIN_KO = 10;
 const COIN_PICKUP = 1;
@@ -262,7 +263,7 @@ function knockOut(state, victim, shooterPid, weapon, econ) {
 /* Timed status effects. Frost slows, oil spins out, ram boosts. A KO or
  * respawn ends every one of them. */
 function clearStatus(kart) {
-  kart.bladesT=0;kart.bladesAge=0;kart.supernovaT=0;kart.bladesVolley=null;kart.supernovaVolley=null;
+  kart.bladesT=0;kart.bladesAge=0;kart.supernovaT=0;kart.bladesVolley=null;kart.supernovaVolley=null;kart.bladesHits=null;
   kart.frostT = 0; kart.spinT = 0; kart.rammingT = 0; kart.ramVolley = null; kart.spinKick = 0;
 }
 function applyStatus(state, victim, weapon) {
@@ -273,7 +274,7 @@ function applyStatus(state, victim, weapon) {
   } else if (weapon === 'frost') victim.frostT = FROST_TIME;
 }
 
-/* Whole hearts, once per pickup per rival. Supernova blocks every hit
+/* Whole hearts, once per pickup per rival except sustained blades. Supernova blocks every hit
  * while active. The old guard field only serves legacy state. */
 function damage(state,victim,owner,weapon,connected,econ,volley=null,override=null) {
   const amount=override??damageAt(weapon);
@@ -284,7 +285,7 @@ function damage(state,victim,owner,weapon,connected,econ,volley=null,override=nu
     if(volley){let hits=state.volleyHits.get(volley);if(!hits)state.volleyHits.set(volley,hits=new Set());const key='blocked:'+victim.pid+':'+(victim.spawnSeq||0);announce=!hits.has(key);hits.add(key);}
     if(announce)pushEvent(state,'block',owner,victim.pid,weapon,{position:hitPosition});return true;
   }
-  if(volley) {
+  if(volley && weapon!=='blades') {
     let hits=state.volleyHits.get(volley);if(!hits)state.volleyHits.set(volley,hits=new Set());
     if(hits.has(victim.pid))return false;hits.add(victim.pid);
   }
@@ -321,9 +322,9 @@ function updateCuratedStatus(state,connected,dt,econ,geometry){
      const a=(age+Math.min(h,j*.03))*W.blades.turnRate+n*Math.PI*2/3;
      if(Math.hypot(p.x-me.x-Math.cos(a)*2.2,p.y-me.y,p.z-me.z-Math.sin(a)*2.2)<2.25){touch=true;break;}
     }
-    if(touch&&!(geometry?.sweepStatic?.(me,p))&&!splashBlocked(me.x,me.z,p.x,p.z,state.blocks))damage(state,v,k.pid,'blades',connected,econ,k.bladesVolley);
+    if(touch&&!(geometry?.sweepStatic?.(me,p))&&!splashBlocked(me.x,me.z,p.x,p.z,state.blocks))bladeContact(k,v.pid,v.spawnSeq||0,()=>damage(state,v,k.pid,'blades',connected,econ,k.bladesVolley));
    }
-   if(k.bladesT===0)k.bladesVolley=null;
+   if(k.bladesT===0){k.bladesVolley=null;k.bladesHits=null;}
   }
   if(k.supernovaT>0){k.supernovaT=Math.max(0,k.supernovaT-dt);if(k.supernovaT===0){
    pushEvent(state,'blast',k.pid,undefined,'supernova',{x:me.x,z:me.z,position:me});
@@ -575,7 +576,7 @@ function tryFire(state, kart, start, connected, fireGeometry) {
     pushEvent(state, 'fire', kart.pid, undefined, 'supernova');
     return true;
   }
-  if(weapon==='blades'){kart.bladesT=W.blades.duration;kart.bladesAge=0;kart.bladesVolley=volley;kart.shield=0;kart.ammo=0;kart.weapon=null;pushEvent(state,'fire',kart.pid,undefined,'blades');return true;}
+  if(weapon==='blades'){kart.bladesT=W.blades.duration;kart.bladesAge=0;kart.bladesVolley=volley;kart.bladesHits=new Map();kart.shield=0;kart.ammo=0;kart.weapon=null;pushEvent(state,'fire',kart.pid,undefined,'blades');return true;}
   if (weapon === 'machinegun' || weapon === 'cannon' || weapon === 'laser' || weapon === 'bouncer' || weapon === 'boomerang') {
     if (state.zaps.length + 1 > MAX_ZAPS) return;
     kart.shield = 0;

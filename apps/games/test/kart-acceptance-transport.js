@@ -8,6 +8,7 @@ const path = require('node:path');
 const WebSocket = require('ws');
 const port = Number(process.env.KART_ACCEPTANCE_UPSTREAM || 8447);
 const directory = process.env.KART_ACCEPTANCE_EVIDENCE || '/tmp/giggle-kart-acceptance-20261009';
+const ROUND_SECONDS = 60;
 const maps = ['Rookie Ring','Bumper Blocks','Garden Circuit','Frosty Pass','Neon Yard','Alpine Courtyard','Frost Quarry','Neon Harbor','Harbor Heights'];
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 const finite = data => typeof data === 'number' ? Number.isFinite(data) : data && typeof data === 'object' ? Object.values(data).every(finite) : true;
@@ -24,6 +25,7 @@ async function connect() {
     const m=JSON.parse(raw); if(m.t==='hello')c.hello=m; if(m.t==='room')c.room=m.room;
     if(m.t==='error')c.errors.push(m.msg);
     if(m.t==='state'){
+      if(m.preparing&&!m.spectator)send(c,{t:'game-ready',i:m.instanceId,w:m.w});
       assert.ok(finite(m),'non-finite production wire packet');
       assert.ok(Array.isArray(m.karts)&&m.karts.length,'missing production kart snapshot');
       for(const k of m.karts){const p=position(k);assert.ok([p.x,p.y,p.z,k.pose?.speed??k.speed].every(n=>typeof n==='number'&&Number.isFinite(n)),'missing/null/non-finite production motion');}
@@ -44,7 +46,7 @@ async function room(label) {
     for(const k of s.karts){const p=position(k);metrics.maxHeight=Math.max(metrics.maxHeight,p.y);metrics.maxRadius=Math.max(metrics.maxRadius,Math.max(Math.abs(p.x),Math.abs(p.z)));metrics.maxSpeed=Math.max(metrics.maxSpeed,Math.abs(k.pose?.speed??k.speed));(k.alive??!(k.respawn>0))?metrics.aliveSamples++:metrics.deadSamples++;if(k.nitroActive)metrics.nitroSamples++;if(lives.has(k.id||k.pid)&&lives.get(k.id||k.pid)!==k.spawnSeq)metrics.spawnChanges++;lives.set(k.id||k.pid,k.spawnSeq);}
     for(const e of s.events||[]){const id=e.id??`${e.t}:${e.type}:${e.pid}:${e.other}`;if(events.has(id))continue;events.add(id);metrics.events[e.type]=(metrics.events[e.type]||0)+1;if(e.type==='collision'){const key=e.surfaceId||(e.other?'kart':'classic-solid');metrics.collisions[key]=(metrics.collisions[key]||0)+1;}}
   };
-  send(clients[0],{t:'start',game:'pocket-karts',settings:{map:label,mode:'Zap Battle',winRule:'Time limit',roundSeconds:60,lightCycle:'Fixed light'}});
+  send(clients[0],{t:'start',game:'pocket-karts',settings:{map:label,mode:'Zap Battle',winRule:'Time limit',roundSeconds:ROUND_SECONDS,lightCycle:'Fixed light'}});
   await until(()=>clients.every(c=>c.state),'all workload seats started');
   const started=Date.now();
   let pulse=0;
@@ -61,13 +63,16 @@ async function room(label) {
       const delta=wrapped(direction-facing(k)),steer=Math.max(-1,Math.min(1,-delta*2));
       const controls={steer,throttle:target?.distance<3&&k.weapon?0:1,nitro:Math.abs(delta)<.15&&k.nitro>.2};
       let a;
-      if(s.inputAck){c.seq=Math.max(c.seq,s.inputAck.receivedSeq)+1;a={type:'input',seq:c.seq,life:s.inputAck.life,controlEpoch:s.inputAck.controlEpoch,...controls,brake:0,use:!!k.weapon&&pulse%2===0};}
-      else a={input:{...controls,boost:!!k.weapon&&pulse%2===0,drift:false}};
+      if(!s.inputAck)continue;
+      c.seq=Math.max(c.seq,s.inputAck.receivedSeq)+1;
+      const tokens={seq:c.seq,life:s.inputAck.life,controlEpoch:s.inputAck.controlEpoch};
+      if(s.profile==='elevated-combat-v1')a={type:'input',...tokens,...controls,brake:0,use:!!k.weapon&&pulse%2===0};
+      else a={...tokens,input:{...controls,boost:!!k.weapon&&pulse%2===0,drift:false}};
       send(c,{t:'action',i:s.instanceId,w:s.w,a});
     }
   },200);
   try{
-    await until(()=>clients.every(c=>c.state.phase==='done'),'actual timed round did not finish: '+label,40000);
+    await until(()=>clients.every(c=>c.state.phase==='done'),'actual timed round did not finish: '+label,(ROUND_SECONDS+15)*1000);
     assert.ok(clients.every(c=>!c.errors.length),'production error during '+label);
     assert.ok(metrics.phaseSequence.includes(clients[0].state.profile?'live':'drive'),'never became actionable: '+label);
     assert.ok(metrics.maxSpeed>2,'legal controls never produced motion: '+label);

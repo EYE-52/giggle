@@ -36,7 +36,7 @@ for(const weapon of ['machinegun','trishot','missile','cannon','thunder']){
  check(f.s.zapSeq>=25,'full clip emitted');
 }
 {
- const f=classic('blades',{x:3.6,z:0});f.fire();f.settle(2);
+ const f=classic('blades',{x:3.6,z:0});f.fire();f.settle(1);
  check(f.b.health===2,'blades touch once');f.b.spawnSeq++;f.b.health=3;f.settle(.3);check(f.b.health===3,'a blade pickup cannot hit the same rival again after respawn');check(Math.abs(f.b.slip)>0||Math.abs(f.b.speed)>0,'blades bump');
  f.settle(5);check(f.a.bladesT===0,'blades retire at 6 seconds');
 }
