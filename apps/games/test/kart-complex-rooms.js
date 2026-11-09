@@ -16,8 +16,9 @@ function room(count){
   try{
     for(const [map,id] of Object.entries(require('../games/engines/kart-elevated-adapter').MAP_LABELS))for(const count of [2,8,32]){
       const {r,clients}=room(count);try{
+        if(id==='rookie-ribbons'&&count>8){assert.match(r.startGame(def,{settings:{map,mode:'Zap Battle',roundSeconds:60}},r.hostId).error,/2–8 drivers/);assert.equal(r.game,null,'oversized room is never silently sent to watch');continue;}
         assert.deepEqual(r.startGame(def,{settings:{map,mode:'Zap Battle',roundSeconds:60}},r.hostId),{ok:true});
-        let s=latest(clients[0].ws);assert.equal(s.profile,'elevated-combat-v1');assert.equal(s.map.label,map);assert.equal(s.mapId,id);assert.equal(s.karts.length,Math.min(count,id==='skyport'||id==='foundry'?32:8));assert(s.youDrive);assert.equal(s.map.half,id==='skyport'||id==='foundry'?122:id==='harbor'?86:60);
+        let s=latest(clients[0].ws);assert.equal(s.profile,'elevated-combat-v1');assert.equal(s.map.label,map);assert.equal(s.mapId,id);assert.equal(s.karts.length,Math.min(count,id==='skyport'||id==='foundry'?32:8));assert(s.youDrive);assert.equal(s.map.half,id==='skyport'||id==='foundry'?122:id==='harbor'?86:id==='rookie-ribbons'?42:60);
         const start=s.karts[0].pose.position;
         now=s.liveAt;r.onTick(now);s=latest(clients[0].ws);
         r.onAction(clients[0].ws,{type:'input',seq:1,life:s.inputAck.life,controlEpoch:s.inputAck.controlEpoch,steer:0,throttle:1,brake:0,nitro:false,use:false},{i:s.instanceId,w:s.w});

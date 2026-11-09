@@ -1,0 +1,77 @@
+{
+  "errors": [],
+  "reports": [
+    {
+      "players": 2,
+      "first": {
+        "variant": "duel",
+        "boxes": 12,
+        "karts": 2,
+        "you": "p8edf1290",
+        "position": {
+          "x": -9,
+          "y": 0.647,
+          "z": 22.002
+        }
+      },
+      "variant": "duel",
+      "boxes": 12,
+      "available": 12,
+      "position": {
+        "x": -9,
+        "y": 0.645,
+        "z": -9.649
+      },
+      "render": {
+        "frame": 932,
+        "calls": 43,
+        "triangles": 15530,
+        "points": 0,
+        "lines": 0
+      },
+      "fps": 59.880239520962,
+      "p95": 16.799999999999272,
+      "camera": {
+        "samples": 1745,
+        "failures": []
+      },
+      "video": "practice-2-drive.webm"
+    },
+    {
+      "players": 8,
+      "first": {
+        "variant": "full",
+        "boxes": 18,
+        "karts": 8,
+        "you": "p8bb6ed29",
+        "position": {
+          "x": -35,
+          "y": 0.647,
+          "z": -17.002
+        }
+      },
+      "variant": "full",
+      "boxes": 18,
+      "available": 18,
+      "position": {
+        "x": -35.004,
+        "y": 0.645,
+        "z": 20.024
+      },
+      "render": {
+        "frame": 979,
+        "calls": 62,
+        "triangles": 24500,
+        "points": 0,
+        "lines": 0
+      },
+      "fps": 59.880239520962,
+      "p95": 16.700000000000728,
+      "camera": {
+        "samples": 1740,
+        "failures": []
+      },
+      "video": "practice-8-drive.webm"
+    }
+  ]
+}

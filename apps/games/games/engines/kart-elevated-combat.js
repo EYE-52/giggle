@@ -150,7 +150,7 @@ function createElevatedCombat(RAPIER,config,map,seats,options={}) {
         input:neutral(),queue:[],receivedSeq:0,appliedSeq:0,lastReceipt:startAt,lastInputAt:null,pendingFire:false,useDown:false,
         hits:0,deaths:0,coins:0,health:initialHealth,maxHealth:COMBAT.maxHealth,weapon:null,ammo:0,itemSeq:0,sequence:null,shield:B.SPAWN_SHIELD,guard:false,respawn:0,fireCd:0,nitro:1,nitroLocked:false,nitroActive:false,stuck:null,recoverAfter:0,
         frostT:0,spinT:0,rammingT:0,ramVolley:null,spinKick:0};
-      karts.set(k.id,k); physics.addKart(k.id,spawnPose(spawns[i]));
+      karts.set(k.id,k); physics.addKart(k.id,spawnPose(spawns[i]));if(M.arenaVersion)spawnUsed.set(spawns[i].id,startAt);
     }
     physics.step(15); physics.step(15); physics.step(15); physics.step(15); physics.step(15); physics.step(15);
     for(const k of karts.values()) physics.freezeKart(k.id,true);
@@ -281,12 +281,12 @@ function createElevatedCombat(RAPIER,config,map,seats,options={}) {
     const safe=clearSpawns(k).map(v=>{
       if(!M.arenaVersion)return v;
       const at=spawnPose(v.s).position;
-      let threat=0;
-      for(const enemy of karts.values())if(enemy.id!==k.id&&enemy.alive&&enemy.connected){const p=physics.pose(enemy.id).position;const d=distance(at,p);if(Math.abs(at.y-p.y)<3)threat+=Math.max(0,35-d);if(d<50&&los(at,p))threat+=18;}
-      for(const shot of shots)if(shot.owner!==k.id&&distance(at,shot.position)<15)threat+=25;
+      let threat=0,threatened=false;
+      for(const enemy of karts.values())if(enemy.id!==k.id&&enemy.alive&&enemy.connected){const p=physics.pose(enemy.id).position;const d=distance(at,p);if(Math.abs(at.y-p.y)<3)threat+=Math.max(0,35-d);if(d<50&&los(at,p)){threat+=18;if(Math.abs(at.y-p.y)<3&&d<12)threatened=true;}}
+      for(const shot of shots)if(shot.owner!==k.id&&distance(at,shot.position)<15){threat+=25;if(distance(at,shot.position)<10)threatened=true;}
       const recency=Math.max(0,10000-(simAt-(spawnUsed.get(v.s.id)??-Infinity)))/1000;
-      return {...v,score:v.clear-threat-recency*4};
-    }).sort((a,b)=>M.arenaVersion?b.score-a.score:b.clear-a.clear);
+      return {...v,score:v.clear-threat-recency*4,threatened};
+    }).filter(v=>!v.threatened).sort((a,b)=>M.arenaVersion?b.score-a.score:b.clear-a.clear);
     if(!safe.length) return; // Keep non-solid; retry until a safe pose exists.
     spawnUsed.set(safe[0].s.id,simAt);
     clean(k); k.spawnSeq++; k.controlEpoch++; k.alive=true; k.health=COMBAT.maxHealth; k.respawn=0; k.shield=B.SPAWN_SHIELD; k.guard=false; k.nitro=1; k.nitroLocked=false;

@@ -1,12 +1,15 @@
 'use strict';
 
 const {selectArenaVariant}=require('../../public/js/engines/kart-arena-policy.mjs');
+const {launchArenas}=require('../../public/js/engines/kart-launch-arenas.mjs');
+const LAUNCH_ARENA_CAPS=Object.freeze(Object.fromEntries(Object.values(launchArenas).map(m=>[m.name,Object.freeze({min:m.minPlayers,max:m.maxPlayers})])));
 const crypto = require('crypto');
 const { createElevatedCombat } = require('./kart-elevated-combat');
 const { rankStandings } = require('./kart-standings');
 
 const PROFILE = 'elevated-combat-v1';
 const MAP_LABELS = Object.freeze({
+  ...Object.fromEntries(Object.values(launchArenas).map(m=>[m.name,m.id])),
   'Skyport': 'skyport',
   'Foundry': 'foundry',
   'Alpine Courtyard': 'garden',
@@ -119,7 +122,9 @@ function createElevatedKartAdapter({ RAPIER, config, maps, defaults, createMatch
   }
   const deps = Object.freeze({ RAPIER: Object.freeze({ ...RAPIER }), config: freeze(structuredClone(config)),
     maps: freeze(structuredClone(maps)), defaults: freeze(structuredClone(defaults)), createMatch });
-  for (const id of Object.values(MAP_LABELS)) {
+  // A diagnostic adapter may supply only immutable legacy fixtures. Production
+  // loadElevatedDependencies supplies every registered launch map as well.
+  for (const id of new Set(['skyport','foundry','garden','frost','neon','harbor',...Object.keys(deps.maps)])) {
     if (!deps.maps[id] || deps.maps[id].id !== id || !deps.maps[id].revision) throw new Error('Elevated arena maps are unavailable.');
   }
   const matches = new WeakMap();
@@ -226,4 +231,4 @@ function createElevatedKartAdapter({ RAPIER, config, maps, defaults, createMatch
   return Object.freeze({ preflight, create, onAction, onTick, onConnection, onPlayerGone, view, viewForTransport, dispose, owns: state => matches.has(state) });
 }
 
-module.exports = { GONE_AFTER_MS, PROFILE, MAP_LABELS, preflightElevated, loadElevatedDependencies, createElevatedKartAdapter };
+module.exports = { GONE_AFTER_MS, PROFILE, MAP_LABELS, LAUNCH_ARENA_CAPS, preflightElevated, loadElevatedDependencies, createElevatedKartAdapter };

@@ -10,9 +10,9 @@ export function selectArenaVariant(source, players, requested) {
   const variants=source.variants||[];
   const variant=requested?variants.find(v=>v.id===requested):variants.find(v=>players<=v.maxPlayers&&players>=v.minPlayers);
   if(!variant||players<variant.minPlayers||players>variant.maxPlayers)throw new RangeError('Arena player count or variant is unavailable');
-  const map=structuredClone(source),enabled=new Set(variant.districts);
+  const map=Object.assign(structuredClone(source),structuredClone(variant.layout||{})),enabled=new Set(variant.districts);
   map.variantId=variant.id;map.mapRevision=source.revision;map.enabledDistricts=[...enabled];
-  map.colliders=map.colliders.filter(d=>!d.district||enabled.has(d.district));
+  map.colliders=map.colliders.filter(d=>(!d.district||enabled.has(d.district))&&!variant.disabledColliders?.includes(d.id));
   map.sockets=map.sockets.filter(s=>!s.district||enabled.has(s.district));
   map.spawnCandidates=map.spawnCandidates.filter(s=>!s.district||enabled.has(s.district));
   const starts=variant.starts?.[players]||variant.startIds;

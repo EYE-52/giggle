@@ -1,0 +1,488 @@
+{
+  "scope": "Original npm test failed; 278-command chain completed individually after its failure, with explicit passing reruns for two fixed kart regressions. Four extra registered browser scripts passed.",
+  "fullCommands": 278,
+  "effectiveFullPasses": 277,
+  "baselineFailures": [
+    "node test/word-rules.js"
+  ],
+  "reruns": {
+    "node test/kart-backdrop.mjs": {
+      "status": 0,
+      "evidence": "kart-backdrop-final.log"
+    },
+    "node test/kart-complex-rooms.js": {
+      "status": 0,
+      "evidence": "kart-complex-rooms-final.log"
+    }
+  },
+  "kart": [
+    {
+      "cmd": "node test/kart-garage-ui.mjs",
+      "status": 0
+    },
+    {
+      "cmd": "node test/kart-view.js",
+      "status": 0
+    },
+    {
+      "cmd": "node test/kart-mechanics.js",
+      "status": 0
+    },
+    {
+      "cmd": "node test/kart-battle-loop.js",
+      "status": 0
+    },
+    {
+      "cmd": "node test/kart-art.mjs",
+      "status": 0
+    },
+    {
+      "cmd": "node test/kart-model.js",
+      "status": 0
+    },
+    {
+      "cmd": "node test/kart-framework.js",
+      "status": 0
+    },
+    {
+      "cmd": "node test/kart-audio.mjs",
+      "status": 0
+    },
+    {
+      "cmd": "node test/kart-gearbox.mjs",
+      "status": 0
+    },
+    {
+      "cmd": "node test/kart-combat-art.mjs",
+      "status": 0
+    },
+    {
+      "cmd": "node test/kart-network-render.mjs",
+      "status": 0
+    },
+    {
+      "cmd": "node test/kart-projectiles.js",
+      "status": 0
+    },
+    {
+      "cmd": "node test/kart-shot-retirement.mjs",
+      "status": 0
+    },
+    {
+      "cmd": "node test/kart-user-report-regressions.mjs",
+      "status": 0
+    },
+    {
+      "cmd": "node test/kart-garage.js",
+      "status": 0
+    },
+    {
+      "cmd": "node test/kart-audio-samples.mjs",
+      "status": 0
+    },
+    {
+      "cmd": "node test/kart-curated-fx.mjs",
+      "status": 0
+    },
+    {
+      "cmd": "node test/kart-weapon-playfeel.mjs",
+      "status": 0
+    },
+    {
+      "cmd": "node test/kart-curated-arsenal.mjs",
+      "status": 0
+    },
+    {
+      "cmd": "node test/kart-curated-aim.mjs",
+      "status": 0
+    },
+    {
+      "cmd": "node test/kart-hearts-weapons.js",
+      "status": 0
+    },
+    {
+      "cmd": "node test/kart-new-arsenal.js",
+      "status": 0
+    },
+    {
+      "cmd": "node test/kart-hearts-hud.mjs",
+      "status": 0
+    },
+    {
+      "cmd": "node test/kart-world-fx.mjs",
+      "status": 0
+    },
+    {
+      "cmd": "node test/kart-backdrop.mjs",
+      "status": 0
+    },
+    {
+      "cmd": "node test/kart-expanded-art.mjs",
+      "status": 0
+    },
+    {
+      "cmd": "node test/kart-feedback.mjs",
+      "status": 0
+    },
+    {
+      "cmd": "node test/kart-impact-fx.mjs",
+      "status": 0
+    },
+    {
+      "cmd": "node test/kart-weapon-fx-budget.mjs",
+      "status": 0
+    },
+    {
+      "cmd": "node test/kart-render-warmup.mjs",
+      "status": 0
+    },
+    {
+      "cmd": "node test/kart-nitro.js",
+      "status": 0
+    },
+    {
+      "cmd": "node test/kart-mines-sweep.js",
+      "status": 0
+    },
+    {
+      "cmd": "node test/kart-mine-motion.js",
+      "status": 0
+    },
+    {
+      "cmd": "node test/kart-visual-finish.mjs",
+      "status": 0
+    },
+    {
+      "cmd": "node test/kart-instancing.mjs",
+      "status": 0
+    },
+    {
+      "cmd": "node test/kart-elevated-lifetimes.mjs",
+      "status": 0
+    },
+    {
+      "cmd": "node test/kart-elevation-physics.mjs",
+      "status": 0
+    },
+    {
+      "cmd": "node test/kart-elevated-maps.mjs",
+      "status": 0
+    },
+    {
+      "cmd": "node test/kart-raised-features.mjs",
+      "status": 0
+    },
+    {
+      "cmd": "node test/kart-elevated-drift.mjs",
+      "status": 0
+    },
+    {
+      "cmd": "node test/kart-elevated-prediction.mjs",
+      "status": 0
+    },
+    {
+      "cmd": "node test/kart-prod-probe.mjs",
+      "status": 0
+    },
+    {
+      "cmd": "node test/kart-complex-maps.mjs",
+      "status": 0
+    },
+    {
+      "cmd": "node test/kart-complex-details.mjs",
+      "status": 0
+    },
+    {
+      "cmd": "node test/kart-raised-regressions.mjs",
+      "status": 0
+    },
+    {
+      "cmd": "node test/kart-raised-quality.mjs",
+      "status": 0
+    },
+    {
+      "cmd": "node test/kart-raised-spawns.mjs",
+      "status": 0
+    },
+    {
+      "cmd": "node test/kart-complex-rooms.js",
+      "status": 0
+    },
+    {
+      "cmd": "node test/kart-complex-transport.js",
+      "status": 0
+    },
+    {
+      "cmd": "node test/kart-health.mjs",
+      "status": 0
+    },
+    {
+      "cmd": "node test/kart-elevated-combat.mjs",
+      "status": 0
+    },
+    {
+      "cmd": "node test/kart-elevated-world.mjs",
+      "status": 0
+    },
+    {
+      "cmd": "node test/kart-elevated-pose.mjs",
+      "status": 0
+    },
+    {
+      "cmd": "node test/kart-elevated-production.js",
+      "status": 0
+    },
+    {
+      "cmd": "node test/kart-elevated-production-transport.js",
+      "status": 0
+    },
+    {
+      "cmd": "node test/kart-elevated-view.mjs",
+      "status": 0
+    },
+    {
+      "cmd": "node test/kart-projectile-alignment.mjs",
+      "status": 0
+    },
+    {
+      "cmd": "node test/kart-terrain-assets.mjs",
+      "status": 0
+    },
+    {
+      "cmd": "node test/kart-stylized-world.mjs",
+      "status": 0
+    },
+    {
+      "cmd": "node test/kart-harbor-map.mjs",
+      "status": 0
+    },
+    {
+      "cmd": "node test/kart-elevated-arsenal.mjs",
+      "status": 0
+    },
+    {
+      "cmd": "node test/kart-elevated-new-arsenal.mjs",
+      "status": 0
+    },
+    {
+      "cmd": "node test/kart-pulse-mounted.mjs",
+      "status": 0
+    },
+    {
+      "cmd": "node test/kart-arsenal-mounted.mjs",
+      "status": 0
+    },
+    {
+      "cmd": "node test/kart-arsenal-secondary.mjs",
+      "status": 0
+    },
+    {
+      "cmd": "node test/kart-mounted-combat.mjs",
+      "status": 0
+    },
+    {
+      "cmd": "node test/kart-ten-arsenal-transport.js",
+      "status": 0
+    },
+    {
+      "cmd": "node test/kart-preparation.mjs",
+      "status": 0
+    },
+    {
+      "cmd": "node test/kart-setup.mjs",
+      "status": 0
+    },
+    {
+      "cmd": "node test/kart-looks.mjs",
+      "status": 0
+    },
+    {
+      "cmd": "node test/kart-driver-fit.mjs",
+      "status": 0
+    },
+    {
+      "cmd": "node test/kart-camera-collision.mjs",
+      "status": 0
+    },
+    {
+      "cmd": "node test/kart-match-rules.js",
+      "status": 0
+    },
+    {
+      "cmd": "node test/kart-combat-mechanics.mjs",
+      "status": 0
+    },
+    {
+      "cmd": "node test/kart-sustained-contact.mjs",
+      "status": 0
+    },
+    {
+      "cmd": "node test/kart-arcade-handling.mjs",
+      "status": 0
+    },
+    {
+      "cmd": "node test/kart-classic-rapier.mjs",
+      "status": 0
+    },
+    {
+      "cmd": "node test/kart-collision-response.mjs",
+      "status": 0
+    },
+    {
+      "cmd": "node test/kart-classic-prediction.mjs",
+      "status": 0
+    },
+    {
+      "cmd": "node test/kart-arena-features.mjs",
+      "status": 0
+    },
+    {
+      "cmd": "node test/kart-arena-layout.mjs",
+      "status": 0
+    },
+    {
+      "cmd": "node test/kart-map-designs.mjs",
+      "status": 0
+    },
+    {
+      "cmd": "node test/kart-arena-hazards.mjs",
+      "status": 0
+    },
+    {
+      "cmd": "node test/kart-arena-art.mjs",
+      "status": 0
+    },
+    {
+      "cmd": "node test/kart-festive-lights.mjs",
+      "status": 0
+    },
+    {
+      "cmd": "node test/kart-classic-handling.mjs",
+      "status": 0
+    },
+    {
+      "cmd": "node test/kart-driving-feel.mjs",
+      "status": 0
+    },
+    {
+      "cmd": "node test/kart-physical-fire.mjs",
+      "status": 0
+    },
+    {
+      "cmd": "node test/kart-weapon-thumbnails.mjs",
+      "status": 0
+    },
+    {
+      "cmd": "node test/kart-performance-stability.mjs",
+      "status": 0
+    },
+    {
+      "cmd": "node test/kart-weapon-system.mjs",
+      "status": 0
+    },
+    {
+      "cmd": "node test/kart-arena-policy.mjs",
+      "status": 0
+    },
+    {
+      "cmd": "node test/kart-rookie-ribbons.mjs",
+      "status": 0
+    },
+    {
+      "cmd": "node test/kart-arena-economy.mjs",
+      "status": 0
+    },
+    {
+      "cmd": "node test/kart-rookie-stress.mjs",
+      "status": 0
+    },
+    {
+      "cmd": "node test/kart-event-delivery.js",
+      "status": 0
+    },
+    {
+      "cmd": "node test/kart-event-transport.js",
+      "status": 0
+    },
+    {
+      "cmd": "node test/kart-immutable-transport.js",
+      "status": 0
+    },
+    {
+      "cmd": "node test/kart-road-terrain.mjs",
+      "status": 0
+    },
+    {
+      "cmd": "node test/kart-road-world.mjs",
+      "status": 0
+    },
+    {
+      "cmd": "node test/kart-garden-ground-combat.mjs",
+      "status": 0
+    },
+    {
+      "cmd": "node test/kart-alpine-world.mjs",
+      "status": 0
+    },
+    {
+      "cmd": "node test/kart-all-map-terrain.mjs",
+      "status": 0
+    },
+    {
+      "cmd": "node test/kart-boundary-recovery.mjs",
+      "status": 0
+    },
+    {
+      "cmd": "node test/kart-all-map-combat.mjs",
+      "status": 0
+    },
+    {
+      "cmd": "node test/kart-wheel-suspension.mjs",
+      "status": 0
+    },
+    {
+      "cmd": "node test/kart-ground-markers.mjs",
+      "status": 0
+    },
+    {
+      "cmd": "node test/kart-classic-projectile-alignment.mjs",
+      "status": 0
+    },
+    {
+      "cmd": "node test/kart-classic-payloads.mjs",
+      "status": 0
+    },
+    {
+      "cmd": "node test/kart-elevated-payloads.mjs",
+      "status": 0
+    },
+    {
+      "cmd": "node test/kart-garage-browser.cjs",
+      "status": 0
+    },
+    {
+      "cmd": "node test/kart-32-browser.cjs",
+      "status": 0
+    },
+    {
+      "cmd": "node test/kart-wasm.mjs",
+      "status": 0
+    },
+    {
+      "cmd": "node test/kart-loading.mjs",
+      "status": 0
+    },
+    {
+      "cmd": "node test/kart-bundle.js",
+      "status": 0
+    },
+    {
+      "cmd": "node test/kart-weapon-system-browser.cjs",
+      "status": 0
+    },
+    {
+      "cmd": "node test/kart-weapon-raised-browser.cjs",
+      "status": 0
+    }
+  ]
+}

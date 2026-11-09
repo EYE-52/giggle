@@ -5,7 +5,7 @@
 
 const { createKartGame } = require('../engines/kart-engine');
 const { defaultSettings } = require('../_validate');
-const { MAP_LABELS, preflightElevated, loadElevatedDependencies, createElevatedKartAdapter } = require('../engines/kart-elevated-adapter');
+const { MAP_LABELS, LAUNCH_ARENA_CAPS, preflightElevated, loadElevatedDependencies, createElevatedKartAdapter } = require('../engines/kart-elevated-adapter');
 
 let classicDependencies;
 const { KART_STREAM } = require('../engines/kart-realtime');
@@ -74,11 +74,13 @@ const def = {
     return initialization;
   },
   // Complex arenas and classic arenas take 32; smaller elevated arenas take 8.
-  seatsFor: settings => { const s = resolveSettings(settings); return ['Skyport', 'Foundry'].includes(s.map) ? 32 : opted(s) ? ELEVATED_SEATS : 32; },
-  preflight(settings) {
+  seatsFor: settings => { const s = resolveSettings(settings); return LAUNCH_ARENA_CAPS[s.map]?.max || (['Skyport', 'Foundry'].includes(s.map) ? 32 : opted(s) ? ELEVATED_SEATS : 32); },
+  preflight(settings,players) {
     const resolved = resolveSettings(settings);
     if (!classicDependencies) return { error: 'Kart arenas are unavailable right now. Try another game.' };
     if (!opted(resolved)) return { ok: true };
+    const cap=LAUNCH_ARENA_CAPS[resolved.map];
+    if(cap&&Array.isArray(players)&&(players.length<cap.min||players.length>cap.max))return {error:`${resolved.map} needs ${cap.min}–${cap.max} drivers. Choose an arena that fits your room.`};
     const check = preflightElevated(resolved);
     if (check.error) return check;
     return elevated ? elevated.preflight(resolved) : { error: 'Elevated arenas are unavailable right now. Choose an existing arena.' };

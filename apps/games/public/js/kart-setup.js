@@ -3,6 +3,7 @@ import { esc } from './util.js';
 // Menu previews are small views of the shipped worlds, keyed by profile
 // as well as map ID: the classic and elevated gardens are different arenas.
 export const KART_ARENAS = [
+  { label: 'Rookie Ribbons', key: 'arena-rookie-ribbons', elevated: true, players: '2–8', levels: 2, description: 'Two toy lobes, a real arch bridge and two gentle climbs. A smaller duel arena for two.' },
   { label: 'Skyport', key: 'elevated-skyport', elevated: true, complex: true, description: 'Three floors, a spiral car park, roof jumps and sky bridges.' },
   { label: 'Foundry', key: 'elevated-foundry', elevated: true, complex: true, description: 'Three floors, furnace tunnels, moving belts and a high gantry.' },
   { label: 'Alpine Courtyard', key: 'elevated-garden', elevated: true, description: 'Two climbs, a raised courtyard and an underpass.' },
@@ -89,7 +90,7 @@ export function kartSetupHtml(g, current, host) {
       <input type="hidden" id="df-${g.id}-map" value="${esc(settings.map)}">
       <div class="ks-map-nav"><button type="button" class="ks-map-arrow" data-kart-scroll="-1" aria-label="Previous arenas">‹</button>
         <div class="ks-map-list" role="radiogroup" aria-label="Arena">${arenas.map(a => `<button type="button" class="ks-map" role="radio" aria-label="${esc(a.label + (a.complex ? ", three levels" : a.elevated ? ", elevated" : ", classic") + ": " + a.description)}" aria-checked="${a.label === settings.map}" tabindex="${a.label === settings.map ? 0 : -1}" data-kart-key="map" data-kart-value="${esc(a.label)}" data-hostonly ${dis}>
-          <img src="/assets/karts/previews/${a.key}.webp" width="480" height="270" alt=""><span>${esc(a.label)}</span><small>${a.complex ? '3 levels · 2–32 players' : a.elevated ? 'Elevated · 2–8 players' : 'Classic · 2–32 players'}</small></button>`).join('')}</div>
+          <img src="/assets/karts/previews/${a.key}.webp" width="480" height="270" alt=""><span>${esc(a.label)}</span><small>${a.players ? `${a.levels} levels · ${a.players} players` : a.complex ? '3 levels · 2–32 players' : a.elevated ? 'Elevated · 2–8 players' : 'Classic · 2–32 players'}</small></button>`).join('')}</div>
         <button type="button" class="ks-map-arrow" data-kart-scroll="1" aria-label="More arenas">›</button></div>
       <p class="ks-change-note" id="kartSetupNotice" role="status"></p></section>
     <section class="ks-rules"><h3>Match rules</h3><div class="ks-rule-row">

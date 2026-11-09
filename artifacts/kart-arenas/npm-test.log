@@ -1,0 +1,965 @@
+
+> partygames@0.1.38 test
+> node test/same-room.js && node test/same-room-ui.js && node test/same-room-transport.js && node test/boot-loading.js && node test/howto-guide.js && node test/howto-layout.js && node test/home-card-layout.js && node test/controls-ui.js && node test/visual-pickers.js && node test/practice-support.mjs && node test/release-gate.js && node test/deploy-frontend-session.js && node test/compliment-roast-match-scores.js && node test/party-b-rules.js && node test/compliment-roast-finals.js && node test/smoke.js && node test/socket-boundaries.js && node test/framework.js && node test/scaffold.js && node test/bridge.js && node test/chess.js && node test/chess-view.js && node test/pocket-karts.js && node test/pocket-karts-smooth.js && node test/pocket-karts-release.js && node test/kart-garage-ui.mjs && node test/kart-view.js && node test/kart-mechanics.js && node test/kart-battle-loop.js && node test/kart-art.mjs && node test/kart-model.js && node test/kart-framework.js && node test/splithost.js && node test/customize-intent.js && node test/build-battle.js && node test/castle-clash.js && node test/media-toolkit.js && node test/game-pages.js && node test/race.js && node test/game-playability.js && node test/server-clock.js && node test/game-entry.js && node test/chain-reaction.js && node test/warm-words.js && node test/word-rules.js && node test/word-hints.js && node test/word-dictionary.js && node test/camera-party.js && node test/camera-scenes.js && node test/charades-input.js && node test/camera-results.js && node test/camera-acceptance.js && node test/game-kit.js && node test/game-host.js && node test/drawing-input.js && node test/castle-view.js && node test/game-layout.js && node test/layout-stability.js && node test/visual-qa-regressions.js && node test/board-panel-view.js && node test/build-battle-events.js && node test/castle-3d-view.js && node test/arena-controls.js && node test/castle-scene.js && node test/game-autonomy.js && node test/kart-audio.mjs && node test/kart-gearbox.mjs && node test/kart-combat-art.mjs && node test/kart-network-render.mjs && node test/kart-projectiles.js && node test/kart-shot-retirement.mjs && node test/kart-user-report-regressions.mjs && node test/kart-garage.js && node test/castle-gameplay.js && node test/chain-visual.mjs && node test/party-races.js && node test/skill-races.js && node test/skill-scenes.js && node test/typing-input.js && node test/castle-supplies-view.js && node test/party-scenes-hud.js && node test/chain-hud.js && node test/skill-scenes-hud.js && node test/skill-scenes-hud-muse.js && node test/game-screen.mjs && node test/game-screen-ui.mjs && node test/mobile-stick.mjs && node test/party-mobile.js && node test/skill-scenes-mobile.js && node test/kart-audio-samples.mjs && node test/contributor.mjs && node test/input-capabilities.mjs && node test/result-presentation.mjs && node test/chain-arena.mjs && node test/block-siege.js && node test/block-siege-scene.js && node test/block-siege-view.js && node test/doodle-guess.js && node test/doodle-guess-transport.js && node test/kart-curated-fx.mjs && node test/kart-weapon-playfeel.mjs && node test/kart-curated-arsenal.mjs && node test/kart-curated-aim.mjs && node test/kart-hearts-weapons.js && node test/kart-new-arsenal.js && node test/kart-hearts-hud.mjs && node test/kart-world-fx.mjs && node test/kart-backdrop.mjs && node test/kart-expanded-art.mjs && node test/kart-feedback.mjs && node test/kart-impact-fx.mjs && node test/kart-weapon-fx-budget.mjs && node test/kart-render-warmup.mjs && node test/kart-nitro.js && node test/kart-mines-sweep.js && node test/kart-mine-motion.js && node test/custom-mobile.js && node test/room-transitions.js && node test/socket-input-release.js && node test/game-mount-focus.js && node test/kart-visual-finish.mjs && node test/kart-instancing.mjs && node test/kart-elevated-lifetimes.mjs && node test/board-duels.js && node test/board-duels-view.js && node test/board-duels-transport.js && node test/checkers-kalah.js && node test/checkers-kalah-view.js && node test/checkers-kalah-rooms.js && node test/ludo-fleet.js && node test/ludo-fleet-transport.js && node test/ludo-fleet-view.js && node test/ludo-shared-pawns.js && node test/board-motion.js && node test/doodle-guess-view.js && node test/draw-phone-view.js && node test/draw-phone-transport.js && node test/kart-elevation-physics.mjs && node test/kart-elevated-maps.mjs && node test/kart-raised-features.mjs && node test/kart-elevated-drift.mjs && node test/kart-elevated-prediction.mjs && node test/kart-prod-probe.mjs && node test/kart-complex-maps.mjs && node test/kart-complex-details.mjs && node test/kart-raised-regressions.mjs && node test/kart-raised-quality.mjs && node test/kart-raised-spawns.mjs && node test/kart-complex-rooms.js && node test/kart-complex-transport.js && node test/kart-health.mjs && node test/kart-elevated-combat.mjs && node test/kart-elevated-world.mjs && node test/kart-elevated-pose.mjs && node test/kart-elevated-production.js && node test/kart-elevated-production-transport.js && node test/kart-elevated-view.mjs && node test/kart-projectile-alignment.mjs && node test/kart-terrain-assets.mjs && node test/kart-stylized-world.mjs && node test/kart-harbor-map.mjs && node test/kart-elevated-arsenal.mjs && node test/kart-elevated-new-arsenal.mjs && node test/kart-pulse-mounted.mjs && node test/kart-arsenal-mounted.mjs && node test/kart-arsenal-secondary.mjs && node test/kart-mounted-combat.mjs && node test/kart-ten-arsenal-transport.js && npm run test:readiness && npm run test:party-deadlines && npm run test:party-acceptance && node test/ui-audio.mjs && npm run test:kart-loading && node test/kart-preparation.mjs && node test/kart-render-warmup.mjs && node test/kart-setup.mjs && node test/kart-looks.mjs && node test/kart-driver-fit.mjs && node test/kart-camera-collision.mjs && node test/kart-match-rules.js && node test/kart-combat-mechanics.mjs && node test/kart-sustained-contact.mjs && node test/kart-arcade-handling.mjs && node test/configure-ack.js && node test/party-audit-edge-cases.js && node test/word-skill-input-audit.js && node test/camera-input-audit.js && node test/issue-reports.js && node test/modal-game-input.mjs && node test/party-quality-view.js && node test/word-camera-quality.js && node test/server-lifecycle.js && node test/board-readiness-settlement.js && node test/board-tabletop-transport.js && node test/drawing-readiness.js && node test/drawing-fixture-transport.js && node test/run-log.mjs && node test/customizer-save.mjs && node test/room-kick.js && node test/room-end-leave.js && node test/game-kit-ui.js && node test/game-zoom.js && node test/room-kick-ui.js && node test/home-catalog-loading.js && npm run test:kart-events && npm run test:memory-delimiters && npm run test:full-match-transport && npm run test:catalogue-room-removal && node test/kart-classic-rapier.mjs && node test/kart-collision-response.mjs && node test/kart-classic-prediction.mjs && node test/kart-arena-features.mjs && node test/kart-arena-layout.mjs && node test/kart-map-designs.mjs && node test/kart-arena-hazards.mjs && node test/kart-arena-art.mjs && node test/kart-festive-lights.mjs && node test/kart-classic-handling.mjs && node test/kart-driving-feel.mjs && node test/kart-physical-fire.mjs && node test/kart-weapon-thumbnails.mjs && npm run test:kart-road && node test/number-hunt-ties.js && node test/question-speed-auto-turns.js && node test/story-auto-turns.js && node test/party-auto-turns.js && npm run test:kart-payloads && node test/realtime-transport.mjs && node test/new-games-b1.js && node test/new-games-b5.js && node test/new-games-b2.js && node test/new-games-b4.js && node test/new-games-b3.js && node test/new-games-b6.js && node test/kart-performance-stability.mjs && node test/kart-weapon-system.mjs && node test/kart-arena-policy.mjs && node test/kart-rookie-ribbons.mjs && node test/kart-arena-economy.mjs && node test/kart-rookie-stress.mjs
+
+SAME_ROOM_PASS: Truth or Dare 2/3/5 people and all styles; board win; five-seat vote; private projections; deadlines; resume; 21 manifest opt-ins
+SAME_ROOM_UI_PASS: real entry controller, catalog opt-ins, name chips, quick add, limits, settings, double-start, draft stability and private DOM removal
+SAME_ROOM_TRANSPORT_PASS: real HTTP/WS entry; full three-person target/perform/two-judge round; no public code; private write/vote; one controller; disconnect/resume; authoritative scoring; unsupported rejection
+BOOT_LOADING_PASS: pending,12s failure,stopped artwork,settled/replaced guard;no readiness delay
+HOWTO_GUIDE_PASS: validation limits, catalog exposure, folded rules, glance markup
+HOWTO_LAYOUT_PASS: desktop columns, phone scroller and sticky actions, live resize, tabs, footer refresh and handlers
+HOME_CARD_LAYOUT_PASS: all catalogue variants, art-bound badges, compact text/actions, unchanged card handlers and practice link
+CONTROLS_UI_PASS: manifest sheet, fullscreen, focus and dismissals, shortcut and single scroll
+VISUAL_PICKERS_PASS: 7 hidden selects, 6 number steppers, shared driving cards
+PRACTICE_SUPPORT_PASS: 72 explicit game reviews; real minimums, unknown-game rejection, isolated storage and embed separation
+RELEASE_GATE_PASS: credentials, source/build/deployment identity, provider SUCCESS, artifact tamper, no-cache config, production QA/malformed routes
+DEPLOY_FRONTEND_SESSION_PASS: 15 contract groups; no real auth, provider calls or uploads
+{"passed":["existing-session invocation preserves scope, project, source, fresh backend and flags","wrong target rejected before any CLI","explicit token cannot silently change session authentication","reviewed SHA and actual Git HEAD must match","missing stamp and changed runtime fail closed","sibling edits and noncanonical origin fail before CLI","unsuccessful or mismatched exact upload evidence blocks CLI","missing/failed session inspection cannot open login or deploy","project/owner/root mismatch or malformed inspection fails closed","fresh backend failure, redirect or identity change prevents upload","moved or unreadable current main prevents upload","changes during inspection are rechecked immediately before upload","deployment failure/termination is never reported as success","frontend own static identity is required after CLI success","incomplete or unknown CLI usage exits before provider work"]}
+COMPLIMENT_ROAST_MATCH_SCORES_PASS
+PARTY_B_RULES_PASS: 58 checks
+COMPLIMENT_ROAST_FINALS_PASS
+SMOKE games: would-you-rather,doodle-guess,truth-dare,never-ever,most-likely,hot-takes,rank-it,two-truths,funny-answer,bluff,story-builder,emoji-story,trivia,scattergories,word-chain,countdown-word,lyric-fill,five-second,charades,twenty-questions,pick-one,memory-tray,rapid-polls,dare-roulette,compliment-battle,roast-toast,draw-phone,reaction-tap,typing-race,number-hunt,backronyms,ballpark,banned-words,block-stack,chain-reaction,checkers,chess,clue-grid,color-clash,dial-in,dice-fibs,dots-boxes,draw-off,echo-pads,emoji-spotter,five-row,fleet-duel,four-in-a-row,hot-potato,kalah,know-me,letter-lock,ludo,math-dash,mega-tic-tac-toe,moonlit-village,odd-one-out,penalty-kicks,pig-dice,pocket-karts,pose-party,read-my-lips,reversi,show-and-go,sketchy-impostor,snakes-ladders,think-alike,undercover,warm-words,whisper,who-wrote,word-grid
+SMOKE_START_STATE {"game":"would-you-rather","elapsedMs":21.755166999999915,"matched":true,"arrivals":[{"t":"room","afterStartMs":1.6848329999999123},{"t":"state","game":"would-you-rather","instanceId":"mw9r6biv-1","phase":"vote","afterStartMs":2.372292000000016}]}
+SMOKE ok: would-you-rather
+SMOKE_START_STATE {"game":"doodle-guess","elapsedMs":21.123790999999983,"matched":true,"arrivals":[{"t":"room","afterStartMs":0.810790999999881},{"t":"state","game":"doodle-guess","instanceId":"mw9r6buo-2","phase":"pick","afterStartMs":0.9262079999998605}]}
+SMOKE ok: doodle-guess
+SMOKE_START_STATE {"game":"truth-dare","elapsedMs":21.046582999999828,"matched":true,"arrivals":[{"t":"room","afterStartMs":0.7488749999999982},{"t":"state","game":"truth-dare","instanceId":"mw9r6c6g-3","phase":"spin","afterStartMs":0.8905419999998685}]}
+SMOKE ok: truth-dare
+SMOKE_START_STATE {"game":"never-ever","elapsedMs":20.63591600000018,"matched":true,"arrivals":[{"t":"room","afterStartMs":0.7241660000004231},{"t":"state","game":"never-ever","instanceId":"mw9r6ci7-4","phase":"vote","afterStartMs":1.028541000000132}]}
+SMOKE ok: never-ever
+SMOKE_START_STATE {"game":"most-likely","elapsedMs":20.80383299999994,"matched":true,"arrivals":[{"t":"room","afterStartMs":1.1016669999999067},{"t":"state","game":"most-likely","instanceId":"mw9r6cty-5","phase":"vote","afterStartMs":1.4959579999999733}]}
+SMOKE ok: most-likely
+SMOKE_START_STATE {"game":"hot-takes","elapsedMs":21.17583300000024,"matched":true,"arrivals":[{"t":"room","afterStartMs":1.4924580000001697},{"t":"state","game":"hot-takes","instanceId":"mw9r6d5q-6","phase":"submit","afterStartMs":1.8598750000001019}]}
+SMOKE ok: hot-takes
+SMOKE_START_STATE {"game":"rank-it","elapsedMs":21.484875000000102,"matched":true,"arrivals":[{"t":"room","afterStartMs":1.0103330000001733},{"t":"state","game":"rank-it","instanceId":"mw9r6dhk-7","phase":"rank","afterStartMs":1.259958000000097}]}
+SMOKE ok: rank-it
+SMOKE_START_STATE {"game":"two-truths","elapsedMs":20.696332999999868,"matched":true,"arrivals":[{"t":"room","afterStartMs":1.159708000000137},{"t":"state","game":"two-truths","instanceId":"mw9r6dtc-8","phase":"write","afterStartMs":1.4535000000000764}]}
+SMOKE ok: two-truths
+SMOKE_START_STATE {"game":"funny-answer","elapsedMs":21.319542000000183,"matched":true,"arrivals":[{"t":"room","afterStartMs":1.2052920000005543},{"t":"state","game":"funny-answer","instanceId":"mw9r6e54-9","phase":"answer","afterStartMs":1.519375000000764}]}
+SMOKE ok: funny-answer
+SMOKE_START_STATE {"game":"bluff","elapsedMs":20.989792000000307,"matched":true,"arrivals":[{"t":"room","afterStartMs":1.3207499999998618},{"t":"state","game":"bluff","instanceId":"mw9r6egx-10","phase":"bluff","afterStartMs":1.627292000000125}]}
+SMOKE ok: bluff
+SMOKE_START_STATE {"game":"story-builder","elapsedMs":21.14287499999955,"matched":true,"arrivals":[{"t":"room","afterStartMs":0.8621249999996508},{"t":"state","game":"story-builder","instanceId":"mw9r6eso-11","phase":"build","afterStartMs":0.9639589999997042}]}
+SMOKE ok: story-builder
+SMOKE_START_STATE {"game":"emoji-story","elapsedMs":20.600083000000268,"matched":true,"arrivals":[{"t":"room","afterStartMs":1.3093330000001515},{"t":"state","game":"emoji-story","instanceId":"mw9r6f4i-12","phase":"emoji","afterStartMs":1.4845830000003843}]}
+SMOKE ok: emoji-story
+SMOKE_START_STATE {"game":"trivia","elapsedMs":20.614582999999584,"matched":true,"arrivals":[{"t":"room","afterStartMs":1.002082999999402},{"t":"state","game":"trivia","instanceId":"mw9r6fga-13","phase":"answer","afterStartMs":1.3389159999996991}]}
+SMOKE ok: trivia
+SMOKE_START_STATE {"game":"scattergories","elapsedMs":21.569958000000042,"matched":true,"arrivals":[{"t":"room","afterStartMs":1.1320409999998446},{"t":"state","game":"scattergories","instanceId":"mw9r6fs2-14","phase":"write","afterStartMs":1.3499999999994543}]}
+SMOKE ok: scattergories
+SMOKE_START_STATE {"game":"word-chain","elapsedMs":21.76245800000015,"matched":true,"arrivals":[{"t":"room","afterStartMs":1.2371670000002268},{"t":"state","game":"word-chain","instanceId":"mw9r6g3v-15","phase":"play","afterStartMs":1.4796249999999418}]}
+SMOKE ok: word-chain
+SMOKE_START_STATE {"game":"countdown-word","elapsedMs":20.742833000000246,"matched":true,"arrivals":[{"t":"room","afterStartMs":1.8945409999996627},{"t":"state","game":"countdown-word","instanceId":"mw9r6gfn-16","phase":"make","afterStartMs":2.1517079999994166}]}
+SMOKE ok: countdown-word
+SMOKE_START_STATE {"game":"lyric-fill","elapsedMs":21.02979200000027,"matched":true,"arrivals":[{"t":"room","afterStartMs":1.3134170000002996},{"t":"state","game":"lyric-fill","instanceId":"mw9r6grf-17","phase":"fill","afterStartMs":1.6708750000007058}]}
+SMOKE ok: lyric-fill
+SMOKE_START_STATE {"game":"five-second","elapsedMs":21.25395800000024,"matched":true,"arrivals":[{"t":"room","afterStartMs":1.32354099999975},{"t":"state","game":"five-second","instanceId":"mw9r6h37-18","phase":"answer","afterStartMs":1.532666000000063}]}
+SMOKE ok: five-second
+SMOKE_START_STATE {"game":"charades","elapsedMs":20.37933299999895,"matched":true,"arrivals":[{"t":"room","afterStartMs":1.241582999999082},{"t":"state","game":"charades","instanceId":"mw9r6hez-19","phase":"act","afterStartMs":1.5180409999993572}]}
+SMOKE ok: charades
+SMOKE_START_STATE {"game":"twenty-questions","elapsedMs":20.29858299999978,"matched":true,"arrivals":[{"t":"room","afterStartMs":1.5733749999999418},{"t":"state","game":"twenty-questions","instanceId":"mw9r6hqq-20","phase":"play","afterStartMs":1.781875000000582}]}
+SMOKE ok: twenty-questions
+SMOKE_START_STATE {"game":"pick-one","elapsedMs":21.17133400000057,"matched":true,"arrivals":[{"t":"room","afterStartMs":0.7240840000013122},{"t":"state","game":"pick-one","instanceId":"mw9r6i2h-21","phase":"vote","afterStartMs":0.8525420000005397}]}
+SMOKE ok: pick-one
+SMOKE_START_STATE {"game":"memory-tray","elapsedMs":21.778082999999242,"matched":true,"arrivals":[{"t":"room","afterStartMs":0.5757499999999709},{"t":"state","game":"memory-tray","instanceId":"mw9r6ie8-22","phase":"memorize","afterStartMs":0.6672079999989364}]}
+SMOKE ok: memory-tray
+SMOKE_START_STATE {"game":"rapid-polls","elapsedMs":21.57904199999939,"matched":true,"arrivals":[{"t":"room","afterStartMs":1.1467919999995502},{"t":"state","game":"rapid-polls","instanceId":"mw9r6iq2-23","phase":"pose","afterStartMs":1.2987919999995938}]}
+SMOKE ok: rapid-polls
+SMOKE_START_STATE {"game":"dare-roulette","elapsedMs":21.45729200000096,"matched":true,"arrivals":[{"t":"room","afterStartMs":1.0157089999993332},{"t":"state","game":"dare-roulette","instanceId":"mw9r6j1u-24","phase":"spin","afterStartMs":1.254624999999578}]}
+SMOKE ok: dare-roulette
+SMOKE_START_STATE {"game":"compliment-battle","elapsedMs":20.810625000000073,"matched":true,"arrivals":[{"t":"room","afterStartMs":0.8462920000001759},{"t":"state","game":"compliment-battle","instanceId":"mw9r6jdm-25","phase":"write","afterStartMs":0.9707080000007409}]}
+SMOKE ok: compliment-battle
+SMOKE_START_STATE {"game":"roast-toast","elapsedMs":20.84179100000074,"matched":true,"arrivals":[{"t":"room","afterStartMs":0.9567910000005213},{"t":"state","game":"roast-toast","instanceId":"mw9r6jpd-26","phase":"write","afterStartMs":1.2409160000006523}]}
+SMOKE ok: roast-toast
+SMOKE_START_STATE {"game":"draw-phone","elapsedMs":21.51537499999904,"matched":true,"arrivals":[{"t":"room","afterStartMs":0.9498330000005808},{"t":"state","game":"draw-phone","instanceId":"mw9r6k15-27","phase":"write","afterStartMs":1.2548750000005384}]}
+SMOKE ok: draw-phone
+SMOKE_START_STATE {"game":"reaction-tap","elapsedMs":20.925083000000086,"matched":true,"arrivals":[{"t":"room","afterStartMs":1.2627080000002024},{"t":"state","game":"reaction-tap","instanceId":"mw9r6kcy-28","phase":"wait","afterStartMs":1.7255829999994603}]}
+SMOKE ok: reaction-tap
+SMOKE_START_STATE {"game":"typing-race","elapsedMs":21.16700000000128,"matched":true,"arrivals":[{"t":"room","afterStartMs":0.8272500000002765},{"t":"state","game":"typing-race","instanceId":"mw9r6koo-29","phase":"race","afterStartMs":1.0102910000005068}]}
+SMOKE ok: typing-race
+SMOKE_START_STATE {"game":"number-hunt","elapsedMs":20.31208399999923,"matched":true,"arrivals":[{"t":"room","afterStartMs":1.6642919999994774},{"t":"state","game":"number-hunt","instanceId":"mw9r6l0g-30","phase":"hunt","afterStartMs":1.9511249999995925}]}
+SMOKE ok: number-hunt
+SMOKE_START_STATE {"game":"backronyms","elapsedMs":20.73083399999996,"matched":true,"arrivals":[{"t":"room","afterStartMs":0.48954199999934644},{"t":"state","game":"backronyms","instanceId":"mw9r6lc8-31","phase":"write","afterStartMs":0.5985839999993914}]}
+SMOKE ok: backronyms
+SMOKE_START_STATE {"game":"ballpark","elapsedMs":20.424292000001515,"matched":true,"arrivals":[{"t":"room","afterStartMs":1.0034580000010465},{"t":"state","game":"ballpark","instanceId":"mw9r6lny-32","phase":"answer","afterStartMs":1.1777920000004087}]}
+SMOKE ok: ballpark
+SMOKE_START_STATE {"game":"banned-words","elapsedMs":20.653833000000304,"matched":true,"arrivals":[{"t":"room","afterStartMs":1.8088330000009591},{"t":"state","game":"banned-words","instanceId":"mw9r6lzp-33","phase":"describe","afterStartMs":2.0147500000002765}]}
+SMOKE ok: banned-words
+SMOKE_START_STATE {"game":"block-stack","elapsedMs":21.28979199999958,"matched":true,"arrivals":[{"t":"room","afterStartMs":0.821749999999156},{"t":"state","game":"block-stack","instanceId":"mw9r6mbg-34","phase":"countdown","afterStartMs":1.0658750000002328}]}
+SMOKE ok: block-stack
+SMOKE_START_STATE {"game":"chain-reaction","elapsedMs":20.757125000000087,"matched":true,"arrivals":[{"t":"room","afterStartMs":1.0396249999994325},{"t":"state","game":"chain-reaction","instanceId":"mw9r6mn9-35","phase":"play","afterStartMs":1.3544999999994616}]}
+SMOKE ok: chain-reaction
+SMOKE_START_STATE {"game":"checkers","elapsedMs":28.36791699999958,"matched":true,"arrivals":[{"t":"room","afterStartMs":0.8722089999992022},{"t":"state","game":"checkers","instanceId":"mw9r6mz1-36","phase":"play","afterStartMs":1.4203340000003664}]}
+SMOKE ok: checkers
+SMOKE_START_STATE {"game":"chess","elapsedMs":20.38037500000064,"matched":true,"arrivals":[{"t":"room","afterStartMs":3.0793330000014976},{"t":"state","game":"chess","instanceId":"mw9r6nb0-37","phase":"play","afterStartMs":8.552625000000262}]}
+SMOKE ok: chess
+SMOKE_START_STATE {"game":"clue-grid","elapsedMs":21.91658400000233,"matched":true,"arrivals":[{"t":"room","afterStartMs":2.341374999999971},{"t":"state","game":"clue-grid","instanceId":"mw9r6nmq-38","phase":"setup","afterStartMs":2.618709000002127}]}
+SMOKE ok: clue-grid
+SMOKE_START_STATE {"game":"color-clash","elapsedMs":21.11333399999785,"matched":true,"arrivals":[{"t":"room","afterStartMs":0.8903339999997115},{"t":"state","game":"color-clash","instanceId":"mw9r6nyj-39","phase":"card","afterStartMs":1.1227499999986321}]}
+SMOKE ok: color-clash
+SMOKE_START_STATE {"game":"dial-in","elapsedMs":21.678665999999794,"matched":true,"arrivals":[{"t":"room","afterStartMs":1.2004999999990105},{"t":"state","game":"dial-in","instanceId":"mw9r6oaa-40","phase":"clue","afterStartMs":1.404207999999926}]}
+SMOKE ok: dial-in
+SMOKE_START_STATE {"game":"dice-fibs","elapsedMs":20.945292000000336,"matched":true,"arrivals":[{"t":"room","afterStartMs":1.263542000000598},{"t":"state","game":"dice-fibs","instanceId":"mw9r6om4-41","phase":"bid","afterStartMs":1.403874999999971}]}
+SMOKE ok: dice-fibs
+SMOKE_START_STATE {"game":"dots-boxes","elapsedMs":20.678415999998833,"matched":true,"arrivals":[{"t":"room","afterStartMs":1.7192079999986163},{"t":"state","game":"dots-boxes","instanceId":"mw9r6oxx-42","phase":"play","afterStartMs":2.3451659999991534}]}
+SMOKE ok: dots-boxes
+SMOKE_START_STATE {"game":"draw-off","elapsedMs":21.57970800000112,"matched":true,"arrivals":[{"t":"room","afterStartMs":0.9639580000002752},{"t":"state","game":"draw-off","instanceId":"mw9r6p9o-43","phase":"draw","afterStartMs":1.3447500000002037}]}
+SMOKE ok: draw-off
+SMOKE_START_STATE {"game":"echo-pads","elapsedMs":20.392791999998735,"matched":true,"arrivals":[{"t":"room","afterStartMs":1.2786249999990105},{"t":"state","game":"echo-pads","instanceId":"mw9r6plg-44","phase":"show","afterStartMs":1.4905419999995502}]}
+SMOKE ok: echo-pads
+SMOKE_START_STATE {"game":"emoji-spotter","elapsedMs":20.052959000000556,"matched":true,"arrivals":[{"t":"room","afterStartMs":1.3208749999976135},{"t":"state","game":"emoji-spotter","instanceId":"mw9r6px8-45","phase":"spot","afterStartMs":1.654167000000598}]}
+SMOKE ok: emoji-spotter
+SMOKE_START_STATE {"game":"five-row","elapsedMs":20.62108299999818,"matched":true,"arrivals":[{"t":"room","afterStartMs":1.188416999997571},{"t":"state","game":"five-row","instanceId":"mw9r6q8y-46","phase":"play","afterStartMs":2.0625419999996666}]}
+SMOKE ok: five-row
+SMOKE_START_STATE {"game":"fleet-duel","elapsedMs":21.529499999996915,"matched":true,"arrivals":[{"t":"room","afterStartMs":0.8891659999972035},{"t":"state","game":"fleet-duel","instanceId":"mw9r6qkp-47","phase":"place","afterStartMs":1.2500829999989946}]}
+SMOKE ok: fleet-duel
+SMOKE_START_STATE {"game":"four-in-a-row","elapsedMs":21.30266599999959,"matched":true,"arrivals":[{"t":"room","afterStartMs":0.8020410000026459},{"t":"state","game":"four-in-a-row","instanceId":"mw9r6qwj-48","phase":"play","afterStartMs":1.0705000000016298}]}
+SMOKE ok: four-in-a-row
+SMOKE_START_STATE {"game":"hot-potato","elapsedMs":20.918416000000434,"matched":true,"arrivals":[{"t":"room","afterStartMs":0.7360829999997804},{"t":"state","game":"hot-potato","instanceId":"mw9r6r8c-49","phase":"pass","afterStartMs":1.029207999999926}]}
+SMOKE ok: hot-potato
+SMOKE_START_STATE {"game":"kalah","elapsedMs":20.246415999998135,"matched":true,"arrivals":[{"t":"room","afterStartMs":0.9895409999990079},{"t":"state","game":"kalah","instanceId":"mw9r6rk2-50","phase":"play","afterStartMs":1.6706249999988358}]}
+SMOKE ok: kalah
+SMOKE_START_STATE {"game":"know-me","elapsedMs":21.22899999999936,"matched":true,"arrivals":[{"t":"room","afterStartMs":0.8609580000011192},{"t":"state","game":"know-me","instanceId":"mw9r6rvs-51","phase":"pick","afterStartMs":1.0243750000008731}]}
+SMOKE ok: know-me
+SMOKE_START_STATE {"game":"letter-lock","elapsedMs":21.0445409999993,"matched":true,"arrivals":[{"t":"room","afterStartMs":4.524750000000495},{"t":"state","game":"letter-lock","instanceId":"mw9r6s7m-52","phase":"solve","afterStartMs":4.746040999998513}]}
+SMOKE ok: letter-lock
+SMOKE_START_STATE {"game":"ludo","elapsedMs":21.212040999998862,"matched":true,"arrivals":[{"t":"room","afterStartMs":1.227208000000246},{"t":"state","game":"ludo","instanceId":"mw9r6sje-53","phase":"roll","afterStartMs":1.8636660000011034}]}
+SMOKE ok: ludo
+SMOKE_START_STATE {"game":"math-dash","elapsedMs":20.683208000002196,"matched":true,"arrivals":[{"t":"room","afterStartMs":1.1745420000006561},{"t":"state","game":"math-dash","instanceId":"mw9r6sv6-54","phase":"sprint","afterStartMs":1.67620800000077}]}
+SMOKE ok: math-dash
+SMOKE_START_STATE {"game":"mega-tic-tac-toe","elapsedMs":20.92095799999879,"matched":true,"arrivals":[{"t":"room","afterStartMs":0.5819579999988491},{"t":"state","game":"mega-tic-tac-toe","instanceId":"mw9r6t6x-55","phase":"play","afterStartMs":0.7947920000005979}]}
+SMOKE ok: mega-tic-tac-toe
+SMOKE_START_STATE {"game":"moonlit-village","elapsedMs":20.992792000000918,"matched":true,"arrivals":[{"t":"room","afterStartMs":1.2129170000007434},{"t":"state","game":"moonlit-village","instanceId":"mw9r6tio-56","phase":"night","afterStartMs":1.5594580000033602}]}
+SMOKE ok: moonlit-village
+SMOKE_START_STATE {"game":"odd-one-out","elapsedMs":20.84087499999805,"matched":true,"arrivals":[{"t":"room","afterStartMs":0.6248750000013388},{"t":"state","game":"odd-one-out","instanceId":"mw9r6tuf-57","phase":"talk","afterStartMs":0.7213750000009895}]}
+SMOKE ok: odd-one-out
+SMOKE_START_STATE {"game":"penalty-kicks","elapsedMs":20.878208000001905,"matched":true,"arrivals":[{"t":"room","afterStartMs":1.2285830000000715},{"t":"state","game":"penalty-kicks","instanceId":"mw9r6u68-58","phase":"pick","afterStartMs":1.5594579999997222}]}
+SMOKE ok: penalty-kicks
+SMOKE_START_STATE {"game":"pig-dice","elapsedMs":20.4553330000017,"matched":true,"arrivals":[{"t":"room","afterStartMs":1.254000000000815},{"t":"state","game":"pig-dice","instanceId":"mw9r6uhz-59","phase":"play","afterStartMs":2.0206250000010186}]}
+SMOKE ok: pig-dice
+SMOKE_START_STATE {"game":"pocket-karts","elapsedMs":82.22704199999862,"matched":true,"arrivals":[{"t":"room","afterStartMs":61.44920899999852},{"t":"state","game":"pocket-karts","instanceId":"mw9r6utq-60","phase":"countdown","afterStartMs":62.767416999999114}]}
+SMOKE ok: pocket-karts
+SMOKE_START_STATE {"game":"pose-party","elapsedMs":19.824791999999434,"matched":true,"arrivals":[{"t":"room","afterStartMs":0.5810840000012831},{"t":"state","game":"pose-party","instanceId":"mw9r6v76-61","phase":"perform","afterStartMs":0.7044590000004973}]}
+SMOKE ok: pose-party
+SMOKE_START_STATE {"game":"read-my-lips","elapsedMs":20.978291999999783,"matched":true,"arrivals":[{"t":"room","afterStartMs":3.722458000000188},{"t":"state","game":"read-my-lips","instanceId":"mw9r6viw-62","phase":"mouth","afterStartMs":3.9717080000009446}]}
+SMOKE ok: read-my-lips
+SMOKE_START_STATE {"game":"reversi","elapsedMs":21.029915999999503,"matched":true,"arrivals":[{"t":"room","afterStartMs":0.44708299999911105},{"t":"state","game":"reversi","instanceId":"mw9r6vuo-63","phase":"play","afterStartMs":0.8602079999982379}]}
+SMOKE ok: reversi
+SMOKE_START_STATE {"game":"show-and-go","elapsedMs":21.71720799999821,"matched":true,"arrivals":[{"t":"room","afterStartMs":0.3319999999985157},{"t":"state","game":"show-and-go","instanceId":"mw9r6w6e-64","phase":"perform","afterStartMs":0.47104200000103447}]}
+SMOKE ok: show-and-go
+SMOKE_START_STATE {"game":"sketchy-impostor","elapsedMs":21.620584000000235,"matched":true,"arrivals":[{"t":"room","afterStartMs":1.8994590000002063},{"t":"state","game":"sketchy-impostor","instanceId":"mw9r6wi6-65","phase":"draw","afterStartMs":2.2865420000016456}]}
+SMOKE ok: sketchy-impostor
+SMOKE_START_STATE {"game":"snakes-ladders","elapsedMs":21.233541999998124,"matched":true,"arrivals":[{"t":"room","afterStartMs":0.6301249999996799},{"t":"state","game":"snakes-ladders","instanceId":"mw9r6wty-66","phase":"play","afterStartMs":0.9454999999979918}]}
+SMOKE ok: snakes-ladders
+SMOKE_START_STATE {"game":"think-alike","elapsedMs":20.5446669999983,"matched":true,"arrivals":[{"t":"room","afterStartMs":1.0418329999993148},{"t":"state","game":"think-alike","instanceId":"mw9r6x5q-67","phase":"answer","afterStartMs":1.2295419999973092}]}
+SMOKE ok: think-alike
+SMOKE_START_STATE {"game":"undercover","elapsedMs":21.01941699999952,"matched":true,"arrivals":[{"t":"room","afterStartMs":0.9852919999975711},{"t":"state","game":"undercover","instanceId":"mw9r6xhh-68","phase":"clue","afterStartMs":1.1350419999980659}]}
+SMOKE ok: undercover
+SMOKE_START_STATE {"game":"warm-words","elapsedMs":20.24083299999984,"matched":true,"arrivals":[{"t":"room","afterStartMs":0.7133749999993597},{"t":"state","game":"warm-words","instanceId":"mw9r6xt7-69","phase":"guess","afterStartMs":0.8414579999989655}]}
+SMOKE ok: warm-words
+SMOKE_START_STATE {"game":"whisper","elapsedMs":21.37091700000019,"matched":true,"arrivals":[{"t":"room","afterStartMs":0.9492499999978463},{"t":"state","game":"whisper","instanceId":"mw9r6y4y-70","phase":"pick","afterStartMs":1.0908329999983835}]}
+SMOKE ok: whisper
+SMOKE_START_STATE {"game":"who-wrote","elapsedMs":21.65937500000291,"matched":true,"arrivals":[{"t":"room","afterStartMs":0.8791250000031141},{"t":"state","game":"who-wrote","instanceId":"mw9r6ygq-71","phase":"write","afterStartMs":1.2645830000001297}]}
+SMOKE ok: who-wrote
+SMOKE_START_STATE {"game":"word-grid","elapsedMs":82.67262500000288,"matched":true,"arrivals":[{"t":"room","afterStartMs":62.2980000000025},{"t":"state","game":"word-grid","instanceId":"mw9r6ysh-72","phase":"find","afterStartMs":62.469709000000876}]}
+SMOKE ok: word-grid
+SMOKE_PASS
+{
+  "pass": true,
+  "checks": 257,
+  "node": "v24.21.0",
+  "maxPayload": 1048576,
+  "schemaCeiling": 677120,
+  "largestConfiguration": {
+    "game": "hot-takes",
+    "bytes": 337377,
+    "packs": 2
+  },
+  "configurations": [
+    {
+      "game": "would-you-rather",
+      "bytes": 150,
+      "packs": 0
+    },
+    {
+      "game": "doodle-guess",
+      "bytes": 72768,
+      "packs": 1
+    },
+    {
+      "game": "truth-dare",
+      "bytes": 152,
+      "packs": 0
+    },
+    {
+      "game": "never-ever",
+      "bytes": 168752,
+      "packs": 1
+    },
+    {
+      "game": "most-likely",
+      "bytes": 168751,
+      "packs": 1
+    },
+    {
+      "game": "hot-takes",
+      "bytes": 337377,
+      "packs": 2
+    },
+    {
+      "game": "rank-it",
+      "bytes": 132,
+      "packs": 0
+    },
+    {
+      "game": "two-truths",
+      "bytes": 168751,
+      "packs": 1
+    },
+    {
+      "game": "funny-answer",
+      "bytes": 168755,
+      "packs": 1
+    },
+    {
+      "game": "bluff",
+      "bytes": 129,
+      "packs": 0
+    },
+    {
+      "game": "story-builder",
+      "bytes": 337365,
+      "packs": 2
+    },
+    {
+      "game": "emoji-story",
+      "bytes": 144,
+      "packs": 0
+    },
+    {
+      "game": "trivia",
+      "bytes": 132,
+      "packs": 0
+    },
+    {
+      "game": "scattergories",
+      "bytes": 49161,
+      "packs": 2
+    },
+    {
+      "game": "word-chain",
+      "bytes": 58959,
+      "packs": 2
+    },
+    {
+      "game": "countdown-word",
+      "bytes": 11555,
+      "packs": 1
+    },
+    {
+      "game": "lyric-fill",
+      "bytes": 138,
+      "packs": 0
+    },
+    {
+      "game": "five-second",
+      "bytes": 72757,
+      "packs": 1
+    },
+    {
+      "game": "charades",
+      "bytes": 72747,
+      "packs": 1
+    },
+    {
+      "game": "twenty-questions",
+      "bytes": 48796,
+      "packs": 1
+    },
+    {
+      "game": "pick-one",
+      "bytes": 118,
+      "packs": 0
+    },
+    {
+      "game": "memory-tray",
+      "bytes": 48767,
+      "packs": 1
+    },
+    {
+      "game": "rapid-polls",
+      "bytes": 123,
+      "packs": 0
+    },
+    {
+      "game": "dare-roulette",
+      "bytes": 168753,
+      "packs": 1
+    },
+    {
+      "game": "compliment-battle",
+      "bytes": 168767,
+      "packs": 1
+    },
+    {
+      "game": "roast-toast",
+      "bytes": 168756,
+      "packs": 1
+    },
+    {
+      "game": "draw-phone",
+      "bytes": 168775,
+      "packs": 1
+    },
+    {
+      "game": "reaction-tap",
+      "bytes": 168733,
+      "packs": 1
+    },
+    {
+      "game": "typing-race",
+      "bytes": 168753,
+      "packs": 1
+    },
+    {
+      "game": "number-hunt",
+      "bytes": 140,
+      "packs": 0
+    },
+    {
+      "game": "backronyms",
+      "bytes": 120735,
+      "packs": 1
+    },
+    {
+      "game": "ballpark",
+      "bytes": 117,
+      "packs": 0
+    },
+    {
+      "game": "banned-words",
+      "bytes": 128,
+      "packs": 0
+    },
+    {
+      "game": "block-stack",
+      "bytes": 123,
+      "packs": 0
+    },
+    {
+      "game": "chain-reaction",
+      "bytes": 160,
+      "packs": 0
+    },
+    {
+      "game": "checkers",
+      "bytes": 108,
+      "packs": 0
+    },
+    {
+      "game": "chess",
+      "bytes": 142,
+      "packs": 0
+    },
+    {
+      "game": "clue-grid",
+      "bytes": 119,
+      "packs": 0
+    },
+    {
+      "game": "color-clash",
+      "bytes": 123,
+      "packs": 0
+    },
+    {
+      "game": "dial-in",
+      "bytes": 118,
+      "packs": 0
+    },
+    {
+      "game": "dice-fibs",
+      "bytes": 124,
+      "packs": 0
+    },
+    {
+      "game": "dots-boxes",
+      "bytes": 147,
+      "packs": 0
+    },
+    {
+      "game": "draw-off",
+      "bytes": 120728,
+      "packs": 1
+    },
+    {
+      "game": "echo-pads",
+      "bytes": 119,
+      "packs": 0
+    },
+    {
+      "game": "emoji-spotter",
+      "bytes": 127,
+      "packs": 0
+    },
+    {
+      "game": "five-row",
+      "bytes": 140,
+      "packs": 0
+    },
+    {
+      "game": "fleet-duel",
+      "bytes": 112,
+      "packs": 0
+    },
+    {
+      "game": "four-in-a-row",
+      "bytes": 118,
+      "packs": 0
+    },
+    {
+      "game": "hot-potato",
+      "bytes": 108724,
+      "packs": 1
+    },
+    {
+      "game": "kalah",
+      "bytes": 102,
+      "packs": 0
+    },
+    {
+      "game": "know-me",
+      "bytes": 118,
+      "packs": 0
+    },
+    {
+      "game": "letter-lock",
+      "bytes": 123,
+      "packs": 0
+    },
+    {
+      "game": "ludo",
+      "bytes": 100,
+      "packs": 0
+    },
+    {
+      "game": "math-dash",
+      "bytes": 141,
+      "packs": 0
+    },
+    {
+      "game": "mega-tic-tac-toe",
+      "bytes": 140,
+      "packs": 0
+    },
+    {
+      "game": "moonlit-village",
+      "bytes": 120,
+      "packs": 0
+    },
+    {
+      "game": "odd-one-out",
+      "bytes": 123,
+      "packs": 0
+    },
+    {
+      "game": "penalty-kicks",
+      "bytes": 116,
+      "packs": 0
+    },
+    {
+      "game": "pig-dice",
+      "bytes": 121,
+      "packs": 0
+    },
+    {
+      "game": "pocket-karts",
+      "bytes": 264,
+      "packs": 0
+    },
+    {
+      "game": "pose-party",
+      "bytes": 144772,
+      "packs": 1
+    },
+    {
+      "game": "read-my-lips",
+      "bytes": 128,
+      "packs": 0
+    },
+    {
+      "game": "reversi",
+      "bytes": 106,
+      "packs": 0
+    },
+    {
+      "game": "show-and-go",
+      "bytes": 144771,
+      "packs": 1
+    },
+    {
+      "game": "sketchy-impostor",
+      "bytes": 133,
+      "packs": 0
+    },
+    {
+      "game": "snakes-ladders",
+      "bytes": 138,
+      "packs": 0
+    },
+    {
+      "game": "think-alike",
+      "bytes": 168734,
+      "packs": 1
+    },
+    {
+      "game": "undercover",
+      "bytes": 121,
+      "packs": 0
+    },
+    {
+      "game": "warm-words",
+      "bytes": 29564,
+      "packs": 1
+    },
+    {
+      "game": "whisper",
+      "bytes": 168731,
+      "packs": 1
+    },
+    {
+      "game": "who-wrote",
+      "bytes": 168730,
+      "packs": 1
+    },
+    {
+      "game": "word-grid",
+      "bytes": 119,
+      "packs": 0
+    }
+  ],
+  "cases": [
+    {
+      "name": "invalid-utf8",
+      "peerClose": 1007,
+      "authorityAlive": true
+    },
+    {
+      "name": "oversized-text",
+      "peerClose": 1009,
+      "authorityAlive": true
+    },
+    {
+      "name": "oversized-binary",
+      "peerClose": 1009,
+      "authorityAlive": true
+    },
+    {
+      "name": "oversized-fragmented",
+      "peerClose": 1009,
+      "authorityAlive": true
+    }
+  ],
+  "final": {
+    "game": "four-in-a-row",
+    "revisions": 7,
+    "winnerScore": 300
+  },
+  "scope": "Isolated production Node server and localhost WebSockets. No compression, public attack, browser, physical device or perceptual audio verdict."
+}
+FRAME ok: connected seat resists name takeover; duplicate suffixed
+FRAME ok: disconnected seat needs token; resume keeps id
+FRAME ok: host-only control; host transfers on disconnect
+FRAME ok: min/max enforced with range; room cap 32
+FRAME ok: config boundaries enforced; failures keep prior config
+FRAME ok: pack contents private; counts public
+FRAME ok: tokens and config are room-scoped
+FRAME ok: defaults preserved; custom timers apply; rematch retains; reset restores
+FRAME ok: room grace window allows refresh resume
+FRAME ok: roster stable; spectators watch-only; instanceIds rotate; rejected lobby keeps game
+FRAME ok: QR route bounded (code-only SVG, no echo) + vendor pair serves as JS
+FRAME ok: stale-close safety; server dispose; validator edges
+FRAME ok: doodle-guess dispose() removes window + canvas listeners
+FRAME ok: stateful views dispose cleanly (draw-phone listeners, truth-dare timer)
+FRAME ok: seats/communication/art validation + registry passthrough
+FRAME_PASS
+SCAF ok: refusals
+SCAF ok: isolated generation
+SCAF ok: overwrite refused
+SCAF ok: starter passes check-game
+SCAF ok: registry discovery
+SCAF ok: 3d starter (scaffold, check, discovery, helper, sim)
+SCAF ok: camera starter (scaffold, check, discovery, factory, secret ballots, reveal)
+SCAF ok: starter is playable end to end
+SCAF ok: shared-dep allowlist (alt-board passes, greedy-game fails)
+SCAF_PASS
+BRIDGE ok: ticket matrix + exact 90s + fail-closed replay + origins + nonce bounds
+BRIDGE ok: preflights + name guard
+BRIDGE ok: HTTP 400/traversal/sibling/config/framing
+BRIDGE ok: WS origin gate
+BRIDGE ok: moved sockets, same-room idempotence, failed-join safety, token takeover
+BRIDGE ok: full-room + malformed-name preservation
+BRIDGE ok: giggle join/resume/switch/takeover/isolation/full-room/ticket failures
+BRIDGE ok: lease renew/expiry/deny/disconnect/resume
+BRIDGE ok: lease bound to claims.exp, near-expiry deny, continuous renew same socket
+BRIDGE ok: embed origin trust + source/shape validation
+BRIDGE ok: UI-batch static checks
+BRIDGE_PASS
+CHESS ok: manifest (seats 2, settings, art)
+CHESS ok: seats, defaults, per-pid view
+CHESS ok: legal sequence + SAN history ('e4 e5 Nf3 Nc6…')
+CHESS ok: Fool's mate (f3 e5 g4 Qh4#), awards, post-game lock
+CHESS ok: castling O-O (king g1, rook f1)
+CHESS ok: promotion required, b8=Q and b8=N
+CHESS ok: stalemate line (…Qe6), draw split
+CHESS ok: illegal/out-of-turn/watcher/garbage ignored
+CHESS ok: resignation (watcher + malformed ignored)
+CHESS ok: clocks charge/flag, untimed silent
+CHESS ok: invalid settings fall back safely
+CHESS ok: draw offers, move timer, forfeit
+CHESS ok: rematch independence
+CHESS ok: server seats (2 play, 2 watch), moves, watcher/out-of-turn blocked
+CHESS_PASS
+CHESS_VIEW_PASS: 106 calibrated clock, preparing input, sprite readiness and same-instance disposal assertions
+KARTS ok: manifest (3d, seats 8, settings)
+KARTS ok: create (karts, stars, settings, view shape)
+KARTS ok: deterministic movement (10 ticks, identical rerun)
+KARTS ok: steering/reverse/walls
+KARTS ok: dt clamp (0.25s max, negatives frozen)
+KARTS ok: intent validation, no injection, client t never a lease
+KARTS ok: silence past TTL expires input and stops the kart
+KARTS ok: 500ms keepalive survives the TTL indefinitely
+KARTS ok: boost trigger + cooldown + cap
+KARTS ok: pickup/respawn/goal/awards
+KARTS ok: timer finish, silent done ticks
+KARTS ok: 2-way tie is a shared draw
+KARTS ok: disconnect freezes (no coast/pickups), resume restores
+KARTS ok: broadcast contract (10 intents silent, tick carries, legacy kept)
+KARTS ok: seat cap (9 connected → 8 drive, 1 watches)
+KARTS_PASS
+SMOOTH ok: self predicts instantly on held input (delayed snapshots)
+SMOOTH ok: reconcile blends small errors, snaps teleports
+SMOOTH ok: angle wrap (shortest arc, bounded prediction)
+SMOOTH ok: bounded remote extrapolation + stale freeze
+SMOOTH ok: new-instance exactness + shared WebGL/2D poses
+SMOOTH ok: countdown/done exact, reduced-motion responsive
+SMOOTH ok: client prediction mirrors server physics
+SMOOTH ok: discardable drive ticks, terminal done
+SMOOTH ok: slow-client guard (ticks skippable, done/turns delivered)
+SMOOTH ok: remote extrapolation clamped to arena walls
+SMOOTH ok: self freezes past cutoff, recovers on fresh snapshots
+SMOOTH ok: prediction block mirror is bit-identical to the server
+SMOOTH_PASS
+RELEASE ok: endReason goal/timeout both modes, exact-tick goal, exact-once
+RELEASE ok: hitch sub-step stops at blocks, mirror bit-identical
+RELEASE ok: 8+2 room, countdown freeze, release, stale drop, malformed safe
+RELEASE ok: immersive metadata (pocket immersive, default standard, catalog)
+RELEASE ok: view/CSS contract pins (board, immersive scope, palettes)
+RELEASE ok: rematch resets phase/scores/inputs/tallies/results
+RELEASE_START_STATE {"elapsedMs":106.24625000000015,"matched":true,"arrivals":[{"t":"room","afterStartMs":98.98945900000012},{"t":"state","game":"pocket-karts","instanceId":"mw9r82f4-1","phase":"countdown","afterStartMs":100.267875}]}
+RELEASE_START_STATE {"elapsedMs":41.15695799999958,"matched":true,"arrivals":[{"t":"room","afterStartMs":21.768332999999984},{"t":"state","game":"pocket-karts","instanceId":"mw9r9fka-2","phase":"countdown","afterStartMs":21.998625000000175}]}
+RELEASE ok: WS 2-driver lifecycle (countdown 2919 ms, 61 drive snapshots/2 s, timeout reason, exact-once, rematch)
+RELEASE_START_STATE {"elapsedMs":20.138292000003275,"matched":true,"arrivals":[{"t":"room","afterStartMs":8.186249999998836},{"t":"state","game":"pocket-karts","instanceId":"mw9r9gra-1","phase":"countdown","afterStartMs":9.48016700000153}]}
+RELEASE ok: WS 10 drivers + 1 watcher (battle on blocks, all moved)
+RELEASE ok: WS disconnect freezes, seat-token resume restores driving
+RELEASE_PASS
+Kart garage UI: affordable, unavailable, MAX, preview caching and resource lifecycle pass
+KART_VIEW_PASS: 556 assertions; analog merge/coalescing, exact-once Fire, atomic multi-contact stops, KO/rematch, HUD/garage and cleanup
+MECH ok: map contract (5 arenas, labels, themes, geometry)
+MECH ok: spawn pools + sockets clear and connected on all maps
+MECH ok: drift gating, charge, exact-once release, recovery
+MECH ok: boolean-only drift, no field injection
+MECH ok: turbo strips (grant, cooldown, no stationary spam, both modes)
+MECH ok: ice handling + snapshot feedback fields
+MECH ok: server/prediction parity (constants, rollout, reconcile)
+MECH ok: face slide, head-on stop, hitch substeps on new maps
+MECH ok: kart contact (separate, damp, deterministic, frozen-safe)
+MECH ok: TTL/disconnect/reset clear drift; Space stays modal
+MECH ok: drift-off driving unchanged, input-source agnostic
+MECH ok: boosted head-on no-tunnel at 100ms and 250ms
+MECH ok: contacts beside solids valid, 8-kart pile stable
+MECH ok: mini-turbo release gating (stale/TTL/wall void, true edge pays)
+MECH ok: outward drift (velocity lags nose, both signs, mirror agrees)
+MECH ok: stationary/separating contacts reproject solids
+KART_MECHANICS_PASS
+BATTLE ok: scale, pool allocation, crate population
+BATTLE ok: seeded random layout (deterministic, varying, spaced)
+BATTLE ok: crate recycle (new id, new spot, stable count)
+BATTLE ok: one slot (no farm, no replace)
+BATTLE ok: deterministic single-claim pickups
+BATTLE ok: scatter fan (3 pellets, spread, one use)
+BATTLE ok: mines (arm, trigger, owner immunity, expiry, cap)
+BATTLE ok: shield (guard armed, event)
+BATTLE ok: KO freeze (no drive/collect/fire/re-KO)
+BATTLE ok: safe respawn (farthest pose, shield, epoch, fresh edge)
+BATTLE ok: attack cancels shield; disconnect freezes timers
+BATTLE ok: same-tick one-KO; expiry-tick score counts
+BATTLE ok: half-60 bounds (server, prediction, remotes)
+BATTLE ok: spawnSeq epoch snaps self + remotes
+BATTLE ok: win rule, sunset metadata, rematch, bounded events
+BATTLE ok: fire edge (short press, holds, malformed, dead, offline, countdown, no leak)
+BATTLE ok: sunset freeze (early goal, timeout, fixed null, late join)
+BATTLE ok: respawn retargets the sweep (shot crosses, far KO lands)
+BATTLE ok: mine placement (cover fallback, bounds, keep-on-fail, exact-once)
+KART_BATTLE_LOOP_PASS
+Kart art PASS: 974KB, 37702 asset triangles, real GLB load, pivots, recolor, animation and all worlds
+KART_MESHOPT_PASS: seven exact decoded models, loading failure/retry, unchanged draw counts; 997568 bytes including decoder
+KART_ASSET_READINESS_PASS: decoder barrier, delayed real compressed model, required failure, fresh retry
+kart-model: all contract checks passed
+PROJECTILES ok: spawn overlap, moving head-on, grazing, 250ms and clamped hitches
+PROJECTILES ok: nearest hull/shield, swept axial+diagonal blocks, hull-before-block, world ordering
+PROJECTILES_PASS: expiry ordering and genuine near misses
+KART ok: manifest (mode/map/targets/win-rule/light settings)
+KART ok: steering = screen right (server + prediction, fwd + rev)
+KART ok: mesh yaw + 2D nose + key/touch mapping aligned
+KART ok: physics constants agree across the mirror
+KART ok: battle loop (crate, edge fire, KO, respawn, shield, goal)
+KART ok: edge-only fire, boost fully off in battle
+KART ok: bumper blocks (kart + zap collision, clear spawns)
+KART ok: battle authority (injection, TTL, freeze, tie)
+KART ok: battle spectators blocked by the room
+KART ok: two thin variants (temp roots, in-process, independent)
+KART_FRAMEWORK_PASS
+SPLITHOST ok: client ws-target validation + same-host fallback
+SPLITHOST ok: vercel.json shape + wiring + ignores + engines
+SPLITHOST ok: split config + exact play origin + giggle/same-host kept + previews rejected
+SPLITHOST ok: invalid env rejected, legacy intact
+SPLITHOST ok: legacy local preview without env changes
+SPLITHOST_PASS
+CUSTOMIZE-INTENT ok: none/open/name-needed/create + one-shot pending
+BUILD ok: stable 2v2 teams, names + teammates visible
+BUILD ok: atomic zoned purchases, forged teamId ignored
+BUILD ok: duplicate purchase ignored
+BUILD ok: upgrade/teardown bounded, no mint
+BUILD ok: siege damage/points/cooldowns/bonus, no overkill mint
+BUILD ok: exactly-once transitions, reset keeps points
+BUILD ok: unlock progression + full 2-round game to done
+BUILD ok: spectator-safe view, disconnect-proof timers
+BUILD ok: dispose cancels timers
+BUILD ok: variant B differs in data, shares all rules
+BUILD ok: garbage actions survive
+BUILD ok: objective seeded, valid, exposed; auto back-zone works
+BUILD ok: no-build exploit fixed (core always attackable)
+BUILD ok: cover/ward/boost deterministic, logged, no redirect
+BUILD ok: corekill bonus + instant end, survival pays
+BUILD ok: forged objective remove/upgrade denied
+BUILD ok: no double finish/reward
+BUILD ok: generic variant unaffected without objective
+BUILD ok: earned unlocks logged once, starters silent, generic too
+BUILD_PASS
+CASTLE_PASS: full 2/3/4-player Room matches, roster/watchers, reconnect, phase windows, scoring, rematch and change-game
+media-toolkit: 177 assertions passed
+game-pages: skipping unsafe id "../evil"
+GAME-PAGES ok: 72 pages, sitemap, CTA, escaping, traversal-safe
+RACE part 1: unit sweep over the registry
+RACE sweeping 72 games: would-you-rather, doodle-guess, truth-dare, never-ever, most-likely, hot-takes, rank-it, two-truths, funny-answer, bluff, story-builder, emoji-story, trivia, scattergories, word-chain, countdown-word, lyric-fill, five-second, charades, twenty-questions, pick-one, memory-tray, rapid-polls, dare-roulette, compliment-battle, roast-toast, draw-phone, reaction-tap, typing-race, number-hunt, backronyms, ballpark, banned-words, block-stack, chain-reaction, checkers, chess, clue-grid, color-clash, dial-in, dice-fibs, dots-boxes, draw-off, echo-pads, emoji-spotter, five-row, fleet-duel, four-in-a-row, hot-potato, kalah, know-me, letter-lock, ludo, math-dash, mega-tic-tac-toe, moonlit-village, odd-one-out, penalty-kicks, pig-dice, pocket-karts, pose-party, read-my-lips, reversi, show-and-go, sketchy-impostor, snakes-ladders, think-alike, undercover, warm-words, whisper, who-wrote, word-grid
+RACE sweep: would-you-rather done=true stalled=- reveals=[1,2,3,4,5,6,7,8] ends=[]
+RACE sweep: doodle-guess done=true stalled=- reveals=[1,2,3,4,5,6,7,8] ends=[]
+RACE sweep: truth-dare done=true stalled=- reveals=[1,2,3,4] ends=[]
+RACE sweep: never-ever done=true stalled=- reveals=[1,2,3,4,5,6,7,8] ends=[]
+RACE sweep: most-likely done=true stalled=- reveals=[1,2,3,4,5,6,7,8] ends=[]
+RACE sweep: hot-takes done=true stalled=- reveals=[0,1] ends=[]
+RACE sweep: rank-it done=true stalled=- reveals=[1,2,3,4,5] ends=[]
+RACE sweep: two-truths done=true stalled=- reveals=[1,2,3,4] ends=[]
+RACE sweep: funny-answer done=true stalled=- reveals=[1,2,3,4,5,6] ends=[]
+RACE sweep: bluff done=true stalled=- reveals=[1,2,3,4,5,6] ends=[]
+RACE sweep: story-builder done=true stalled=- reveals=[1,2,3] ends=[]
+RACE sweep: emoji-story done=true stalled=- reveals=[1,2,3,4] ends=[]
+RACE sweep: trivia done=true stalled=- reveals=[1,2,3,4,5,6,7,8] ends=[]
+RACE sweep: scattergories done=true stalled=- reveals=[1,2,3] ends=[]
+RACE sweep: word-chain done=true stalled=- reveals=[] ends=[]
+RACE sweep: countdown-word done=true stalled=- reveals=[1,2,3,4] ends=[]
+RACE sweep: lyric-fill done=true stalled=- reveals=[1,2,3,4,5,6] ends=[]
+RACE sweep: five-second done=true stalled=- reveals=[1,2,3,4] ends=[]
+RACE sweep: charades done=true stalled=- reveals=[1,2,3,4] ends=[]
+RACE sweep: twenty-questions done=true stalled=- reveals=[1,2,3,4] ends=[]
+RACE sweep: pick-one done=true stalled=- reveals=[1,2,3,4,5,6,7,8,9,10] ends=[]
+RACE sweep: memory-tray done=true stalled=- reveals=[1,2,3] ends=[]
+RACE sweep: rapid-polls done=true stalled=- reveals=[1,2,3,4,5,6,7,8] ends=[]
+RACE sweep: dare-roulette done=true stalled=- reveals=[1,2,3,4,5,6,7,8] ends=[]
+RACE sweep: compliment-battle done=true stalled=- reveals=[] ends=[]
+RACE sweep: roast-toast done=true stalled=- reveals=[] ends=[]
+RACE sweep: draw-phone done=true stalled=- reveals=[1] ends=[]
+RACE sweep: reaction-tap done=true stalled=- reveals=[] ends=[1,2,3,4,5]
+RACE sweep: typing-race done=true stalled=- reveals=[] ends=[1,2,3,4]
+RACE sweep: number-hunt done=true stalled=- reveals=[] ends=[1,2,3,4,5]
+RACE sweep: backronyms done=true stalled=- reveals=[1,2,3,4,5,6] ends=[]
+RACE sweep: ballpark done=true stalled=- reveals=[1,2,3,4,5,6,7,8] ends=[]
+RACE sweep: banned-words done=true stalled=- reveals=[1,2,3,4] ends=[]
+RACE sweep: block-stack done=true stalled=- reveals=[1,2,3] ends=[]
+RACE sweep: chain-reaction done=false stalled=play reveals=[] ends=[]
+RACE sweep: checkers done=false stalled=play reveals=[] ends=[]
+RACE sweep: chess done=false stalled=play reveals=[] ends=[]
+RACE sweep: clue-grid done=true stalled=- reveals=[1,2,3] ends=[]
+RACE sweep: color-clash done=true stalled=- reveals=[1,2,3] ends=[]
+RACE sweep: dial-in done=true stalled=- reveals=[1,2,3,4] ends=[]
+RACE sweep: dice-fibs done=true stalled=- reveals=[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19] ends=[]
+RACE sweep: dots-boxes done=false stalled=play reveals=[] ends=[]
+RACE sweep: draw-off done=true stalled=- reveals=[1,2,3,4] ends=[]
+RACE sweep: echo-pads done=true stalled=- reveals=[1,2,3] ends=[]
+RACE sweep: emoji-spotter done=true stalled=- reveals=[1,2,3,4,5,6,7,8] ends=[]
+RACE sweep: five-row done=false stalled=play reveals=[] ends=[]
+RACE sweep: fleet-duel done=false stalled=place reveals=[] ends=[]
+RACE sweep: four-in-a-row done=false stalled=play reveals=[] ends=[]
+RACE sweep: hot-potato done=true stalled=- reveals=[1,2,3,4,5,6,7,8,9,10] ends=[]
+RACE sweep: kalah done=false stalled=play reveals=[] ends=[]
+RACE sweep: know-me done=true stalled=- reveals=[1,2,3,4,5,6,7,8] ends=[]
+RACE sweep: letter-lock done=true stalled=- reveals=[1,2,3,4,5] ends=[]
+RACE sweep: ludo done=false stalled=roll reveals=[] ends=[]
+RACE sweep: math-dash done=true stalled=- reveals=[1,2,3] ends=[]
+RACE sweep: mega-tic-tac-toe done=false stalled=play reveals=[] ends=[]
+RACE sweep: moonlit-village done=false stalled=- reveals=[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63,64,65,66,67,68,69,70,71,72,73,74,75,76,77,78,79,80,81,82,83,84,85,86,87,88,89,90,91,92,93,94,95,96,97,98,99,100] ends=[]
+RACE sweep: odd-one-out done=true stalled=- reveals=[1,2,3,4] ends=[]
+RACE sweep: penalty-kicks done=true stalled=- reveals=[1,2,3,4,5,6,7,8,9,10] ends=[]
+RACE sweep: pig-dice done=false stalled=play reveals=[] ends=[]
+RACE sweep: pocket-karts done=false stalled=countdown reveals=[] ends=[]
+RACE sweep: pose-party done=true stalled=- reveals=[1,2,3,4] ends=[]
+RACE sweep: read-my-lips done=true stalled=- reveals=[1,2,3,4,5,6,7,8] ends=[]
+RACE sweep: reversi done=false stalled=play reveals=[] ends=[]
+RACE sweep: show-and-go done=true stalled=- reveals=[1,2,3,4] ends=[]
+RACE sweep: sketchy-impostor done=true stalled=- reveals=[1,2,3,4] ends=[]
+RACE sweep: snakes-ladders done=false stalled=play reveals=[] ends=[]
+RACE sweep: think-alike done=true stalled=- reveals=[1,2,3,4,5,6,7,8] ends=[]
+RACE sweep: undercover done=true stalled=- reveals=[1,2,3,4] ends=[]
+RACE sweep: warm-words done=true stalled=- reveals=[1,2,3] ends=[]
+RACE sweep: whisper done=true stalled=- reveals=[1,2,3,4] ends=[]
+RACE sweep: who-wrote done=true stalled=- reveals=[1,2,3,4,5] ends=[]
+RACE sweep: word-grid done=true stalled=- reveals=[1,2,3] ends=[]
+RACE ok: T1 sweep complete (57 done, 15 action-gated)
+RACE ok: T2 trivia quick-Next + stale timer skips nothing
+RACE ok: T3 doodle-guess awards exactly once
+RACE ok: T4 timer reveals broadcast (5 games)
+RACE ok: T5 stale cross-round action dropped, fresh accepted
+RACE ok: T6 dead-instance action dropped, rematch clean
+RACE ok: T7 stale turn word dropped (no phantom elimination)
+RACE ok: T8 restart disposes old timers
+RACE ok: T9 simultaneous votes resolve exactly once
+RACE ok: T10 spectator muted; reconnect resumes seat
+RACE ok: T11 stale timer cannot cut a new reveal short
+RACE ok: T12 battle games skip nothing with entries (2 games)
+RACE ok: T13 throwing create returns an error; room stays usable
+RACE ok: T14 throwing timer callback contained
+RACE ok: T15 throwing onTick contained
+RACE ok: T16 one bad view/send starves nobody; create-time broadcast safe
+RACE ok: T17 idle Castle deadline broadcasts final results and cleared timer
+RACE part 2: end-to-end over WebSockets
+RACE ok: W1 stale instance dropped end-to-end
+RACE ok: W2 stale window dropped end-to-end
+RACE ok: W3 simultaneous votes resolve exactly once (e2e)
+RACE ok: W4 token-less actions accepted (back-compat)
+RACE ok: W5 reconnect keeps seat; pre-drop vote counts
+RACE_PASS
+PLAYABILITY would-you-rather: PASS (2 rounds, 2-2 split, dup vote ignored, non-host next ignored)
+PLAYABILITY doodle-guess: PASS (stroke relay + clear, masked word, hint tick, rotation, timeouts)
+PLAYABILITY truth-dare: PASS (spin->choose->vote->reveal, majority bonus)
+PLAYABILITY never-ever: PASS (2 rounds, honest split, hidden ballots)
+PLAYABILITY most-likely: PASS (plurality for p2, self/stranger votes rejected)
+PLAYABILITY hot-takes: PASS (4 takes, anonymous ballots, divisive winner)
+PLAYABILITY rank-it: PASS (consensus scoring, invalid orders rejected)
+PLAYABILITY two-truths: PASS (lie hidden then revealed, spotter scores)
+PLAYABILITY funny-answer: PASS (anonymous ballot, self-vote rejected, winner crowned)
+PLAYABILITY bluff: PASS (truth hidden then found, fool-votes scored)
+PLAYABILITY story-builder: PASS (4-link story, anonymous favorite vote)
+PLAYABILITY emoji-story: PASS (secret phrase projected to director only, speed scoring)
+PLAYABILITY trivia: PASS (8 rounds, correct-answer scoring + streaks, hidden answers)
+PLAYABILITY scattergories: PASS (uniqueness rule enforced (dupes score 0), lock flow)
+PLAYABILITY word-chain: PASS (real spelling validation/retry, room relationship challenge, repeat/timeout eliminations and unchanged challenge clock)
+PLAYABILITY countdown-word: PASS (real offline dictionary + subset checks, supported generated trays, private retry feedback, longest ties/pass and two rounds)
+PLAYABILITY lyric-fill: PASS (exact-match path exercised, hidden answer)
+PLAYABILITY five-second: PASS (pass + fail verdicts, performer rotation, answer timeout)
+PLAYABILITY charades: PASS (masked projection, per-guesser streams, speed scoring, timeout)
+PLAYABILITY twenty-questions: PASS (yes/no flow, wrong-guess log, bonus scoring)
+PLAYABILITY pick-one: PASS (2 rapid rounds, majority path)
+PLAYABILITY memory-tray: PASS (memorize window, hidden tray, graded recall)
+PLAYABILITY rapid-polls: PASS (custom + starter polls, live counts, no scoring by design)
+PLAYABILITY dare-roulette: PASS (wheel spin, jury verdict, auto-spin timeout)
+PLAYABILITY compliment-battle: PASS (target rotation, anonymous ballot, winner crowned)
+PLAYABILITY roast-toast: PASS (target favorite pick gates the reveal)
+PLAYABILITY draw-phone: PASS (write->draw->guess->reveal, rotated chains, stroke protocol)
+PLAYABILITY reaction-tap: PASS (foul path + clean round, ranked taps, auto rounds)
+PLAYABILITY typing-race: PASS (live progress, finish-order points, auto advance)
+PLAYABILITY number-hunt: PASS (hint-guided binary search, tries-ranked scoring)
+PLAYABILITY backronyms: PASS (full match, private seat views, validated actions and earned scores)
+PLAYABILITY ballpark: PASS (complete minimum-player and 4-player games, private views and authoritative awards)
+PLAYABILITY banned-words: PASS (two rounds, role views, legal inputs and earned points)
+PLAYABILITY block-stack: PASS (four parallel towers, receipt-time perfect drops, tied scores and timed rounds)
+PLAYABILITY chain-reaction: PASS (2 seats: 52 legal moves; 3 seats: 50 legal moves)
+PLAYABILITY checkers: PASS (94 legal moves, complete rule-driven match and immutable terminal result)
+PLAYABILITY chess: PASS (legal scholar's mate, resign + flag paths, turn ownership)
+PLAYABILITY clue-grid: PASS (two rounds, role views, legal inputs and earned points)
+PLAYABILITY color-clash: PASS (complete four-seat match, legal actions, server deadlines and final scores)
+PLAYABILITY dial-in: PASS (complete minimum-player and 4-player games, private views and authoritative awards)
+PLAYABILITY dice-fibs: PASS (four cups, legal raises/challenges and a full elimination match)
+PLAYABILITY dots-boxes: PASS (40 legal actions to a natural finish; match scores and watcher projection)
+PLAYABILITY draw-off: PASS (two private canvases per artist, anonymous gallery and favourite votes)
+PLAYABILITY echo-pads: PASS (complete four-seat match, legal actions, server deadlines and final scores)
+PLAYABILITY emoji-spotter: PASS (complete four-seat match, legal actions, server deadlines and final scores)
+PLAYABILITY five-row: PASS (105 legal actions to a natural finish; match scores and watcher projection)
+PLAYABILITY fleet-duel: PASS (163 alternating legal shots, confirmed placement, masked opponents/watchers and complete sinking win)
+PLAYABILITY four-in-a-row: PASS (seven real drops, gravity, terminal vertical line and one award)
+PLAYABILITY hot-potato: PASS (complete four-seat match, legal actions, server deadlines and final scores)
+PLAYABILITY kalah: PASS (40 legal moves, complete rule-driven match and immutable terminal result)
+PLAYABILITY know-me: PASS (complete minimum-player and 4-player games, private views and authoritative awards)
+PLAYABILITY letter-lock: PASS (two rounds, role views, legal inputs and earned points)
+PLAYABILITY ludo: PASS (1384 legal roll/move actions across complete 2-, 3- and 4-player matches)
+PLAYABILITY math-dash: PASS (complete four-seat match, legal actions, server deadlines and final scores)
+PLAYABILITY mega-tic-tac-toe: PASS (56 legal actions to a natural finish; match scores and watcher projection)
+PLAYABILITY moonlit-village: PASS (full match, private seat views, validated actions and earned scores)
+PLAYABILITY odd-one-out: PASS (full match, private seat views, validated actions and earned scores)
+PLAYABILITY penalty-kicks: PASS (ten secret shot/dive pairs, animated reveals and whole-match points)
+PLAYABILITY pig-dice: PASS (72 legal actions to a natural finish; match scores and watcher projection)
+PLAYABILITY pocket-karts: PASS (star rush (1 stars) + zap battle (2 KOs), movement verified)
+PLAYABILITY pose-party: PASS (3 full rounds, public video scene, private peer ballots, fixed perform deadlines and clean finish)
+PLAYABILITY read-my-lips: PASS (two rounds, role views, legal inputs and earned points)
+PLAYABILITY reversi: PASS (60 legal placements, directional flips, automatic passes and terminal result)
+PLAYABILITY show-and-go: PASS (3 full rounds, public video scene, private peer ballots, fixed perform deadlines and clean finish)
+PLAYABILITY sketchy-impostor: PASS (two complete two-lap canvases, secret roles, vote and last-chance guess)
+PLAYABILITY snakes-ladders: PASS (43 legal actions to a natural finish; match scores and watcher projection)
+PLAYABILITY think-alike: PASS (complete minimum-player and 4-player games, private views and authoritative awards)
+PLAYABILITY undercover: PASS (full match, private seat views, validated actions and earned scores)
+PLAYABILITY warm-words: PASS (real transformer cosine/ranks, private target, optional nearest-neighbor hint, first-correct score and two rounds)
+PLAYABILITY whisper: PASS (full match, private seat views, validated actions and earned scores)
+PLAYABILITY who-wrote: PASS (complete minimum-player and 4-player games, private views and authoritative awards)
+PLAYABILITY word-grid: PASS (two rounds, role views, legal inputs and earned points)
+PLAYABILITY SUMMARY: 72 passed, 0 failed, 0 skipped of 72 (played=72 notplayed=0)
+SERVER_CLOCK_PASS: skew, wall jumps, latency, replay, reconnect and shared deadlines
+GAME-ENTRY pure ok: parse/validate/scope/override/strip/decide/slot/details
+GAME-ENTRY-WS ok: /games route + clock echo/bounds + serverNow/phaseStart stability + late-join share + rematch
+GAME-ENTRY-PASS: validation + WS clock/phaseStart/rematch
+CHAIN rules: geometry, configuration, entry gating, elimination, capture, dense and nonterminal cascades
+CHAIN guards: malformed/opponent/stale/duplicate actions, projection privacy, deadline skips, resumption, disposal
+CHAIN legal match: 2 seats, Compact, 50 moves, 8 cascade moves, winner p1
+CHAIN legal match: 3 seats, Compact, 59 moves, 9 cascade moves, winner p1
+CHAIN legal match: 2 seats, Standard, 87 moves, 17 cascade moves, winner p0
+CHAIN legal match: 3 seats, Standard, 94 moves, 18 cascade moves, winner p0
+CHAIN legal match: 6 seats, Compact, 55 moves, 9 cascade moves, winner p0
+CHAIN Room legal match: 52 moves; spectators, stale windows, rematch and points verified
+CHAIN client: real mount/update/intents, staged replay, skip, dedupe, stale drops, reduced motion, rematch, disposal
+CHAIN frame: result actions revealed after motion once per match; heartbeat, rematch and host gates verified
+CHAIN_REACTION_PASS
+SEMANTIC actual embeddings: 86.47 car/automobile; 22.97 car/spoon; 1507 words
+SEMANTIC legal 2-round play, hints/cost, validation, deadline, history and disposal PASS
+SEMANTIC quiet host migration: projection, former/current permissions, timeout scores and rematch PASS
+SEMANTIC real Room: first award once, token resume, spectator, stale window/instance and rematch PASS
+WARM_WORDS_PASS
+node:assert:152
+  throw new AssertionError(obj);
+  ^
+
+AssertionError [ERR_ASSERTION]: equal tries share first place
+    at Object.<anonymous> (/Users/divyansh/Projects/giggle/.claude/worktrees/kart-arenas/apps/games/test/word-rules.js:185:10)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)
+    at Object..js (node:internal/modules/cjs/loader:2060:10)
+    at Module.load (node:internal/modules/cjs/loader:1651:32)
+    at Module._load (node:internal/modules/cjs/loader:1443:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:261:19)
+    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)
+    at node:internal/main/run_main_module:33:47 {
+  generatedMessage: false,
+  code: 'ERR_ASSERTION',
+  actual: 70,
+  expected: 100,
+  operator: '==',
+  diff: 'simple'
+}
+
+Node.js v24.21.0
