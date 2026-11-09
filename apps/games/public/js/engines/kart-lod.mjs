@@ -21,29 +21,35 @@ export function createKartLod(THREE, { fullDetail = 8, far = 42, keepNear = 10, 
   // Prepare the colour attribute before shader warm-up, including when the
   // match starts with no distant karts and drops detail later.
   proxies.setColorAt(0, color.setHex(0xffffff));
+  const proxied=new Set(),ranked=[];
+  const byDistance=(a,b)=>a.d-b.d;
   return {
     object: proxies,
     /* entries: [{mesh, color, visible}] for every kart this frame. Returns
      * the set of meshes drawn as proxies (callers skip their animation). */
     update(camera, entries, nearCount = keepNear) {
-      const far2 = far * far, proxied = new Set();
+      const far2 = far * far;proxied.clear();
       let n = 0;
       if (entries.length > Math.min(fullDetail, nearCount) && camera) {
-        const ranked = entries.filter(e => e.visible)
-          .map(e => ({ e, d: e.mesh.position.distanceToSquared(camera.position) }))
-          .sort((a, b) => a.d - b.d);
-        ranked.forEach(({ e, d }, rank) => {
+        let count=0;
+        for(const e of entries)if(e.visible){
+          const item=ranked[count]||(ranked[count]={});
+          item.e=e;item.d=e.mesh.position.distanceToSquared(camera.position);count++;
+        }
+        ranked.length=count;ranked.sort(byDistance);
+        for(let rank=0;rank<ranked.length;rank++){
+          const {e,d}=ranked[rank];
           // A zero radius is a hard detail cap, including overlapping spawn or
           // reconnect poses. Classic arenas retain their normal distance LOD.
           const distant = rank >= nearCount && (far === 0 || d > far2) && n < capacity;
           e.mesh.visible = !distant;
-          if (!distant) return;
+          if (!distant) continue;
           proxied.add(e.mesh);
           matrix.compose(e.mesh.position, e.mesh.quaternion, e.mesh.scale);
           proxies.setMatrixAt(n, matrix);
           proxies.setColorAt(n, color.setHex(e.color));
           n++;
-        });
+        }
       }
       proxies.count = n;
       if (n) { proxies.instanceMatrix.needsUpdate = true; if (proxies.instanceColor) proxies.instanceColor.needsUpdate = true; }

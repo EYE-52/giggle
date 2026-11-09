@@ -573,11 +573,15 @@ diffuseColor.rgb+=vec3(.65,.90,.94)*glint;`);
     fountainTime.value=Number.isFinite(time)?time:0;
     if(group.userData.waterMaterial){group.userData.waterMaterial.uniforms.uTime.value=Number.isFinite(time)?time:0;group.userData.waterMaterial.uniforms.uWarm.value=clamp(1-Math.abs(p-.65)*2,0,1);}
   }
+  // assetBatch computed bounds for every authored placement. Compaction
+  // selects only those positions (and smaller scales); keep the full bounds
+  // instead of shrinking them to one camera heading or rescanning each frame.
+  const detailForward=new THREE.Vector3(),detailMatrix=new THREE.Matrix4();
   let detailElapsed=.25;
   function updateDetail(camera,dt=.25){
     detailElapsed+=dt;if((!grassBatches.length&&!natureBatches.length)||detailElapsed<.25)return;detailElapsed=0;
-    const eye=camera.position,forward=new THREE.Vector3();camera.getWorldDirection(forward);
-    const matrix=new THREE.Matrix4(),hasLOD=grassBatches.some(b=>!b.near);
+    const eye=camera.position,forward=detailForward;camera.getWorldDirection(forward);
+    const matrix=detailMatrix,hasLOD=grassBatches.some(b=>!b.near);
     for(const b of grassBatches){
       let count=0;
       for(const placement of b.placements){

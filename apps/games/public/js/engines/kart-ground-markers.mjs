@@ -81,21 +81,32 @@ export function prepareGroundProp(THREE,mesh) {
       }
       feet=new Float32Array(unique);trapFootprints.set(source,feet);
     }
-    data=mesh.userData.groundProp={feet,up:new THREE.Vector3(0,1,0),normal:new THREE.Vector3(),point:new THREE.Vector3()};
+    let minX=Infinity,maxX=-Infinity,minZ=Infinity,maxZ=-Infinity,minY=Infinity;
+    for(let i=0;i<feet.length;i+=3){minX=Math.min(minX,feet[i]);maxX=Math.max(maxX,feet[i]);minY=Math.min(minY,feet[i+1]);minZ=Math.min(minZ,feet[i+2]);maxZ=Math.max(maxZ,feet[i+2]);}
+    data=mesh.userData.groundProp={feet,minX,maxX,minY,minZ,maxZ,up:new THREE.Vector3(0,1,0),normal:new THREE.Vector3(),point:new THREE.Vector3()};
   }
   return data;
 }
 
 export function placeGroundProp(THREE,mesh,x,y,z,groundAt,visualSupportAt=groundAt) {
   const data=prepareGroundProp(THREE,mesh);
-  if(data.x===x&&data.y===y&&data.z===z)return;data.x=x;data.y=y;data.z=z;
+  if(data.x===x&&data.z===z&&data.supportAt===visualSupportAt&&data.groundAt===groundAt){
+    if(data.y!==y){data.y=y;mesh.position.y=Math.max(y,data.support)+.035;}
+    return;
+  }
+  data.x=x;data.y=y;data.z=z;data.supportAt=visualSupportAt;data.groundAt=groundAt;
   const d=.25;
   data.normal.set(-(groundAt(x+d,z)-groundAt(x-d,z))/(2*d),1,-(groundAt(x,z+d)-groundAt(x,z-d))/(2*d)).normalize();
   mesh.quaternion.setFromUnitVectors(data.up,data.normal);
-  let lift=0;
+  const flat=data.normal.y===1?visualSupportAt.flatSupport?.(x+data.minX,z+data.minZ,x+data.maxX,z+data.maxZ):undefined;
+  if(Number.isFinite(flat)){
+    data.support=flat-data.minY;mesh.position.set(x,Math.max(y,data.support)+.035,z);return;
+  }
+  let support=-Infinity;
   for(let i=0;i<data.feet.length;i+=3) {
     data.point.set(data.feet[i],data.feet[i+1],data.feet[i+2]).applyQuaternion(mesh.quaternion);
-    lift=Math.max(lift,visualSupportAt(x+data.point.x,z+data.point.z)-y-data.point.y);
+    support=Math.max(support,visualSupportAt(x+data.point.x,z+data.point.z)-data.point.y);
   }
-  mesh.position.set(x,y+lift+.035,z);
+  data.support=support;
+  mesh.position.set(x,Math.max(y,support)+.035,z);
 }

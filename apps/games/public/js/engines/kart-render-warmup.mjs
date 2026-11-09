@@ -34,8 +34,19 @@ export async function warmKartRenderer(THREE,renderer,scene,camera,{roots=[],pri
   visit(scene,sources);
   for(const source of optional)sources.add(source);
   // Visible scenery, seated drivers and pickups precede rare weapons and
-  // alternate drivers; shadow-off variants come last.
-  const ordered=[...sources].sort((a,b)=>(priority.has(b)?2:optional.has(b)?0:1)-(priority.has(a)?2:optional.has(a)?0:1));
+  // alternate drivers. Prepare both quality modes together so a deadline
+  // cannot leave all shadow-off programs cold for the adaptive switch.
+  const bindings=new Set();
+  const ordered=[...sources].sort((a,b)=>(priority.has(b)?2:optional.has(b)?0:1)-(priority.has(a)?2:optional.has(a)?0:1)).filter(o=>{
+    // Ordinary clones share geometry buffers/VAOs and material programs. One
+    // exact binding warms them all. Instance/skin/batch data belongs to each
+    // object, so those still need their own upload. Preserve shadow variants.
+    const materials=Array.isArray(o.material)?o.material:[o.material];
+    const key=[o.geometry?.uuid,o.isInstancedMesh||o.isSkinnedMesh||o.isBatchedMesh?o.uuid:o.type,
+      ...materials.map(m=>m?.uuid),o.castShadow,o.receiveShadow,o.layers.mask,
+      o.customDepthMaterial?.uuid,o.customDistanceMaterial?.uuid].join('|');
+    if(bindings.has(key))return false;bindings.add(key);return true;
+  });
   scene.traverseVisible(o=>{if(o.isLight)lights.push(o);});
   const staging=new THREE.Scene();staging.name='KartWarmupPass';
   const syncScene=()=>{for(const key of ['fog','environment','environmentIntensity','environmentRotation'])staging[key]=scene[key];};
@@ -64,6 +75,10 @@ export async function warmKartRenderer(THREE,renderer,scene,camera,{roots=[],pri
   function sample(object,shadows,draw){
     object.updateWorldMatrix(true,false);
     const children=object.children,visible=object.visible,culled=object.frustumCulled,instances=object.count;
+    // The upload draw uses one instance. Never cache its tiny lazy sphere as
+    // the bounds of a whole village/forest after count is restored.
+    if(object.isInstancedMesh&&culled&&instances>0&&!object.boundingSphere)object.computeBoundingSphere();
+    const sphere=object.boundingSphere,box=object.boundingBox;
     const g=object.geometry,start=g?.drawRange.start,count=g?.drawRange.count,geometryInstances=g?.instanceCount;
     const mats=Array.isArray(object.material)?object.material:[object.material];
     const flags=mats.map(m=>m.visible),qualityChanged=renderer.shadowMap?.enabled!==shadows;
@@ -76,7 +91,7 @@ export async function warmKartRenderer(THREE,renderer,scene,camera,{roots=[],pri
       return state(shadows,draw);
     }finally{
       object.children=children;object.visible=visible;object.frustumCulled=culled;
-      if(object.isInstancedMesh)object.count=instances;
+      if(object.isInstancedMesh){object.count=instances;object.boundingSphere=sphere;object.boundingBox=box;}
       mats.forEach((m,i)=>{m.visible=flags[i];if(qualityChanged)m.needsUpdate=true;});
       if(g){g.setDrawRange(start,count);if(g.isInstancedBufferGeometry)g.instanceCount=geometryInstances;}
       staging.children=[];
@@ -90,7 +105,7 @@ export async function warmKartRenderer(THREE,renderer,scene,camera,{roots=[],pri
       }
     };
     await warmTexture(scene.background);await warmTexture(scene.environment);
-    for(const shadows of modes)for(const source of ordered){
+    for(const source of ordered)for(const shadows of modes){
       const object=source;
       {
         for(const m of Array.isArray(object.material)?object.material:[object.material])if(m){
@@ -106,11 +121,18 @@ export async function warmKartRenderer(THREE,renderer,scene,camera,{roots=[],pri
         await step(()=>sample(object,shadows,()=>renderer.compile?renderer.compile(object,camera,staging):renderer.compileAsync(object,camera,staging)));
         await waitKartPrograms(renderer,living,step);
         await step(()=>sample(object,shadows,()=>renderer.render(staging,camera)));
-        // A fence is polled, never gl.finish(): a busy GPU must not freeze UI.
-        const gl=renderer.getContext?.();
+        // Settle a small batch of uploads together, with a final fence for
+        // everything. One fence per clone wastes the bounded preparation
+        // budget waiting for hundreds of tiny GPU submissions individually.
+        const gl=(completed+1===total||(completed+1)%16===0)?renderer.getContext?.():null;
         if(gl?.fenceSync){
           const fence=gl.fenceSync(gl.SYNC_GPU_COMMANDS_COMPLETE,0);
-          if(fence){try{gl.flush();while(await step(()=>gl.clientWaitSync(fence,0,0))===gl.TIMEOUT_EXPIRED){/* yield on each poll */}}finally{gl.deleteSync(fence);}}
+          if(fence){try{gl.flush();while(await step(()=>gl.clientWaitSync(fence,0,0))===gl.TIMEOUT_EXPIRED){
+            // scheduler.yield() can immediately resume on Chrome while the
+            // GPU process still needs a real turn. Do not spin until budget
+            // expiry on the first fence and leave every other pool cold.
+            await new Promise(resolve=>setTimeout(resolve,8));
+          }}finally{gl.deleteSync(fence);}}
         }
       }
       scheduler.progress(++completed,total);

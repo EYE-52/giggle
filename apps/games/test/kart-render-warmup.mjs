@@ -48,7 +48,7 @@ for(const fallback of [false,true]){
   };
   const before=stats(scene),nodes=[];scene.traverse(o=>nodes.push([o,o.visible,o.frustumCulled]));
   await warmKartRenderer(tracked,renderer,scene,camera,{yieldTask:async()=>{},roots:[reserve,library,...fx.objects(),scene.getObjectByName('KartImpactFX'),zero,lod.object]});
-  ok(compiles>1&&renders===compiles&&deleted===renders&&waits>renders,'separate compile/upload batches and nonblocking GPU fences');
+  ok(compiles>1&&renders===compiles&&deleted===Math.ceil(renders/16)&&waits>deleted,'separate compile/upload jobs and bounded GPU fence batches including the final submission');
   ok(viewport.z===800&&viewport.w===600&&scissor.z===800&&!scissorTest,'viewport and scissor restored');
   assert.deepEqual(stats(scene),before,'warmup adds no gameplay draws or triangles');checks++;
   for(const [o,visible,culled]of nodes){assert.equal(o.visible,visible);assert.equal(o.frustumCulled,culled);}

@@ -10,14 +10,15 @@ export function instanceRepeats(THREE, root, { skip = new Set(), minCount = 3 } 
   root.updateMatrixWorld(true);
   const groups = new Map();
   const visit = (obj, hidden) => {
-    if (skip.has(obj)) return;
+    if (skip.has(obj) || obj.userData.dynamic) return;
     const off = hidden || !obj.visible;
     if (obj.isMesh && !off && !obj.isInstancedMesh && !obj.isSkinnedMesh && !Array.isArray(obj.material) &&
         obj.material && !obj.material.transparent && !obj.morphTargetInfluences && !obj.userData.dynamic &&
         obj.onBeforeRender === THREE.Mesh.prototype.onBeforeRender &&
+        obj.onAfterRender === THREE.Mesh.prototype.onAfterRender &&
         // Mirrored copies flip winding per object, which instances cannot do.
         obj.matrixWorld.determinant() > 0) {
-      const key = obj.geometry.uuid + '|' + obj.material.uuid + '|' + obj.castShadow + '|' + obj.receiveShadow + '|' + obj.renderOrder;
+      const key = obj.geometry.uuid + '|' + obj.material.uuid + '|' + obj.castShadow + '|' + obj.receiveShadow + '|' + obj.renderOrder + '|' + obj.layers.mask;
       if (!groups.has(key)) groups.set(key, []);
       groups.get(key).push(obj);
     }
@@ -35,8 +36,17 @@ export function instanceRepeats(THREE, root, { skip = new Set(), minCount = 3 } 
     inst.castShadow = first.castShadow;
     inst.receiveShadow = first.receiveShadow;
     inst.renderOrder = first.renderOrder;
+    inst.layers.mask = first.layers.mask;
     meshes.forEach((mesh, i) => {
       inst.setMatrixAt(i, local.multiplyMatrices(inverse, mesh.matrixWorld));
+      // Hiding only this body must not hide a unique roof, window or sign.
+      // Keep descendants under an equivalent static transform beside it.
+      if(mesh.children.length){
+        const parts=new THREE.Group();parts.name=mesh.name+':parts';
+        parts.matrix.copy(mesh.matrix);parts.matrixAutoUpdate=false;
+        mesh.parent.add(parts);
+        for(const child of [...mesh.children])parts.add(child);
+      }
       mesh.visible = false;
     });
     inst.instanceMatrix.needsUpdate = true;
