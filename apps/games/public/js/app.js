@@ -1310,11 +1310,11 @@ function heroPosters() {
 }
 
 /* Room code as four letter tiles over the real input (it keeps focus,
- * paste and autofill); letters only, uppercased, active tile marked. */
+ * paste and autofill); letters and digits (codes use 2-9), uppercased, active tile marked. */
 function wireCodeTiles(input) {
   const tiles = input.parentElement.querySelectorAll('.code-tile');
   const paint = () => {
-    const v = input.value.toUpperCase().replace(/[^A-Z]/g, '').slice(0, 4);
+    const v = input.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 4);
     if (v !== input.value) input.value = v;
     const at = document.activeElement === input ? Math.min(v.length, 3) : -1;
     tiles.forEach((t, i) => {
@@ -1386,7 +1386,7 @@ function renderHome() {
           <a class="btn ghost hero-local" href="/same-room/">Play on one device</a>
           <label class="ticket-or" for="jc"><span>Have a room code?</span></label>
           <div class="hero-joinrow">
-            <div class="code-tiles"><input id="jc" type="text" maxlength="4" placeholder="ABCD" value="${esc(roomCode)}" autocomplete="off" autocapitalize="characters" spellcheck="false" inputmode="text" aria-label="Room code, 4 letters">${'<span class="code-tile" aria-hidden="true"></span>'.repeat(4)}</div>
+            <div class="code-tiles"><input id="jc" type="text" maxlength="4" placeholder="ABCD" value="${esc(roomCode)}" autocomplete="off" autocapitalize="characters" spellcheck="false" inputmode="text" aria-label="Room code, 4 characters">${'<span class="code-tile" aria-hidden="true"></span>'.repeat(4)}</div>
             <button class="btn sun" id="bJoin">Join room</button>
           </div>
           <p class="ticket-note">No account or download needed.</p>
@@ -1423,7 +1423,7 @@ function renderHome() {
     const nm = document.getElementById('nm').value.trim();
     const code = document.getElementById('jc').value.trim().toUpperCase();
     if (!nm) return toast('Pick a party name first');
-    if (code.length !== 4) return toast('Room codes are 4 letters');
+    if (code.length !== 4) return toast('Room codes are 4 characters');
     myName = nm;
     roomCode = code;
     send({ t: 'join', name: nm, code, seatToken: store.get(tokenKey(code)) || undefined });

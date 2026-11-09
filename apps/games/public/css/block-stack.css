@@ -19,8 +19,9 @@
   height: 100%;
   border-radius: var(--radius-xl);
 }
+/* The tower is the game: let the view grow with the window instead of a fixed 320px strip. */
 #gbody .bs-world .bs-sky {
-  height: calc(5 * var(--space-64));
+  height: clamp(360px, calc(100dvh - 340px), 780px);
 }
 .bs-world .bs-sky:focus-visible {
   outline: var(--focus-ring);
@@ -126,7 +127,7 @@
 }
 @media (min-width: 701px) {
   #gbody .bs-world.pl-fill {
-    grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+    grid-template-columns: minmax(0, 3fr) minmax(220px, 1fr);
     column-gap: var(--space-16);
   }
   #gbody .bs-world > :is(.party-hud, .b6-prompt, .pl-live) {

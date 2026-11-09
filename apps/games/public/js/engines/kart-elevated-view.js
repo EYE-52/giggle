@@ -189,7 +189,7 @@ export function createElevatedKartView() {
       const conformPose=createRaisedPoseSupport(THREE,map);
       world=createKartElevatedWorld(THREE,{scene,map,palette:S.palette,assets,quality:()=>kartLightTier(renderer),reducedMotion:()=>helper.reducedMotion()});
       arena=createKartArenaFeatures(THREE,scene,{reducedMotion:()=>helper.reducedMotion()});arena.sync(map);disableRaisedStaticShadows(world.group);disableRaisedStaticShadows(arena.root);
-      pickups=createRaisedPickups(THREE,scene);kartLod=createKartLod(THREE,{fullDetail:1,keepNear:1,far:0,originY:.55+CONFIG.chassis.modelOriginY});kartLod.object.visible=false;scene.add(kartLod.object);shadows=createRaisedShadows(THREE,{sun:world.lighting.sun,quality:()=>kartLightTier(renderer)});
+      pickups=createRaisedPickups(THREE,scene);kartLod=createKartLod(THREE,{fullDetail:8,keepNear:6,far:48,originY:.55+CONFIG.chassis.modelOriginY});/* Same distance rule as classic maps: full models up to 8 karts and for the nearest few; boxes only for far karts in big crowds. A hard cap of 1 drew most rivals as blocks. */kartLod.object.visible=false;scene.add(kartLod.object);shadows=createRaisedShadows(THREE,{sun:world.lighting.sun,quality:()=>kartLightTier(renderer)});
       const R=await physicsReady;if(gen!==generation)throw Error('Retired arena');
       if(R&&S.youDrive){scenePrediction=createElevatedPrediction(R);prediction=scenePrediction;prediction.ingest(S,performance.now(),now());}
       scene.fog=new THREE.Fog(world.lighting.fogColor,world.lighting.fogNear,world.lighting.fogFar);
@@ -506,7 +506,7 @@ export function createElevatedKartView() {
         warningMaterial.opacity=helper.reducedMotion()?.65:.58+.1*Math.sin(time*5);
         const followed=self()||S.karts[0];
         // Keep the followed animal/paint in full detail; batch the crowd.
-        lodEntries.length=0;for(const [id,model]of models)if(id!==followed?.id)lodEntries.push({mesh:model,color:model.userData.lodColor||0xffcf6f,visible:model.visible});kartLod.update(camera,lodEntries,kartLightTier(renderer)==='low'?0:1);kartLod.object.visible=kartLod.object.count>0;
+        lodEntries.length=0;for(const [id,model]of models)if(id!==followed?.id)lodEntries.push({mesh:model,color:model.userData.lodColor||0xffcf6f,visible:model.visible});kartLod.update(camera,lodEntries,kartLightTier(renderer)==='low'?3:6);kartLod.object.visible=kartLod.object.count>0;
         const life=`${S.instanceId}:${followed?.id}:${followed?.spawnSeq}:${followed?.controlEpoch}:${models.get(followed?.id)?.userData.poseEpoch}`;if(life!==cameraLife){cameraLife=life;started=false;sideYaw=0;selectedSideYaw=0;sideHeight=3;recovery=0;sideSettling=false;}
         const model=models.get(followed?.id),launch=followed?.id===S.you&&predicted?predicted.flight:followed?.flight;
         if(model){

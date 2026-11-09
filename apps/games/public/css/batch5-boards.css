@@ -187,3 +187,10 @@
   .b5-game .bk-actions { grid-column: 1 / -1; }
   .b5-game .bk-tools { grid-column: 1 / -1; grid-row: 8; }
 }
+/* Two seats per row: give the space to names. The score becomes a compact number; the unit stays in the seat's aria-label. */
+@media (min-width: 760px) {
+  .b5-game .bk-player { grid-template-columns: auto minmax(0, 1fr) auto !important; }
+  .b5-game .bk-player .bk-stat { width: auto !important; min-width: 3ch !important; height: auto !important; padding: 2px 8px !important; }
+  .b5-game .bk-player .bk-stat-label { display: none; }
+  .b5-game .bk-player .bk-side { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+}
