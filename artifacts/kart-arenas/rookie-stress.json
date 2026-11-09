@@ -6,10 +6,10 @@
       "seed": 0,
       "speed": 4,
       "at": 180000,
-      "stuck": 150,
+      "stuck": 200,
       "events": [],
-      "goal": 40,
-      "poseSamples": 903
+      "goal": 47,
+      "poseSamples": 897
     },
     {
       "variant": "duel",
@@ -18,7 +18,7 @@
       "at": 180000,
       "stuck": 0,
       "events": [],
-      "goal": 41,
+      "goal": 51,
       "poseSamples": 898
     },
     {
@@ -28,18 +28,18 @@
       "at": 180000,
       "stuck": 0,
       "events": [],
-      "goal": 45,
-      "poseSamples": 901
+      "goal": 56,
+      "poseSamples": 910
     },
     {
       "variant": "duel",
       "seed": 3,
       "speed": 5.5,
       "at": 180000,
-      "stuck": 50,
+      "stuck": 0,
       "events": [],
-      "goal": 47,
-      "poseSamples": 896
+      "goal": 1,
+      "poseSamples": 900
     },
     {
       "variant": "duel",
@@ -48,17 +48,17 @@
       "at": 180000,
       "stuck": 0,
       "events": [],
-      "goal": 48,
-      "poseSamples": 900
+      "goal": 6,
+      "poseSamples": 903
     },
     {
       "variant": "duel",
       "seed": 5,
       "speed": 4,
       "at": 180000,
-      "stuck": 100,
+      "stuck": 0,
       "events": [],
-      "goal": 41,
+      "goal": 47,
       "poseSamples": 898
     },
     {
@@ -66,10 +66,10 @@
       "seed": 6,
       "speed": 4.5,
       "at": 180000,
-      "stuck": 150,
+      "stuck": 0,
       "events": [],
-      "goal": 40,
-      "poseSamples": 906
+      "goal": 51,
+      "poseSamples": 899
     },
     {
       "variant": "duel",
@@ -78,18 +78,18 @@
       "at": 180000,
       "stuck": 0,
       "events": [],
-      "goal": 46,
-      "poseSamples": 901
+      "goal": 56,
+      "poseSamples": 895
     },
     {
       "variant": "duel",
       "seed": 8,
       "speed": 5.5,
       "at": 180000,
-      "stuck": 50,
+      "stuck": 0,
       "events": [],
-      "goal": 47,
-      "poseSamples": 892
+      "goal": 1,
+      "poseSamples": 893
     },
     {
       "variant": "duel",
@@ -98,18 +98,18 @@
       "at": 180000,
       "stuck": 0,
       "events": [],
-      "goal": 48,
-      "poseSamples": 905
+      "goal": 6,
+      "poseSamples": 901
     },
     {
       "variant": "duel",
       "seed": 10,
       "speed": 4,
       "at": 180000,
-      "stuck": 150,
+      "stuck": 200,
       "events": [],
-      "goal": 40,
-      "poseSamples": 903
+      "goal": 47,
+      "poseSamples": 897
     },
     {
       "variant": "duel",
@@ -118,7 +118,7 @@
       "at": 180000,
       "stuck": 0,
       "events": [],
-      "goal": 41,
+      "goal": 51,
       "poseSamples": 898
     },
     {
@@ -128,18 +128,18 @@
       "at": 180000,
       "stuck": 0,
       "events": [],
-      "goal": 45,
-      "poseSamples": 901
+      "goal": 56,
+      "poseSamples": 910
     },
     {
       "variant": "duel",
       "seed": 13,
       "speed": 5.5,
       "at": 180000,
-      "stuck": 50,
+      "stuck": 0,
       "events": [],
-      "goal": 47,
-      "poseSamples": 896
+      "goal": 1,
+      "poseSamples": 900
     },
     {
       "variant": "duel",
@@ -148,17 +148,17 @@
       "at": 180000,
       "stuck": 0,
       "events": [],
-      "goal": 48,
-      "poseSamples": 900
+      "goal": 6,
+      "poseSamples": 903
     },
     {
       "variant": "duel",
       "seed": 15,
       "speed": 4,
       "at": 180000,
-      "stuck": 100,
+      "stuck": 0,
       "events": [],
-      "goal": 41,
+      "goal": 47,
       "poseSamples": 898
     },
     {
@@ -166,10 +166,10 @@
       "seed": 16,
       "speed": 4.5,
       "at": 180000,
-      "stuck": 150,
+      "stuck": 0,
       "events": [],
-      "goal": 40,
-      "poseSamples": 906
+      "goal": 51,
+      "poseSamples": 899
     },
     {
       "variant": "duel",
@@ -178,18 +178,18 @@
       "at": 180000,
       "stuck": 0,
       "events": [],
-      "goal": 46,
-      "poseSamples": 901
+      "goal": 56,
+      "poseSamples": 895
     },
     {
       "variant": "duel",
       "seed": 18,
       "speed": 5.5,
       "at": 180000,
-      "stuck": 50,
+      "stuck": 0,
       "events": [],
-      "goal": 47,
-      "poseSamples": 892
+      "goal": 1,
+      "poseSamples": 893
     },
     {
       "variant": "duel",
@@ -198,28 +198,28 @@
       "at": 180000,
       "stuck": 0,
       "events": [],
-      "goal": 48,
-      "poseSamples": 905
+      "goal": 6,
+      "poseSamples": 901
     },
     {
       "variant": "full",
       "seed": 0,
       "speed": 4,
       "at": 180000,
-      "stuck": 50,
+      "stuck": 200,
       "events": [],
-      "goal": 56,
-      "poseSamples": 901
+      "goal": 28,
+      "poseSamples": 905
     },
     {
       "variant": "full",
       "seed": 1,
       "speed": 4.5,
       "at": 180000,
-      "stuck": 150,
+      "stuck": 0,
       "events": [],
-      "goal": 1,
-      "poseSamples": 896
+      "goal": 32,
+      "poseSamples": 898
     },
     {
       "variant": "full",
@@ -228,7 +228,7 @@
       "at": 180000,
       "stuck": 0,
       "events": [],
-      "goal": 10,
+      "goal": 41,
       "poseSamples": 898
     },
     {
@@ -238,8 +238,8 @@
       "at": 180000,
       "stuck": 0,
       "events": [],
-      "goal": 20,
-      "poseSamples": 900
+      "goal": 47,
+      "poseSamples": 896
     },
     {
       "variant": "full",
@@ -248,28 +248,28 @@
       "at": 180000,
       "stuck": 0,
       "events": [],
-      "goal": 27,
-      "poseSamples": 900
+      "goal": 48,
+      "poseSamples": 898
     },
     {
       "variant": "full",
       "seed": 5,
       "speed": 4,
       "at": 180000,
-      "stuck": 50,
+      "stuck": 200,
       "events": [],
-      "goal": 56,
-      "poseSamples": 900
+      "goal": 29,
+      "poseSamples": 899
     },
     {
       "variant": "full",
       "seed": 6,
       "speed": 4.5,
       "at": 180000,
-      "stuck": 150,
+      "stuck": 0,
       "events": [],
-      "goal": 1,
-      "poseSamples": 902
+      "goal": 30,
+      "poseSamples": 908
     },
     {
       "variant": "full",
@@ -278,8 +278,8 @@
       "at": 180000,
       "stuck": 0,
       "events": [],
-      "goal": 10,
-      "poseSamples": 897
+      "goal": 42,
+      "poseSamples": 901
     },
     {
       "variant": "full",
@@ -288,8 +288,8 @@
       "at": 180000,
       "stuck": 0,
       "events": [],
-      "goal": 19,
-      "poseSamples": 911
+      "goal": 47,
+      "poseSamples": 904
     },
     {
       "variant": "full",
@@ -298,28 +298,28 @@
       "at": 180000,
       "stuck": 0,
       "events": [],
-      "goal": 28,
-      "poseSamples": 900
+      "goal": 48,
+      "poseSamples": 908
     },
     {
       "variant": "full",
       "seed": 10,
       "speed": 4,
       "at": 180000,
-      "stuck": 50,
+      "stuck": 200,
       "events": [],
-      "goal": 56,
-      "poseSamples": 901
+      "goal": 28,
+      "poseSamples": 905
     },
     {
       "variant": "full",
       "seed": 11,
       "speed": 4.5,
       "at": 180000,
-      "stuck": 150,
+      "stuck": 0,
       "events": [],
-      "goal": 1,
-      "poseSamples": 896
+      "goal": 32,
+      "poseSamples": 898
     },
     {
       "variant": "full",
@@ -328,7 +328,7 @@
       "at": 180000,
       "stuck": 0,
       "events": [],
-      "goal": 10,
+      "goal": 41,
       "poseSamples": 898
     },
     {
@@ -338,8 +338,8 @@
       "at": 180000,
       "stuck": 0,
       "events": [],
-      "goal": 20,
-      "poseSamples": 900
+      "goal": 47,
+      "poseSamples": 896
     },
     {
       "variant": "full",
@@ -348,28 +348,28 @@
       "at": 180000,
       "stuck": 0,
       "events": [],
-      "goal": 27,
-      "poseSamples": 900
+      "goal": 48,
+      "poseSamples": 898
     },
     {
       "variant": "full",
       "seed": 15,
       "speed": 4,
       "at": 180000,
-      "stuck": 50,
+      "stuck": 200,
       "events": [],
-      "goal": 56,
-      "poseSamples": 900
+      "goal": 29,
+      "poseSamples": 899
     },
     {
       "variant": "full",
       "seed": 16,
       "speed": 4.5,
       "at": 180000,
-      "stuck": 150,
+      "stuck": 0,
       "events": [],
-      "goal": 1,
-      "poseSamples": 902
+      "goal": 30,
+      "poseSamples": 908
     },
     {
       "variant": "full",
@@ -378,8 +378,8 @@
       "at": 180000,
       "stuck": 0,
       "events": [],
-      "goal": 10,
-      "poseSamples": 897
+      "goal": 42,
+      "poseSamples": 901
     },
     {
       "variant": "full",
@@ -388,8 +388,8 @@
       "at": 180000,
       "stuck": 0,
       "events": [],
-      "goal": 19,
-      "poseSamples": 911
+      "goal": 47,
+      "poseSamples": 904
     },
     {
       "variant": "full",
@@ -398,8 +398,8 @@
       "at": 180000,
       "stuck": 0,
       "events": [],
-      "goal": 28,
-      "poseSamples": 900
+      "goal": 48,
+      "poseSamples": 908
     }
   ]
 }

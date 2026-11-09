@@ -13,10 +13,12 @@ export function driveArenaRoute(RAPIER,config,map,points,{seed=42,speed=5,second
   let snapshot=match.snapshot();
   for(let frame=0;at<seconds*1000&&goal<points.length;frame++){
    const bot=snapshot.karts[0],p=bot.pose,target=points[goal],distance=Math.hypot(target.x-p.position.x,target.z-p.position.z);
+   const previous=points[goal-1],dx=target.x-previous.x,dz=target.z-previous.z,length=Math.hypot(dx,dz),along=((p.position.x-previous.x)*dx+(p.position.z-previous.z)*dz)/(length||1);
+   const passed=along>=length&&Math.abs((p.position.x-previous.x)*dz-(p.position.z-previous.z)*dx)/(length||1)<3;
    for(const e of snapshot.events)if(['recovery','recover','respawn'].includes(e.type)&&e.pid==='bot')events.add(e.id+':'+e.type);
-   if(distance<1.8&&Math.abs(p.position.y-target.y-.7)<1.2){goal++;if(continuous&&goal===points.length)goal=1;lastProgress=at;continue;}
+   if((distance<1.5||passed)&&Math.abs(p.position.y-target.y-.7)<1.2){goal++;if(continuous&&goal===points.length)goal=1;lastProgress=at;continue;}
    const yaw=Math.atan2(2*(p.rotation.w*p.rotation.y+p.rotation.x*p.rotation.z),1-2*(p.rotation.y**2+p.rotation.x**2)),desired=Math.atan2(target.x-p.position.x,target.z-p.position.z),error=Math.atan2(Math.sin(yaw-desired),Math.cos(yaw-desired));
-   const wanted=Math.abs(error)>.4||distance<8?Math.min(speed,3):speed;
+   const wanted=Math.abs(error)>.4||distance<8?Math.min(speed,2.4):speed;
    const status=match.privateStatus('bot');match.input('bot',{instance:'route',life:status.life,controlEpoch:status.controlEpoch,seq:++seq,throttle:Math.max(0,Math.min(.7,(wanted-p.speed)*.3)),brake:p.speed>wanted+.6?.25:0,steer:Math.max(-1,Math.min(1,error*2.5)),nitro:false,use:false},at);
    at+=50;snapshot=match.advance(at);if(frame%4===0)poses.push({at,goal,position:p.position,rotation:p.rotation,grounded:p.grounded});
    if(Math.hypot(p.position.x-anchor.x,p.position.z-anchor.z)>.5){anchor=p.position;stuck=0;}else if(at-lastProgress>3000)stuck+=50;

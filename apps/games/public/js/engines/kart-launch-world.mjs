@@ -1,3 +1,4 @@
+import {complexSurfaceTexture} from './kart-complex-surfaces.mjs';
 import {mergeStaticMeshes} from './kart-instancing.mjs';
 import {createRaisedReadability,applyRaisedLighting} from './kart-raised-readability.mjs';
 import {createKartSky,createKartBackdrop} from './kart-backdrop.mjs';
@@ -8,29 +9,54 @@ export function createKartLaunchWorld(THREE,{scene,map,palette='Daybreak',lighti
  const solids=new THREE.Group(),scenery=new THREE.Group(),soft=new THREE.Group();solids.name='authored-solid-envelopes';scenery.name='outside-arena-scenery';group.add(solids,scenery,soft);
  const geometries=new Set(),materials=new Set(),textures=new Set(),colliderMeshes=new Map();let disposed=false;
  const geo=g=>(geometries.add(g),g),mat=m=>(materials.add(m),m),texture=t=>(textures.add(t),t);
- const themes={ring:{road:0x8dc3bf,deck:0xffd17b,edge:0xf5e1bc,cover:0xef866c},garden:{road:0xa8c2a0,deck:0xf0d28a,edge:0xeee1bb,cover:0x45986b},frost:{road:0xaec7db,deck:0xbdcddd,edge:0xdcecf4,cover:0x718da9},neon:{road:0x627f9a,deck:0x7bcad2,edge:0x9cd3df,cover:0xe68fbf},harbor:{road:0x9db6bc,deck:0xbdd5d7,edge:0xead8ae,cover:0xf49c6a},skyport:{road:0x8fadb8,deck:0xb8d4e2,edge:0xe9d4ab,cover:0x6aafc3},foundry:{road:0xa2a9af,deck:0xbcc9cd,edge:0xf6c16b,cover:0xc97d58}};
+ const themes={ring:{road:0x718c91,deck:0xffd17b,edge:0xf5e1bc,cover:0xef866c},garden:{road:0xa8c2a0,deck:0xf0d28a,edge:0xeee1bb,cover:0x45986b},frost:{road:0xaec7db,deck:0xbdcddd,edge:0xdcecf4,cover:0x718da9},neon:{road:0x627f9a,deck:0x7bcad2,edge:0x9cd3df,cover:0xe68fbf},harbor:{road:0x9db6bc,deck:0xbdd5d7,edge:0xead8ae,cover:0xf49c6a},skyport:{road:0x8fadb8,deck:0xb8d4e2,edge:0xe9d4ab,cover:0x6aafc3},foundry:{road:0xa2a9af,deck:0xbcc9cd,edge:0xf6c16b,cover:0xc97d58}};
  const colors=themes[map.artId]||themes.ring,cache=new Map();
  function material(key,color){if(!cache.has(key))cache.set(key,mat(new THREE.MeshLambertMaterial({color})));return cache.get(key);}
- const grainBytes=new Uint8Array(64*64*4);let grainSeed=1909;for(let i=0;i<64*64;i++){grainSeed=(Math.imul(grainSeed,1664525)+1013904223)>>>0;const value=238+(grainSeed>>>28);grainBytes.set([value,value,value,255],i*4);}const roadGrain=texture(new THREE.DataTexture(grainBytes,64,64));roadGrain.wrapS=roadGrain.wrapT=THREE.RepeatWrapping;roadGrain.colorSpace=THREE.SRGBColorSpace;roadGrain.needsUpdate=true;
- const M={road:material('road',colors.road),deck:material('deck',colors.deck),edge:material('edge',colors.edge),cover:material('cover',colors.cover),blue:material('blue',0x6bbbc8),dark:material('dark',0x415c71),white:material('white',0xfff4d6)};
- M.road.map=roadGrain;M.road.needsUpdate=true;
- function add(parent,g,m,p=[0,0,0],scale=[1,1,1],rotation=[0,0,0]){const mesh=new THREE.Mesh(g,m);mesh.position.set(...p);mesh.scale.set(...scale);mesh.rotation.set(...rotation);mesh.receiveShadow=true;parent.add(mesh);return mesh;}
+ const M={road:material('road',colors.road),deck:material('deck',colors.deck),edge:material('edge',colors.edge),cover:material('cover',colors.cover),blue:material('blue',0x6bbbc8),dark:material('dark',0x344c60),white:material('white',0xfff4d6),yellow:material('yellow',0xffcc55),green:material('green',0x569675)};
+ const roadTexture=texture(complexSurfaceTexture(THREE,map.artId==='garden'?'pavers':'asphalt')),deckTexture=texture(complexSurfaceTexture(THREE,['ring','garden','frost'].includes(map.artId)?'pavers':'steel'));
+ M.road.map=roadTexture;M.deck.map=deckTexture;M.cover.map=deckTexture;
+ const glow=mat(new THREE.MeshLambertMaterial({color:0xc9f4ef,emissive:0x70d6d5,emissiveIntensity:.8}));
+ const unit=geo(new THREE.BoxGeometry(1,1,1));
+ function add(parent,g,m,p=[0,0,0],scale=[1,1,1],rotation=[0,0,0]){const mesh=new THREE.Mesh(g,m);mesh.position.set(...p);mesh.scale.set(...scale);mesh.rotation.set(...rotation);mesh.receiveShadow=true;mesh.castShadow=false;parent.add(mesh);return mesh;}
  for(const d of map.colliders){
   const g=new THREE.Group();g.name=d.id;g.position.copy(d.position);if(d.rotation)g.quaternion.copy(d.rotation);solids.add(g);
-  const m=d.material==='barrier'?M.edge:d.material==='toy-blue'?M.blue:d.shape==='deck'||d.shape==='wedge'?M.deck:d.id.startsWith('floor')?M.road:M.cover;
+  const m=d.material==='pillar'?M.dark:d.material==='barrier'?M.dark:d.material==='toy-blue'?M.blue:d.shape==='deck'||d.shape==='wedge'?M.deck:d.id.startsWith('floor')?M.road:M.cover;
   const geometry=geo(d.id.startsWith('floor')?new THREE.BoxGeometry(d.half.x*2,d.half.y*2,d.half.z*2):solidGeometry(THREE,d));
-  if(d.id.startsWith('floor')){const p=geometry.attributes.position,uv=geometry.attributes.uv;for(let i=0;i<p.count;i++)uv.setXY(i,(p.getX(i)+d.position.x)/8,(p.getZ(i)+d.position.z)/8);}
-  const body=add(g,geometry,m);body.name=d.id+'-body';
+  // Bake metre-scale UVs before merging. No per-mesh shader or draw call.
+  if(m.map){const p=geometry.attributes.position,n=geometry.attributes.normal,uv=geometry.attributes.uv;
+   for(let i=0;i<p.count;i++){const nx=Math.abs(n.getX(i)),ny=Math.abs(n.getY(i)),nz=Math.abs(n.getZ(i));const u=ny>nx&&ny>nz?p.getX(i):nx>nz?p.getZ(i):p.getX(i),v=ny>nx&&ny>nz?p.getZ(i):p.getY(i);uv.setXY(i,(u+d.position.x)/4,(v+(ny>nx&&ny>nz?d.position.z:d.position.y))/4);}
+  }
+  const body=add(g,geometry,m);body.name=d.id+'-body';body.castShadow=!d.id.startsWith('floor');
   if(map.artId==='ring'&&d.id==='arch')for(let x=-d.half.x+4;x<d.half.x;x+=8)add(g,geo(new THREE.BoxGeometry(6.8,.4,.04)),x<0?M.blue:M.cover,[x,0,d.half.z-.03]);
   const cameraBody=new THREE.Mesh(d.shape==='wedge'?geometry:geo(new THREE.BoxGeometry(d.half.x*2,d.half.y*2,d.half.z*2)),m);cameraBody.visible=false;cameraBody.userData.cameraCollider=true;g.add(cameraBody);
   colliderMeshes.set(d.id,{group:g,body,cameraBody,descriptor:structuredClone(d)});
+  // Guard kick plates, top rails and posts are inside the physics envelope.
+  if(d.material==='barrier'){
+   const alongX=d.half.x>d.half.z,length=2*(alongX?d.half.x:d.half.z),cross=2*(alongX?d.half.z:d.half.x),v=(a,b,c)=>alongX?[a,b,c]:[c,b,a];
+   body.scale.y=.28;body.position.y=-d.half.y*.72;
+   add(g,unit,M.edge,v(0,d.half.y*.72,0),v(length,.14,cross));
+   for(let t=-length/2+.18;t<length/2;t+=3){add(g,unit,M.blue,v(t,0,0),v(.14,d.half.y*1.8,cross));add(g,unit,glow,v(t,d.half.y*.72,0),v(.4,.16,cross+.005));}
+   for(let t=-length/2+.5;t<length/2;t+=2)add(g,unit,M.yellow,v(t,-d.half.y*.65,0),v(.6,.18,cross+.006));
+  }
+  if(d.role==='pillar'){
+   for(let y=-d.half.y+.5;y<d.half.y;y+=1.1)add(g,unit,M.yellow,[0,y,0],[d.half.x*2+.006,.22,d.half.z*2+.006]);
+   add(g,unit,M.blue,[0,d.half.y-.35,0],[d.half.x*2+.1,.5,d.half.z*2+.1]);
+  }
+  // Bridge beams are tucked under the slab; they do not lower its clearance.
+  if(d.shape==='deck')for(const side of[-1,1])add(g,unit,M.blue,[0,0,side*(d.half.z-.15)],[d.half.x*2,.45,.22]);
   // Insets sit inside the authority envelope, never widen a corner or a lane.
   if(d.material?.startsWith('toy-')&&d.shape==='box'){
    for(const side of[-1,1])add(g,geo(new THREE.BoxGeometry(d.half.x*1.4,.12,.05)),M.white,[0,.1,side*(d.half.z-.03)]);
   }
  }
- const readability=createRaisedReadability(THREE,{parent:soft,map,geometry:geo,material:mat,texture});
- const unit=geo(new THREE.BoxGeometry(1,1,1));
+ // The school cover doubles as low tool chests: panel seams, handles and
+ // coloured lids. Nothing projects beyond the authored collision box.
+ for(const d of map.colliders.filter(d=>d.id.includes('school-block'))){
+  const {x,y,z}=d.position;add(soft,unit,M.white,[x,y+.1,z+d.half.z-.015],[3.5,.14,.025]);
+  for(const dx of[-1.6,0,1.6]){add(soft,unit,M.dark,[x+dx,y-.3,z+d.half.z-.01],[.06,1.2,.025]);add(soft,unit,M.yellow,[x+dx,y+.35,z+d.half.z-.005],[.65,.15,.025]);}
+  add(soft,unit,d.id.startsWith('west')?M.cover:M.blue,[x,y+d.half.y-.12,z],[d.half.x*1.95,.2,d.half.z*1.95]);
+ }
+ const readability=createRaisedReadability(THREE,{parent:soft,map:{...map,colliders:map.colliders.filter(d=>d.material!=='barrier')},geometry:geo,material:mat,texture});
  // Repeated school lane ticks follow both ground escape loops. The centre is
  // kept quiet so silhouettes and the next turn remain readable at kart height.
  if(map.artId==='ring'){
@@ -42,6 +68,15 @@ export function createKartLaunchWorld(THREE,{scene,map,palette='Daybreak',lighti
   for(const {x,symbol:letter}of map.landmarks){
    const glyph=letter==='A'?['01110','11011','11011','11111','11011','11011','11011']:['11110','11011','11011','11110','11011','11011','11110'];
    for(let row=0;row<7;row++)for(let col=0;col<5;col++)if(glyph[row][col]==='1')add(soft,flat,M.white,[x+(col-2)*.65,.025,2+(row-3)*.65],[.6,1,.6]);
+  }
+ }
+ // School flags and cones frame the two lobes, outside the guarded lanes.
+ if(map.artId==='ring'){
+  const cone=geo(new THREE.ConeGeometry(.65,1.7,8));
+  for(const side of[-1,1]){
+   for(const z of[-18,-6,6,18]){const x=side*(map.playBounds.halfX+1.8);add(scenery,unit,M.dark,[x,-.05,z],[1.4,.18,1.4]);add(scenery,cone,M.cover,[x,.9,z]);add(scenery,unit,M.white,[x,.6,z],[.6,.18,.6]);}
+   const x=side*(map.playBounds.halfX+4);add(scenery,unit,M.dark,[x,3,-16],[.18,6,.18]);add(scenery,unit,side<0?M.cover:M.blue,[x-side*1.2,5.4,-16],[2.4,1.4,.1]);
+   for(let i=0;i<4;i++)for(let j=0;j<2;j++)if((i+j)%2===0)add(scenery,unit,M.white,[x-side*1.2+(i-1.5)*.5,5.4+(j-.5)*.55,-15.94],[.5,.55,.025]);
   }
  }
  // A low ground apron is scenery only. The shaped driving slabs and guards

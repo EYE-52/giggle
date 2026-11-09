@@ -1,4 +1,4 @@
-import {arenaBox as box,arenaDeck as deck,arenaRamp as ramp,arenaPoint as point,arenaFloor,arenaBoundary,arenaSupport} from './kart-arena-authoring.mjs';
+import {arenaBox as box,arenaDeck as deck,arenaRamp as ramp,arenaPoint as point,arenaFloor,arenaBoundary,arenaSupport,arenaRampGuards} from './kart-arena-authoring.mjs';
 const P=(x,y,z)=>({x,y,z});
 function rookie(){
  const rects=[[-38,-20,-8,28],[8,-20,38,28],[-32,-24,-14,24],[14,-24,32,24],[-8,-14,8,14]];
@@ -42,8 +42,13 @@ function rookie(){
  for(const [x,z,a]of[[-9,22,Math.PI],[9,22,Math.PI],[-27,22,Math.PI],[27,22,Math.PI]])duel.spawnCandidates.push(point('duel-start-'+duel.spawnCandidates.length,arenaSupport(duel,x,0,z),x,0,z,a,{district:'core',level:'L0'}));
  for(const side of[-1,1])for(const x0 of[9,27])for(const z of[-8,2,12]){const x=x0*side;duel.sockets.push(point('duel-home-'+duel.sockets.length,arenaSupport(duel,x,0,z),x,0,z,0,{level:'L0',district:(side<0?'west-':'east-')+(z<0?'north':'south'),profile:'safe'}));}
  for(const x of[-15,-5,5,15])duel.sockets.push(point('duel-home-'+duel.sockets.length,'arch',x,6,-10,0,{level:'L1',district:'arch',profile:x===5?'risk':'exposed'}));
- map.variants=[{id:'duel',minPlayers:2,maxPlayers:2,usableArea:2353.5,districts,startIds:['duel-start-0','duel-start-1'],floorWeights:[8,4],layout:duel},
-  {id:'full',minPlayers:3,maxPlayers:8,usableArea:3426.5,districts:[...districts,'retreat'],startIds:fullStarts,starts:{4:['start-0','start-1','start-12','start-13']},floorWeights:[14,4]}];
+ for(const [layout,span] of [[map,20],[duel,13]]){
+  layout.colliders.push(...layout.colliders.filter(d=>d.shape==='wedge').flatMap(d=>arenaRampGuards(d)));
+  for(const side of[-1,1])layout.colliders.push(box('bridge-pier-'+side,side*span,2.6,-10,.65,2.6,.65,'pillar',{role:'pillar'}));
+  for(const [i,lo,hi]of [[0,-span,-9],[1,-5,5],[2,9,span]])layout.colliders.push(box('arch-front-rail-'+i,(lo+hi)/2,6.55,-4.12,(hi-lo)/2,.55,.14,'barrier',{role:'rail'}));
+ }
+ map.variants=[{id:'duel',minPlayers:2,maxPlayers:2,usableArea:2117,districts,startIds:['duel-start-0','duel-start-1'],floorWeights:[8,4],layout:duel},
+  {id:'full',minPlayers:3,maxPlayers:8,usableArea:3160.5,districts:[...districts,'retreat'],startIds:fullStarts,starts:{4:['start-0','start-1','start-12','start-13']},floorWeights:[14,4]}];
  map.spawns=fullStarts.map(id=>map.spawnCandidates.find(s=>s.id===id));return map;
 }
 export const launchArenas=Object.freeze({'rookie-ribbons':rookie()});

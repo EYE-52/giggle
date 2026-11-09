@@ -106,3 +106,17 @@ The short production practice probes checked 1,745 camera eye/near-plane samples
 2. Build Skyport Split next. Prove its three-floor variants and 8/16/32-player transport/performance before Garden.
 3. Then Garden Crown, Frostbite Crescent, Neon Switchyard, Harbor Fork and Foundry Wheel, with a separate commit after each map's gates pass.
 4. Only after all seven pass, retire old Battle menu entries, keep their IDs loadable, and retain the separate classic Star Rush/Garage compatibility menu.
+
+## 10 November continuation — Rookie art and merge
+
+Merged `claude/game-fixes-nov9` (merge `5a0b43e`). Word Rules passes after the merge, and the runtime bundle was rebuilt. Final full-suite results below will supersede the earlier failed run.
+
+Rookie now uses the existing 256px surface atlases for paving/deck joints, metre-scale UVs, merged guard posts and reflectors, sloped solid ramp guards, two bridge piers, under-slab edge beams, tool-chest details, cones and school flags. Rails and piers share their authority/camera envelopes. Automatic obstacle panels are omitted on rotated guards so they cannot create floating faces.
+
+After this change: duel **32** statics, full **42** (cap 44); measured accessible area **2,117 / 3,160.5 m²**, used by the supply formula. Loaded art is **31 world draws**, **11,042 / 12,962 triangles**, **4,561,492 texture bytes**. Before: 18 world draws, 3,640 / 4,248 triangles; no slope guards or piers. The higher counts buy visible finished surfaces and safety details and remain within the 45 / 28,000 / 12MiB budgets.
+
+All sixteen named duel/full screenshots above were refreshed. [Review sheet](rookie-art-review.jpg). Eight 4× CPU cases measured 59.9 FPS, p95 16.7–16.8ms. The real practice page passed again: 1,785 / 1,770 eye and near-plane samples, zero overlaps, 59.9 FPS, 12 / 18 boxes. Practice renderer counts were 52 / 66 draws and 21,496 / 33,377 triangles. These are short drives, not a sustained-combat or physical-phone result.
+
+The solid rails caught the old test driver's cut turns. The driver now detects passed waypoint planes and slows tight turns; it does not reset or teleport. Both complete circuit directions, all departures/routes, 10,032 camera checks and forty three-minute stress replays pass with the guards present. New `kart-launch-art.mjs` checks texture mipmaps/UVs, finite camera envelopes, slope-guard transforms, bridge supports, disposal and map art budgets; it is in `npm test`.
+
+Still outstanding: the full shared and combat acceptance items listed above, including active box-seeking/fire trials and physical-device/human sessions. These results do not close those gates.

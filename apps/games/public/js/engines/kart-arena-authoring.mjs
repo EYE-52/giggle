@@ -34,3 +34,10 @@ export function arenaSupport(map,x,y,z){
   if(Math.abs(top-y)<.05&&(!best||d.id<best.id))best=d;
  }return best?.id;
 }
+
+// A solid guard follows the exact ramp slope. Its visual bars stay inside
+// this envelope, so camera clearance and authority collisions agree.
+export function arenaRampGuards(d,{height=1.1,width=.28}={}){
+ const yaw=2*Math.atan2(d.rotation.y,d.rotation.w),pitch=-Math.atan2(d.half.y,d.half.z),sy=Math.sin(yaw/2),cy=Math.cos(yaw/2),sp=Math.sin(pitch/2),cp=Math.cos(pitch/2);
+ return [-1,1].map(side=>arenaBox(d.id+'-rail-'+side,d.position.x+Math.cos(yaw)*side*(d.half.x-width/2),d.position.y+height/2,d.position.z-Math.sin(yaw)*side*(d.half.x-width/2),width/2,height/2,Math.hypot(d.half.z,d.half.y),'barrier',{rotation:{x:cy*sp,y:sy*cp,z:-sy*sp,w:cy*cp},role:'rail'}));
+}

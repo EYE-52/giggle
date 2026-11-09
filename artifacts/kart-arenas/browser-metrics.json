@@ -10,22 +10,22 @@
       ],
       "phase": 0,
       "world": {
-        "drawCalls": 18,
-        "triangles": 4248,
-        "textureBytes": 3884287,
-        "textureCount": 4,
-        "colliders": 33
+        "drawCalls": 31,
+        "triangles": 12962,
+        "textureBytes": 4561492,
+        "textureCount": 5,
+        "colliders": 42
       },
       "renderer": {
-        "frame": 328,
-        "calls": 72,
-        "triangles": 39540,
+        "frame": 343,
+        "calls": 84,
+        "triangles": 48242,
         "points": 0,
         "lines": 0
       },
       "frameMs": {
         "median": 16.699999999999818,
-        "p95": 16.799999999999272,
+        "p95": 16.700000000000728,
         "p99": 16.800000000000182,
         "stalls": 0
       },
@@ -41,16 +41,16 @@
       ],
       "phase": 1,
       "world": {
-        "drawCalls": 18,
-        "triangles": 4248,
-        "textureBytes": 3884287,
-        "textureCount": 4,
-        "colliders": 33
+        "drawCalls": 31,
+        "triangles": 12962,
+        "textureBytes": 4561492,
+        "textureCount": 5,
+        "colliders": 42
       },
       "renderer": {
-        "frame": 338,
-        "calls": 72,
-        "triangles": 39540,
+        "frame": 342,
+        "calls": 84,
+        "triangles": 48242,
         "points": 0,
         "lines": 0
       },
@@ -72,16 +72,78 @@
       ],
       "phase": 0,
       "world": {
-        "drawCalls": 18,
-        "triangles": 4248,
-        "textureBytes": 3884287,
-        "textureCount": 4,
-        "colliders": 33
+        "drawCalls": 31,
+        "triangles": 12962,
+        "textureBytes": 4561492,
+        "textureCount": 5,
+        "colliders": 42
       },
       "renderer": {
         "frame": 338,
-        "calls": 59,
-        "triangles": 30914,
+        "calls": 68,
+        "triangles": 39512,
+        "points": 0,
+        "lines": 0
+      },
+      "frameMs": {
+        "median": 16.699999999999818,
+        "p95": 16.700000000000728,
+        "p99": 16.800000000000182,
+        "stalls": 0
+      },
+      "fps": 59.88023952095874,
+      "samples": 299
+    },
+    {
+      "id": "rookie-ribbons",
+      "variant": "full",
+      "viewport": [
+        390,
+        844
+      ],
+      "phase": 1,
+      "world": {
+        "drawCalls": 31,
+        "triangles": 12962,
+        "textureBytes": 4561492,
+        "textureCount": 5,
+        "colliders": 42
+      },
+      "renderer": {
+        "frame": 339,
+        "calls": 68,
+        "triangles": 39512,
+        "points": 0,
+        "lines": 0
+      },
+      "frameMs": {
+        "median": 16.699999999999818,
+        "p95": 16.700000000000728,
+        "p99": 16.800000000000182,
+        "stalls": 0
+      },
+      "fps": 59.88023952095874,
+      "samples": 299
+    },
+    {
+      "id": "rookie-ribbons",
+      "variant": "duel",
+      "viewport": [
+        1280,
+        720
+      ],
+      "phase": 0,
+      "world": {
+        "drawCalls": 31,
+        "triangles": 11042,
+        "textureBytes": 4561492,
+        "textureCount": 5,
+        "colliders": 32
+      },
+      "renderer": {
+        "frame": 343,
+        "calls": 48,
+        "triangles": 21084,
         "points": 0,
         "lines": 0
       },
@@ -96,54 +158,23 @@
     },
     {
       "id": "rookie-ribbons",
-      "variant": "full",
-      "viewport": [
-        390,
-        844
-      ],
-      "phase": 1,
-      "world": {
-        "drawCalls": 18,
-        "triangles": 4248,
-        "textureBytes": 3884287,
-        "textureCount": 4,
-        "colliders": 33
-      },
-      "renderer": {
-        "frame": 337,
-        "calls": 59,
-        "triangles": 30914,
-        "points": 0,
-        "lines": 0
-      },
-      "frameMs": {
-        "median": 16.699999999999818,
-        "p95": 16.799999999999727,
-        "p99": 16.800000000000182,
-        "stalls": 0
-      },
-      "fps": 59.88023952095874,
-      "samples": 299
-    },
-    {
-      "id": "rookie-ribbons",
       "variant": "duel",
       "viewport": [
         1280,
         720
       ],
-      "phase": 0,
+      "phase": 1,
       "world": {
-        "drawCalls": 18,
-        "triangles": 3640,
-        "textureBytes": 3884287,
-        "textureCount": 4,
-        "colliders": 23
+        "drawCalls": 31,
+        "triangles": 11042,
+        "textureBytes": 4561492,
+        "textureCount": 5,
+        "colliders": 32
       },
       "renderer": {
         "frame": 342,
-        "calls": 35,
-        "triangles": 13682,
+        "calls": 48,
+        "triangles": 21084,
         "points": 0,
         "lines": 0
       },
@@ -154,38 +185,7 @@
         "stalls": 0
       },
       "fps": 59.88023952095874,
-      "samples": 300
-    },
-    {
-      "id": "rookie-ribbons",
-      "variant": "duel",
-      "viewport": [
-        1280,
-        720
-      ],
-      "phase": 1,
-      "world": {
-        "drawCalls": 18,
-        "triangles": 3640,
-        "textureBytes": 3884287,
-        "textureCount": 4,
-        "colliders": 23
-      },
-      "renderer": {
-        "frame": 339,
-        "calls": 35,
-        "triangles": 13682,
-        "points": 0,
-        "lines": 0
-      },
-      "frameMs": {
-        "median": 16.699999999999818,
-        "p95": 16.700000000000273,
-        "p99": 16.800000000000182,
-        "stalls": 0
-      },
-      "fps": 59.88023952095874,
-      "samples": 300
+      "samples": 299
     },
     {
       "id": "rookie-ribbons",
@@ -196,22 +196,22 @@
       ],
       "phase": 0,
       "world": {
-        "drawCalls": 18,
-        "triangles": 3640,
-        "textureBytes": 3884287,
-        "textureCount": 4,
-        "colliders": 23
+        "drawCalls": 31,
+        "triangles": 11042,
+        "textureBytes": 4561492,
+        "textureCount": 5,
+        "colliders": 32
       },
       "renderer": {
-        "frame": 340,
-        "calls": 35,
-        "triangles": 13682,
+        "frame": 339,
+        "calls": 44,
+        "triangles": 20980,
         "points": 0,
         "lines": 0
       },
       "frameMs": {
         "median": 16.699999999999818,
-        "p95": 16.799999999999272,
+        "p95": 16.799999999999955,
         "p99": 16.800000000000182,
         "stalls": 0
       },
@@ -227,22 +227,22 @@
       ],
       "phase": 1,
       "world": {
-        "drawCalls": 18,
-        "triangles": 3640,
-        "textureBytes": 3884287,
-        "textureCount": 4,
-        "colliders": 23
+        "drawCalls": 31,
+        "triangles": 11042,
+        "textureBytes": 4561492,
+        "textureCount": 5,
+        "colliders": 32
       },
       "renderer": {
-        "frame": 337,
-        "calls": 35,
-        "triangles": 13682,
+        "frame": 339,
+        "calls": 44,
+        "triangles": 20980,
         "points": 0,
         "lines": 0
       },
       "frameMs": {
         "median": 16.699999999999818,
-        "p95": 16.799999999999727,
+        "p95": 16.799999999999272,
         "p99": 16.800000000000182,
         "stalls": 0
       },
