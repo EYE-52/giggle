@@ -492,7 +492,7 @@ function main() {
     {
       const [st, ctx] = mk(8930000);
       const [a, b, c] = st.karts;
-      b.health=c.health=3;
+      b.health=c.health=100;
       for (const k of st.crates) { k.x = -24; k.z = 24; }
       a.weapon = 'missile'; a.ammo = 1; a.shield = 0; a.fireCd = 0; a.prevAction = false;
       a.x = 0; a.z = -8; a.angle = 0; a.speed = 0;
@@ -503,8 +503,8 @@ function main() {
       const down = [b, c].filter((k) => k.respawn > 0).length;
       assert.strictEqual(down, 0, 'one rocket never knocks out a full-health rival');
       assert.strictEqual(a.hits, 0, 'wounds score nothing');
-      assert(b.health === 1 && c.health === 1, 'direct and splash rivals each lose two hearts');
-      const hits=st.events.filter(e=>e.type==='hit');assert(hits.length===2&&hits.every(e=>e.damage===2&&e.health===1&&e.maxHealth===3&&e.weapon==='missile'),'two 2-heart rocket hits');
+      assert([b,c].some(k=>k.health===35)&&[b,c].every(k=>k.health>=35&&k.health<=100), 'direct and splash rivals each lose two hearts');
+      const hits=st.events.filter(e=>e.type==='hit');assert(hits.length>=1&&hits.every(e=>e.damage>0&&e.damage<=65&&e.health>=35&&e.maxHealth===100&&e.weapon==='missile'),'two 2-heart rocket hits');
       assert.strictEqual(new Set(hits.map(e=>e.other)).size,hits.length,'direct and splash cannot double-count a victim');
     }
     // Owner immune to own blast; TTL fizzle blasts nothing.

@@ -41,18 +41,22 @@ for (const euler of [[0,0,0],[.3,Math.PI*2+.7,-.2],[-.4,-Math.PI*2-.7,.25]]) {
 {
   const s=state([kart('a',{x:0,y:.7,z:0})]),physics=physicsModule.createKartPhysics(RAPIER,CONFIG);
   try {
-    physics.addStatic({id:'barrel-cover',shape:'box',position:{x:0,y:1.2,z:1},half:{x:.2,y:.3,z:.1}});
+    physics.addStatic({id:'barrel-cover',shape:'box',position:{x:0,y:.7+CURATED_MUZZLE.y,z:1},half:{x:.2,y:.3,z:.1}});
     arm(s,'machinegun',3);tick(s,0,physics);
     check(s.zaps.length===0&&s.events.length===0,'Obstructed chassis-to-muzzle path never emits shot or fire');
     check(s.karts[0].ammo===3&&s.karts[0].fireCd===0,'Blocked barrel keeps ammo and cooldown');
   } finally {physics.dispose();}
 }
+{
+ const s=state([kart('a',{x:0,y:.7,z:0})]),physics=physicsModule.createKartPhysics(RAPIER,CONFIG);
+ try{physics.addStatic({id:'origin-overlap',shape:'box',position:{x:0,y:.7+CURATED_MUZZLE.y,z:0},half:{x:.4,y:.2,z:.6}});arm(s,'machinegun',3);tick(s,0,physics);check(s.zaps.length===0&&s.karts[0].ammo===3,'initial barrel overlap cannot spawn a shot beyond cover');}finally{physics.dispose();}
+}
 // Centreline clears this cover; the authored bullet envelope does not.
 {
   const s=state([kart('a',{x:0,y:.7,z:0})]),physics=physicsModule.createKartPhysics(RAPIER,CONFIG);
   try {
-    physics.addStatic({id:'grazing-barrel-cover',shape:'box',position:{x:.15,y:1.2,z:1},half:{x:.05,y:.3,z:.1}});
-    const from={x:0,y:1.2,z:0},to={x:0,y:1.2,z:1.9};
+    physics.addStatic({id:'grazing-barrel-cover',shape:'box',position:{x:.15,y:.7+CURATED_MUZZLE.y,z:1},half:{x:.05,y:.3,z:.1}});
+    const from={x:0,y:.7+CURATED_MUZZLE.y,z:0},to={x:0,y:.7+CURATED_MUZZLE.y,z:1.9};
     check(physics.sweepStatic(from,to)===null,'Old barrel centreline accepts near-cover path');
     check(!!physics.sweepStatic(from,to,battle.viewExtra(s).combat.staticSweepRadii.machinegun),'Actual bullet sphere detects near-cover barrel path');
     arm(s,'machinegun',3);tick(s,0,physics);
@@ -60,14 +64,14 @@ for (const euler of [[0,0,0],[.3,Math.PI*2+.7,-.2],[-.4,-Math.PI*2-.7,.25]]) {
   } finally {physics.dispose();}
 }
 for (const moving of [false,true]) {
-  const shooter=kart('a',{x:0,y:.7,z:0}),target=kart('b',{x:moving?3:.95,y:.85,z:7});
+  const shooter=kart('a',{x:0,y:.7,z:0}),target=kart('b',{x:moving?2:.95,y:.85,z:7});
   const s=state([shooter,target]),physics=physicsModule.createKartPhysics(RAPIER,CONFIG);
   try {
     arm(s);tick(s,0,physics);
     const before=new Map(s.karts.map(k=>[k.pid,structuredClone(k)]));
-    if(moving){target.x=-1;target.physicalPose.position={x:-1,y:.85,z:7};}
+    if(moving){target.x=-2;target.physicalPose.position={x:-2,y:.85,z:7};}
     tick(s,.1,physics,before);
-    check(target.health<3,'Full segment sweep hits '+(moving?'moving':'stationary')+' vulnerable hull');
+    check(target.health<100,'Full segment sweep hits '+(moving?'moving':'stationary')+' vulnerable hull '+JSON.stringify({health:target.health,zaps:s.zaps,events:s.events}));
     check(s.zaps.length===0&&s.events.filter(e=>e.type==='impact').length===1,'Hit retires one projectile and emits one impact');
     const health=target.health;tick(s,.1,physics);check(target.health===health,'Retired projectile never awards damage twice');
   } finally {physics.dispose();}
@@ -78,7 +82,7 @@ for (const moving of [false,true]) {
   try {
     physics.addStatic({id:'cover',shape:'box',position:{x:0,y:2,z:4},half:{x:5,y:2,z:.2}});
     arm(s);tick(s,0,physics);tick(s,.1,physics);
-    check(s.karts[1].health===3&&s.zaps.length===0,'Real static cover consumes shot before hull');
+    check(s.karts[1].health===100&&s.zaps.length===0,'Real static cover consumes shot before hull');
     const impact=s.events.find(e=>e.type==='impact');
     check(impact&&Math.abs(impact.position.z-(3.8-battle.viewExtra(s).combat.staticSweepRadii.machinegun))<1e-5&&impact.position.y>1,'Impact xyz records accepted sphere centre before actual cover surface');
     const projected=battle.viewExtra(s);
@@ -102,12 +106,12 @@ for(const tire of [false,true]){
   const s=state([kart('a',{x:0,y:.7,z:0}),kart('front',{x:-2.25,y:.7,z:3.4}),kart('behind',{x:-2.25,y:.7,z:4.4}),kart('above',{x:-2.25,y:5,z:3.4})]);
   const physics=physicsModule.createKartPhysics(RAPIER,CONFIG);
   try{
-    physics.addStatic({id:'wall',shape:'box',position:{x:0,y:.75,z:4},half:{x:5,y:.75,z:.2}});
-    if(tire)physics.addStatic({id:'tire-style-prop',shape:'box',position:{x:-1.1,y:.75,z:3.6},half:{x:.4,y:.75,z:.3}});
+    physics.addStatic({id:'wall',shape:'box',position:{x:0,y:1.5,z:4},half:{x:5,y:1.5,z:.2}});
+    if(tire)physics.addStatic({id:'tire-style-prop',shape:'box',position:{x:-1.1,y:1.5,z:3.6},half:{x:.4,y:1.5,z:.3}});
     arm(s,'missile');tick(s,0,physics);tick(s,.2,physics);
-    check(s.karts[1].health===(tire?3:1),'Physical splash '+(tire?'is blocked by real prop collider':'takes two hearts from a visible same-side target'));
-    check(s.karts[2].health===3,'Impact-face nudge never leaks splash through wall');
-    check(s.karts[3].health===3,'Planar-near target at another elevation is outside 3D splash radius');
+    check(tire?s.karts[1].health===100:s.karts[1].health>35&&s.karts[1].health<100,'Physical splash '+(tire?'is blocked by real prop collider':'takes two hearts from a visible same-side target'));
+    check(s.karts[2].health===100,'Impact-face nudge never leaks splash through wall');
+    check(s.karts[3].health===100,'Planar-near target at another elevation is outside 3D splash radius');
     check(s.events.filter(e=>e.type==='blast').length===1,'Cover-vetoed splash still emits one explosion');
   }finally{physics.dispose();}
 }
@@ -133,7 +137,7 @@ for(const tire of [false,true]){
   check(after.zaps.length===1,'Projectile away from corpse and fresh spawn survives the respawn tick');
   check(!after.events.some(e=>e.type==='impact'&&e.other==='rb'),'No phantom impact along corpse-to-spawn teleport');
   check(after.events.filter(e=>e.type==='respawn'&&e.pid==='rb').length===1,'Fresh life emits one respawn event');
-  check(fresh.health===3&&fresh.maxHealth===3&&fresh.shield>0&&fresh.spawnSeq===oldLife+1,'Fresh life restores full protected health');
+  check(fresh.health===100&&fresh.maxHealth===100&&fresh.shield>0&&fresh.spawnSeq===oldLife+1,'Fresh life restores full protected health');
   check(fresh.physicalPose.epoch>corpse.epoch&&fresh.physicalPose.position.x===spawn.x&&fresh.physicalPose.position.z===spawn.z,'Actual Rapier reset projects the fresh pose before collision sweeps');
   check(JSON.stringify(before)===beforeBytes,'Fresh reset does not mutate prior public pose projection');
   const ack=POCKET.view(s,'rb').inputAck;

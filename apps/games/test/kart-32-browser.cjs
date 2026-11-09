@@ -15,7 +15,7 @@ async function until(fn, label, ms = 15000) { const end = Date.now() + ms; while
 (async () => {
   const { decodeFrame } = await import('../public/js/toolkit/realtime/client.mjs');
   const { createKartBot } = await import('../tools/realtime/kart-bot.mjs');
-  const port = await new Promise(r => { const s = net.createServer().listen(0, '127.0.0.1', () => { const p = s.address().port; s.close(() => r(p)); }); });
+  const port = Number(process.env.KART32_PORT)||await new Promise(r => { const s = net.createServer().listen(0, '127.0.0.1', () => { const p = s.address().port; s.close(() => r(p)); }); });
   const url = 'http://127.0.0.1:' + port;
   const server = spawn(process.execPath, ['server/server.js'], { cwd: ROOT, env: { ...process.env, PORT: String(port), HOST: '127.0.0.1', NODE_ENV: 'test' }, stdio: ['ignore', 'pipe', 'pipe'] });
   let serverLog = ''; server.stdout.on('data', d => serverLog += d); server.stderr.on('data', d => serverLog += d);

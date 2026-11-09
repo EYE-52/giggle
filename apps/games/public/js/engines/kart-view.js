@@ -1,3 +1,4 @@
+import {createKartPickupPrediction} from './kart-pickup-prediction.mjs';
 import {waitKartPreparation} from './kart-warmup-scheduler.mjs';
 import {kartLightTier} from './kart-festive-lights.mjs';
 import {controlsPickerHtml,wirePickers,syncPickers} from '../pickers.js';
@@ -116,16 +117,13 @@ const WEAPON_ART = {
   proximity:'<svg viewBox="0 0 32 32" aria-hidden="true" fill="none" stroke-width="2"><ellipse cx="16" cy="21" rx="11" ry="6" fill="#829299"/><path d="M7 10c5-6 13-6 18 0m-15 4c3-3 8-3 11 0" stroke="#ff6154"/><circle cx="16" cy="21" r="3" fill="#ff6154"/></svg>',
   nuke:'<svg viewBox="0 0 32 32" aria-hidden="true"><path d="m16 2 6 8v15H10V10Z" fill="#e5d35b"/><circle cx="16" cy="17" r="5" fill="#393e41"/></svg>',
   laser:'<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="9" width="10" height="6" rx="2.5" fill="#fff6e8"/><rect x="11" y="10.6" width="11" height="2.8" rx="1.4" fill="#8ff8ff"/><circle cx="6" cy="12" r="1.6" fill="#35d5ff"/></svg>',
-  thunder:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 2 5 13.5h6L9.5 22 19 9.5h-6.2z" fill="#ffcb44" stroke="#25354b" stroke-width="1.2" stroke-linejoin="round"/></svg>',
-  boomerang:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5c5 0 10 4 15 13l-3 2C12 13 8 10 4 10z" fill="#ff8a3c"/><path d="M4 5c5 0 10 4 15 13" fill="none" stroke="#2fe8b0" stroke-width="1.6" stroke-linecap="round"/></svg>',
-  oil:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 16c0-3 4-4 9-4s9 1 9 4-4 5-9 5-9-2-9-5Z" fill="#1d1530"/><ellipse cx="14" cy="15.5" rx="4" ry="1.6" fill="#8e6cff" opacity=".8"/><path d="M12 2c2 3 3.5 5 3.5 6.8a3.5 3.5 0 0 1-7 0C8.5 7 10 5 12 2Z" fill="#1d1530"/></svg>',
   frost:'<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="6.5" fill="#a8ecff"/><path d="M12 2.5v19M3.8 7.2l16.4 9.6M3.8 16.8l16.4-9.6" stroke="#fff6e8" stroke-width="1.8" stroke-linecap="round"/></svg>',
   cluster:'<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="13" r="7" fill="#f2545b"/><circle cx="7" cy="9" r="2.4" fill="#ffcb44"/><circle cx="17" cy="9" r="2.4" fill="#ffcb44"/><circle cx="12" cy="18" r="2.4" fill="#ffcb44"/><rect x="10.5" y="2.5" width="3" height="4" rx="1.2" fill="#25354b"/></svg>',
   bouncer:'<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="10" r="7" fill="#ff6ad5"/><path d="M5.2 9.2c3.6 2 10 2 13.6 0" fill="none" stroke="#ffcb44" stroke-width="2"/><path d="M7 21h10" stroke="#8e6cff" stroke-width="2" stroke-linecap="round"/></svg>',
   ram:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7h9l7 5-7 5H3z" fill="#c3cdd8"/><path d="M19 12 12 7v10z" fill="#ffb347"/><path d="M1.5 10h3M1 14h3" stroke="#ff8a3c" stroke-width="1.8" stroke-linecap="round"/></svg>',
   crate: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="7" width="16" height="13" rx="2" fill="none" stroke="#9ad2d7" stroke-width="2"/><path d="M4 10.5h16M12 7v13" stroke="#9ad2d7" stroke-width="1.4" opacity=".7"/><circle cx="12" cy="13.5" r="2.4" fill="#9ad2d7"/></svg>',
 };
-Object.assign(WEAPON_ART,{machinegun:WEAPON_ART.pulse,trishot:WEAPON_ART.scatter,missile:WEAPON_ART.seeker,cannon:WEAPON_ART.rocket,blades:WEAPON_ART.boomerang,supernova:WEAPON_ART.shield});
+Object.assign(WEAPON_ART,{machinegun:WEAPON_ART.pulse,trishot:WEAPON_ART.scatter,missile:WEAPON_ART.seeker,cannon:WEAPON_ART.rocket,blades:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 10 2-8 5 4-4 5 7 5-5 4-5-6-7 6-3-6 8-2Z" fill="#65edc3"/><circle cx="12" cy="12" r="3" fill="#25354b"/></svg>' ,supernova:WEAPON_ART.shield});
 function weaponArt(kind) {
   return WEAPON_ART[kind] || WEAPON_ART.crate;
 }
@@ -146,9 +144,9 @@ const ITEMS = {
  machinegun:{label:'Machine Gun',action:'Fire machine gun',short:'FIRE'},trishot:{label:'Tri-Shot',action:'Fire tri-shot',short:'FIRE'},
  missile:{label:'Homing Missile',action:'Launch missile',short:'FIRE'},cannon:{label:'Cannon',action:'Fire cannon',short:'FIRE'},
  blades:{label:'Spinning Blades',action:'Spin blades',short:'SPIN'},supernova:{label:'Supernova',action:'Raise bubble',short:'COVER'},
- mine:{label:'Mine',action:'Drop mine',short:'DROP'},oil:{label:'Oil Slick',action:'Drop oil',short:'DROP'},
- frost:{label:'Frost Bomb',action:'Lob frost bomb',short:'FIRE'},thunder:{label:'Thunder Strike',action:'Call thunder',short:'FIRE'},
- boomerang:{label:'Boomerang',action:'Throw boomerang',short:'FIRE'},ram:{label:'Turbo Ram',action:'Activate ram',short:'RAM'},nuke:{label:'Nuke',action:'Launch nuke',short:'NUKE'},
+ mine:{label:'Mine',action:'Drop mine',short:'DROP'},
+ ram:{label:'Turbo Ram',action:'Activate ram',short:'RAM'},nuke:{label:'Nuke',action:'Launch nuke',short:'NUKE'},
+ frost:{label:'Frost Bomb',action:'Lob frost bomb',short:'FIRE'},
 };
 /* Classic arenas for the game-owned Results chooser. Use the same captured
  * map overviews as setup; profile keys keep these distinct from elevated maps.
@@ -199,6 +197,9 @@ export function createKartView(viewConfig) {
   let hitFx = null; // screen-edge flash, hit marker, toast and camera shake
   const roulette=createKartWeaponRoulette({now:()=>nowMs(),reducedMotion:()=>reducedMotion()});
   const arsenalEvents = []; // accepted events for the second-eight weapon effects
+  let predictedPickup=null;
+  const echoedFireIds=new Set();
+  const pickupPrediction=createKartPickupPrediction({now:()=>nowMs(),onPredict:c=>{predictedPickup=c;roulette.predict();audio?.cue('pickup');paintHud();},onReject:()=>{roulette.skip();paintHud();}});
   let mountGen = 0;
   let gl = null; // three-view handle (null in fallback)
   let sceneState = null;
@@ -226,15 +227,15 @@ export function createKartView(viewConfig) {
   /* Shots answer the press at once: the sound and recoil play locally and
    * the server's matching fire event is skipped, so a 150ms round trip no
    * longer delays the feel of a hit. One local cue absorbs one echo. */
-  let localFires = [], localRecoil = false, localRecoilAt = -1e9;
+  let localFires = [], localRecoil = false;
   function localFireCue() {
     const me = myKart();
-    if (!isBattle() || S?.phase !== 'drive' || !me || me.respawn || !(me.ammo > 0) || !ITEMS[me.weapon]) return;
+    if (!isBattle() || S?.phase !== 'drive' || !me || me.respawn || me.firing || localFires.some(f=>f.weapon===me.weapon&&nowMs()-f.at<800) || !(me.ammo > 0) || !ITEMS[me.weapon]) return;
     audio?.cue(me.weapon);
     localFires.push({ weapon: me.weapon, at: nowMs() });
     localRecoil = true;
     const kind=normalizeWeapon(me.weapon),pose=physicalLocalPose?.physicalPose||me.physicalPose;
-    if(['machinegun','trishot'].includes(kind)&&pose){
+    if(['machinegun','trishot','missile','cannon','frost','nuke'].includes(kind)&&pose){
       const q=pose.rotation,v={x:CURATED_MUZZLE.x,y:CURATED_MUZZLE.y,z:CURATED_MUZZLE.z},t={x:2*(q.y*v.z-q.z*v.y),y:2*(q.z*v.x-q.x*v.z),z:2*(q.x*v.y-q.y*v.x)};
       localFlash={kind,at:nowMs(),position:{x:pose.position.x+v.x+q.w*t.x+q.y*t.z-q.z*t.y,y:pose.position.y+v.y+q.w*t.y+q.z*t.x-q.x*t.z,z:pose.position.z+v.z+q.w*t.z+q.x*t.y-q.y*t.x},direction:weaponForward(q)};
     }
@@ -596,7 +597,7 @@ export function createKartView(viewConfig) {
       <details class="pk-board" id="pk-board">
       <summary class="pk-lead" id="pk-lead" aria-label="Leaderboard standings, expand for full timing"></summary>
       <div class="pk-standpanel"><span class="pk-goal" id="pk-goal">–</span><div class="pk-stand" id="pk-stand" aria-label="Standings"></div></div>
-      </details><span id="pk-health" class="pk-health kart-hearts" role="img" aria-label="3 of 3 hearts"></span></div>
+      </details><span id="pk-health" class="pk-health kart-hp" role="img" aria-label="100 of 100 HP"></span></div>
     </div>
     <div class="pk-count" id="pk-count" hidden></div>
     <div class="pk-tip" id="pk-tip" role="status" hidden></div>
@@ -865,7 +866,7 @@ export function createKartView(viewConfig) {
         const art = !battle ? BOOST_ART : loaded ? weaponThumbnailArt(me.weapon,weaponArt(me.weapon)) : CROSSHAIR_ART;
         const ammo = loaded ? `<span class="pk-fire-ammo">${esc(String(me.ammo))}</span>`
           : '<span class="pk-fire-ammo" hidden></span>';
-        tb.innerHTML = `<span class="pk-fire-art">${art}</span>${ammo}`;
+        tb.innerHTML = `<span class="pk-fire-art">${art}</span>${ammo}<span class="kart-fire-label" aria-hidden="true">${battle?'Fire':'Boost'}</span>`;
       }
       const label = !battle ? 'Boost'
         : loaded ? me.firing ? 'Weapon firing' : `Activate ${item.label}, full payload`
@@ -1178,17 +1179,16 @@ export function createKartView(viewConfig) {
       for(const k of S.karts||[]) {const bar=healthBars.add(k.pid);bar.visible=true;bar.position.y=-100;}
       for(const pool of rigPools.values())warm.add(pool[0]);
       for(const kind of ['frost','cluster','bomblet'])warm.add(combat.projectile(kind));
-      {const slick=combat.mine(true,'oil');placeGroundProp(THREE,slick,0,0,0,groundAt,world.propGroundAt||groundAt);warm.add(slick);}
       for(const object of arsenalFX.objects()){object.visible=true;warm.add(object);}
       {const dummy=new THREE.Group();arsenalFX.warmStatus(dummy);warm.add(dummy);}
       // Every deployed body is reserved before Ready, including both mine tints.
       const minePools=new Map(),grenadePools=new Map();
-      for(const kind of ['mine','oil'])for(const own of [true,false]){
+      for(const kind of ['mine'])for(const own of [true,false]){
         const key=kind+':'+own,pool=[];
         // Prepare shared footprints and per-trap scratch vectors now. Spare
         // traps have no ground position yet; fitting all of them to (0,0)
         // repeats thousands of road-height queries with no visible result.
-        for(let i=0;i<16;i++){const group=new THREE.Group(),prop=combat.mine(own,kind==='oil'?'oil':undefined);group.add(prop);group.userData.prop=prop;group.userData.poolKey=key;prepareGroundProp(THREE,group);group.visible=false;scene.add(group);pool.push(group);}
+        for(let i=0;i<16;i++){const group=new THREE.Group(),prop=combat.mine(own,undefined);group.add(prop);group.userData.prop=prop;group.userData.poolKey=key;prepareGroundProp(THREE,group);group.visible=false;scene.add(group);pool.push(group);}
         minePools.set(key,pool);warm.add(pool[0]);pool[0].visible=true;
       }
       for(const kind of ['nuke','frost']){
@@ -1201,13 +1201,12 @@ export function createKartView(viewConfig) {
         c.contactRadius=radius;c.contactInset=radius>0?shotContactInsets.get(key):0;
       }
       const cueBounds=new THREE.Box3(),cueCenter=new THREE.Vector3();
-      for(const kind of ['machinegun','trishot','missile','cannon','nuke','boomerang']) {
+      for(const kind of ['machinegun','trishot','missile','cannon','nuke']) {
         const pool=[];
         for(let i=0;i<64;i++){const object=combat.projectile(kind);object.userData.flight={x:0,y:0,z:0,angle:0,visible:false,direction:{x:0,y:0,z:0}};prepareShotContact(object,kind,S.combat?.staticSweepRadii?.[kind]||0);object.visible=false;scene.add(object);pool.push(object);}
         shotPools.set(kind,pool);pool[0].visible=true;warm.add(pool[0]);
         const tail=pool[0].userData.combat.tail;
-        // The boomerang's swirl is a spin disc, not a tracer to stretch.
-        if(tail&&kind!=='boomerang')for(let i=0;i<12;i++){
+        if(tail)for(let i=0;i<12;i++){
           const object=new THREE.Group(),mesh=tail.clone(false);object.add(mesh);
           cueBounds.setFromObject(object);cueBounds.getCenter(cueCenter);mesh.position.sub(cueCenter);
           object.name='CombatConfirmedShot';object.visible=false;scene.add(object);
@@ -1269,6 +1268,7 @@ export function createKartView(viewConfig) {
         // SAME helper the 2D fallback draws, so both renderers agree.
         const poses = framePoses(poseStore, S, intentForPrediction(), dt, nowMs(), { reducedMotion: rm, map: S.map, serverNow: serverNow() });
         const physicalSelf=physicalPrediction?.frame(S,intentForPrediction(),dt,nowMs(),serverNow());physicalLocalPose=physicalSelf;if(physicalSelf)poses.set(S.you,physicalSelf);for(const k of S.karts){if(k.pid===S.you)continue;const pose=physicalPrediction?.remote(k.pid,nowMs(),serverNow());if(pose)poses.set(k.pid,pose);}
+        const pickupPose=poses.get(S.you);pickupPrediction.update(myKart(),pickupPose?.physicalPose?.position||pickupPose,S.crates,S.phase==='drive'&&S.youDrive&&apiRef?.context?.().connected!==false);
         updateAudio();
         const effectDt=lastEffectTime===null?dt:Math.max(0,t-lastEffectTime);lastEffectTime=t;
         if(feedbackEpoch!==impactEpoch){
@@ -1277,21 +1277,23 @@ export function createKartView(viewConfig) {
           for(const e of combatEffects.values())returnMarker(e.mesh);
           combatEffects.clear();popSites.length=0;effectSeen.clear();
         }
+        if(predictedPickup){popSites.push({x:predictedPickup.x,y:(predictedPickup.groundY||0)+1,z:predictedPickup.z,t,kind:'pickup'});predictedPickup=null;}
         impactFX.update(effectDt);skids.update(effectDt);drivingFX.update(effectDt,S.phase==='drive'&&S.youDrive?(physicalLocalPose?.speed??myKart()?.speed??0):0,S.phase==='drive'&&S.youDrive&&((physicalLocalPose?.turbo??myKart()?.turbo)>0||myKart()?.boost>0||myKart()?.nitroActive===true));arsenalFX.update(effectDt);
-        while(arsenalEvents.length){const queued=arsenalEvents.shift();const age=Math.max(0,(nowMs()-queued.at)/1000);if(age>=.14)continue;const e=queued.event;arsenalFX.event(e,age);arsenalFX.react(e,karts,age);}
+        while(arsenalEvents.length){const queued=arsenalEvents.shift();const age=Math.max(0,(nowMs()-queued.at)/1000);if(age>=.14)continue;const e=queued.event;if(['fire','mine'].includes(e.type)&&e.pid===S.you&&echoedFireIds.has(e.id))continue;arsenalFX.event(e,age);arsenalFX.react(e,karts,age);}
         // Arena features: cannons, portals, fall zones (map.features + arenaEvents).
         structures.sync(S.map);structures.animate();
         arena.sync(S.map);arena.ingest(S.arenaEvents,S.karts);arena.animate(effectDt,t,S,poses);
         if(localFlash){
-          if(nowMs()-localFlash.at<140){const e={type:'fire',weapon:localFlash.kind,position:localFlash.position,direction:localFlash.direction};impactFX.emit(e,(nowMs()-localFlash.at)/1000);arsenalFX.event(e,(nowMs()-localFlash.at)/1000);}
+          if(nowMs()-localFlash.at<140){const e={type:'fire',pid:S.you,weapon:localFlash.kind,position:localFlash.position,direction:localFlash.direction};impactFX.emit(e,(nowMs()-localFlash.at)/1000);arsenalFX.event(e,(nowMs()-localFlash.at)/1000);arsenalFX.react(e,karts,(nowMs()-localFlash.at)/1000);}
           localFlash=null;
         }
-        if(localRecoil){localRecoil=false;localRecoilAt=nowMs();combat.recoil(karts.get(S.you)?.userData.rig);}
+        if(localRecoil){const rig=karts.get(S.you)?.userData.rig;if(rig){localRecoil=false;combat.recoil(rig);}}
         const acceptedEffects=feedback.current(nowMs());
         for(const cue of shotCues)if(cue.until<=nowMs())cue.object.visible=false;
         for(const e of acceptedEffects){if(effectSeen.has(e.id))continue;effectSeen.add(e.id);if(nowMs()-e.at>=140)continue;
-          if(e.at>=impactSince&&e.position&&!(e.kind==='fire'&&e.pid===S.you&&['machinegun','trishot'].includes(e.weapon)&&nowMs()-localRecoilAt<800)){impactFX.emit(e,(nowMs()-e.at)/1000);if(e.kind==='blast'&&e.weapon==='nuke'){const own=S.karts.find(k=>k.pid===S.you),p=own?.physicalPose?.position;if(own&&Math.hypot((p?.x??own.x)-e.position.x,(p?.y??0)-e.position.y,(p?.z??own.z)-e.position.z)<14)hitFx?.rumble?.();}}
-          if(e.kind==='fire'&&!(e.pid===S.you&&nowMs()-localRecoilAt<800))combat.recoil(karts.get(e.pid)?.userData.rig);
+          if(e.at>=impactSince&&e.position&&!(e.kind==='fire'&&e.pid===S.you&&echoedFireIds.has(e.sourceId))){impactFX.emit(e,(nowMs()-e.at)/1000);if(e.kind==='blast'&&e.weapon==='nuke'){const own=S.karts.find(k=>k.pid===S.you),p=own?.physicalPose?.position;if(own&&Math.hypot((p?.x??own.x)-e.position.x,(p?.y??0)-e.position.y,(p?.z??own.z)-e.position.z)<14)hitFx?.rumble?.();}}
+          if(e.kind==='fire'){const model=karts.get(e.pid);if(model){model.userData.fireKind=e.weapon;model.userData.fireUntil=e.at+160;}}
+          if(e.kind==='fire'&&!(e.pid===S.you&&echoedFireIds.has(e.sourceId)))combat.recoil(karts.get(e.pid)?.userData.rig);
           if((e.kind==='fire'||e.kind==='impact')&&e.position){
             let cue=null;
             for(const candidate of shotCues)if(candidate.kind===e.weapon&&(!cue||!candidate.object.visible||candidate.until<cue.until)){cue=candidate;if(!candidate.object.visible)break;}
@@ -1364,7 +1366,7 @@ export function createKartView(viewConfig) {
           if(mesh.visible&&S.phase==='drive')drivingFX.track(k.pid,mesh.position.x,mesh.position.y,mesh.position.z,pose.angle,pose.speed??k.speed,sliding,pose.driftCharge??k.driftCharge,surface,(pose.physicalPose||k.physicalPose)?.grounded!==false);
           healthBars.update(k.pid,k,mesh.position,(S.players||S.participants||[]).find(p=>p.id===k.pid)?.connected!==false);
           if(!mesh.visible)healthBars.add(k.pid).visible=false;
-          const equipped=k.ammo>0?k.weapon:null;
+          const equipped=k.respawn>0?null:k.ammo>0?k.weapon:k.bladesT>0?'blades':k.supernovaT>0?'supernova':k.rammingT>0?'ram':nowMs()<(mesh.userData.fireUntil||0)?mesh.userData.fireKind:null;
           if(mesh.userData.equipped!==equipped) {
             if(mesh.userData.rig){const old=mesh.userData.rig;old.removeFromParent();rigPools.get(old.userData.combat.kind)?.push(old);}
             mesh.userData.rig=equipped?rigPools.get(equipped)?.pop():null;
@@ -1447,7 +1449,7 @@ export function createKartView(viewConfig) {
             scene.add(group);
             crates.set(c.id, group);
           }
-          combat.animate(crates.get(c.id).userData.capsule,dt,t,rm);
+          const box=crates.get(c.id);box.visible=!pickupPrediction.hidden(c.id);box.userData.zone.visible=box.visible;combat.animate(box.userData.capsule,dt,t,rm);
         }
         for (const [cid, mesh] of crates) {
           if (!liveC.has(cid)) {
@@ -1509,7 +1511,7 @@ export function createKartView(viewConfig) {
         for (const m of currentM) {
           liveM.add(m.id);
           let mesh = mines.get(m.id);
-          if(!mesh){const key=(m.kind==='oil'?'oil':'mine')+':'+(m.owner===S.you);mesh=minePools.get(key).pop();mesh.visible=true;scene.add(mesh);mines.set(m.id,mesh);}
+          if(!mesh){const key='mine'+':'+(m.owner===S.you);mesh=minePools.get(key).pop();mesh.visible=true;scene.add(mesh);mines.set(m.id,mesh);}
           mesh.userData.prop.userData.combat.armed=m.armed;
           placeGroundProp(THREE,mesh,m.x,m.y??groundAt(m.x,m.z),m.z,groundAt,world.propGroundAt||groundAt);
           combat.animate(mesh.userData.prop,dt,t,rm);
@@ -1755,7 +1757,7 @@ export function createKartView(viewConfig) {
     }
     for (const z of (ordnanceFresh()?S.zaps:[]) || []) {
       const p=shotPlayback.sample(z,S,ordnanceNow(),{direction:{}});if(!p.visible)continue;
-      ctx.strokeStyle=z.kind==='trishot'?'#ffad69':z.kind==='cannon'?'#ffda58':z.kind==='missile'?'#91d451':z.kind==='boomerang'?'#ff8a3c':'#6af0ff';ctx.lineWidth=Math.max(2,.35*scale);
+      ctx.strokeStyle=z.kind==='trishot'?'#ffad69':z.kind==='cannon'?'#ffda58':z.kind==='missile'?'#91d451':'#6af0ff';ctx.lineWidth=Math.max(2,.35*scale);
       const angle=Number.isFinite(z.vx)&&Number.isFinite(z.vz)?Math.atan2(z.vx,z.vz):p.angle;
       ctx.beginPath();ctx.moveTo(px(p.x),pz(p.z));ctx.lineTo(px(p.x-Math.sin(angle)*2),pz(p.z-Math.cos(angle)*2));ctx.stroke();
     }
@@ -2213,7 +2215,7 @@ export function createKartView(viewConfig) {
     if(Snew?.audioBaseline||!S||Snew.instanceId!==S.instanceId||(Number.isFinite(S.simAt)&&Number.isFinite(Snew?.simAt)&&Snew.simAt-S.simAt>150)){
       firstEvents=true;feedback.reset();seenEvents.clear();feedbackEpoch++;
     }else if(life(Snew)!==life(S)){
-      feedback.clearPresentation();feedbackEpoch++;localFlash=null;
+      feedback.clearPresentation();feedbackEpoch++;localFlash=null;localFires.length=0;echoedFireIds.clear();localRecoil=false;
     }
     if (!rootEl || rootEl !== el) {
       // Shell re-mounted the element without mount(): rebuild, then apply
@@ -2225,7 +2227,7 @@ export function createKartView(viewConfig) {
       S = Snew;
       apiRef = api;
     }
-    roulette.sync(S.instanceId,S.inputAck?.life??myKart()?.spawnSeq);if(S.audioBaseline||S.phase==='done')roulette.skip();
+    roulette.sync(S.instanceId,S.inputAck?.life??myKart()?.spawnSeq);pickupPrediction.sync(S.instanceId,S.inputAck?.life??myKart()?.spawnSeq);if(S.audioBaseline||S.phase==='done')roulette.skip();
     if(advanced||Snew.audioBaseline){
       const arrival=nowMs();
       // Arrival alone would give a delayed packet a brand-new visual lease.
@@ -2264,7 +2266,8 @@ export function createKartView(viewConfig) {
       const me=myKart(),source=S.karts?.find(k=>k.pid===event.pid);
       const nearby=!S.youDrive||event.pid===S.you||event.other===S.you||
         (me&&source&&Math.hypot(me.x-source.x,me.z-source.z)<24);
-      const echoed=event.type==='fire'&&event.pid===S.you&&claimLocalFire(event);
+      const echoed=event.pid===S.you&&(['fire','mine'].includes(event.type)&&claimLocalFire(event)||event.type==='pickup'&&pickupPrediction.accept(event.crateId));
+      if(echoed&&['fire','mine'].includes(event.type)){echoedFireIds.add(event.id);if(echoedFireIds.size>64)echoedFireIds.delete(echoedFireIds.values().next().value);}
       if(event.type==='hit'&&event.pid===S.you&&event.weapon==='ram')audio?.cue('hitDing');
       if(nearby&&!echoed&&!(event.type==='ko'&&event.weapon==='nuke')){const cue=kartEventCue(event,S.you);if(cue)audio?.cue(cue);}
       if (event.pid !== S.you && event.other !== S.you) continue;
@@ -2274,7 +2277,7 @@ export function createKartView(viewConfig) {
       if(mineEvent&&event.other&&event.other!==S.you&&['hit','ko','block'].includes(event.type))hitFx?.landed(landedText(event));
       if(mineEvent&&event.type==='ko'&&event.other&&event.other!==S.you)hitFx?.knockout(nameOf(event.other));
       if (event.type === 'pickup' && mineEvent) {
-        roulette.begin(event.weapon);
+        pickupPrediction.accept(event.crateId);roulette.begin(event.weapon);
         const label = ITEMS[event.weapon]?.label || 'Item';
         if (!tutorialSeen()) {
           cueText = `${label} ready`;
@@ -2284,9 +2287,9 @@ export function createKartView(viewConfig) {
           cueText = `${label} ready`;
         }
       } else cueText = event.type === 'ko' ? (mineEvent ? `Knockout! ${nameOf(event.other)}` : `${nameOf(event.pid)} got you · back in a moment`)
-        : event.type === 'hit' && !mineEvent ? `${nameOf(event.pid)} hit you · −${event.damage||1} ♥`
+        : event.type === 'hit' && !mineEvent ? `${nameOf(event.pid)} hit you · −${event.damage||1} HP`
         : event.type === 'block' && !mineEvent ? 'Shield blocked a hit'
-        : event.type === 'respawn' ? 'Back in with full hearts'
+        : event.type === 'respawn' ? 'Back in with full HP'
         : event.type === 'shield' ? 'Shield ready · blocks the next hit' : '';
       if (cueText) { cueUntil = nowMs()+2400; api.announce(cueText); }
     }

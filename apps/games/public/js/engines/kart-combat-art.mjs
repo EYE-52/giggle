@@ -27,11 +27,6 @@ export function projectileContactInset(THREE,object,radius){
       point.fromBufferAttribute(positions,i).applyMatrix4(mesh.matrixWorld).applyMatrix4(inverse);
       // The disc banks and spins through every heading. Calibrate its full
       // sphere, not only the cylindrical envelope of a straight tracer.
-      if(combat.kind==='boomerang'){
-        const spinRadius=point.length();
-        if(spinRadius>radius)throw Error('Projectile art exceeds authoritative sweep radius');
-        inset=Math.max(inset,spinRadius-combat.tipZ);
-      }
       const radial=point.x*point.x+point.y*point.y;
       if(radial>radius*radius)throw Error('Projectile art exceeds authoritative sweep radius');
       inset=Math.max(inset,point.z+radius-combat.tipZ-Math.sqrt(radius*radius-radial));
@@ -715,7 +710,7 @@ export function createKartCombatArt(THREE, opts) {
   }
 
   function projectile(kind) {
-    if(CURATED_KINDS.includes(kind))return curated.projectile(kind);
+    if(['machinegun','trishot','missile','cannon'].includes(kind))return curated.projectile(kind);
     if (ARSENAL_SHOT_KINDS.includes(kind)) {
       const shot = arsenal.projectile(kind), c = shot.userData.combat, spec = ARSENAL_SHOT_GLOW[kind];
       if (!glowTex) glowTex = glowTexture(THREE);
@@ -788,7 +783,7 @@ export function createKartCombatArt(THREE, opts) {
   }
 
   function mine(own, kind) {
-    if (kind === 'oil') return arsenal.trap('oil', own);
+
     const isOwn = own !== false;
     const branch = libBranch('MineTrap', null)||libBranch('Mine', null);
     const object=branch?mineFromLib(isOwn,branch):mineFallback(isOwn),c=object.userData.combat;

@@ -692,10 +692,10 @@ await withGlobals({ document: makeEmitter() }, async () => {
   ok((await audio.ready()) === true, 'synth: pack ready');
   audio.update({ speed: 6, active: true });
   const fetched = loader.calls.length;
-  ok(SYNTH_CUE_NAMES.length === 27 && new Set(SYNTH_CUE_NAMES).size === 27, 'synth: distinct weapon, blast and hit-ding cues');
-  for (const weapon of ['laser', 'thunder', 'boomerang', 'oil', 'frost', 'cluster', 'bouncer', 'ram'])
+  ok(SYNTH_CUE_NAMES.length === 22 && new Set(SYNTH_CUE_NAMES).size === 22, 'synth: distinct weapon, blast and hit-ding cues');
+  for (const weapon of ['laser', 'frost', 'cluster', 'bouncer', 'ram'])
     ok(SYNTH_CUE_NAMES.includes(weapon), `synth: ${weapon} has its own fire cue`);
-  ok(['thunderClap', 'oilSkid', 'frostShatter', 'clusterPop', 'boing', 'ramClang'].every((n) => SYNTH_CUE_NAMES.includes(n)), 'synth: clap, skid, shatter, pop, boing and clang cues');
+  ok(['frostShatter', 'clusterPop', 'boing', 'ramClang'].every((n) => SYNTH_CUE_NAMES.includes(n)), 'synth: clap, skid, shatter, pop, boing and clang cues');
   ok(SYNTH_CUE_NAMES.filter(n=>!['mine','nuke','nukeBlast'].includes(n)).every((n) => !CUE_NAMES.includes(n) && !(n in ASSET_MAP)), 'synth: no sample file backs a synthesized cue');
   ok(JSON.stringify(audio.synthCues()) === JSON.stringify(SYNTH_CUE_NAMES) && audio.cues().length === CUE_NAMES.length, 'synth: separate cue list, sampled list unchanged');
   const signatures = new Map();

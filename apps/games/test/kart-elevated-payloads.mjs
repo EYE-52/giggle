@@ -22,12 +22,12 @@ function tap(w){assert(send(w,'a',{use:true}).ok);assert(send(w).ok);step(w);}
 for(const [weapon,count] of [['machinegun',30],['trishot',9]]){
  const w=armed(weapon);try{
   tap(w);const fires=new Map(w.snapshot().events.filter(e=>e.type==='fire').map(e=>[e.id,e]));
-  check(kart(w).firing===true&&kart(w).weapon===weapon&&kart(w).ammo===count-1,weapon+' publishes the in-progress inventory after one tap');
+  check(kart(w).firing===true&&kart(w).weapon===weapon&&kart(w).ammo===count-(weapon==='trishot'?3:1),weapon+' publishes the in-progress inventory after one tap');
   step(w,150,s=>{for(const e of s.events)if(e.type==='fire')fires.set(e.id,e);});
-  check([...fires.values()].filter(e=>e.weapon===weapon).length===count,weapon+' one tap and release delivers every payload round after input TTL');
+  check([...fires.values()].filter(e=>e.weapon===weapon).length===count/(weapon==='trishot'?3:1),weapon+' one tap and release delivers every payload round after input TTL');
   check(kart(w).firing===false,weapon+' completes its bounded sequence');
   step(w,80,s=>{for(const e of s.events)if(e.type==='fire')fires.set(e.id,e);});
-  check(fires.size===count,weapon+' never activates a subsequent pickup automatically');
+  check(fires.size===count/(weapon==='trishot'?3:1),weapon+' never activates a subsequent pickup automatically');
   metrics.push({weapon,rounds:fires.size});
  }finally{w.dispose();}
 }

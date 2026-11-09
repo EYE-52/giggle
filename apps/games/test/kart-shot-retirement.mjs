@@ -19,7 +19,7 @@ const source=fs.readFileSync(new URL('../public/js/engines/kart-view.js',import.
 const freshness=source.slice(source.indexOf('function ordnanceFresh('),source.indexOf('/* Calibrated server time'));
 const preparation=source.slice(source.indexOf('function prepareShotContact('),source.indexOf('const cueBounds='));
 const placement=source.slice(source.indexOf('const liveZ = new Set();'),source.indexOf('for (const [zid, mesh] of zaps)'));
-const kinds=['machinegun','trishot','missile','cannon','boomerang'];
+const kinds=['machinegun','trishot','missile','cannon'];
 for(const kind of kinds){
  const scene=new THREE.Scene(),art=createKartCombatArt(THREE),fx=createKartImpactFX(THREE,scene),shotPlayback=createProjectilePlayback();shotPlayback.setDelay(350);
  const shot={id:'shot',kind,physical:true,x:0,y:1,z:0,vx:0,vy:0,vz:50,angle:0,ttl:2};for(let at=1000;at<=1600;at+=100)shotPlayback.ingest([{...shot,z:(at-1000)*.05}],at);
@@ -51,8 +51,8 @@ for(const kind of ['nuke','frost']){
 }
 const r=rig({graphics:true});let s=base();s.simAt=1000;r.render(s);const gl=await r.settle();r.frame();
 const liveBodies=()=>gl.built.scene.children.filter(o=>o.visible&&o.userData.poolKey&&/^(shot|grenade|warning|mine):/.test(o.userData.poolKey));
-for(const kind of [...kinds,'nuke','frost','mine','oil']){
- const prefix=['nuke','frost'].includes(kind)?'grenades':['mine','oil'].includes(kind)?'mines':'projectiles';s=structuredClone(s);s.simTick++;s.simAt+=1000;
+for(const kind of [...kinds,'nuke','frost','mine']){
+ const prefix=['nuke','frost'].includes(kind)?'grenades':['mine'].includes(kind)?'mines':'projectiles';s=structuredClone(s);s.simTick++;s.simAt+=1000;
  const item={id:'same-slot',weapon:kind,owner:'a',position:{x:0,y:1,z:3},velocity:{x:0,y:0,z:50},ttl:2,fuse:2,warning:true};s.projectiles=[];s.grenades=[];s.mines=[];s[prefix]=[item];
  s.simAt=r.api.now();r.render(s);r.advance(100);r.frame();const started=r.allocations();
  bound('raised dropped '+kind,100+lastVisible(ms=>{if(ms)r.advance(10);r.frame(.01);},()=>liveBodies().length>0));

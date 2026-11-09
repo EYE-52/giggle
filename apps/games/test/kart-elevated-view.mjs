@@ -1,3 +1,4 @@
+import {createKartPickupPrediction} from '../public/js/engines/kart-pickup-prediction.mjs';
 import {waitKartPreparation} from '../public/js/engines/kart-warmup-scheduler.mjs';
 import {createKartLod} from '../public/js/engines/kart-lod.mjs';
 import {createRaisedPoseSupport} from '../public/js/engines/kart-raised-support.mjs';
@@ -10,7 +11,7 @@ import {createKartArenaFeatures} from '../public/js/engines/kart-arena-features-
 import {surfaceProfile} from '../public/js/engines/kart-surface.mjs';
 import {driftTier,DRIFT_TIERS} from '../public/js/engines/kart-drift.mjs';
 import {cleanKartLook,kartPaintHex} from '../public/js/engines/kart-looks.mjs';
-import {WEAPON_IDS as combatWeaponIds} from '../public/js/engines/kart-weapon-contract.mjs';
+import {WEAPON_IDS as combatWeaponIds,CURATED_MUZZLE,weaponForward} from '../public/js/engines/kart-weapon-contract.mjs';
 import {paintKartWeapon,createKartWeaponRoulette} from '../public/js/engines/kart-weapon-hud.mjs';
 import {kartResultView} from '../public/js/engines/kart-results.mjs';
 import {createKartImpactFX} from '../public/js/engines/kart-impact-fx.mjs';
@@ -239,7 +240,7 @@ for(const mapId of elevatedMapIds)for(const room of [true,false])for(const touch
 {
   const r=rig();r.api.context=()=>({isHost:true,sound:true});r.render();await r.settle();
   const weapons=Object.keys(COMBAT.arsenal.weights);
-  check('cue coverage uses all sixteen actual authority weapons',weapons.length===13);
+  check('cue coverage uses all sixteen actual authority weapons',weapons.length===10);
   for(const weapon of weapons){
     const name=weapon;
     r.render({...base(),events:[{id:'fire-'+weapon,type:weapon==='mine'?'mine':weapon==='shield'?'shield':'fire',weapon,pid:'a',position:{x:0,y:1,z:2}}]});
@@ -433,7 +434,7 @@ for(const missingDrivers of [['bunny'],['fox','bunny','panda','raccoon']]){
   check('loading restores kart culling and uses just one shadow caster per detailed model',raisedKarts.every(k=>{let casters=0;k.traverse(o=>{if(o.isMesh&&o.castShadow)casters++;});return k.frustumCulled&&casters===1&&k.getObjectByName('KartShadowProxy').layers.mask===2;}));
   check('all twelve prepared particle buffers remain attached after warming',effectPool.length===12&&effectPool.every(o=>o.parent===built.scene&&!o.visible));
   const projectilePool=r.projectiles.filter(o=>o.userData.combat?.contactRadius>0);
-  check('all reserved projectile bodies stay off the live scene graph',projectilePool.length>300&&projectilePool.every(o=>o.parent===null));
+  check('all reserved projectile bodies stay off the live scene graph',projectilePool.length===Object.keys(COMBAT.staticSweepRadii).length*64&&projectilePool.every(o=>o.parent===null));
   for(const [kind,radius]of Object.entries(COMBAT.staticSweepRadii)){
     const prepared=projectilePool.filter(o=>o.userData.combat.kind===kind);
     check(kind+' all 64 warmed shots share cached authoritative contact calibration',prepared.length===64&&prepared.every(o=>o.userData.combat.contactRadius===radius&&o.userData.combat.contactInset>=.005&&o.userData.combat.contactInset===prepared[0].userData.combat.contactInset));
@@ -534,21 +535,21 @@ for(const missingDrivers of [['bunny'],['fox','bunny','panda','raccoon']]){
 }
 // Current health and accepted weapon/KO events must agree in the actual scene.
 {
-  const r=rig({graphics:true}),start=base();for(const k of start.karts){k.health=3;k.maxHealth=3;}
+  const r=rig({graphics:true}),start=base();for(const k of start.karts){k.health=100;k.maxHealth=100;}
   r.render(start);await r.settle();r.frame();
   const scene=r.loads.at(-1).handle.built.scene,model=scene.children.filter(o=>o.name==='GiggleKart')[0];
   const flashes=scene.children.filter(o=>o.name==='CombatMuzzleFlash'),allocation=r.allocations();
   const bar=scene.getObjectByName('KartHealth:a'),otherBar=scene.getObjectByName('KartHealth:b');
-  check('elevated full-health players prepare hidden scene bars before live play',bar&&!bar.visible&&otherBar&&!otherBar.visible);
+  check('elevated full-health players prepare hidden scene bars before live play',bar&&bar.visible&&otherBar&&otherBar.visible);
   check('all twelve muzzle flashes and each active kart are prepared before gameplay',flashes.length===12&&scene.children.filter(o=>o.name==='GiggleKart').length===start.karts.length);
   const hearts=()=>r.node('health').children;
-  check('elevated HUD starts with three full hearts',hearts().length===3&&hearts().every(h=>h.dataset.full==='true')&&r.node('health').getAttribute('aria-label')==='3 of 3 hearts');
-  const hit=structuredClone(start);hit.simTick=2;hit.simAt=100;hit.karts[0].health=2;hit.events=[{id:1,type:'hit',pid:'b',other:'a',damage:1,health:2,maxHealth:3,weapon:'machinegun',position:{x:0,y:1,z:3}}];
+  check('elevated HUD starts with three full hearts',r.node('health').dataset.hp==='100'&&r.node('health').getAttribute('aria-label')==='100 of 100 HP');
+  const hit=structuredClone(start);hit.simTick=2;hit.simAt=100;hit.karts[0].health=95;hit.events=[{id:1,type:'hit',pid:'b',other:'a',damage:5,health:95,maxHealth:100,weapon:'machinegun',position:{x:0,y:1,z:3}}];
   r.render(hit);r.frame();
-  check('nonlethal accepted hit empties one HUD heart without hiding the kart',r.node('health').getAttribute('aria-label')==='2 of 3 hearts'&&hearts().map(h=>h.dataset.full).join()==='true,true,false'&&model.visible);
-  check('only the heart just lost pops',hearts().map(h=>h.getAttribute('data-pop')!==null).join()==='false,false,true');
-  const [fullHeart,,emptyHeart]=bar.children;
-  check('elevated scene hearts show authoritative 2 of 3 above the world chassis',bar.visible&&bar.children.length===3&&bar.children[1].material===fullHeart.material&&emptyHeart.material!==fullHeart.material&&Math.abs(bar.position.y-model.position.y-3)<1e-9);
+  check('nonlethal accepted hit empties one HUD heart without hiding the kart',r.node('health').getAttribute('aria-label')==='95 of 100 HP'&&r.node('health').querySelector('.kart-hp-fill').style.transform==='scaleX(0.95)'&&model.visible);
+  check('only the heart just lost pops',r.node('health').getAttribute('data-shake')!==null);
+  const [track,fullHeart]=bar.children;
+  check('elevated scene hearts show authoritative 2 of 3 above the world chassis',bar.visible&&bar.children.length===2&&bar.children[1].scale.x===.95&&Math.abs(bar.position.y-model.position.y-3)<1e-9);
   check('elevated billboard faces the final chase camera and remains depth occluded',bar.quaternion.equals(r.loads.at(-1).handle.built.camera.quaternion)&&bar.children.every(o=>o.material.depthTest&&!o.material.depthWrite&&!o.material.map));
   check('first elevated damage adds no graphics resources',JSON.stringify(r.allocations())===JSON.stringify(allocation));
   const flash=r.el.querySelector('.kart-hitfx-flash');
@@ -556,7 +557,7 @@ for(const missingDrivers of [['bunny'],['fox','bunny','panda','raccoon']]){
   flash.removeAttribute('data-on');r.render(hit);r.frame();check('repeated authoritative hit does not replay damage',flash.getAttribute('data-on')===null);
   const landed=structuredClone(hit);landed.simTick=2;landed.events=[...hit.events,{id:'landed',type:'hit',pid:'a',other:'b',damage:2,health:1,maxHealth:3,weapon:'missile',position:{x:10,y:1,z:0}}];
   r.render(landed);r.frame();
-  check('own landed hit shows the hit marker and heart count toast',r.el.querySelector('.kart-hitfx-marker').getAttribute('data-on')===''&&r.el.querySelector('.kart-hitfx-toast').textContent==='+2');
+  check('own landed hit shows the hit marker and heart count toast',r.el.querySelector('.kart-hitfx-marker').getAttribute('data-on')===''&&r.el.querySelector('.kart-hitfx-toast').textContent==='−2 HP');
   const fire=structuredClone(hit);fire.simTick=3;fire.simAt=150;fire.events=[{id:2,type:'fire',weapon:'missile',pid:'a',position:{x:4,y:1,z:5},direction:{x:1,y:0,z:0}}];
   r.render(fire);r.frame();
   const muzzle=flashes.find(o=>o.visible);
@@ -583,10 +584,10 @@ for(const missingDrivers of [['bunny'],['fox','bunny','panda','raccoon']]){
   r.advance(700);r.frame(.1);check('wreck retires after its bounded collapse animation',!model.visible);
   const respawn=structuredClone(start);respawn.simTick=ko.simTick+1;respawn.simAt=r.api.now();respawn.karts[0].spawnSeq=2;respawn.karts[0].pose.position={x:20,y:.64,z:20};
   r.render(respawn);r.frame();
-  check('new life restores three full hearts and actual spawn without stale wreck transform',model.visible&&model.scale.x===1&&model.position.x===20&&model.position.z===20&&hearts().every(h=>h.dataset.full==='true')&&r.node('health').dataset.life==='2');
-  check('elevated full-health respawn hides its overhead bar',!bar.visible);
+  check('new life restores three full hearts and actual spawn without stale wreck transform',model.visible&&model.scale.x===1&&model.position.x===20&&model.position.z===20&&r.node('health').dataset.hp==='100'&&r.node('health').dataset.life==='2');
+  check('elevated full-health respawn shows its overhead bar',bar.visible);
   const watch=structuredClone(respawn);watch.simTick=respawn.simTick+1;watch.simAt=r.api.now();watch.you='watcher';watch.youDrive=false;watch.karts[1].health=1;watch.karts[1].pose.position.y=7;r.render(watch);r.frame();check('watcher has no invented personal health bar',r.node('health').hidden);
-  check('watcher sees remote wounded player at its elevated world height',otherBar.visible&&Math.abs(otherBar.position.y-scene.children.filter(o=>o.name==='GiggleKart')[1].position.y-3)<1e-9&&otherBar.children.filter(h=>h.material===fullHeart.material).length===1);
+  check('watcher sees remote wounded player at its elevated world height',otherBar.visible&&Math.abs(otherBar.position.y-scene.children.filter(o=>o.name==='GiggleKart')[1].position.y-3)<1e-9&&otherBar.children[1].scale.x===.01);
   const offline=structuredClone(watch);offline.simTick=watch.simTick+1;offline.simAt=r.api.now();offline.karts[1].connected=false;r.render(offline);r.frame();check('disconnected elevated player hides its overhead bar',!otherBar.visible);
   r.view.dispose();check('elevated disposal detaches every scene health bar',bar.parent===null&&otherBar.parent===null);
 }

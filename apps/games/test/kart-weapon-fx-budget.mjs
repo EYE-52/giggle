@@ -9,8 +9,8 @@ let resources=0;
 const tracked={...THREE};
 for(const name of Object.keys(THREE).filter(n=>/Geometry$|Material$/.test(n)&&typeof THREE[n]==='function'))tracked[name]=class extends THREE[name]{constructor(...a){super(...a);resources++;}};
 const scene=new THREE.Scene(),art=createKartCombatArt(tracked),impact=createKartImpactFX(tracked,scene),arsenal=createArsenalFX(tracked,scene);
-const shots=['machinegun','trishot','missile','cannon','boomerang','nuke','frost'];
-const rigs=WEAPON_IDS.map(kind=>art.weapon(kind)),bodies=shots.map(kind=>art.projectile(kind)),traps=[art.mine(true),art.mine(false),art.mine(true,'oil')];
+const shots=['machinegun','trishot','missile','cannon','nuke','frost'];
+const rigs=WEAPON_IDS.map(kind=>art.weapon(kind)),bodies=shots.map(kind=>art.projectile(kind)),traps=[art.mine(true),art.mine(false)];
 for(const body of bodies){let n=0;body.traverse(o=>{if(o.isMesh)n++;});assert(n<=COMBAT_ART_BUDGETS.projectile,'readability stays inside the projectile draw budget');}
 const model=new THREE.Group();arsenal.warmStatus(model);arsenal.reset();
 const models=new Map([['driver',model]]);
@@ -27,12 +27,12 @@ for(let lap=0;lap<30;lap++)for(const weapon of WEAPON_IDS){
 // Even a new instance for an exhausted reserve borrows prepared resources.
 for(const weapon of WEAPON_IDS)art.weapon(weapon);
 for(const kind of shots)art.projectile(kind);
-art.mine(true);art.mine(false);art.mine(true,'oil');
+art.mine(true);art.mine(false);
 assert.equal(resources,baseline,'every fire, impact, trail, animation and replacement instance reuses geometry and materials');
 impact.update(2);arsenal.update(2);
 assert(scene.getObjectByName('KartImpactFX').children.every(o=>!o.visible)&&!arsenal.active(),'stress effects retire');
 // The trail stores world positions from accepted playback, including return.
-const blade=bodies[shots.indexOf('boomerang')],root=scene.getObjectByName('KartImpactFX'),trail=scene.getObjectByName('KartWeaponTrails');
+const blade=bodies[shots.indexOf('frost')],root=scene.getObjectByName('KartImpactFX'),trail=scene.getObjectByName('KartWeaponTrails');
 impact.reset();
 const fireVersion=root.children[0].geometry.attributes.fxLife.version;
 for(let i=0;i<12;i++){blade.position.set(i<6?i:12-i,1,4);impact.trail(blade,.03);impact.update(.03);}
@@ -59,17 +59,12 @@ const muzzle=model.getObjectByName('KartWeaponMuzzleFlash');
 assert(muzzle.visible,'a warm muzzle flash is attached to the firing kart');
 assert(muzzle.parent.parent===model,'the flash follows the kart as it moves');
 arsenal.update(.15);arsenal.status(model,{});assert(!muzzle.visible,'attached muzzle flash retires after .14 seconds');
-event.weapon='thunder';event.type='blast';arsenal.event(event);
-const sky=scene.getObjectByName('ThunderSkyFlash');
-arsenal.update(.1);assert(sky.visible,'thunder flashes the whole viewport at 100 ms');
-arsenal.update(.2);assert(!sky.visible&&!scene.getObjectByName('ThunderBolt0').visible,'the tall bolt and screen flash both retire before 150ms');
-arsenal.update(.3);assert(!arsenal.active(),'thunder bolt and ground ring retire by .6 seconds');
 const quietScene=new THREE.Scene(),quiet=createKartImpactFX(tracked,quietScene,{reducedMotion:true});
 quiet.trail(blade,.05);quiet.update(0);
 assert(quietScene.getObjectByName('KartImpactFX').children.every(o=>!o.visible),'reduced motion suppresses travelling breadcrumbs');
 const quietArsenal=createArsenalFX(tracked,quietScene,{reducedMotion:true});
 quietArsenal.event(event);
-assert(!quietScene.getObjectByName('ThunderSkyFlash').visible,'reduced motion suppresses the viewport-wide lightning flash');
+assert(!quietScene.getObjectByName('ThunderSkyFlash'),'retired lightning allocates no screen flash');
 quietArsenal.update(.601);assert(!quietArsenal.active(),'reduced lightning still retires on time');quietArsenal.dispose();
 quiet.dispose();quiet.trail(blade,.05);
 art.dispose();impact.dispose();arsenal.dispose();

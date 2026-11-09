@@ -7,15 +7,7 @@
 .pke *{box-sizing:border-box}.pke [hidden]{display:none!important}
 .pke-stage{position:absolute;inset:0;touch-action:none;user-select:none;-webkit-user-select:none}.pke-stage canvas{display:block;width:100%;height:100%;outline:none}
 .pke-health{position:absolute;right:16px;top:calc(64px + env(safe-area-inset-top,0px));padding:0;pointer-events:none;filter:drop-shadow(0 2px 0 #00000080)}
-/* Hearts HUD and hit feedback (kart-hearts.mjs). Every animation ends on its own. */
-.kart-hearts{display:flex;align-items:center;gap:3px}
-.kart-heart{display:block;width:22px;height:22px;line-height:0}
-.kart-heart svg{width:100%;height:100%;overflow:visible}
-.kart-heart path{fill:#ff5068;stroke:#fff;stroke-width:2;stroke-linejoin:round}
-.kart-heart[data-full="false"] path{fill:rgba(20,24,32,.55);stroke:rgba(255,255,255,.55)}
-.kart-hearts[data-guard="true"] .kart-heart path{stroke:#7fe3ff}
-.kart-heart[data-pop]{animation:kart-heart-pop .45s var(--ease,ease-out) both}
-@keyframes kart-heart-pop{0%{transform:scale(1.55) rotate(-8deg)}40%{transform:scale(.7) rotate(6deg)}100%{transform:none}}
+/* HP HUD and hit feedback (kart-hearts.mjs). Every animation ends on its own. */
 .kart-hitfx{position:absolute;inset:0;pointer-events:none;z-index:6;overflow:hidden}
 .kart-hitfx>*{position:absolute;opacity:0}
 .kart-hitfx-flash{inset:0;box-shadow:inset 0 0 90px 18px rgba(255,40,72,.75)}
@@ -27,7 +19,7 @@
 .kart-hitfx-toast{left:50%;top:36%;transform:translateX(-50%);font:800 24px/1 var(--font-display,system-ui),sans-serif;color:#ffe066;text-shadow:0 2px 0 #3a1d00,0 0 8px rgba(0,0,0,.6);white-space:nowrap}
 .kart-hitfx-toast[data-on]{animation:kart-hitfx-toast .8s ease-out both}
 @keyframes kart-hitfx-toast{0%{opacity:0;transform:translate(-50%,8px) scale(.8)}15%{opacity:1;transform:translate(-50%,0) scale(1.1)}70%{opacity:1}100%{opacity:0;transform:translate(-50%,-14px)}}
-@media(prefers-reduced-motion:reduce){.kart-heart[data-pop],.kart-hitfx-marker[data-on],.kart-hitfx-toast[data-on]{animation-name:kart-hitfx-fade}.kart-hitfx-flash[data-on]{animation-duration:.25s}}
+@media(prefers-reduced-motion:reduce){.kart-hitfx-marker[data-on],.kart-hitfx-toast[data-on]{animation-name:kart-hitfx-fade}.kart-hitfx-flash[data-on]{animation-duration:.25s}}
 @keyframes kart-hitfx-fade{0%{opacity:1}100%{opacity:0}}
 .pke button,.pke select{font:inherit;color:var(--ink);border:2px solid var(--outline);background:var(--card);border-radius:var(--radius-lg,16px);min-height:44px;box-shadow:0 var(--lift-sm,2px) 0 var(--outline);padding:10px 16px;cursor:pointer;touch-action:manipulation}
 .pke-panel button,.pke-loading button,.pke-result button{transition:transform var(--dur-quick,.2s) var(--ease,ease-out)}.pke-panel button:active,.pke-loading button:active,.pke-result button:active{transform:translateY(var(--lift-sm,2px));box-shadow:none}
@@ -131,8 +123,56 @@ body.game-immersive:has(.pke) #gbody>#rematch{bottom:18px;background:var(--card)
 .pke-speed .kart-gear { align-self:center; width:26px; height:26px; font-size:14px; margin-left:4px; }
 
 :is(.pk,.pke) [data-state="roulette"] .kart-item-art{outline:3px solid #ffd34a;outline-offset:2px;filter:drop-shadow(0 0 7px #ffe066);}
-.kart-hearts[data-shake]{animation:kart-hearts-shake .28s ease-out;}
-@keyframes kart-hearts-shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-5px) rotate(-4deg)}65%{transform:translateX(4px) rotate(3deg)}}
-@media(prefers-reduced-motion:reduce){.kart-hearts[data-shake]{animation:none}}
+.kart-hp[data-shake]{animation:kart-hp-shake .28s ease-out;}
+@keyframes kart-hp-shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-5px) rotate(-4deg)}65%{transform:translateX(4px) rotate(3deg)}}
+@media(prefers-reduced-motion:reduce){.kart-hp[data-shake]{animation:none}}
 
 .pke-drift{font:800 13px/1.2 var(--font-display);text-shadow:0 2px 0 #172b41,0 0 6px #172b41;letter-spacing:.03em}
+
+/* Weapon/HP contract: fixed slots, visible names and ammo in both themes. */
+:is(.pk,.pke) .kart-hp{display:flex;align-items:center;gap:var(--space-8);width:calc(var(--space-64) * 3);padding:var(--space-8);border:2px solid var(--outline);border-radius:var(--radius-md);background:var(--card);color:var(--ink);filter:none;text-shadow:none}
+.kart-hp-track{display:block;flex:1;height:var(--space-12);overflow:hidden;border-radius:var(--radius-sm);background:var(--well);border:1px solid var(--line-strong)}
+.kart-hp-fill{display:block;width:100%;height:100%;background:var(--success);transform-origin:left center}
+.kart-hp[data-low="true"] .kart-hp-fill{background:var(--danger)}
+.kart-hp-value{min-width:var(--space-48);font:var(--text-caption);font-variant-numeric:tabular-nums}
+:is(.pk,.pke) .kart-item.kart-item{display:grid;grid-template-columns:var(--space-64) 1fr auto;grid-template-rows:1fr var(--space-8);gap:var(--space-4) var(--space-8);width:calc(var(--space-64)*4);height:calc(var(--space-48)*2);padding:var(--space-8);border:2px solid var(--outline);border-radius:var(--radius-lg);background:var(--card);color:var(--ink);box-shadow:var(--shadow-sticker);text-shadow:none}
+:is(.pk,.pke) .kart-item.kart-item .kart-item-art{grid-row:1/3;width:var(--space-64);height:var(--space-64);border:2px solid var(--outline);border-radius:var(--radius-md);background:var(--well);box-shadow:none}
+:is(.pk,.pke) .kart-item.kart-item .kart-item-art :is(img,svg){width:var(--space-64);height:var(--space-64)}
+:is(.pk,.pke) .kart-item.kart-item .kart-item-copy{position:static;width:auto;height:auto;clip-path:none;white-space:normal;overflow:hidden;align-self:center;gap:var(--space-4)}
+:is(.pk,.pke) .kart-item.kart-item .kart-item-copy strong{font:var(--text-button-sm);white-space:normal;overflow:visible}
+:is(.pk,.pke) .kart-item.kart-item .kart-item-copy small{display:block;font:var(--text-caption);color:var(--ink-dim)}
+:is(.pk,.pke) .kart-item.kart-item .kart-item-count{position:static;align-self:center;min-width:0;padding:0;border:0;border-radius:0;background:none;color:var(--ink);box-shadow:none;font:var(--text-title)}
+:is(.pk,.pke) .kart-item.kart-item .kart-item-key{right:var(--space-8);top:var(--space-8);bottom:auto;font:var(--text-caption)}
+.kart-ammo-pips{display:flex;grid-column:2/4;gap:var(--space-4);height:var(--space-8)}
+.kart-ammo-pips i{display:block;flex:1;background:var(--well);border:1px solid var(--line-strong);border-radius:var(--radius-sm)}
+.kart-ammo-pips i[data-full="true"]{background:var(--fam);border-color:var(--fam-lip)}
+:is(.pk,.pke) .kart-item.kart-item[data-state="roulette"] .kart-item-art{outline:2px solid var(--fam);filter:none}
+:is(.pk,.pke) .kart-item.kart-item[data-state="active"] .kart-item-copy small{color:var(--fam-deep)}
+.pk .pk-readout,.pk.pk-touch-enabled .pk-readout{width:auto;max-width:none;left:50%;bottom:var(--space-16);transform:translateX(-50%);padding:0}
+.pk.pk-touch-enabled .pk-readout .pk-instruments{display:none}
+.pke .pke-bottom,.pke.pke-touch-mode .pke-bottom{left:50%;bottom:var(--space-16);transform:translateX(-50%)}
+@media(max-width:650px){
+ :is(.pk,.pke) .kart-item.kart-item{width:calc(var(--space-64)*4);height:calc(var(--space-48)*2)}
+ .pk.pk-touch-enabled .pk-readout,.pke.pke-touch-mode .pke-bottom{bottom:calc(var(--space-48)*3 + var(--space-16) + env(safe-area-inset-bottom,0px))}
+ .pke.pke-touch-mode .pke-speed{display:none}
+ :is(.pk,.pke) .kart-item.kart-item .kart-item-key{display:none}
+ :is(.pk,.pke) .kart-hp{width:calc(var(--space-64)*2 + var(--space-32))}
+}
+@media(max-height:450px){.pk.pk-touch-enabled .pk-readout,.pke.pke-touch-mode .pke-bottom{bottom:var(--space-16)}:is(.pk,.pke) .kart-item.kart-item{width:calc(var(--space-64)*3);height:calc(var(--space-48) + var(--space-32));grid-template-columns:var(--space-48) 1fr auto}:is(.pk,.pke) .kart-item.kart-item .kart-item-art,:is(.pk,.pke) .kart-item.kart-item .kart-item-art :is(img,svg){width:var(--space-48);height:var(--space-48)}}
+
+@media(max-width:650px){.pk.pk-touch-enabled .pk-radar{width:var(--space-64);height:var(--space-64);bottom:calc(var(--space-48)*6);right:var(--space-8)}.pk:not(.pk-touch-enabled) .pk-radar{bottom:calc(var(--space-48)*3);width:var(--space-64);height:var(--space-64)}}
+
+:is(.pk,.pke) .kart-fire-label{position:absolute;left:0;right:0;bottom:var(--space-4);font:var(--text-caption);text-align:center;pointer-events:none}
+.pk #pk-tb .pk-fire-art,.pke [data-use-icon]{transform:translateY(calc(var(--space-4) * -1))}
+.pk #pk-tb .pk-fire-art :is(svg,img),.pke [data-use-icon] :is(svg,img){width:var(--space-32);height:var(--space-32)}
+/* Portrait: keep the driver's kart clear; the weapon card owns the footer. */
+@media(max-width:650px) and (orientation:portrait){
+ .pke.pke-touch-mode .pke-bottom{bottom:calc(var(--space-8) + env(safe-area-inset-bottom,0px))}
+ .pke.pke-touch-mode .pke-instruments{height:var(--space-24)}
+ .pke.pke-touch-mode [data-drift]{position:absolute;bottom:100%;margin-bottom:var(--space-8)}
+ .pke.pke-touch-mode .pke-touch{bottom:calc(var(--space-48)*3 + env(safe-area-inset-bottom,0px))}
+ .pke.pke-touch-mode .pke-stick{left:var(--space-8);width:calc(var(--space-48)*2);height:calc(var(--space-48)*2)}
+ .pke.pke-touch-mode .pke-actions :is([data-gas],[data-reverse]){display:none}
+ .pke.pke-touch-mode .pke-actions [data-nitro]{right:var(--space-8);bottom:calc(var(--space-48) + var(--space-32))}
+ .pke.pke-touch-mode .pke-actions [data-brake]{right:var(--space-8);bottom:calc(var(--space-48)*3)}
+}

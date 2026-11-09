@@ -68,8 +68,8 @@ export function seatKartDriver(kart, driver) {
   return true;
 }
 
-export const WEAPON_THUMBNAILS=['machinegun','trishot','missile','cannon','blades','supernova','mine','oil','frost','thunder','boomerang','ram','nuke'];
-const thumbnailExtension=kind=>['machinegun','trishot','missile','cannon','blades','supernova'].includes(kind)?'svg':'png';
+export const WEAPON_THUMBNAILS=['machinegun','trishot','missile','cannon','blades','supernova','mine','frost','ram','nuke'];
+const thumbnailExtension=kind=>'svg';
 const loadedThumbnails=new Set();
 let thumbnailLoad;
 export function loadKartWeaponThumbnails(){

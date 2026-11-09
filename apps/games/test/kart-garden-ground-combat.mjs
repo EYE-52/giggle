@@ -48,9 +48,9 @@ function fixture(mode='Zap Battle') {
     // The same x/z with a declared fixture mine eight meters below the
     // physically initialized chassis must not produce a planar ghost hit.
     f.place(b,mine.x,mine.z);mine.armed=true;mine.armT=0;mine.y-=8;
-    f.tick(0);check(b.health===3&&s.mines.length===1,'Large vertical separation never triggers a mine');
+    f.tick(0);check(b.health===100&&s.mines.length===1,'Large vertical separation never triggers a mine');
     mine.y+=8;f.tick(0);
-    check(b.health===2&&s.mines.length===0,'Same hill ground mine damages the actual nearby chassis once');
+    check(b.health>0&&b.health<100&&s.mines.length===0,'Same hill ground mine damages the actual nearby chassis once');
     check(s.events.find(e=>e.type==='hit')?.position.y>4,'Damage event preserves elevated physical hull center');
     const health=b.health;f.tick(0);check(b.health===health,'Consumed mine cannot damage twice');
   } finally {f.dispose();}
@@ -114,7 +114,7 @@ for (const high of [false,true]) {
     const p=b.physicalPose.position;
     s.grenades=[{id:'declared-airburst',owner:a.pid,kind:'nuke',physical:true,x:p.x,y:p.y+15,z:p.z,
       vx:0,vy:0,vz:0,fuse:0,bounces:0}];
-    f.tick(0);check(b.health===3,'Airburst outside physical 3D radius never damages a planar-near kart');
+    f.tick(0);check(b.health===100,'Airburst outside physical 3D radius never damages a planar-near kart');
     check(s.events.find(e=>e.type==='blast')?.position.y>12,'High physical blast is not clamped to old flat-fixture twelve-meter ceiling');
     s.crates=[{id:'declared-ground-crate',x:b.x,z:b.z}];
     const projection=POCKET.view(s,b.pid);

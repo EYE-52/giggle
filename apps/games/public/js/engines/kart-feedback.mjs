@@ -16,7 +16,7 @@ export function createKartFeedback({radius=2.05}={}) {
    const source=S.karts?.find(k=>k.pid===e.pid),victim=S.karts?.find(k=>k.pid===e.other);
    if(e.type==='ko'&&victim)add({kind:'ko',pid:victim.pid,x:victim.x,z:victim.z,position:e.position||victim.physicalPose?.position,angle:victim.angle,weapon:e.weapon},now,850);
    if(e.type==='blast'&&Number.isFinite(e.x)&&Number.isFinite(e.z))add({kind:'blast',pid:e.pid,weapon:e.weapon,tick:e.tick,x:e.x,z:e.z,position:e.position},now,550);
-   if(['fire','mine','hit','impact'].includes(e.type)&&e.position)add({kind:e.type,pid:e.pid,other:e.other,damage:e.damage,weapon:e.weapon,position:e.position,direction:e.direction,from:e.from,normal:e.normal,tick:e.tick},now,140);
+   if(['fire','mine','hit','impact'].includes(e.type)&&e.position)add({kind:e.type,sourceId:e.id,pid:e.pid,other:e.other,damage:e.damage,weapon:e.weapon,position:e.position,direction:e.direction,from:e.from,normal:e.normal,tick:e.tick},now,140);
   }
   for(const e of contacts){
    if(seen.has(e.id))continue;seen.add(e.id);

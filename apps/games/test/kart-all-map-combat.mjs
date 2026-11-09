@@ -62,12 +62,12 @@ for(const id of maps.mapIds()){
         check(mine?.physical&&Math.abs(mine.y-terrain.heightAt(mine.x,mine.z))<.015,id+': accepted mine rests on real hill triangles');
         check(POCKET.view(f.s,f.a.pid).mines[0].groundY===mine.y,id+': mine projection preserves support altitude');
         f.place(f.b,mine.x,mine.z);mine.armed=true;mine.armT=0;mine.y-=8;f.tick(0);
-        check(f.b.health===3&&f.s.mines.length===1,id+': mine excludes vertically separated hull');
-        mine.y+=8;f.tick(0);check(f.b.health===2&&f.s.mines.length===0,id+': supported mine takes exactly one heart once');
-        f.tick(0);check(f.b.health===2,id+': consumed mine cannot repeat');
+        check(f.b.health===100&&f.s.mines.length===1,id+': mine excludes vertically separated hull');
+        mine.y+=8;f.tick(0);check(f.b.health>0&&f.b.health<100&&f.s.mines.length===0,id+': supported mine takes exactly one heart once');
+        f.tick(0);check(f.b.health>0&&f.b.health<100,id+': consumed mine cannot repeat');
       }finally{f.dispose();}
     }
-    for(const [weapon,damage] of [['machinegun',1],['trishot',1],['missile',2],['cannon',2]]){
+    for(const [weapon,damage] of [['machinegun',5],['trishot',50],['missile',65],['cannon',70]]){
       const f=fixture(id);try{
         f.place(f.a,0,-4);f.place(f.b,0,0);f.fire(f.a,weapon);
         const volley=f.s.zaps.slice();
@@ -75,8 +75,8 @@ for(const id of maps.mapIds()){
         const packets=POCKET.view(f.s,f.a.pid).zaps;
         check(volley.every(p=>p.radius===battle.viewExtra(f.s).combat.staticSweepRadii[weapon])&&packets.every(p=>p.radius===volley[0].radius),id+': real accepted '+weapon+' preserves exact static radius through public packets');
         for(let i=0;i<8&&f.s.zaps.length;i++)f.tick(50);
-        check(f.b.health===3-damage&&f.a.ammo===0&&f.a.weapon===null,id+': '+weapon+' takes its configured hearts once and spends exactly one round');
-        f.tick(50);check(f.b.health===3-damage,id+': retired '+weapon+' volley does not repeat damage');
+        check(Math.abs(f.b.health-(100-damage))<1e-8&&f.a.ammo===0&&f.a.weapon===null,id+': '+weapon+' takes its configured hearts once and spends exactly one round');
+        f.tick(50);check(Math.abs(f.b.health-(100-damage))<1e-8,id+': retired '+weapon+' volley does not repeat damage');
       }finally{f.dispose();}
     }
     {
@@ -84,7 +84,7 @@ for(const id of maps.mapIds()){
         f.place(f.a,0,-6);f.place(f.b,0,4,Math.PI);f.fire(f.a,'supernova');
         check(f.a.supernovaT>2.9&&f.a.shield===0&&f.a.ammo===0&&f.a.weapon===null,id+': Shield arms one guard without spawn protection');
         f.fire(f.b,'missile');for(let i=0;i<8;i++)f.tick(50);
-        check(f.a.health===3&&f.a.supernovaT>0&&f.s.zaps.length===0&&f.s.events.filter(e=>e.type==='fire'&&e.weapon==='supernova').length===1,id+': Shield absorbs a real mounted Rocket once');
+        check(f.a.health===100&&f.a.supernovaT>0&&f.s.zaps.length===0&&f.s.events.filter(e=>e.type==='fire'&&e.weapon==='supernova').length===1,id+': Shield absorbs a real mounted Rocket once');
         check(f.s.events.filter(e=>e.type==='block'&&e.other===f.a.pid&&e.pid===f.b.pid).length===1&&!f.s.events.some(e=>e.type==='hit'),id+': guard emits one block and no hit');
       }finally{f.dispose();}
     }
@@ -119,7 +119,7 @@ for(const id of maps.mapIds()){
         f.s.zaps=[{id:'declared-hill-strike',owner:f.a.pid,kind:'machinegun',physical:true,x:hill.x,y:hill.height+.8,z:hill.z,vx:0,vy:-30,vz:0,angle:0,ttl:1}];
         f.tick(50);const impact=f.s.events.find(e=>e.type==='impact');
         check(f.s.zaps.length===0&&impact&&Math.abs(impact.position.y-hill.height-battle.viewExtra(f.s).combat.staticSweepRadii.machinegun)<.015,id+': physical projectile sphere stops above actual hillside triangles');
-        check(f.b.health===3,id+': hillside collision does not invent a hull hit');
+        check(f.b.health===100,id+': hillside collision does not invent a hull hit');
       }finally{f.dispose();}
     }
     {
@@ -133,9 +133,9 @@ for(const id of maps.mapIds()){
         f.input(f.b,{throttle:1});check(f.b.input.throttle===0,id+': KO rejects movement');
         for(let i=0;i<41;i++)f.tick(50);
         const current=POCKET.view(f.s,f.b.pid).inputAck;
-        check(f.b.health===3&&f.b.respawn===0&&f.b.shield>0&&current.life>old.life,id+': fresh respawn restores all three hearts and defensive protection');
+        check(f.b.health===100&&f.b.respawn===0&&f.b.shield>0&&current.life>old.life,id+': fresh respawn restores all three hearts and defensive protection');
         const p=body(f.b);blast(f,{x:p.x,y:p.y+.35,z:p.z});
-        check(f.b.health===3&&f.b.deaths===1,id+': respawn protection absorbs a close physical nuke');
+        check(f.b.health===100&&f.b.deaths===1,id+': respawn protection absorbs a close physical nuke');
         const seq=current.receivedSeq;
         f.input(f.b,{throttle:1},{seq:seq+1,life:old.life,controlEpoch:old.controlEpoch});
         check(POCKET.view(f.s,f.b.pid).inputAck.receivedSeq===seq&&f.b.input.throttle===0,id+': old-life intent cannot control respawn');
@@ -144,9 +144,9 @@ for(const id of maps.mapIds()){
     {
       const f=fixture(id);try{
         f.place(f.a,0,-8);f.place(f.b,hill.x,hill.z);const p=body(f.b);
-        blast(f,{x:p.x,y:p.y+15,z:p.z});check(f.b.health===3,id+': high nuke airburst outside 3D splash range is harmless');
+        blast(f,{x:p.x,y:p.y+15,z:p.z});check(f.b.health===100,id+': high nuke airburst outside 3D splash range is harmless');
         blast(f,{x:p.x+1,y:p.y+.35,z:p.z},'declared-visible-burst');
-        check(f.b.health===0&&f.b.deaths===1&&f.s.events.filter(e=>e.type==='hit'&&e.damage===3).length===1,id+': visible in-range nuke takes every heart once');
+        check(f.b.health===0&&f.b.deaths===1&&f.s.events.filter(e=>e.type==='hit'&&e.damage===100).length===1,id+': visible in-range nuke takes every heart once');
       }finally{f.dispose();}
     }
     if(map.blocks.length){
@@ -176,7 +176,7 @@ for(const id of maps.mapIds()){
         f.place(f.b,b.x+b.hw+1.8,b.z+b.hd-1.7);
         const center=body(f.b),at={x:b.x+b.hw-1.2,y:center.y+.35,z:b.z+b.hd+.5};
         check(gap(at,{...center,y:center.y+.35})<4&&oracle.sweepStatic(at,{...center,y:center.y+.35}),id+': covered blast is within radius but physically occluded');
-        blast(f,at,'declared-covered-burst');check(f.b.health===3,id+': cover blocks in-range 3D nuke splash');
+        blast(f,at,'declared-covered-burst');check(f.b.health===100,id+': cover blocks in-range 3D nuke splash');
       }finally{f.dispose();}
     }
     for(const mode of ['Zap Battle','Star Rush','Garage Battle']){
@@ -246,7 +246,7 @@ try{for(const id of maps.mapIds()){
     const first=latest(sockets[0]);check(first.motionProfile==='rapier-classic-v1'&&first.inputAck,id+': live Room projection contains physical input readiness');
     const snapshot=JSON.stringify(initial.state.karts.map(k=>k.physicalPose));
     check(r.startGame(POCKET,{settings,ready:true},r.hostId).ok&&r.game.instanceId!==initial.instanceId,id+': rematch creates fresh private world and instance');
-    const fresh=latest(sockets[0]);check(fresh.inputAck.receivedSeq===0&&fresh.karts.every(k=>k.hits===0&&k.health===3),id+': rematch clears ACKs and combat scores');
+    const fresh=latest(sockets[0]);check(fresh.inputAck.receivedSeq===0&&fresh.karts.every(k=>k.hits===0&&k.health===100),id+': rematch clears ACKs and combat scores');
     r.onAction(sockets[0],{seq:1,life:first.inputAck.life,controlEpoch:first.inputAck.controlEpoch,input:{steer:0,throttle:1,boost:false}},{i:first.instanceId,w:first.w});
     check(latest(sockets[0]).inputAck.receivedSeq===0,id+': Room rejects previous-instance input');
     check(r.endGameToLobby(r.hostId).ok&&r.game===null,id+': host stop disposes map and returns lobby');

@@ -46,14 +46,14 @@ const model=createKartModel(THREE,{assets:{kart},color:0xf59539});model.userData
 for(const kind of ['pulse','scatter','rocket','seeker','proximity','nuke']){
   const weapon=art.weapon(kind),c=weapon.userData.combat;
   model.userData.kart.inner.add(weapon);weapon.position.set(...c.mount);
-  const local=CONFIG.combat[(kind==='nuke'?'rocket':kind)+'Muzzle']||{x:0,y:.5,z:1.9};
+  const local=kind==='nuke'?{x:0,y:1.6,z:1.9}:CONFIG.combat[kind+'Muzzle']||{x:0,y:.5,z:1.9};
   for(const heading of [0,Math.PI/2,Math.PI,-Math.PI/2]){
     model.position.set(12,.64,-8);model.rotation.set(0,heading,0);model.updateMatrixWorld(true);
     const actual=weapon.localToWorld(new THREE.Vector3(...c.muzzle));
     const expected=model.localToWorld(new THREE.Vector3(local.x,local.y,local.z));
     check(actual.distanceTo(expected)<1e-5,kind+' production factory muzzle matches authority at heading '+heading);
   }
-  check(c.inner.children[0].name===({proximity:'Bomb',nuke:'Rocket'}[kind]||kind[0].toUpperCase()+kind.slice(1)),kind+' uses the sourced branch');weapon.removeFromParent();
+  check(kind==='nuke'?c.curated:c.inner.children[0].name===({proximity:'Bomb',nuke:'Rocket'}[kind]||kind[0].toUpperCase()+kind.slice(1)),kind+' uses the sourced branch');weapon.removeFromParent();
 }
 for(const kind of ['scatter','rocket','seeker','proximity','nuke']){
   const shot=art.projectile(kind);check(shot.userData.combat.kind===kind,kind+' is not silently coerced to Pulse');

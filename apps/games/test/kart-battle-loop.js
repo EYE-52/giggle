@@ -569,7 +569,7 @@ async function main() {
     assert.deepStrictEqual(fresh.events, [], 'events clear');
     assert(fresh.karts.every((k) => k.hits === 0 && k.deaths === 0 && k.spawnSeq === 0), 'tallies reset');
     assert(fresh.karts.every((k) => k.weapon === null && k.ammo === 0 && k.shield === 2.5), 'slots reset');
-    assert(fresh.karts.every((k) => k.guard === false && k.health === 3 && k.maxHealth === 3), 'guard and hearts reset');
+    assert(fresh.karts.every((k) => k.guard === false && k.health === 100 && k.maxHealth === 100), 'guard and hearts reset');
     assert.strictEqual(fresh.crateSeq, fresh.crates.length, 'crate ids restart');
     // Events stay bounded to the last twelve semantic records (fire +
     // KO + pickups retained for sound; was six before fire events).
@@ -873,8 +873,8 @@ async function main() {
       v2.x = 0.5; v2.z = -2; v2.speed = 0; v2.shield = 0;
       tick(cx, sx);
       assert.strictEqual(sx.mines.length, 0, 'first trigger consumes the mine');
-      assert.strictEqual([v1, v2].filter((k) => k.respawn > 0).length, 1, 'exactly one victim KO’d');
-      assert.strictEqual(o.hits, 1, 'shooter scores once');
+      assert.strictEqual([v1, v2].filter((k) => k.respawn > 0).length, 2, 'mine blast KOs both nearby wounded rivals');
+      assert.strictEqual(o.hits, 2, 'shooter scores once per blast victim');
     }
     // Backed against the wall: the drop clamps inside the arena.
     {
