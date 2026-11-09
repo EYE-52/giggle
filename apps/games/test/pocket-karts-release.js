@@ -137,34 +137,32 @@ async function part1() {
     // Head-on hitch: one 0.25 s tick at full speed rests on the near face.
     const [st, ctx] = racing({ mode: 'Star Rush', map: 'Bumper Blocks' });
     const k = st.karts[0];
-    k.x = 16; k.z = 10; k.angle = 0; k.speed = 14;
+    k.x = 13; k.z = 7; k.angle = 0; k.speed = 14;
     karts.onAction(st, ctx, 'pa', { input: { steer: 0, throttle: 1 } });
     ctx._now += 250;
     karts.onTick(st, ctx);
-    assert(k.z > 10 && k.z < 13.5, `hitch tick advances to the face, z=${k.z.toFixed(2)}`);
+    assert(k.z > 7 && k.z < 12, `hitch tick advances to the face, z=${k.z.toFixed(2)}`);
     assert(k.speed < 14, 'face hit scrubs speed');
     assert(clearOf(k.x, k.z, st.blocks), 'kart rests clear of the block');
-    // Corner clip: the 0.25 s ray (12.2,14.5)->(14.3,11.7) dips to 0.45u
-    // of the (13.5,13.5) corner while both endpoints sit outside the hull
-    // band — a single positional step lands clean and clips the corner
-    // unseen; substeps collide mid-way and deflect.
+    // Clip the northwest corner of the north stub bumper with a hitch.
+    // Substeps must deflect and scrub speed; the mirror repeats the same path.
     const [sc, ctxc] = racing({ mode: 'Star Rush', map: 'Bumper Blocks' });
     const kc = sc.karts[0];
-    kc.x = 12.2; kc.z = 14.5; kc.angle = Math.atan2(0.6, -0.8); kc.speed = 14;
+    kc.x = 10.8; kc.z = -15; kc.angle = Math.atan2(0.6, -0.8); kc.speed = 14;
     karts.onAction(sc, ctxc, 'pa', { input: { steer: 0, throttle: 1 } });
     ctxc._now += 250;
     karts.onTick(sc, ctxc);
     assert(clearOf(kc.x, kc.z, sc.blocks), 'corner clip ends clear of the block');
-    assert(kc.x < 14.0 || kc.z > 12.0,
+    assert(kc.x < 13.5 || kc.z > -16.5,
       `corner clip deflected, saw (${kc.x.toFixed(2)}, ${kc.z.toFixed(2)})`);
     assert(kc.speed < 14, 'corner clip scrubs speed');
     // Same rollouts through the prediction mirror: bit-identical.
-    const p1 = { x: 16, z: 10, angle: 0, speed: 14, boost: 0, boostCd: 0 };
+    const p1 = { x: 13, z: 7, angle: 0, speed: 14, boost: 0, boostCd: 0 };
     pose.stepSelf(p1, { steer: 0, throttle: 1, boost: false }, 0.25, { blocks: st.blocks });
     assert.strictEqual(p1.x, k.x, '0.25s head-on x matches server');
     assert.strictEqual(p1.z, k.z, '0.25s head-on z matches server');
     assert.strictEqual(p1.speed, k.speed, '0.25s head-on speed matches server');
-    const p2 = { x: 12.2, z: 14.5, angle: Math.atan2(0.6, -0.8), speed: 14, boost: 0, boostCd: 0 };
+    const p2 = { x: 10.8, z: -15, angle: Math.atan2(0.6, -0.8), speed: 14, boost: 0, boostCd: 0 };
     pose.stepSelf(p2, { steer: 0, throttle: 1, boost: false }, 0.25, { blocks: sc.blocks });
     assert.strictEqual(p2.x, kc.x, '0.25s corner x matches server');
     assert.strictEqual(p2.z, kc.z, '0.25s corner z matches server');

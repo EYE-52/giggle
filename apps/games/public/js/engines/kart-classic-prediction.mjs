@@ -1,11 +1,8 @@
 import config from './kart-physics-config.mjs';
 import {createClassicMotion} from './kart-classic-motion.mjs';
 import {createInterpolationBuffer} from '../toolkit/realtime/client.mjs';
-let loading;
-export function loadClassicPhysics(){
-  if(!loading)loading=import('/vendor/rapier/rapier.mjs').then(async module=>{const R=module.default;await R.init();if(R.version()!=='0.21.0')throw Error('Unexpected kart physics runtime');return R;});
-  return loading;
-}
+import {loadKartPhysics} from './kart-physics-loader.mjs';
+export const loadClassicPhysics=loadKartPhysics;
 const mix=(a,b,t)=>({x:a.x+(b.x-a.x)*t,y:a.y+(b.y-a.y)*t,z:a.z+(b.z-a.z)*t});
 const multiply=(a,b)=>({x:a.w*b.x+a.x*b.w+a.y*b.z-a.z*b.y,y:a.w*b.y-a.x*b.z+a.y*b.w+a.z*b.x,z:a.w*b.z+a.x*b.y-a.y*b.x+a.z*b.w,w:a.w*b.w-a.x*b.x-a.y*b.y-a.z*b.z});
 function slerp(a,b,t){
@@ -51,7 +48,7 @@ export function createClassicPrediction(R){
   }
   function observe(snapshot,now,serverAt=now){
     if(retired||observed===snapshot)return;
-    observed=snapshot;const next=snapshot.instanceId+':'+snapshot.map.id;
+    observed=snapshot;const next=snapshot.instanceId+':'+snapshot.map.id+':'+(snapshot.map.revision||'');
     if(next!==observedIdentity){observedIdentity=next;remotes.clear();remoteVisual.clear();remoteStamps.clear();advancedAt=null;}
     const simAt=Number.isFinite(snapshot.simAt)?snapshot.simAt:serverAt;
     remotes.observe(simAt,serverAt);
@@ -82,7 +79,7 @@ export function createClassicPrediction(R){
   function ingest(snapshot,now,serverAt=now){
     if(retired)return;
     observe(snapshot,now,serverAt);
-    const next=snapshot.instanceId+':'+snapshot.map.id,changed=next!==identity;
+    const next=snapshot.instanceId+':'+snapshot.map.id+':'+(snapshot.map.revision||''),changed=next!==identity;
     const oldSelf=state?.karts.find(k=>k.pid===selfId),before=oldSelf?.physicalPose?stepBlend(oldSelf):null;
     const previous=before&&correction?{...before,position:{x:before.position.x+correction.offset.x,y:before.position.y+correction.offset.y,z:before.position.z+correction.offset.z},rotation:multiply(correction.rotation,before.rotation)}:before;
     if(changed){world?.dispose();identity=next;state={map:snapshot.map.id,half:snapshot.map.half,blocks:snapshot.map.blocks,pads:snapshot.map.pads,surfaces:snapshot.map.surfaces,features:snapshot.map.features,roads:snapshot.map.roads,offroad:snapshot.map.offroad,barriers:snapshot.map.barriers,ramps:snapshot.map.ramps,mode:snapshot.mode,karts:snapshot.karts.map(k=>({...structuredClone(k),input:neutralIntent(),upgrades:snapshot.upgrades?.[k.pid],garage:snapshot.garage})),physicalEvents:[],physicalEventSeq:0};world=createClassicMotion(R,config,state);history=[];lastSeq=0;elapsed=0;lastDraw=null;correction=null;peerWeights.clear();}

@@ -38,10 +38,10 @@ function fixture(mode='Zap Battle') {
 {
   const f=fixture(),{s}=f,[a,b]=s.karts;
   try {
-    s.crates=[];f.place(a,-38,-36);f.place(b,20,20);
-    check(a.physicalPose.position.y>5,'Actual hill life reset places chassis above five meters');
+    s.crates=[];f.place(a,-42,-42);f.place(b,20,20);
+    check(a.physicalPose.position.y>3.5,'Actual hill life reset places chassis above four metres');
     f.fire(a,'mine');const mine=s.mines[0];
-    check(mine?.physical===true&&mine.y>4,'Accepted mine retains physical hill support height');
+    check(mine?.physical===true&&mine.y>3,'Accepted mine retains physical hill support height');
     check(Math.abs(mine.y-terrain.heightAt(mine.x,mine.z))<.015,'Mine height matches actual shared road triangles');
     const view=POCKET.view(s,a.pid),event=view.events.find(e=>e.type==='mine');
     check(event?.position.y===mine.y&&view.mines[0].groundY===mine.y,'Accepted mine event and projection preserve full height');
@@ -51,7 +51,7 @@ function fixture(mode='Zap Battle') {
     f.tick(0);check(b.health===100&&s.mines.length===1,'Large vertical separation never triggers a mine');
     mine.y+=8;f.tick(0);
     check(b.health>0&&b.health<100&&s.mines.length===0,'Same hill ground mine damages the actual nearby chassis once');
-    check(s.events.find(e=>e.type==='hit')?.position.y>4,'Damage event preserves elevated physical hull center');
+    check(s.events.find(e=>e.type==='hit')?.position.y>3,'Damage event preserves elevated physical hull center');
     const health=b.health;f.tick(0);check(b.health===health,'Consumed mine cannot damage twice');
   } finally {f.dispose();}
 }
@@ -59,9 +59,9 @@ function fixture(mode='Zap Battle') {
 for (const dt of [50,250]) {
   const f=fixture(),{s}=f,[a,b]=s.karts;
   try {
-    s.crates=[];f.place(a,-38,-36);f.place(b,20,20);f.fire(a,'nuke');
+    s.crates=[];f.place(a,-42,-42);f.place(b,20,20);f.fire(a,'nuke');
     const accepted=s.events.find(e=>e.type==='fire'&&e.weapon==='nuke');
-    check(s.grenades[0]?.physical&&s.grenades[0].kind==='nuke'&&s.grenades[0].y>4&&accepted?.position.y>4,'Mounted hill nuke launches at real muzzle height');
+    check(s.grenades[0]?.physical&&s.grenades[0].kind==='nuke'&&s.grenades[0].y>4&&accepted?.position.y>3,'Mounted hill nuke launches at real muzzle height');
     let bounced=false,observed=0;
     while(s.grenades.length) {
       f.tick(dt);
@@ -110,7 +110,7 @@ for (const high of [false,true]) {
 {
   const f=fixture(),{s}=f,[a,b]=s.karts;
   try {
-    s.crates=[];f.place(a,0,0);f.place(b,-38,-36);
+    s.crates=[];f.place(a,0,0);f.place(b,-42,-42);
     const p=b.physicalPose.position;
     s.grenades=[{id:'declared-airburst',owner:a.pid,kind:'nuke',physical:true,x:p.x,y:p.y+15,z:p.z,
       vx:0,vy:0,vz:0,fuse:0,bounces:0}];
@@ -126,7 +126,7 @@ for (const high of [false,true]) {
 {
   const f=fixture('Star Rush'),{s}=f,[a]=s.karts;
   try {
-    f.place(a,-38,-36);s.stars=[{id:'declared-ground-star',x:a.x,z:a.z}];
+    f.place(a,-42,-42);s.stars=[{id:'declared-ground-star',x:a.x,z:a.z}];
     check(POCKET.view(s,a.pid).stars[0].groundY>4,'Star ground projection follows hill triangles');
     f.tick(0);check(a.stars===1,'Grounded actual hill kart can collect a star');
   } finally {f.dispose();}

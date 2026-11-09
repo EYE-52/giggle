@@ -1,5 +1,4 @@
 import {createKartPickupPrediction} from './kart-pickup-prediction.mjs';
-import {waitKartPreparation} from './kart-warmup-scheduler.mjs';
 import {createKartLod} from './kart-lod.mjs';
 import {createRaisedPoseSupport} from './kart-raised-support.mjs';
 import {createRaisedPickups} from './kart-raised-pickups.mjs';
@@ -33,7 +32,8 @@ import {batchKartBody} from './kart-batching.mjs';
 import {createKartCombatArt,projectileContactInset} from './kart-combat-art.mjs';
 import {createKartHealthBars} from './kart-health-bars.mjs';
 import {createKartElevatedWorld} from './kart-elevated-world.mjs';
-import {MeshoptDecoder,closeKartAssetBitmaps,loadKartWeaponThumbnails,weaponThumbnailArt,loadKartDrivers,buildKartDriverVariants} from './kart-assets.mjs';
+import {loadKartGLB} from './kart-prefetch.mjs';
+import {MeshoptDecoder,closeKartAssetBitmaps,loadKartWeaponThumbnails,weaponThumbnailArt,loadKartDrivers,matchKartDrivers,KART_ELEVATED_FILES,buildKartDriverVariants} from './kart-assets.mjs';
 import {cleanKartLook,kartPaintHex} from './kart-looks.mjs';
 import {elevatedMap} from './kart-elevated-maps.mjs';
 import CONFIG from './kart-physics-config.mjs';
@@ -68,7 +68,7 @@ export function createElevatedKartView() {
   let root,api,S,sequence=0,epoch='',generation=0,gl,audio,stick,preference='auto',pending=false,gfxReady=false,graphicsFailed=false;
   let hitFx=null,analog={x:0,y:0},lastSend=0,lastKey='',timer=0,inputTimer=0,resultsTimer=0,firstEvents=true,itemKey='',standingsKey='',audioDrifting=false,feedbackEpoch=0;
   const gearbox=createGearbox(CONFIG.handling.maxForward);
-  let sceneReady,shellAudioReady,rendererWarmup,lastSnapshotArrival=null,snapshotOffset=null,prediction=null,predicted=null;
+  let sceneReady,shellAudioReady,rendererWarmup,startAudio,lastSnapshotArrival=null,snapshotOffset=null,prediction=null,predicted=null;
   const timeline=createElevatedTimeline();
   const roulette=createKartWeaponRoulette({now:()=>performance.now(),reducedMotion:()=>globalThis.matchMedia?.('(prefers-reduced-motion: reduce)').matches===true});
   const pickupPrediction=createKartPickupPrediction({onPredict:c=>{roulette.predict();audio?.cue('pickup');newEvents.push({event:{type:'pickup',pid:S.you,position:c.position},at:performance.now()});paint();},onReject:()=>{roulette.skip();paint();}});
@@ -186,10 +186,10 @@ export function createElevatedKartView() {
       const {mergeGeometries}=await import('../../vendor/three/utils/BufferGeometryUtils.js');
       await MeshoptDecoder.ready;
       const loader=new GLTFLoader().setMeshoptDecoder(MeshoptDecoder),assets={};library=new THREE.Group();library.visible=false;scene.add(library);
-      const files=[['kart','giggle-kart.meshopt','kart-20261007'],['crate','giggle-crate.meshopt','question-20261007'],['combat','combat/combat.meshopt','combat-20261007'],['pulse','combat/pulse-mounted.meshopt','bfaaaf39'],['arsenal','combat/arsenal-mounted.meshopt','8bd555ac'],['secondary','combat/arsenal-secondary.meshopt','31eec689']];
+      const files=[...KART_ELEVATED_FILES];
       if(map.environment==='alpine')files.push(['stylized','environment/stylized-alpine','9426a0ed'],['fountain','environment/alpine-fountain','7a687cd3']);
-      const drivers=loadKartDrivers(loader).then(values=>{assets.drivers=values;for(const driver of values)if(driver)library.add(driver);});
-      const loaded=await Promise.allSettled([...files.map(async([key,file,version])=>{const gltf=await loader.loadAsync(`/assets/karts/${file}.glb?v=${version}`);assets[key]=gltf.scene;library.add(gltf.scene);}),loadKartWeaponThumbnails(),drivers]);
+      const drivers=loadKartDrivers(loader,matchKartDrivers(S.karts,api?.context?.()?.looks)).then(values=>{assets.drivers=values;for(const driver of values)if(driver)library.add(driver);});
+      const loaded=await Promise.allSettled([...files.map(async([key,file,version])=>{const gltf=await loadKartGLB(loader,`/assets/karts/${file}.glb?v=${version}`);assets[key]=gltf.scene;library.add(gltf.scene);}),loadKartWeaponThumbnails(),drivers]);
       if(loaded.some((r,i)=>r.status==='rejected'&&files[i]?.[0]!=='fountain'))throw Error('Combat assets did not load');
       if(gen!==generation)throw Error('Retired arena');
       if(assets.stylized)for(const name of ['PineA','PineB','TreeA','GrassA','FlowersA','RockA','RockB','CottageA'])if(!assets.stylized.getObjectByName(name))throw new Error('The stylized Alpine library is incomplete');
@@ -286,7 +286,7 @@ export function createElevatedKartView() {
       shadows.update();
       const warmLibrary=createKartWarmupLibrary(THREE,scene,assets,art);
       warmup=await warmKartRenderer(THREE,renderer,scene,camera,{isAlive:()=>gen===generation,
-        budgetMs:6000,signal:api?.preparationSignal,priorityRoots:[world.group,...models.values(),pickups.mesh,drivingFX.particles,drivingFX.speedLines],
+        budgetMs:2000,signal:api?.preparationSignal,priorityRoots:[world.group,...models.values(),pickups.mesh,drivingFX.particles,drivingFX.speedLines],
         onProgress:({completed,total})=>{if(gen===generation){const loading=$('loading'),text=`Preparing graphics… ${Math.round(completed/total*100)}%`;if(loading&&loading.textContent!==text)loading.textContent=text;}},
         roots:[...warm,warmLibrary,arena.root,drivingFX.particles,drivingFX.speedLines,scene.getObjectByName('KartSkidMarks'),
           scene.getObjectByName('KartThreatRing'),scene.getObjectByName('KartImpactFX')]}).catch(()=>null);
@@ -654,8 +654,7 @@ export function createElevatedKartView() {
     wirePickers($('controls').parentNode);
     try{preference=localStorage.getItem('pk-controls-v1')||'auto';}catch{preference='auto';}if(!['auto','keyboard','touch'].includes(preference))preference='auto';
     audio=createKartAudio({muted:api.context?.().sound===false});
-    audio.prep?.();
-    shellAudioReady=api.audioPrepare?.();
+    startAudio=()=>{audio?.prep?.();shellAudioReady=api.audioPrepare?.();Promise.allSettled([audio?.ready?.(),shellAudioReady]);startAudio=null;};
     on(root,'pointerdown',()=>audio?.unlock());on(window,'keydown',()=>{if(root.contains(document.activeElement))audio?.unlock();});
     on($('resume'),'click',()=>{$('menu').open=false;if(roomMenu)roomMenu.open=false;gl?.canvas.focus({preventScroll:true});});on($('menu'),'toggle',()=>{stop();paint();});
     on($('controls'),'change',event=>{stop();preference=event.target.value;try{localStorage.setItem('pk-controls-v1',preference);}catch{}touch();});
@@ -691,7 +690,7 @@ export function createElevatedKartView() {
     }
     const key=`${snapshot.instanceId}:${snapshot.inputAck?.life}:${snapshot.inputAck?.controlEpoch}`;
     if(key!==epoch){localFires.length=0;localUseHeld=false;stop(false);feedbackEpoch++;newEvents.length=0;epoch=key;sequence=snapshot.inputAck?.receivedSeq||0;timeline.reset();}
-    S=snapshot;prediction?.ingest(S,arrival,now());roulette.sync(S.instanceId,S.inputAck?.life);pickupPrediction.sync(S.instanceId,S.inputAck?.life);if(S.audioBaseline||gap||S.phase==='done'){roulette.skip();localFires.length=0;localUseHeld=false;pickupPrediction.reset();}if(S.audioBaseline||gap){firstEvents=true;newEvents.length=0;timeline.reset();feedbackEpoch++;}timeline.ingest(S,arrival);sequence=Math.max(sequence,S.inputAck?.receivedSeq||0);updateAudio();
+    S=snapshot;if(!S.preparing)startAudio?.();prediction?.ingest(S,arrival,now());roulette.sync(S.instanceId,S.inputAck?.life);pickupPrediction.sync(S.instanceId,S.inputAck?.life);if(S.audioBaseline||gap||S.phase==='done'){roulette.skip();localFires.length=0;localUseHeld=false;pickupPrediction.reset();}if(S.audioBaseline||gap){firstEvents=true;newEvents.length=0;timeline.reset();feedbackEpoch++;}timeline.ingest(S,arrival);sequence=Math.max(sequence,S.inputAck?.receivedSeq||0);updateAudio();
     if(was?.instanceId!==S.instanceId){seen.clear();newEvents.length=0;firstEvents=true;feedbackEpoch++;}
     for(const e of S.events||[]){
       if(seen.has(e.id))continue;
@@ -722,10 +721,10 @@ export function createElevatedKartView() {
     if(S.phase==='done'&&was?.phase!=='done'&&was?.instanceId===S.instanceId){clearTimeout(resultsTimer);resultsTimer=setTimeout(()=>{if(S?.instanceId===snapshot.instanceId&&S.phase==='done')api.resultsReady?.(S.instanceId);},900);}
   }
   function dispose(){
-    stop(false);generation++;rendererWarmup?.cancel();rendererWarmup=null;clearInterval(timer);clearTimeout(resultsTimer);timer=resultsTimer=0;stick?.dispose();stick=null;audio?.dispose();audio=null;gl?.dispose();gl=null;prediction?.dispose();prediction=null;predicted=null;
+    stop(false);generation++;rendererWarmup?.cancel();rendererWarmup=null;clearInterval(timer);clearTimeout(resultsTimer);timer=resultsTimer=0;stick?.dispose();stick=null;audio?.dispose();audio=null;startAudio=null;gl?.dispose();gl=null;prediction?.dispose();prediction=null;predicted=null;
     for(const[target,type,fn,opts]of listeners.splice(0)){if(type==='owned-style'||type==='owned-panel')target.remove();else target.removeEventListener(type,fn,opts);}
     hitFx?.dispose();hitFx=null;root?.remove();root=null;S=null;api=null;epoch='';pending=gfxReady=graphicsFailed=false;timeline.reset();newEvents.length=0;seen.clear();nodes.clear();firstEvents=true;sequence=0;itemKey=standingsKey='';audioDrifting=false;lastSnapshotArrival=null;snapshotOffset=null;
   }
   return {ownsTimer:true,ownsInputs:true,styles:['/css/kart-elevated.css'],mount,update,dispose,
-    async ready(){await sceneReady;await waitKartPreparation(Promise.all([audio?.ready?.(),shellAudioReady]),api?.preparationSignal);if(!gfxReady)throw new Error('The 3D arena could not load');gl.renderOnce?.();await gl.firstFrame;}};
+    async ready(){await sceneReady;if(!gfxReady)throw new Error('The 3D arena could not load');gl.renderOnce?.();await gl.firstFrame;}};
 }

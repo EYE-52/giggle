@@ -100,7 +100,10 @@ export async function warmKartRenderer(THREE,renderer,scene,camera,{roots=[],pri
         if(shadows&&object.castShadow&&renderer.renderBufferDirect&&renderer.compile){
           await step(()=>sample(object,shadows,()=>prepareKartPass(THREE,renderer,()=>renderer.render(staging,camera),{shadowsOnly:true,isAlive:living})));
         }
-        await step(()=>sample(object,shadows,()=>renderer.compileAsync?renderer.compileAsync(object,camera,staging):renderer.compile(object,camera,staging)));
+        // compileAsync submits through compile(), then polls with timers.
+        // Hidden seats clamp those timers. Our all-program barrier below
+        // provides the same completion check using cooperative tasks.
+        await step(()=>sample(object,shadows,()=>renderer.compile?renderer.compile(object,camera,staging):renderer.compileAsync(object,camera,staging)));
         await waitKartPrograms(renderer,living,step);
         await step(()=>sample(object,shadows,()=>renderer.render(staging,camera)));
         // A fence is polled, never gl.finish(): a busy GPU must not freeze UI.

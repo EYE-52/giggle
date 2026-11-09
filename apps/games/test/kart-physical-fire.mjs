@@ -120,7 +120,7 @@ for(const tire of [false,true]){
 {
  await POCKET.initialize();let now=1000000;
  const players=[{id:'ra',name:'A'},{id:'rb',name:'B'}],ctx={instanceId:'respawn-integration-unit',now:()=>now,
-   settings:()=>({mode:'Zap Battle',map:'Garden Circuit',roundSeconds:60,winRule:'Time limit',garage:false}),
+   settings:()=>({mode:'Zap Battle',map:'Rookie Ring',roundSeconds:60,winRule:'Time limit',garage:false}),
    players:()=>players,allPlayers:()=>players,broadcast(){},award(){},later:()=>()=>{}};
  const s=POCKET.create(ctx);
  try {

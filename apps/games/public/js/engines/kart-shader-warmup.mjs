@@ -7,7 +7,7 @@ export async function waitKartPrograms(renderer,isAlive=()=>true,step=work=>{if(
     if(!isAlive())throw Error('Retired kart shader warmup');
     const pending=renderer.info?.programs?.some(program=>!program.isReady());
     if(!pending)break;
-    await new Promise(resolve=>setTimeout(resolve,10));
+    await (globalThis.scheduler?.yield?.()??new Promise(resolve=>setTimeout(resolve,10)));
   }
   // Linking completion alone does not initialize Three's uniform/attribute
   // tables. On a cold driver that reflection work can still take tens of ms.
@@ -20,7 +20,7 @@ export async function waitKartPrograms(renderer,isAlive=()=>true,step=work=>{if(
     await step(()=>program.getAttributes?.());
     reflectedPrograms.add(program);
     if(performance.now()-start>=4){
-      await new Promise(resolve=>setTimeout(resolve,0));start=performance.now();
+      await (globalThis.scheduler?.yield?.()??new Promise(resolve=>setTimeout(resolve,0)));start=performance.now();
     }
   }
 }

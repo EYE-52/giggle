@@ -159,7 +159,7 @@ function defaultLoader(url, signal) {
   try {
     const f = globalThis.fetch;
     if (typeof f !== 'function') return Promise.reject(new Error('no fetch'));
-    const p = signal ? f(url, { signal }) : f(url);
+    const p = f(url, { ...(signal ? {signal} : {}), priority:'low' });
     return Promise.resolve(p).then((res) => {
       if (!res || res.ok === false) throw new Error('asset HTTP ' + (res && res.status));
       return res.arrayBuffer();

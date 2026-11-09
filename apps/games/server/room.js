@@ -208,6 +208,7 @@ class Room {
       totals: { ...this.totals },
       game: this.game ? this.game.def.id : null,
       hostId: this.hostId,
+      ...(this.pickedGame ? {pickedGame:this.pickedGame} : {}),
       config: this.configMeta(),
     };
     if (this.game) {
@@ -588,7 +589,14 @@ class Room {
     game.readyDeadline = Date.now() + prepareMs;
     game.prepareTimer = setTimeout(() => {
       if (this.game !== game || !game.preparing) return;
-      this._abortPreparation('The round could not load for everyone in time. Try starting it again.');
+      if (game.def.id === 'pocket-karts') {
+        // This is a progress checkpoint, not a download deadline. Keep the
+        // game clock paused and require every connected seat's real ACK.
+        // Existing host End/Leave controls remain available.
+        game.readyDeadline = null;
+        game.prepareTimer = null;
+        this.broadcastState();
+      } else this._abortPreparation('The round could not load for everyone in time. Try starting it again.');
     }, prepareMs);
     game.prepareTimer.unref?.();
   }

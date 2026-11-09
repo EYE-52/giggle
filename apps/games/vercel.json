@@ -53,6 +53,15 @@
           "value": "frame-ancestors 'self' https://www.gigglemeet.com"
         }
       ]
+    },
+    {
+      "source": "/vendor/rapier/rapier.wasm",
+      "headers": [
+        {
+          "key": "Content-Type",
+          "value": "application/wasm"
+        }
+      ]
     }
   ]
 }

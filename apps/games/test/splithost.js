@@ -134,10 +134,15 @@ async function main() {
   assert(!/secret|ticket|GAME_BRIDGE/i.test(vercelRaw), 'no secret material');
   assert(!/permissions-policy|allow=/i.test(vercelRaw), 'no iframe permission grants');
   const csp = "frame-ancestors 'self' https://www.gigglemeet.com";
-  assert.equal(vercel.headers.length, 3, 'CSP on the framable documents only');
-  assert.deepEqual(vercel.headers.map((h) => h.source).sort(), ['/', '/index.html', '/r/:code'].sort(),
+  // Besides CSP, the only allowed header rule is the Wasm content type that lets
+  // browsers stream-compile the kart physics engine.
+  const wasmRules = vercel.headers.filter((h) => h.source === '/vendor/rapier/rapier.wasm');
+  assert(wasmRules.length <= 1 && wasmRules.every((h) => h.headers.length === 1 && h.headers[0].key === 'Content-Type' && h.headers[0].value === 'application/wasm'), 'wasm rule only sets its content type');
+  const cspRules = vercel.headers.filter((h) => !wasmRules.includes(h));
+  assert.equal(cspRules.length, 3, 'CSP on the framable documents only');
+  assert.deepEqual(cspRules.map((h) => h.source).sort(), ['/', '/index.html', '/r/:code'].sort(),
     'CSP covers /, /index.html, /r/:code');
-  for (const h of vercel.headers) {
+  for (const h of cspRules) {
     assert.equal(h.headers.length, 1, 'CSP is the only header');
     assert.equal(h.headers[0].key, 'Content-Security-Policy', 'header is CSP');
     assert.equal(h.headers[0].value, csp, 'frame-ancestors self + exact giggle origin');

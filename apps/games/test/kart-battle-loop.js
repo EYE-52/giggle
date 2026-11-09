@@ -343,9 +343,9 @@ async function main() {
     st.karts.forEach(k=>k.health=1); // Wounded KO/settlement fixture; full-health acceptance is separate.
     const [a, b] = st.karts;
     for (const c of st.crates) { c.x = 55; c.z = 55; } // clean respawn: no lucky pickup
-    a.x = 0; a.z = 0; a.angle = Math.PI; a.speed = 0; a.shield = 0;
+    a.x = 0; a.z = -15; a.angle = Math.PI; a.speed = 0; a.shield = 0;
     a.weapon = 'machinegun'; a.ammo = 3; a.fireCd = 0; a.prevAction = false;
-    b.x = 0; b.z = -8; b.angle = 0; b.speed = 0; b.shield = 0;
+    b.x = 0; b.z = -23; b.angle = 0; b.speed = 0; b.shield = 0;
     karts.onAction(st, ctx, 'p0', { input: { steer: 0, throttle: 0, boost: true } });
     for (let i = 0; i < 5 && b.respawn <= 0; i++) tick(ctx, st);
     assert(b.respawn > 0, 'victim out');
@@ -356,7 +356,8 @@ async function main() {
     }
     assert.strictEqual(b.respawn, 0, 'victim rejoins after 2 s');
     // The northwest spawn moved two metres to clear the inner hedge.
-    assert.deepStrictEqual([b.x, b.z], [-44, 28], 'respawn takes the farthest legal pose');
+    const farthest=st.spawns.reduce((best,p)=>Math.hypot(p.x-a.x,p.z-a.z)>Math.hypot(best.x-a.x,best.z-a.z)?p:best);
+    assert.deepStrictEqual([b.x,b.z],[farthest.x,farthest.z],'respawn takes the farthest legal pose');
     assert(Math.hypot(b.x - a.x, b.z - a.z) >= 2.5, 'no live-kart overlap');
     assert.strictEqual(b.shield, 2.5, 'fresh spawn shield');
     assert.strictEqual(b.spawnSeq, 1, 'epoch bumps on respawn');
@@ -837,13 +838,13 @@ async function main() {
     parkFar(st, ['p0']);
     for (const crate of st.crates) { crate.x = -24; crate.z = 24; }
     a.weapon = 'mine'; a.ammo = 1; a.shield = 0; a.fireCd = 0;
-    a.x = 16; a.z = 12; a.angle = Math.PI; a.speed = 0; // rear to the (16,16) block
+    a.x = 13; a.z = 10.5; a.angle = Math.PI; a.speed = 0; // rear to the new south bumper wall
     karts.onAction(st, ctx, 'p0', { input: { steer: 0, throttle: 0, boost: true } });
     tick(ctx, st);
     assert.strictEqual(st.mines.length, 1, 'cover drop still spawns');
     const mine = st.mines[0];
-    assert(Math.abs(mine.x - 16) < 1e-9, 'mine stays on the owner line');
-    assert(Math.abs(mine.z - 12.6) < 1e-9, 'mine falls back toward the owner');
+    assert(Math.abs(mine.x - 13) < 1e-9, 'mine stays on the owner line');
+    assert(Math.abs(mine.z - 11.1) < 1e-9, 'mine falls back toward the owner');
     for (const bl of st.blocks) {
       assert(Math.abs(mine.x - bl.x) >= bl.hw + 0.5 || Math.abs(mine.z - bl.z) >= bl.hd + 0.5,
         'mine clears every block face');

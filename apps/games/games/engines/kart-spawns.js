@@ -16,7 +16,11 @@ const faceCenter = (x, z) => (Math.abs(x) < 1e-9 && Math.abs(z) < 1e-9 ? 0 : Mat
 
 function legal(map, bound, p) {
   if (Math.abs(p.x) > bound - EDGE_MARGIN || Math.abs(p.z) > bound - EDGE_MARGIN) return false;
-  for (const b of map.blocks || []) {
+  const solids = [...(map.blocks || []), ...(map.barriers || []), ...(map.ramps || []).map(r => ({
+    x:r.x, z:r.z, hw:Math.abs(Math.cos(r.angle))*r.hw+Math.abs(Math.sin(r.angle))*r.hl,
+    hd:Math.abs(Math.sin(r.angle))*r.hw+Math.abs(Math.cos(r.angle))*r.hl,
+  }))];
+  for (const b of solids) {
     if (Math.abs(p.x - b.x) < b.hw + BLOCK_MARGIN && Math.abs(p.z - b.z) < b.hd + BLOCK_MARGIN) return false;
   }
   // Arena features: never start in a fall zone, on a cannon or portal, or

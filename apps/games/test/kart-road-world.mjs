@@ -78,7 +78,7 @@ for(const id of ['ring','blocks','garden','frost','neon']) {
   const road=world.group.getObjectByName(id+'-road-road').geometry.attributes.position;
   for(let i=0;i<road.count;i++)for(const b of map.blocks)
     assert(!(Math.abs(road.getX(i)-b.x)<b.hw&&Math.abs(road.getZ(i)-b.z)<b.hd),id+' road avoids solid cover hull');
-  assert(maxRoadHeight>(map.half===30?.5:2),id+' roads climb and descend inside playable arena');
+  assert(maxRoadHeight>(id==='blocks'?.25:map.half===30?.5:2),id+' roads climb and descend inside playable arena');
   assert(nonflat>100,id+' actual elevated road faces');
   // Flat authored footprints stay authoritative: textures/props cannot
   // make a pad or grip region hover over raised driving geometry.

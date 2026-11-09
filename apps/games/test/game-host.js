@@ -33,7 +33,14 @@ const { pathToFileURL } = require('node:url');
     };`);
     fs.writeFileSync(path.join(root, 'games/pocket-karts.js'), `export default {
       mount(el,api) { el.api=api; }, update(el) { el.paints++; },
-      ready(el) { return el.warmup; }, dispose(el) { el.disposes++; }
+      async ready(el) {
+        await el.download;
+        await new Promise(resolve=>{
+          el.api.preparationSignal.addEventListener('abort',resolve,{once:true});
+          el.warmup.then(resolve,resolve);
+          if(el.api.preparationSignal.aborted)resolve();
+        });
+      }, dispose(el) { el.disposes++; }
     };`);
     global.document = { activeElement: null, getElementById: () => null };
     console.error = () => {};
@@ -62,9 +69,9 @@ const { pathToFileURL } = require('node:url');
     assert.equal(host.currentId(), null);
     // A busy kart GPU/audio decoder may never settle during preparation.
     // Exercise the real host deadline, readiness ACK and later live input.
-    let deadline,rejectWarmup;const errors=[],acks=[],sent=[];
+    let deadline,rejectWarmup,finishDownload;const errors=[],acks=[],sent=[];
     global.setTimeout=(fn,ms)=>{if(ms===24000){deadline=fn;return 0;}return originalTimeout(fn,ms);};
-    const slow={disposes:0,paints:0,warmup:new Promise((a,b)=>{rejectWarmup=b;})};
+    const slow={disposes:0,paints:0,download:new Promise(resolve=>{finishDownload=resolve;}),warmup:new Promise((a,b)=>{rejectWarmup=b;})};
     const platform={ready:v=>acks.push(v),loadError:v=>errors.push(v),send:v=>sent.push(v)};
     const preparation={instanceId:'kart',w:'start',preparing:true};
     const loading=host.show(slow,'pocket-karts',preparation,platform,{renderer:'3d'});
@@ -72,7 +79,11 @@ const { pathToFileURL } = require('node:url');
     assert.equal(acks.length,0,'warm-up still holds readiness before its deadline');
     const gameSignal=slow.api.signal;
     deadline();
-    assert.ok(await loading,'timed-out kart preparation still returns the live view');
+    await new Promise(resolve=>setImmediate(resolve));
+    assert.equal(acks.length,0,'soft expiry cannot ACK an unfinished required download');
+    assert.equal(slow.disposes,0,'slow downloads remain mounted');
+    finishDownload();
+    assert.ok(await loading,'required download completes after soft timeout');
     assert.equal(host.isLoaded('pocket-karts'),true);assert.equal(slow.disposes,0);
     assert.equal(gameSignal.aborted,false,'warm-up expiry must not abort the game');
     assert.equal(slow.api.preparationSignal.aborted,true);

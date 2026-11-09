@@ -47,8 +47,8 @@ async function run() {
   let server,browser;const report={pass:false,cases:[],scope:'Chromium emulation; real production view, GLBs and classic server garage actions; seeded finished-match wallet and levels.'};
   try {
     let url=process.env.GARAGE_TEST_URL;
-    if(!url){server=await createFixture();await new Promise(r=>server.listen(Number(process.env.GARAGE_TEST_PORT)||0,'127.0.0.1',r));url='http://127.0.0.1:'+server.address().port;}
-    browser=await chromium.launch({headless:true,executablePath:process.env.KART32_BROWSER||'/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',args:['--use-gl=angle','--use-angle=metal']});report.browser=browser.version();console.log('GARAGE_BROWSER_STARTED',report.browser);
+    if(!url){server=await createFixture();await new Promise(r=>server.listen(Number(process.env.GARAGE_TEST_PORT||process.env.KART_BROWSER_PORT)||0,'127.0.0.1',r));url='http://127.0.0.1:'+server.address().port;}
+    browser=await chromium.launch({headless:true,executablePath:process.env.KART_BROWSER||process.env.KART32_BROWSER||'/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',args:['--use-gl=angle','--use-angle=metal']});report.browser=browser.version();console.log('GARAGE_BROWSER_STARTED',report.browser);
     for(const theme of ['day','night'])for(const viewport of [{width:1280,height:800},{width:768,height:1024},{width:390,height:844},{width:320,height:740},{width:430,height:932}]) {
       const label=`${viewport.width}x${viewport.height}-${theme}`;
       if(process.env.GARAGE_TEST_CASE && process.env.GARAGE_TEST_CASE!==label)continue;

@@ -1,4 +1,5 @@
 /* Game Night shell: connection, home/lobby/game screens, game view host. */
+import {warmPickedKart} from './kart-warmup.mjs';
 import { esc, store, artGradient, artInitial, practiceContext } from './util.js';
 import { practiceSupport } from './practice-support.mjs';
 import { finalHtml } from './kit.js';
@@ -32,7 +33,7 @@ import { decodeFrame, CAPABILITY as REALTIME } from './toolkit/realtime/client.m
 import {
   parseGameEntry, validateGameEntry, shouldHandleGameEntry,
   stripGameEntryParams, decideGameEntryCreate, decideGameEntryShow,
-  detailsHref, setPendingGameEntry, takePendingGameEntry,
+  detailsHref, setPendingGameEntry, peekPendingGameEntry, takePendingGameEntry,
 } from './game-entry.js';
 import {
   createCanvasView, createInput, createMobileStick, createSoundBank,
@@ -49,7 +50,9 @@ const SEAT_REPLACED_CODE = 4001;
  * stored standalone room/name autojoin, hides promotional chrome, and keeps
  * tickets in memory only. */
 const EMBED = parseEmbedParams(location.search);
+warmPickedKart(new URLSearchParams(location.search).get('game'));
 const PRACTICE = !EMBED.enabled && window.parent !== window ? practiceContext(location.search) : null;
+const PRACTICE_GAME = PRACTICE ? new URLSearchParams(location.search).get('game') : null;
 // Last frame of a finished round, shown until its rematch paints.
 let rematchSnapshot = null;
 let lastPracticeReport = '';
@@ -772,6 +775,7 @@ function onMsg(msg) {
       games = msg.games;
       catalogLoaded = true;
       consumeBootEntry();
+      if(PRACTICE_GAME&&!room?.game){const picked=gameById(PRACTICE_GAME);if(picked)query=picked.name;}
       if (!room) render();
       else if (!room.game) render();
       // The catalog arrived late while a game runs: re-derive the hint.
@@ -779,6 +783,7 @@ function onMsg(msg) {
       break;
     case 'room': {
       room = msg.room;
+      warmPickedKart(room.pickedGame,{players:room.players,settings:room.config?.['pocket-karts']?.settings});
       if (pendingRoomAction && !isHost()) clearRoomAction();
       roomCode = room.code;
       persist('pb_room', roomCode);
@@ -791,6 +796,8 @@ function onMsg(msg) {
         resultPresentation.reset();
         gameId = null; lastState = null; focusGame = null; instanceId = null;
         resetView();
+        const pendingGame=gameById(peekPendingGameEntry()?.gameId||PRACTICE_GAME);
+        if(pendingGame&&(peekPendingGameEntry()||room.code!==lastLobbyKey)){query=pendingGame.name;catFilter='all';fitsOnly=false;customOnly=false;}
         render();
         consumePendingCustomize();
         consumeGameEntry();
@@ -1128,6 +1135,12 @@ function render() {
     app.innerHTML = `<section class="room-removed" role="status"><h1>Removed from room</h1><p>The host removed you from this game room.</p>${EMBED.enabled ? '<p>Your call continues. Close Games to return to it.</p>' : '<button type="button" class="btn" id="bRemovedHome">Browse games</button>'}</section>`;
     const home = document.getElementById('bRemovedHome');
     if (home) home.onclick = () => { seatRemoved = false; render(); connect(); };
+    return;
+  }
+  if(PRACTICE_GAME&&!room&&gameById(PRACTICE_GAME)){
+    // The practice chooser already picked a game. Avoid fetching an entire
+    // home catalogue while this seat creates/joins that game room.
+    app.innerHTML='<section class="boot-view" role="status"><span class="loading-mark" aria-hidden="true"><i></i><i></i><i></i></span><h1>Opening practice room…</h1></section>';
     return;
   }
   const screen = !room ? 'home' : (!room.game || leftToLobby() ? 'lobby' : 'game');
@@ -2120,6 +2133,7 @@ function consumePendingCustomize() {
 /* One customizer entry for cards AND the howto dialog's Customize action —
  * the panels never stack (each open closes the other). */
 function openCustomizerFor(gameId, opener) {
+  warmGameCard(gameId);
   const g = gameById(gameId);
   if (!g || !room) return;
   closeHowto({ returnFocus: false });
@@ -2277,7 +2291,12 @@ function howtoIntro(g) {
   return isHost() ? 'Choose your settings, then play together.' : 'The host will start the game for everyone.';
 }
 
+function warmGameCard(gameId) {
+  warmPickedKart(gameId,{players:room?.players,settings:room?.config?.['pocket-karts']?.settings});
+  if(room&&!room.game&&isHost())send({t:'pick-game',game:gameId});
+}
 function openHowtoDialog(gameId, opener) {
+  warmGameCard(gameId);
   const g = gameById(gameId);
   if (!g) return;
   openHowto({
@@ -2802,6 +2821,15 @@ function paintGamePreparation() {
     }
   }
   if (status) status.hidden = !preparing;
+  if(status&&preparing&&gameId==='pocket-karts'&&!status.querySelector('.kart-load-progress')){
+    const progress=document.createElement('small');progress.className='kart-load-progress';(status.querySelector('.preparation-text')||status).appendChild(progress);
+    const update=()=>{
+      const resources=performance.getEntriesByType('resource').filter(r=>/\/(?:vendor|assets\/karts|js\/engines)\//.test(r.name));
+      progress.textContent=`${lastState?.readyDeadline===null?'Still loading':'Loading arena'}… ${resources.length} files ready. Your match is waiting.`;
+    };
+    update();
+    const timer=setInterval(()=>{if(!status.isConnected||status.hidden){clearInterval(timer);return;}update();},1000);
+  }
   if (!preparing && preparationTipTimer) { clearInterval(preparationTipTimer); preparationTipTimer = 0; }
 }
 let preparationTipTimer = 0;

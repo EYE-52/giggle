@@ -7,10 +7,8 @@ import {elevatedStatics} from './kart-feature-solids.mjs';
 import {createElevatedMotion,clearElevatedMotion} from './kart-elevated-motion.mjs';
 import {elevatedMap} from './kart-elevated-maps.mjs';
 import {blendElevatedPose} from './kart-elevated-pose.mjs';
-let loading;
-export function loadElevatedPhysics(){
-  return loading??=import('/vendor/rapier/rapier.mjs').then(async m=>{const R=m.default;await R.init();if(R.version()!=='0.21.0')throw Error('Unexpected kart physics runtime');return R;});
-}
+import {loadKartPhysics} from './kart-physics-loader.mjs';
+export const loadElevatedPhysics=loadKartPhysics;
 const neutral=()=>({steer:0,throttle:0,brake:0,nitro:false,use:false});
 const sameIntent=(a,b)=>a.steer===b.steer&&a.throttle===b.throttle&&a.brake===b.brake&&!!a.nitro===!!b.nitro&&!!a.use===!!b.use;
 const yaw=q=>Math.atan2(2*(q.x*q.z+q.w*q.y),1-2*(q.x*q.x+q.y*q.y));

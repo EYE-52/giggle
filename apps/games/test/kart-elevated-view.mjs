@@ -35,8 +35,8 @@ import {batchKartBody as batchFixtureKart} from '../public/js/engines/kart-batch
 import {createKartModel,animateKartModel,createCrateModel} from '../public/js/engines/kart-model.mjs';
 import {createKartCombatArt,projectileContactInset} from '../public/js/engines/kart-combat-art.mjs';
 import {createKartHealthBars} from '../public/js/engines/kart-health-bars.mjs';
-import {loadKartWeaponThumbnails,weaponThumbnailArt,loadKartDrivers,buildKartDriverVariants} from '../public/js/engines/kart-assets.mjs';
-globalThis.Image=class{async decode(){const data=fs.readFileSync(new URL('../public'+this.src,import.meta.url));if(this.src.endsWith('.svg'))assert.match(data.toString(),/<svg/);else assert.equal(data.subarray(0,8).toString('hex'),'89504e470d0a1a0a');}};
+import {loadKartWeaponThumbnails,weaponThumbnailArt,loadKartDrivers,matchKartDrivers,buildKartDriverVariants} from '../public/js/engines/kart-assets.mjs';
+globalThis.Image=class{async decode(){const data=this.src.startsWith('data:')?Buffer.from(this.src.split(',')[1],'base64'):fs.readFileSync(new URL('../public'+this.src,import.meta.url));if(this.src.endsWith('.svg')||this.src.startsWith('data:image/svg+xml'))assert.match(data.toString(),/<svg/);else assert.equal(data.subarray(0,8).toString('hex'),'89504e470d0a1a0a');}};
 import {elevatedSolidGeometry} from '../public/js/engines/kart-elevated-world.mjs';
 import {elevatedMap,elevatedMapIds} from '../public/js/engines/kart-elevated-maps.mjs';
 import {initializePhysics,RAPIER,ADAPTER as PHYSICS} from './kart-elevation-physics.mjs';
@@ -78,8 +78,8 @@ for(const mapId of elevatedMapIds)for(const room of [true,false])for(const touch
   r.render(s);check('equipped player uses an icon fallback while thumbnail preparation is pending',r.node('weapon').querySelector('.kart-item-art').innerHTML.includes('<svg')&&!r.node('weapon').querySelector('.kart-item-art').innerHTML.includes('<img'));
   await r.settle(0,true);r.node('loading').querySelector('button').dispatch('click');
   await loadKartWeaponThumbnails();r.thumbnails(true);await r.settle();
-  check('successful retry replaces unchanged equipped HUD fallback with decoded licensed thumbnail',r.node('weapon').querySelector('.kart-item-art').innerHTML.includes('/weapon-thumbnails/missile.svg'));
-  check('successful retry updates unchanged touch action thumbnail too',r.node('use-icon').innerHTML.includes('/weapon-thumbnails/missile.svg'));
+  check('successful retry replaces unchanged equipped HUD fallback with decoded licensed thumbnail',r.node('weapon').querySelector('.kart-item-art').innerHTML.includes('data:image/svg+xml;base64,'));
+  check('successful retry updates unchanged touch action thumbnail too',r.node('use-icon').innerHTML.includes('data:image/svg+xml;base64,'));
   r.view.dispose();
 }
 {
@@ -94,8 +94,8 @@ for(const mapId of elevatedMapIds)for(const room of [true,false])for(const touch
   check('elevated loading prepares the shell audio bank once',shellPreps===1);
   let resolveAudio,audioReady=false;r.audios[0].readyWait=new Promise(resolve=>{resolveAudio=resolve;});
   const pendingReady=r.view.ready().then(()=>{audioReady=true;});await r.flush();
-  check('elevated loading waits for audio preparation',!audioReady);resolveAudio(true);await r.flush();
-  check('elevated loading waits for the shell audio decode too',!audioReady);resolveShellAudio(true);await pendingReady;
+  check('optional audio does not hold a graphics-ready raised arena',audioReady);resolveAudio(true);await r.flush();
+  check('shell audio also decodes in the background',audioReady);resolveShellAudio(true);await pendingReady;
   const deadline=new AbortController();r.api.preparationSignal=deadline.signal;r.audios[0].readyWait=new Promise(()=>{});
   const slowAudio=r.view.ready();deadline.abort();await slowAudio;
   check('elevated optional audio timeout keeps the prepared game and context',r.audios[0].preps===1&&r.node('loading').hidden);

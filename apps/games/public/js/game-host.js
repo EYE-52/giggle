@@ -284,7 +284,7 @@ async function usableFrame(active, request, api) {
     if (img.decode) await waitFor(img.decode(), signal);
   }
   if (typeof active.view.ready === 'function') {
-    const ready = await preparationWait(active, active.view.ready(active.el, request.S, api), signal);
+    const ready = await waitFor(active.view.ready(active.el, request.S, api), signal);
     if (ready === false) throw new Error('Game view is not ready');
   }
   // Visible content gets two pre-paint callbacks, providing one paint
@@ -296,8 +296,8 @@ async function usableFrame(active, request, api) {
 
 async function drive(active) {
   const signal = active.controller.signal;
-  // The kart server allows 30s. Leave six seconds for a busy tab to ACK.
-  // This deadline skips optional warm-up; it must never retire a kart game.
+  // Skip optional kart GPU work after 24s. Required downloads and
+  // the real first frame still hold readiness; the server keeps waiting.
   const kart = active.id === 'pocket-karts';
   // A first visit downloads code, styles and art with a cold cache; 10s failed on slower links.
   const limitMs = kart ? 24000 : active.latest?.meta?.renderer === '3d' ? 28000 : 20000;
