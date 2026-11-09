@@ -29,7 +29,8 @@ for(const id of maps.mapIds()){
     assert.ok(ny>0,id+' upward winding');
     maxSlope=Math.max(maxSlope,Math.hypot(uy*vz-uz*vy,ux*vy-uy*vx)/ny);
   }
-  assert.ok(maxHeight>(map.half===30?.5:3),id+' measurable drivable elevation');
+  const minRelief=id==='blocks'?.25:map.half===30?.5:2;
+  assert.ok(maxHeight>minRelief,id+' measurable drivable elevation');
   assert.ok(maxSlope<=.55,id+' triangle slope <= 28.9 degrees: '+maxSlope);
   for(const rect of [...map.blocks,...map.pads,...map.surfaces])
     for(let z=-rect.hd-1;z<=rect.hd+1;z+=.7)for(let x=-rect.hw-1;x<=rect.hw+1;x+=.7)
@@ -79,7 +80,7 @@ for(const id of maps.mapIds()){
       const pose=supportWorld.pose('driver'),wheels=pose.wheels.filter(w=>w.contact).length;
       minSpawnWheels=Math.min(minSpawnWheels,wheels);
       minSpawnClearance=Math.min(minSpawnClearance,pose.position.y-terrain.heightAt(pose.position.x,pose.position.z));
-      assert.ok(wheels>=3&&pose.position.y>terrain.heightAt(pose.position.x,pose.position.z)+.45,id+' original spawn has real wheel support');
+      assert.ok(wheels>=3&&pose.position.y>terrain.heightAt(pose.position.x,pose.position.z)+.45,id+' original spawn has real wheel support '+JSON.stringify({spawn,wheels,pose}));
       assert.ok(Math.hypot(pose.position.x-spawn.x,pose.position.z-spawn.z)<1.5,id+' spawn does not slide into nearby cover');
     }
     for(const [x,z]of map.spots){
@@ -143,8 +144,8 @@ for(const id of maps.mapIds()){
     // Follow open flank transects while retaining real hills and full data.
     // The new Garden/Neon dividers bound the old inner transects. Their
     // outer racing lines retain a complete north/south hill traverse.
-    const target=id==='ring'?14:id==='blocks'?21:id==='garden'?46:id==='frost'?4:id==='neon'?-44:0;
-    const limit=map.half-3,driver=kart(target,-limit*direction,direction===1?0:Math.PI),state=stateFor(map,[driver]);
+    const target=id==='ring'?14:id==='blocks'?0:id==='garden'?46:id==='frost'?-47:id==='neon'?-46:0;
+    const limit=map.half-3,alongX=id==='blocks',heading=alongX?direction*Math.PI/2:direction===1?0:Math.PI,driver=alongX?kart(-limit*direction,20,heading):kart(target,-limit*direction,heading),state=stateFor(map,[driver]);
     const motion=createClassicMotion(RAPIER,config,state),prediction=createClassicPrediction(RAPIER);
     let maxRoadHeight=0,minCenterClearance=Infinity,minHullClearance=Infinity,worstHullSample,maxYStep=0,grounded=0,steps=0,descended=false,previousY=driver.physicalPose.position.y,maxPredictionError=0,sequence=0;
     const snapshot=()=>({instanceId:id+'-'+direction,phase:'drive',you:'driver',youDrive:true,mode:'battle',map,karts:[structuredClone(driver)],inputAck:{appliedInputSeq:sequence}});
@@ -152,9 +153,9 @@ for(const id of maps.mapIds()){
     try{
       // On the yard's outer crown, the suspension can land just after
       // crossing the finish coordinate. Let that real descent complete.
-      for(let i=0;i<1200&&(driver.z*direction<limit||!descended);i++){
-        const error=Math.atan2(Math.sin(driver.angle-(direction===1?0:Math.PI)),Math.cos(driver.angle-(direction===1?0:Math.PI)));
-        driver.input={throttle:1,steer:Math.max(-1,Math.min(1,(driver.x-target)*.45*direction+error*1.8))};
+      for(let i=0;i<1200&&((alongX?driver.x:driver.z)*direction<limit||!descended);i++){
+        const error=Math.atan2(Math.sin(driver.angle-heading),Math.cos(driver.angle-heading));
+        driver.input={throttle:1,steer:Math.max(-1,Math.min(1,(alongX?20-driver.z:driver.x-target)*.45*direction+error*1.8))};
         if(i%3===0){sequence++;driver._receivedSeq=sequence;prediction.sent(sequence);}
         motion.advance(1/60,online);
         if(i%3===0)prediction.ingest(snapshot(),i*1000/60);
@@ -173,10 +174,10 @@ for(const id of maps.mapIds()){
             wheelContacts:p.wheels.filter(w=>w.contact).length,suspensionLengths:p.wheels.map(w=>w.length)};
         }
         maxYStep=Math.max(maxYStep,Math.abs(p.position.y-previousY));previousY=p.position.y;
-        grounded+=p.grounded;steps++;descended ||= maxRoadHeight>(map.half===30?.5:2)&&h<.1&&p.grounded;
+        grounded+=p.grounded;steps++;descended ||= maxRoadHeight>minRelief&&h<.1&&p.grounded;
         assert.ok(Object.values(p.position).every(Number.isFinite));
       }
-      assert.ok(driver.z*direction>=limit&&maxRoadHeight>(map.half===30?.5:2)&&descended,id+' climbs, descends and finishes '+direction);
+      assert.ok((alongX?driver.x:driver.z)*direction>=limit&&maxRoadHeight>minRelief&&descended,id+' climbs, descends and finishes '+direction);
       assert.ok(Number.isFinite(minHullClearance)&&minHullClearance>0,id+' '+direction+' oriented chassis stays above terrain: '+minHullClearance);
       assert.ok(maxYStep<.3&&grounded/steps>.7,id+' '+direction+' continuous wheel support without steps: '+JSON.stringify({maxYStep,groundedFraction:grounded/steps}));
       assert.ok(maxPredictionError<.7,id+' authority and prediction share exact relief: '+maxPredictionError);

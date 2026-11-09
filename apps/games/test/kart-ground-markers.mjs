@@ -190,7 +190,7 @@ for(const id of maps.mapIds()){
   }
   assert.deepEqual(constructorCounts,skinCounts,id+' visible-floor fitting constructs no Three objects after readiness');
   if(minimumVisibleProp<.03499)failures.push({id,kind:'MineTrap-visible-skins',minimum:minimumVisibleProp,worst:worstVisibleProp});
-  if(id==='neon')assert.equal(visibleGround(18,18),.065,'actual Neon pad chevron floor');
+  if(id==='neon')assert.equal(visibleGround(map.pads[0].x,map.pads[0].z),.065,'actual Neon pad chevron floor');
   for(const r of map.surfaces)assert(visibleGround(r.x,r.z)>=.045,'Frost ice is included in visible support');
   const soil=-map.half+2;
   assert.equal(visibleGround(soil,soil),ground(soil,soil),id+' neighbouring bare ground receives no skin lift');

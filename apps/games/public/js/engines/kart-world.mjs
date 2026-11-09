@@ -1362,7 +1362,7 @@ export function createKartWorld(THREE, options) {
     ctx.font = 'bold 52px system-ui, sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    const title=theme==='neon'?'NEON YARD':theme==='garden'?'ALPINE CIRCUIT':theme==='frost'?'FROSTY PASS':quarry?'QUARRY BLOCKS':'VILLAGE RING';
+    const title=theme==='neon'?'NEON YARD':theme==='garden'?'GARDEN CIRCUIT':theme==='frost'?'FROSTY PASS':quarry?'QUARRY BLOCKS':'VILLAGE RING';
     ctx.fillText(title, w / 2, h / 2 + 2);
   });
   poleSpots.push([bannerX, -5.5, 0, 6.4], [bannerX, 5.5, 0, 6.4]);
@@ -2132,6 +2132,7 @@ export function createKartWorld(THREE, options) {
         const grip = Number(b.grip);
         if (Number.isFinite(grip)) rect.grip = grip;
       }
+      if(Array.isArray(b.pieces))rect.pieces=b.pieces;
       out.push(rect);
     }
     return out;
@@ -2139,41 +2140,25 @@ export function createKartWorld(THREE, options) {
   const keyRects = (list) => list.map((b) =>
     `${b.x.toFixed(2)},${b.z.toFixed(2)},${b.hw.toFixed(2)},${b.hd.toFixed(2)}`).join(';');
 
-  // Central garden bed: five low flower props (purple + marigold) sharing
-  // the fallback stem/bloom geometries and two shared materials. Fixed
-  // quincunx, fully deterministic — every bloom stays inside the exact hull
-  // and under 0.65 above the 1.5 hedge cap.
-  const GARDEN_BED_FLOWERS = [
-    { dx: 0, dz: 0, h: 0.55, orange: false, ry: 0.4 },
-    { dx: 1, dz: 1, h: 0.42, orange: true, ry: 1.9 },
-    { dx: 1, dz: -1, h: 0.62, orange: false, ry: 3.3 },
-    { dx: -1, dz: -1, h: 0.38, orange: true, ry: 4.6 },
-    { dx: -1, dz: 1, h: 0.50, orange: false, ry: 5.7 },
-  ];
-  const BED_BLOOM_NATIVE = 0.71; // fallback flower top: stem 0.5 + bloom at 0.55
-  let bedOrangeMat = null;
+  let fountainWaterMat = null;
   function dressGardenBed(b) {
-    if (!bedOrangeMat) bedOrangeMat = std(0xff9a3c, { roughness: 0.8 });
-    const r = Math.min(b.hw, b.hd) * 0.45;
-    for (const f of GARDEN_BED_FLOWERS) {
-      const mats = f.orange
-        ? Object.assign({}, fallbackMats, { bloom: bedOrangeMat })
-        : fallbackMats;
-      const flower = buildFallback(THREE, 'flower_purpleA', mats);
-      flower.scale.setScalar(f.h / BED_BLOOM_NATIVE);
-      flower.rotation.y = f.ry;
-      flower.position.set(
-        b.x + f.dx * r * Math.SQRT1_2, 1.5, b.z + f.dz * r * Math.SQRT1_2);
-      obstacleGroup.add(flower);
+    // A small toy fountain sits entirely on the solid central island.
+    // Reuse cover geometry/materials; water uses one instanced material.
+    if (!fountainWaterMat) fountainWaterMat = std(0x55d7e8, {roughness:.3,emissive:0x247eaa,emissiveIntensity:.25});
+    const T=getThemeRes();
+    for(const {w,h,d,y,material:kind} of b.pieces||[]) {
+      const material=kind==='water'?fountainWaterMat:kind==='cap'?T.capMat:T.baseMat;
+      const piece=new THREE.Mesh(unitBox,material);piece.scale.set(w,h,d);
+      piece.position.set(b.x,y,b.z);piece.name='garden-fountain';obstacleGroup.add(piece);
     }
   }
 
   // One obstacle, dressed per theme. The pad ring is paint; every SOLID mesh
   // (base, cap, top) stays inside the exact hull. Grove tops read ~2.4;
-  // garden hedges top out at 1.5 with low blooms on the central bed only
+  // garden hedges top out at 1.5 with authored fountain parts on its island
   // (tall crowns blocked the chase view); frost rocks scale with the
   // footprint, neon crates sit at ~2.4.
-  function dressBlock(b, i, centralIdx) {
+  function dressBlock(b, i) {
     const w = b.hw * 2, d = b.hd * 2;
     const minDim = Math.min(w, d);
     if (theme === 'grove') {
@@ -2221,8 +2206,8 @@ export function createKartWorld(THREE, options) {
     obstacleGroup.add(cap);
     if (theme === 'garden') {
       // Limestone retaining island + meadow cap top out at 1.5 — no tall
-      // crowns. The central bed alone gets a low flower cluster.
-      if (i === centralIdx && minDim >= 4) dressGardenBed(b);
+      // crowns. The central island alone carries the fountain.
+      if (b.pieces?.length) dressGardenBed(b);
     } else if (theme === 'frost') {
       // Snow-capped hull: an ice rock fitted inside the footprint. On large
       // arenas the top is capped so big cover reads as low snow banks with
@@ -2295,7 +2280,7 @@ export function createKartWorld(THREE, options) {
     // opts.map. A half change refreshes obstacle dressing here; the static
     // ground/walls/scenery need a world rebuild via the root.)
     const incomingHalf = resolveHalf(map && map.half != null || (map && map.bound != null) ? map : null, { half });
-    const key = id + '|' + incomingHalf.toFixed(1) + '|' + keyRects(blocks) + '|' + keyRects(pads) + '|' + keyRects(surfs);
+    const key = id + '|' + (map?.revision||'') + '|' + incomingHalf.toFixed(1) + '|' + keyRects(blocks) + '|' + keyRects(pads) + '|' + keyRects(surfs);
     if (key === mapKey) return;
     mapKey = key;
     // Instance buffers belong to the previous map; shared geometry stays.
@@ -2306,21 +2291,7 @@ export function createKartWorld(THREE, options) {
     layout.blocks = blocks;
     layout.pads = pads;
     layout.surfaces = surfs;
-    // Garden's central bed (block center nearest the arena middle, ties to
-    // the larger) carries the low flower cluster; chicane hedges stay bare.
-    // Derived from snapshot geometry, never hardcoded.
-    let centralIdx = -1;
-    if (theme === 'garden') {
-      let bestD = Infinity, bestA = -Infinity;
-      blocks.forEach((b, i) => {
-        const d = Math.hypot(b.x, b.z);
-        const area = b.hw * b.hd;
-        if (d < bestD || (d === bestD && area > bestA)) {
-          bestD = d; bestA = area; centralIdx = i;
-        }
-      });
-    }
-    blocks.forEach((b, i) => dressBlock(b, i, centralIdx));
+    blocks.forEach((b, i) => dressBlock(b, i));
     surfs.forEach(dressSurface);
     pads.forEach(dressPad);
     instanceRepeats(THREE, obstacleGroup, {minCount:2});

@@ -51,7 +51,7 @@ export function createClassicPrediction(R){
   }
   function observe(snapshot,now,serverAt=now){
     if(retired||observed===snapshot)return;
-    observed=snapshot;const next=snapshot.instanceId+':'+snapshot.map.id;
+    observed=snapshot;const next=snapshot.instanceId+':'+snapshot.map.id+':'+(snapshot.map.revision||'');
     if(next!==observedIdentity){observedIdentity=next;remotes.clear();remoteVisual.clear();remoteStamps.clear();advancedAt=null;}
     const simAt=Number.isFinite(snapshot.simAt)?snapshot.simAt:serverAt;
     remotes.observe(simAt,serverAt);
@@ -82,7 +82,7 @@ export function createClassicPrediction(R){
   function ingest(snapshot,now,serverAt=now){
     if(retired)return;
     observe(snapshot,now,serverAt);
-    const next=snapshot.instanceId+':'+snapshot.map.id,changed=next!==identity;
+    const next=snapshot.instanceId+':'+snapshot.map.id+':'+(snapshot.map.revision||''),changed=next!==identity;
     const oldSelf=state?.karts.find(k=>k.pid===selfId),before=oldSelf?.physicalPose?stepBlend(oldSelf):null;
     const previous=before&&correction?{...before,position:{x:before.position.x+correction.offset.x,y:before.position.y+correction.offset.y,z:before.position.z+correction.offset.z},rotation:multiply(correction.rotation,before.rotation)}:before;
     if(changed){world?.dispose();identity=next;state={map:snapshot.map.id,half:snapshot.map.half,blocks:snapshot.map.blocks,pads:snapshot.map.pads,surfaces:snapshot.map.surfaces,features:snapshot.map.features,roads:snapshot.map.roads,offroad:snapshot.map.offroad,barriers:snapshot.map.barriers,ramps:snapshot.map.ramps,mode:snapshot.mode,karts:snapshot.karts.map(k=>({...structuredClone(k),input:neutralIntent(),upgrades:snapshot.upgrades?.[k.pid],garage:snapshot.garage})),physicalEvents:[],physicalEventSeq:0};world=createClassicMotion(R,config,state);history=[];lastSeq=0;elapsed=0;lastDraw=null;correction=null;peerWeights.clear();}

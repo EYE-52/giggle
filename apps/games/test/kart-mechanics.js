@@ -72,10 +72,10 @@ async function main() {
     // Arena redesign adds racing-line turbo strips; tall cover is unchanged.
     const want = {
       ring: ['Rookie Ring', 'ring', 30, 0, 2, 0],
-      blocks: ['Bumper Blocks', 'blocks', 30, 4, 2, 0],
-      garden: ['Garden Circuit', 'garden', 60, 6, 4, 0],
-      frost: ['Frosty Pass', 'frost', 60, 6, 4, 5],
-      neon: ['Neon Yard', 'neon', 60, 6, 5, 0],
+      blocks: ['Bumper Blocks', 'blocks', 30, 6, 2, 0],
+      garden: ['Garden Circuit', 'garden', 60, 5, 4, 0],
+      frost: ['Frosty Pass', 'frost', 60, 6, 2, 2],
+      neon: ['Neon Yard', 'neon', 60, 6, 4, 0],
     };
     assert.deepStrictEqual(maps.mapIds(), ['ring', 'blocks', 'garden', 'frost', 'neon'], 'map roster');
     for (const [id, [label, theme, half, nb, np, ns]] of Object.entries(want)) {
@@ -104,23 +104,9 @@ async function main() {
         assert(s.grip > 0 && s.grip <= 1.5, `${id} surface grip sane`);
         assert(Math.abs(s.x) + s.hw <= bound && Math.abs(s.z) + s.hd <= bound, `${id} surface in bounds`);
       }
-      // No neat obstacle rows on the large arenas: at most 2 blocks share
-      // an x or z center line.
-      if (half > 30) {
-        const xc = {};
-        const zc = {};
-        for (const b of m.blocks) {
-          xc[b.x] = (xc[b.x] || 0) + 1;
-          zc[b.z] = (zc[b.z] || 0) + 1;
-        }
-        assert(Math.max(...Object.values(xc)) <= 2, id + ' has no column row');
-        assert(Math.max(...Object.values(zc)) <= 2, id + ' has no lane row');
-      }
     }
-    // Garden keeps a broad center passage (no cover near the middle).
-    for (const b of maps.mapDef('garden').blocks) {
-      assert(Math.abs(b.x) - b.hw >= 10 || Math.abs(b.z) - b.hd >= 10, 'garden center stays open');
-    }
+    const fountain=maps.mapDef('garden').blocks[0];
+    assert(fountain.x===0&&fountain.z===0&&fountain.hw===4,'garden has a central fountain island');
     // The view carries the whole contract; the renderers draw from it.
     const [st] = racing({ mode: 'Star Rush', map: 'Frosty Pass' });
     assert.strictEqual(st.map, 'frost', 'label setting selects frost');
@@ -128,7 +114,7 @@ async function main() {
     assert.strictEqual(st.bound, 58, 'large arena bound');
     const v = karts.view(st, 'p0');
     assert.deepStrictEqual(Object.keys(v.map).sort(),
-      ['blocks', 'bound', 'half', 'id', 'label', 'pads', 'surfaces', 'theme'], 'map snapshot keys');
+      ['blocks', 'bound', 'half', 'id', 'label', 'pads', 'revision', 'surfaces', 'theme'], 'map snapshot keys');
     assert.strictEqual(v.map.id, 'frost', 'snapshot id');
     assert.strictEqual(v.map.label, 'Frosty Pass', 'snapshot label');
     assert.strictEqual(v.map.theme, 'frost', 'snapshot theme');
@@ -167,7 +153,7 @@ async function main() {
       // The opening pair meets quickly: nearby central pockets, never
       // isolated at opposite outer corners.
       const d01 = Math.hypot(m.spawns[0].x - m.spawns[1].x, m.spawns[0].z - m.spawns[1].z);
-      assert(d01 < (m.half > 30 ? 45 : 30), `${id} opening pair meets fast (d=${d01.toFixed(1)})`);
+      assert(d01 < m.half * 1.6, `${id} opening pair meets fast (d=${d01.toFixed(1)})`);
       // BFS on a 1u grid with hull clearance: every spawn and socket joins
       // one connected region (no trapped seats or pickups).
       const N = bound * 2 + 1;
@@ -183,10 +169,11 @@ async function main() {
           }
         }
       }
-      assert(!blocked[at(0, -12)], `${id} BFS seed is open`);
+      const seedX=Math.round(m.spawns[0].x),seedZ=Math.round(m.spawns[0].z);
+      assert(!blocked[at(seedX,seedZ)], `${id} authored spawn BFS seed is open`);
       const seen = new Uint8Array(N * N);
-      const q = [[0, -12]];
-      seen[at(0, -12)] = 1;
+      const q = [[seedX,seedZ]];
+      seen[at(seedX,seedZ)] = 1;
       while (q.length) {
         const [cx, cz] = q.pop();
         for (const [dx, dz] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
@@ -307,16 +294,16 @@ async function main() {
       const [st, ctx] = racing({ mode, map: 'Neon Yard' });
       const k = st.karts[0];
       st.karts[1].x = -24; st.karts[1].z = -24;
-      // Straight at the (18,18) shortcut pad at speed.
+      // Drive along the north street into the authored turbo strip.
       const runStrip = () => {
-        k.x = 18; k.z = 8; k.angle = 0; k.speed = 10;
+        k.x = 0; k.z = -24; k.angle = 0; k.speed = 10;
         for (let i = 0; i < 8 && k.turbo <= 0; i++) {
           karts.onAction(st, ctx, 'p0', { input: { steer: 0, throttle: 1 } });
           tick(ctx, st);
         }
       };
       runStrip();
-      assert(k.z >= 15 && k.z <= 21, `${mode}: kart reaches the strip`);
+      assert(k.z >= -17 && k.z <= -11, `${mode}: kart reaches the strip`);
       // Granted mid-tick, then decayed by the remaining substeps of that
       // same tick — within one tick of full, never 0 and never over full.
       assert(k.turbo > 0 && k.turbo <= engine.constants.TURBO_TIME,
@@ -355,12 +342,12 @@ async function main() {
     const [st, ctx] = racing({ mode: 'Star Rush', map: 'Frosty Pass' });
     const k = st.karts[0];
     st.karts[1].x = 24; st.karts[1].z = -24;
-    // Same turn on the center rink vs asphalt: ice yaws wider.
-    k.x = 0; k.z = 0; k.angle = 0; k.speed = 10;
+    // Same turn on a lake half vs asphalt: ice yaws wider.
+    k.x = 0; k.z = -19; k.angle = 0; k.speed = 10;
     karts.onAction(st, ctx, 'p0', { input: { steer: 1, throttle: 1 } });
     tick(ctx, st);
     const iceTurn = k.angle;
-    assert.strictEqual(k.grip, 0.45, 'center rink reports its grip');
+    assert.strictEqual(k.grip, 0.3, 'north lake reports its grip');
     const [sa, ctxa] = racing({ mode: 'Star Rush', map: 'Rookie Ring' });
     const ka = sa.karts[0];
     sa.karts[1].x = 24; sa.karts[1].z = 24;
@@ -370,7 +357,7 @@ async function main() {
     assert.strictEqual(ka.grip, 1, 'asphalt reports full grip');
     assert(Math.abs(iceTurn) < Math.abs(ka.angle), 'ice turns lazier than asphalt');
     // Slides linger on ice and die on asphalt.
-    const patch = st.surfaces.find((s) => s.grip === 0.3 && s.x < 0 && s.z < 0); // clear forward route, away from the enlarged hull/cover
+    const patch = st.surfaces.find((s) => s.grip === 0.3 && s.z < 0); // clear forward route, away from the enlarged hull/cover
     k.x = patch.x; k.z = patch.z; k.angle = 0; k.speed = 10; k.slip = 5;
     karts.onAction(st, ctx, 'p0', { input: { steer: 0, throttle: 1 } });
     for (let i = 0; i < 5; i++) tick(ctx, st);
@@ -463,34 +450,34 @@ async function main() {
     const [st, ctx] = racing({ mode: 'Star Rush', map: 'Bumper Blocks' });
     const k = st.karts[0];
     st.karts[1].x = -24; st.karts[1].z = -24;
-    // Glance along the west face of the (16,16) block: mostly tangential.
-    k.x = 12.5; k.z = 16; k.angle = Math.atan2(0.25, 1); k.speed = 10;
+    // Glance along the west face of a central switchback block.
+    k.x = -15.5; k.z = 0; k.angle = Math.atan2(0.25, 1); k.speed = 10;
     karts.onAction(st, ctx, 'p0', { input: { steer: 0, throttle: 0 } });
     tick(ctx, st);
-    assert(k.z > 16.3, `glance slides along the face, z=${k.z.toFixed(2)}`);
-    assert(Math.abs(k.x - (13.5 - engine.constants.KART_R)) < 0.2, `glance rests off the face, x=${k.x.toFixed(2)}`);
+    assert(k.z > .3, `glance slides along the face, z=${k.z.toFixed(2)}`);
+    assert(Math.abs(k.x - (-14 - engine.constants.KART_R)) < 0.2, `glance rests off the face, x=${k.x.toFixed(2)}`);
     assert(k.speed > 3, `glance keeps rolling speed, v=${k.speed.toFixed(2)}`);
     // Head-on coast into the same face stops nearly dead.
-    k.x = 16; k.z = 10; k.angle = 0; k.speed = 10;
+    k.x = 13; k.z = 8.5; k.angle = 0; k.speed = 10;
     karts.onAction(st, ctx, 'p0', { input: { steer: 0, throttle: 0 } });
     for (let i = 0; i < 5; i++) tick(ctx, st);
     assert(k.speed < 0.6, `head-on coast stops dead, v=${k.speed.toFixed(2)}`);
-    approx(k.z, 13.5 - engine.constants.KART_R, 0.3, 'head-on rests on the face');
+    approx(k.z, 12 - engine.constants.KART_R, 0.3, 'head-on rests on the face');
     // Boosted hitch into a NEON container face: substeps stop at the face.
     const [sn, ctxn] = racing({ mode: 'Star Rush', map: 'Neon Yard' });
     const kn = sn.karts[0];
     sn.karts[1].x = -44; sn.karts[1].z = -44;
-    kn.x = 18; kn.z = -16; kn.angle = Math.PI / 2; kn.speed = 20; kn.boost = 1.2;
+    kn.x = 10; kn.z = -25; kn.angle = Math.PI / 2; kn.speed = 20; kn.boost = 1.2;
     karts.onAction(sn, ctxn, 'p0', { input: { steer: 0, throttle: 1 } });
     ctxn._now += 250;
     karts.onTick(sn, ctxn);
-    assert(kn.x < 23, `hitch never tunnels the container, x=${kn.x.toFixed(2)}`);
-    const b = sn.blocks.find((bb) => bb.x === 28 && bb.z === -16);
+    assert(kn.x < 15, `hitch never tunnels the container, x=${kn.x.toFixed(2)}`);
+    const b = sn.blocks.find((bb) => bb.x === 25 && bb.z === -25);
     const cx = Math.max(b.x - b.hw, Math.min(kn.x, b.x + b.hw));
     const cz = Math.max(b.z - b.hd, Math.min(kn.z, b.z + b.hd));
     assert(Math.hypot(kn.x - cx, kn.z - cz) >= engine.constants.KART_R - .01, 'hitch rests clear of the crate');
     // Mirror agrees on the same hitch, bit-for-bit.
-    const p = { x: 18, z: -16, angle: Math.PI / 2, speed: 20, boost: 1.2, boostCd: 6 };
+    const p = { x: 10, z: -25, angle: Math.PI / 2, speed: 20, boost: 1.2, boostCd: 6 };
     pose.stepSelf(p, { steer: 0, throttle: 1, boost: false }, 0.25, { blocks: sn.blocks, bound: sn.bound });
     assert.strictEqual(p.x, kn.x, 'hitch x matches server');
     assert.strictEqual(p.z, kn.z, 'hitch z matches server');

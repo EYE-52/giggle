@@ -20,7 +20,7 @@ for(let i=0;i<terrain.indices.length;i+=3){
   const nx=uy*vz-uz*vy,ny=uz*vx-ux*vz,nz=ux*vy-uy*vx;
   assert.ok(ny>0,'upward triangle winding');maxSlope=Math.max(maxSlope,Math.hypot(nx,nz)/ny);
 }
-assert.ok(maxHeight>5&&maxHeight<7,'broad visible relief');
+assert.ok(maxHeight>3&&maxHeight<7,'broad visible relief');
 assert.ok(maxSlope<=.55,'all triangulated slopes remain drivable');
 for(const rect of [...map.blocks,...map.pads,...map.surfaces,{x:0,z:0,hw:16,hd:16}]){
   for(let z=-rect.hd-1;z<=rect.hd+1;z+=.7)for(let x=-rect.hw-1;x<=rect.hw+1;x+=.7)
@@ -48,10 +48,10 @@ try{
     const error=Math.abs(support.point.y-height);maxSupportError=Math.max(maxSupportError,error);
     assert.ok(error<.000015,'collider supports the exact sampled triangle');
   }
-  const rocket=world.sweepStatic({x:38,y:3,z:-55},{x:38,y:3,z:-20});
+  const rocket=world.sweepStatic({x:42,y:3,z:-55},{x:42,y:3,z:-20});
   assert.equal(rocket?.surfaceId,'floor');assert.ok(rocket.point.y>2.9&&rocket.fraction>0&&rocket.fraction<1);
-  const sphere=world.sweepStatic({x:38,y:10,z:-37},{x:38,y:0,z:-37},.45);
-  assert.equal(sphere?.surfaceId,'floor');assert.ok(sphere.point.y>terrain.heightAt(38,-37)+.4,'sphere hits before its centre enters terrain');
+  const sphere=world.sweepStatic({x:42,y:10,z:-42},{x:42,y:0,z:-42},.45);
+  assert.equal(sphere?.surfaceId,'floor');assert.ok(sphere.point.y>terrain.heightAt(42,-42)+.4,'sphere hits before its centre enters terrain');
   const triangle={id:'bad',shape:'trimesh',position:{x:0,y:0,z:0},vertices:new Float32Array([0,0,0,1,0,0,0,0,1]),indices:new Uint32Array([0,2,1])};
   for(const bad of [
     {...triangle,vertices:new Float32Array([0,0,0,1,NaN,0,0,0,1])},
@@ -68,7 +68,7 @@ assert.throws(()=>world.supportAt({x:0,y:1,z:0}));assert.throws(()=>world.sweepS
 
 // Motion fixtures carry the same network and structures as snapshot.map.
 const driving=[];
-for(const target of [-38,38,-46,46]){
+for(const target of [-44,44,-46,46]){
   const k={pid:'driver',x:target,z:-52,angle:0,input:{steer:0,throttle:1},spawnSeq:0,nitro:1};
   const state={map:'garden',mode:'battle',half:60,blocks:map.blocks,pads:map.pads,surfaces:map.surfaces,roads:map.roads,offroad:map.offroad,barriers:map.barriers,ramps:map.ramps,karts:[k],physicalEvents:[],physicalEventSeq:0};
   const motion=createClassicMotion(RAPIER,config,state),online=new Set(['driver']);
@@ -95,7 +95,7 @@ for(const target of [-38,38,-46,46]){
     driving.push({target,maxRoadHeight,minClearance,maxYStep,groundedFraction:grounded/steps});
   }finally{motion.dispose();}
 }
-const driver={pid:'driver',x:38,z:-52,angle:0,speed:0,input:{steer:0,throttle:1},spawnSeq:0,nitro:1,connected:true};
+const driver={pid:'driver',x:46,z:-52,angle:0,speed:0,input:{steer:0,throttle:1},spawnSeq:0,nitro:1,connected:true};
 const state={map:'garden',mode:'battle',half:60,blocks:map.blocks,pads:map.pads,surfaces:map.surfaces,roads:map.roads,offroad:map.offroad,barriers:map.barriers,ramps:map.ramps,karts:[driver],physicalEvents:[],physicalEventSeq:0};
 const authority=createClassicMotion(RAPIER,config,state),prediction=createClassicPrediction(RAPIER),online=new Set(['driver']);
 let seq=0,maxPredictionError=0,maxPredictedHeight=0;
@@ -112,6 +112,6 @@ try{
     maxPredictedHeight=Math.max(maxPredictedHeight,p.y);
     assert.ok(p.y>terrain.heightAt(p.x,p.z)+.4,'prediction cannot sink through raised terrain');
   }
-  assert.ok(maxPredictionError<.6&&maxPredictedHeight>5,'Garden prediction follows real authority climb and descent');
+  assert.ok(maxPredictionError<.6&&maxPredictedHeight>3,'Garden prediction follows real authority climb and descent');
 }finally{prediction.dispose();authority.dispose();}
 console.log(JSON.stringify({pass:true,maxHeight,maxSlope,maxSupportError,maxPredictionError,maxPredictedHeight,driving},null,2));

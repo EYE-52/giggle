@@ -275,7 +275,7 @@ async function main() {
   // --- 12. prediction collides with bumper blocks exactly like the server ---
   {
     assert.strictEqual(pose.KART_R, engine.constants.KART_R, 'KART_R agrees');
-    // Real server rollout into the (16,16) block face, mirrored step for step.
+    // Real server rollout into the (13,14) block face, mirrored step for step.
     const players = [{ id: 'pa', name: 'Ann' }, { id: 'pb', name: 'Bob' }];
     const ctx = {
       _now: 6000000, players: () => players.slice(), allPlayers: () => players.slice(),
@@ -286,40 +286,40 @@ async function main() {
     const sim = karts.create(ctx);
     ctx._now += 3000;
     karts.onTick(sim, ctx);
-    assert.strictEqual(sim.blocks.length, 4, 'blocks map collides');
+    assert.strictEqual(sim.blocks.length, 6, 'blocks map collides');
     const k0 = sim.karts[0];
-    k0.x = 16; k0.z = 5; k0.angle = 0; k0.speed = 0; // straight at the block
+    k0.x = 13; k0.z = 7; k0.angle = 0; k0.speed = 0; // straight at the block
     karts.onAction(sim, ctx, 'pa', { input: { steer: 0, throttle: 1 } });
     for (let i = 0; i < 10; i++) {
       if (i % 5 === 0) karts.onAction(sim, ctx, 'pa', { input: { steer: 0, throttle: 1 } });
       ctx._now += 100;
       karts.onTick(sim, ctx);
     }
-    const p = { x: 16, z: 5, angle: 0, speed: 0, boost: 0, boostCd: 0 };
+    const p = { x: 13, z: 7, angle: 0, speed: 0, boost: 0, boostCd: 0 };
     for (let i = 0; i < 10; i++) {
       pose.stepSelf(p, { steer: 0, throttle: 1, boost: false }, 0.1, { blocks: sim.blocks });
     }
     assert.strictEqual(p.x, k0.x, 'block rollout x matches server');
     assert.strictEqual(p.z, k0.z, 'block rollout z matches server');
     assert.strictEqual(p.speed, k0.speed, 'block rollout speed matches server');
-    approx(k0.z, 13.5 - engine.constants.KART_R, 0.05, 'both rest on the block face');
+    approx(k0.z, 12 - engine.constants.KART_R, 0.05, 'both rest on the block face');
     // Control: without blocks the same rollout tunnels INTO the block rect
     // (z 13.5..18.5) — the divergence the mirror eliminates.
-    const q = { x: 16, z: 5, angle: 0, speed: 0, boost: 0, boostCd: 0 };
+    const q = { x: 13, z: 7, angle: 0, speed: 0, boost: 0, boostCd: 0 };
     for (let i = 0; i < 10; i++) {
       pose.stepSelf(q, { steer: 0, throttle: 1, boost: false }, 0.1);
     }
-    assert(q.z > 13.5, `blockless prediction tunnels into the block (z=${q.z.toFixed(2)})`);
+    assert(q.z > 12, `blockless prediction tunnels into the block (z=${q.z.toFixed(2)})`);
     // framePoses plumbing: opts.blocks reaches the self stepper.
     const mk = () => {
       const st = pose.createPoseStore();
-      pose.ingestSnapshot(st, driveSnap([kart('pa', 16, 11, 0, 0)]), 'pa', 1000);
+      pose.ingestSnapshot(st, driveSnap([kart('pa', 13, 9, 0, 0)]), 'pa', 1000);
       return st;
     };
     const gas = { steer: 0, throttle: 1, boost: false };
     const run = (st, opts) => {
       let out = null;
-      const S = driveSnap([kart('pa', 16, 11, 0, 0)]);
+      const S = driveSnap([kart('pa', 13, 9, 0, 0)]);
       for (let t = 1016; t <= 1490; t += 16.7) {
         out = pose.framePoses(st, S, gas, 1 / 60, t, opts).get('pa');
       }
@@ -327,7 +327,7 @@ async function main() {
     };
     const withB = run(mk(), { blocks: sim.blocks });
     const withoutB = run(mk(), {});
-    assert(withB.z <= 13.5 - engine.constants.KART_R + 0.05, `framed self rests on the face (z=${withB.z.toFixed(2)})`);
+    assert(withB.z <= 12 - engine.constants.KART_R + 0.05, `framed self rests on the face (z=${withB.z.toFixed(2)})`);
     assert(withoutB.z > withB.z + 0.2, 'framed self without blocks runs past the face');
     console.log('SMOOTH ok: prediction block mirror is bit-identical to the server');
   }
