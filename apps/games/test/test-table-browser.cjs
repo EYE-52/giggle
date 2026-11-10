@@ -59,6 +59,9 @@ const eq = (a, b, m) => { assert.deepEqual(a, b, m); checks++; };
     // correct hit-testing at 130%, reset by tapping the percentage.
     const frameSize = await p1.evaluate(() => [innerWidth, innerHeight]);
     const auto = frameSize[0] < 520 || frameSize[1] < 560 ? (frameSize[0] < 400 && frameSize[1] < 600 || frameSize[1] < 520 ? '80%' : '90%') : '100%';
+    // The size control lives in the room menu, not the header.
+    eq(await p1.locator('.play-toolbar > .game-zoom').count(), 0, 'no size pill in the header');
+    await p1.locator('#roomMenu > summary').click();
     eq(await p1.locator('#gameZoom .game-zoom-value').innerText(), auto, 'small frames start smaller');
     ok(await p1.locator('#gameZoom [aria-label="Make game bigger"]').count(), 'accessible labels');
     while ((await p1.locator('#gameZoom .game-zoom-value').innerText()) !== '130%') await p1.locator('#gameZoom [data-zoom="1"]').click();
@@ -66,6 +69,7 @@ const eq = (a, b, m) => { assert.deepEqual(a, b, m); checks++; };
     eq(await p1.evaluate(() => document.getElementById('gbody').style.zoom), '1.3', 'playfield zoomed');
     eq(await p1.evaluate(() => localStorage.getItem('seat1:pb_zoom')), '1.3', 'choice remembered for this seat');
     eq(await p2.evaluate(() => localStorage.getItem('seat2:pb_zoom')), null, 'other seats keep their own size');
+    await p1.locator('#bRoomClose').click();
     eq(await p1.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), true, 'no horizontal scroll at 130%');
     const hit = await p1.evaluate(() => {
       const t = [...document.querySelectorAll('#gbody button')].find((b) => b.getClientRects().length && !b.disabled);
@@ -74,8 +78,10 @@ const eq = (a, b, m) => { assert.deepEqual(a, b, m); checks++; };
       return document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2)?.closest('button') === t;
     });
     eq(hit, true, 'hit-testing lands on the zoomed control');
+    await p1.locator('#roomMenu > summary').click();
     await p1.locator('#gameZoom .game-zoom-value').click();
     eq(await p1.locator('#gameZoom .game-zoom-value').innerText(), '100%', 'tapping the percentage resets to 100%');
+    await p1.locator('#bRoomClose').click();
     eq(await p1.evaluate(() => document.getElementById('gbody').style.zoom), '', 'reset removes the zoom');
 
     // Player 3 leaves mid-match: back to the picker, the others play on.

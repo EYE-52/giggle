@@ -105,9 +105,8 @@ function ok(value, label) { assert(value, label); checks++; }
         });
         return { ...r.toJSON(), words };
       });
-      const zoom = await guest.locator('.play-toolbar .game-zoom').boundingBox();
       ok(title.words.every(word => word.fragments === 1) && title.height <= 40, `whole-word title remains readable at ${width}: ${JSON.stringify(title)}`);
-      ok(zoom.y >= title.y + title.height, `size controls wrap below the title at ${width}`);
+      ok(await guest.locator('.play-toolbar > .game-zoom').count() === 0, `size control stays in the room menu at ${width}`);
     }
     const before = await guest.locator('.game-stage').boundingBox();
     const previous = snapshots.get(guest).count, instance = snapshots.get(guest).state.instanceId;

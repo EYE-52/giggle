@@ -2490,6 +2490,7 @@ function gameRoomMenu(g, context, floating = false) {
         ${EMBED.enabled && embedTrusted ? '<button type="button" class="room-setting" id="bVoice">🎙️ Talk together</button>' : ''}
         <button type="button" class="room-setting" data-report>Report an issue</button>
       </div>
+      ${zoomable(g) ? `<div class="room-size"><span class="room-size-label">Game size</span>${zoomControlHtml(gameZoom())}</div>` : ''}
       <div class="room-menu-exit">
         <button type="button" id="bLobby" ${isHost() ? '' : 'hidden disabled'}>${matchOver() ? 'Change game' : 'End game'}</button>
         <button type="button" id="bLeave">Leave</button>
@@ -2716,7 +2717,6 @@ function renderGame() {
   app.innerHTML = connbarHtml() + `
     <header class="play-toolbar">
       <div class="play-title">${g ? artImg(g, 'gthumb') : ''}<div><h1>${esc(gameName(gameId))}</h1><span class="play-status" id="playRole" ${lastState.spectator ? '' : 'hidden'}>Watching</span>${['dare-roulette', 'number-hunt'].includes(gameId) ? '<span class="play-status play-notice" id="playNotice"></span>' : ''}</div></div>
-      ${zoomable(g) ? zoomControlHtml(gameZoom()) : ''}
       ${gameRoomMenu(g, context)}
     </header>
     <main class="game-stage" aria-label="${esc(gameName(gameId))}">
