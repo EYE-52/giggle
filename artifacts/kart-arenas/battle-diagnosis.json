@@ -1,0 +1,184 @@
+{
+  "baselineCommit": "73c1901",
+  "gameHasKartBots": false,
+  "botScope": "The eight bots are test-only clients in test/helpers/kart-arena-battle.mjs. Production practice explicitly has no bots.",
+  "joinedFloorPickup": {
+    "trace": {
+      "at": 8500,
+      "x": -24.06212615966797,
+      "z": -14.322891235351562,
+      "y": 0.6435551643371582,
+      "yaw": 1.8725242196553908,
+      "target": {
+        "x": -24,
+        "y": 0,
+        "z": -14
+      },
+      "error": 1.6824412851412118,
+      "goal": "home-1",
+      "speed": -1.338568358496364,
+      "weapon": null,
+      "blocked": false,
+      "homeSurface": "floor-0",
+      "wheels": [
+        "floor-2",
+        "floor-2",
+        "floor-2",
+        "floor-2"
+      ]
+    },
+    "cause": "Home assigned floor-0; every grounded wheel reported floor-2. Both slabs contain the box at exactly the same road height. The exact-ID pickup test rejected it.",
+    "regression": "test/kart-arena-economy.mjs replays both real Rookie sides. Old rule fails; corrected rule passes.",
+    "oldRuleExitCode": 1,
+    "fixedRuleExitCode": 0
+  },
+  "driverCauses": [
+    "A one-cell nearest-node lookup could fail; the driver then sent no new input and left the last throttle/reverse command active.",
+    "Short grid-point pursuit cut tight corners; full predicted steering paths now choose forward/reverse and corner/straight speeds.",
+    "Armed exploration goals survived depletion; the driver did not reconsider nearby supply. It now reselects on depletion and periodically while unarmed.",
+    "Available returned boxes were treated as claimable even when the kart had not left the parked-pickup radius. The driver now tracks the public leave/re-enter rule.",
+    "The old report counted fall-reset recovery events but omitted upright/tipped recover events. The follow-up records both authority event types."
+  ],
+  "originalMeasurementAblations": [
+    {
+      "arena": "rookie-ribbons",
+      "seed": 0,
+      "seconds": 180,
+      "change": "none",
+      "medianUnarmedMs": 1950,
+      "p95UnarmedMs": 20900,
+      "medianAvailability": 0.7777777777777778,
+      "stalls": 38
+    },
+    {
+      "arena": "rookie-ribbons",
+      "seed": 0,
+      "seconds": 180,
+      "change": "joined-floor pickup fix only; original driver and 3/4/6s economy",
+      "medianUnarmedMs": 1950,
+      "p95UnarmedMs": 16450,
+      "medianAvailability": 0.7222222222222222,
+      "stalls": 17
+    },
+    {
+      "arena": "rookie-ribbons",
+      "seed": 0,
+      "seconds": 180,
+      "change": "early driver corrections only; old pickup rule and 3/4/6s economy",
+      "medianUnarmedMs": 1950,
+      "p95UnarmedMs": 12700,
+      "medianAvailability": 0.7222222222222222,
+      "stalls": 19
+    },
+    {
+      "arena": "garden-crown",
+      "seed": 0,
+      "seconds": 180,
+      "change": "none",
+      "medianUnarmedMs": 4750,
+      "p95UnarmedMs": 16400,
+      "medianAvailability": 0.8333333333333334,
+      "stalls": 25
+    },
+    {
+      "arena": "garden-crown",
+      "seed": 0,
+      "seconds": 180,
+      "change": "joined-floor pickup fix only; original driver and 3/4/6s economy",
+      "medianUnarmedMs": 3800,
+      "p95UnarmedMs": 16400,
+      "medianAvailability": 0.8333333333333334,
+      "stalls": 22
+    }
+  ],
+  "economyEvidence": {
+    "arena": "rookie-ribbons",
+    "seed": 0,
+    "seconds": 180,
+    "cycleBeforeMs": [
+      3000,
+      4000,
+      6000
+    ],
+    "cycleAfterMs": [
+      2000,
+      3000,
+      4000
+    ],
+    "efficientDriverOldCycle": {
+      "pickups": 430,
+      "medianUnarmedMs": 1550,
+      "p95UnarmedMs": 6500,
+      "medianAvailability": 0.5555555555555556
+    },
+    "homePositionsAndCountsChanged": false,
+    "weaponRulesChanged": false
+  },
+  "acceptanceDefinition": "Final gate keeps wall-clock waits through KO/respawn and includes unfinished round-end waits. Availability is checked by both time mean and median. No target is relaxed.",
+  "deckLipRecovery": {
+    "cause": "A real upright kart catches its front tyres beyond an open deck lip. Rear tyres remain supported but reverse effort cannot pull the chassis back up the lip. Old recovery only considered tipped karts.",
+    "legalStart": {
+      "map": "skyport-split",
+      "variant": "compact",
+      "x": 26.5,
+      "y": 15,
+      "z": 24,
+      "angle": 0
+    },
+    "inputs": "Forward throttle 0.12 until z > 27, then reverse -0.75; no authority pose reset or item grant.",
+    "jam": {
+      "z": 27.63,
+      "upDot": 0.98,
+      "supportingTyres": 2
+    },
+    "oldRuleRegressionExitCode": 1,
+    "newRuleRegressionExitCode": 0,
+    "successfulRecoveryTick": 218,
+    "simulatedMs": 3633.3333333333335,
+    "productionFix": "Existing clear-bay recovery after two seconds without 0.3m position progress, only during failed drive effort. Ignore short contact jitter; exclude parked karts, combat slow/spin and feature flights. Retain cooldown and no health/shield/coin awards."
+  },
+  "planning": "Candidate steering forecasts use public-pose copies in a separate Rapier planning world. Only normal intents reach the actual match.",
+  "coverageEconomy": {
+    "areaPerBoxBefore": 320,
+    "areaPerBoxAfter": 160,
+    "hardCapUnchanged": 48,
+    "authoredHomePositionsChanged": false,
+    "skyportSeed0SameDriverAndReturns": {
+      "seconds": 180,
+      "players": 8,
+      "before": {
+        "cyclingHomes": 25,
+        "p95UnarmedMs": 9400,
+        "meanAvailability": 0.8137555555555562
+      },
+      "after": {
+        "cyclingHomes": 39,
+        "p95UnarmedMs": 7050,
+        "meanAvailability": 0.8726994301994662
+      }
+    },
+    "reason": "Active-box availability alone hid gaps along roads and between floors. More existing authored homes must cycle to shorten real road approaches.",
+    "intermediateAreaPerBox": 200,
+    "intermediateFiveSeedFailures": {
+      "skyport-split": {
+        "2": 8300,
+        "4": 9300
+      }
+    }
+  },
+  "edgeHomePlacement": {
+    "file": "skyport-home-insets.json",
+    "movedExistingHomeIds": [
+      "home-21",
+      "home-27",
+      "home-29",
+      "home-32",
+      "home-34",
+      "home-37",
+      "home-39"
+    ],
+    "supportedRunoutMetres": 3,
+    "startingSetbackMetres": 8,
+    "newSkyportRevision": 2
+  }
+}

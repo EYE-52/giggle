@@ -11,7 +11,7 @@
         ],
         "area": 2117,
         "homes": 16,
-        "boxesAtMax": 12,
+        "boxesAtMax": 14,
         "floors": [
           0,
           6
@@ -27,7 +27,7 @@
         ],
         "area": 3160.5,
         "homes": 20,
-        "boxesAtMax": 18,
+        "boxesAtMax": 20,
         "floors": [
           0,
           6
@@ -49,7 +49,7 @@
         ],
         "area": 7795,
         "homes": 40,
-        "boxesAtMax": 25,
+        "boxesAtMax": 40,
         "floors": [
           0,
           7.5,
@@ -66,7 +66,7 @@
         ],
         "area": 9212.5,
         "homes": 48,
-        "boxesAtMax": 29,
+        "boxesAtMax": 48,
         "floors": [
           0,
           8,
@@ -83,7 +83,7 @@
         ],
         "area": 12704.25,
         "homes": 64,
-        "boxesAtMax": 40,
+        "boxesAtMax": 48,
         "floors": [
           0,
           8.5,
@@ -123,7 +123,7 @@
         ],
         "area": 5253,
         "homes": 28,
-        "boxesAtMax": 18,
+        "boxesAtMax": 28,
         "floors": [
           0,
           7
@@ -139,7 +139,7 @@
         ],
         "area": 8269,
         "homes": 40,
-        "boxesAtMax": 28,
+        "boxesAtMax": 40,
         "floors": [
           0,
           7
@@ -161,7 +161,7 @@
         ],
         "area": 6736.5,
         "homes": 32,
-        "boxesAtMax": 22,
+        "boxesAtMax": 32,
         "floors": [
           0,
           8
@@ -177,7 +177,7 @@
         ],
         "area": 7224.5,
         "homes": 44,
-        "boxesAtMax": 28,
+        "boxesAtMax": 44,
         "floors": [
           0,
           8
@@ -199,7 +199,7 @@
         ],
         "area": 5404,
         "homes": 32,
-        "boxesAtMax": 18,
+        "boxesAtMax": 32,
         "floors": [
           0,
           7
@@ -215,7 +215,7 @@
         ],
         "area": 7714,
         "homes": 48,
-        "boxesAtMax": 28,
+        "boxesAtMax": 48,
         "floors": [
           0,
           7
@@ -231,7 +231,7 @@
         ],
         "area": 9698.5,
         "homes": 48,
-        "boxesAtMax": 38,
+        "boxesAtMax": 48,
         "floors": [
           0,
           7
@@ -253,7 +253,7 @@
         ],
         "area": 9203.75,
         "homes": 40,
-        "boxesAtMax": 29,
+        "boxesAtMax": 40,
         "floors": [
           0,
           7,
@@ -270,7 +270,7 @@
         ],
         "area": 9203.75,
         "homes": 48,
-        "boxesAtMax": 29,
+        "boxesAtMax": 48,
         "floors": [
           0,
           7,
@@ -287,7 +287,7 @@
         ],
         "area": 12339.25,
         "homes": 64,
-        "boxesAtMax": 39,
+        "boxesAtMax": 48,
         "floors": [
           0,
           7,
@@ -327,7 +327,7 @@
         ],
         "area": 10588.5,
         "homes": 44,
-        "boxesAtMax": 34,
+        "boxesAtMax": 44,
         "floors": [
           0,
           6.8,
@@ -344,7 +344,7 @@
         ],
         "area": 12294.75,
         "homes": 56,
-        "boxesAtMax": 39,
+        "boxesAtMax": 48,
         "floors": [
           0,
           7.2,
@@ -361,7 +361,7 @@
         ],
         "area": 13659.25,
         "homes": 64,
-        "boxesAtMax": 43,
+        "boxesAtMax": 48,
         "floors": [
           0,
           7.6,

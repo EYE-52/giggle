@@ -1,0 +1,96 @@
+{
+  "scope": "Seven compact upper homes moved inboard; IDs, profiles, starts and geometry unchanged. Home road-distance columns rebuilt offline.",
+  "changes": [
+    {
+      "id": "home-21",
+      "before": {
+        "x": 31.5,
+        "y": 7.5,
+        "z": 28.5
+      },
+      "after": {
+        "x": 28.5,
+        "y": 7.5,
+        "z": 24
+      }
+    },
+    {
+      "id": "home-27",
+      "before": {
+        "x": -40.5,
+        "y": 7.5,
+        "z": 28.5
+      },
+      "after": {
+        "x": -36,
+        "y": 7.5,
+        "z": 24
+      }
+    },
+    {
+      "id": "home-29",
+      "before": {
+        "x": -19.5,
+        "y": 7.5,
+        "z": 28.5
+      },
+      "after": {
+        "x": -22.5,
+        "y": 7.5,
+        "z": 24
+      }
+    },
+    {
+      "id": "home-32",
+      "before": {
+        "x": -28.5,
+        "y": 15,
+        "z": 1.5
+      },
+      "after": {
+        "x": -27,
+        "y": 15,
+        "z": 6
+      }
+    },
+    {
+      "id": "home-34",
+      "before": {
+        "x": 10.5,
+        "y": 15,
+        "z": -16.5
+      },
+      "after": {
+        "x": 10.5,
+        "y": 15,
+        "z": -13.5
+      }
+    },
+    {
+      "id": "home-37",
+      "before": {
+        "x": -25.5,
+        "y": 15,
+        "z": 28.5
+      },
+      "after": {
+        "x": -25.5,
+        "y": 15,
+        "z": 24
+      }
+    },
+    {
+      "id": "home-39",
+      "before": {
+        "x": 40.5,
+        "y": 15,
+        "z": 1.5
+      },
+      "after": {
+        "x": 37.5,
+        "y": 15,
+        "z": 6
+      }
+    }
+  ]
+}

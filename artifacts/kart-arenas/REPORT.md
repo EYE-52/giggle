@@ -2,28 +2,28 @@
 
 10 November 2026. Local branch only. No push or deployment. The game-fixes branch was merged first (`5a0b43e`), and the runtime bundle was rebuilt after engine changes.
 
-**All seven arenas are built and committed in the requested order. Full launch acceptance remains open.** Geometry, ordinary route driving, starts, selected-home supply, camera-volume sweeps and art-budget checks pass. The active combat probes below fail their unarmed-time/stall targets. Physical-phone and human sessions have not been run.
+**All seven arenas are built and committed in the requested order. Full launch acceptance remains open.** Geometry, ordinary route driving, starts, selected-home supply, camera-volume sweeps and art-budget checks pass. The follow-up eight-bot probes pass the requested five-seed quantitative targets on all seven arenas; the broader original launch gates remain open. Physical-phone and human sessions have not been run.
 
 ## Current lineup and measured supply
 
-Numbers follow compact → medium → wide → full where present. A is real support/hull-audited usable area, not square bounds. B is the cycling home count at each variant's maximum seats. [Exact final data](final-arenas.json).
+Current supply counts include the firing-probe follow-up. Numbers follow compact → medium → wide → full where present. A is real support/hull-audited usable area, not square bounds. B is the cycling home count at each variant's maximum seats. [Exact final data](final-arenas.json).
 
 | Arena / commit | Seats | A (m²) | Authored homes S | Cycling boxes B | Max statics incl. frames / cap |
 | --- | --- | --- | --- | --- | --- |
-| Rookie Ribbons `72e6eb8` | 2–8 | 2,117 / 3,160.5 | 16 / 20 | 12 / 18 | 42 / 44 |
-| Skyport Split `d0cf4e0` | 8–32 | 7,795 / 9,212.5 / 12,704.25 / 18,189.25 | 40 / 48 / 64 / 72 | 25 / 29 / 40 / 48 | 63 / 92 |
-| Garden Crown `c8ca1db` | 4–16 | 5,253 / 8,269 | 28 / 40 | 18 / 28 | 25 / 60 |
-| Frostbite Crescent `0ec3d7c` | 6–16 | 6,736.5 / 7,224.5 | 32 / 44 | 22 / 28 | 25 / 62 |
-| Neon Switchyard `3dccb8f` | 6–24 | 5,404 / 7,714 / 9,698.5 | 32 / 48 / 48 | 18 / 28 / 38 | 21 / 60 |
-| Harbor Fork `96538e6` | 8–32 | 9,203.75 / 9,203.75 / 12,339.25 / 17,027 | 40 / 48 / 64 / 64 | 29 / 29 / 39 / 48 | 34 / 84 |
-| Foundry Wheel `6a450b6` | 8–32 | 10,588.5 / 12,294.75 / 13,659.25 / 15,433.25 | 44 / 56 / 64 / 64 | 34 / 39 / 43 / 48 | 53 / 96 |
+| Rookie Ribbons `72e6eb8` | 2–8 | 2,117 / 3,160.5 | 16 / 20 | 14 / 20 | 42 / 44 |
+| Skyport Split `d0cf4e0` | 8–32 | 7,795 / 9,212.5 / 12,704.25 / 18,189.25 | 40 / 48 / 64 / 72 | 40 / 48 / 48 / 48 | 63 / 92 |
+| Garden Crown `c8ca1db` | 4–16 | 5,253 / 8,269 | 28 / 40 | 28 / 40 | 25 / 60 |
+| Frostbite Crescent `0ec3d7c` | 6–16 | 6,736.5 / 7,224.5 | 32 / 44 | 32 / 44 | 25 / 62 |
+| Neon Switchyard `3dccb8f` | 6–24 | 5,404 / 7,714 / 9,698.5 | 32 / 48 / 48 | 32 / 48 / 48 | 21 / 60 |
+| Harbor Fork `96538e6` | 8–32 | 9,203.75 / 9,203.75 / 12,339.25 / 17,027 | 40 / 48 / 64 / 64 | 40 / 48 / 48 / 48 | 34 / 84 |
+| Foundry Wheel `6a450b6` | 8–32 | 10,588.5 / 12,294.75 / 13,659.25 / 15,433.25 | 44 / 56 / 64 / 64 | 44 / 48 / 48 / 48 | 53 / 96 |
 
 The Battle picker offers these seven arenas, with finished world previews, floor counts and seat ranges. Star Rush and Garage retain their five compatible classic courses. Old labels remain accepted for saved fixtures; retired raised maps are absent from the picker. New rooms default to Rookie Ribbons. [Picker checks](picker-metrics.json) · [Phone Day](picker-390-day.png) · [Phone Night cards](picker-390-night-cards.png) · [Desktop Night](picker-1280-night.png).
 
 ## Shared support and passed core checks
 
 - Versioned layouts select before countdown; authority, prediction, art and reconnect share the same variant identity. Up to 64 respawn candidates and 32 initial starts are separate bounded lists.
-- Exact `B = min(S,48,max(12,ceil(A/320),ceil(1.25*P)+8))`, fixed seeded homes, at least four cycling homes per floor, route/district coverage, and 3/4/6s returns. Loaded karts cannot consume a box; parked karts must leave 3m before collecting again. Reconnect retains home IDs and the parked rule.
+- Exact `B = min(S,48,max(12,ceil(A/160),ceil(1.25*P)+8))`, fixed seeded homes, at least four cycling homes per floor, route/district coverage, and 2/3/4s safe/exposed/risk returns (changed from 3/4/6s after the active firing probes). Loaded karts cannot consume a box; parked karts must leave 3m before collecting again. Reconnect retains home IDs and the parked rule.
 - The ten current weapons and 100 HP are preserved. Common/uncommon/rare odds are 52/43/5, risk 40/50/10 after eight seconds, with the 1/2/3 rare awards per 12s limits. Risk tags cannot remove a start's second reachable ordinary home.
 - Every selected start has two selected ordinary homes within 32m of real road distance, over twenty supply seeds per reference count. Candidate hulls and 20m departures include shortcut frames. All selected drivers physically depart together.
 - Every ordinary directed route drives both ways through the real authority with normal inputs. All variants remain connected with one climb blocked. Rookie also has forty isolated three-minute route stress runs. These are not active eight-bot matches.
@@ -36,7 +36,7 @@ No loading, vendor or game-host source was changed.
 
 ## Measured browser results
 
-Chrome at `/Applications/Google Chrome.app/Contents/MacOS/Google Chrome`, ANGLE Metal, 1280×720, CPU 4×. Each map also has 390×844 Day/Night top/chase review cases with eight visible full drivers; those short review cases measured about 59.9 FPS. They do not establish phone performance. Renderer counts below are submitted aggregate counts, not separately profiled shadow/colour passes.
+Chrome at `/Applications/Google Chrome.app/Contents/MacOS/Google Chrome`, ANGLE Metal, 1280×720, CPU 4×. Each map also has 390×844 Day/Night top/chase review cases with eight visible full drivers; those short review cases measured about 59.9 FPS. They do not establish phone performance. Renderer counts below are submitted aggregate counts, not separately profiled shadow/colour passes. These browser profiles predate the supply-density follow-up and were not repeated with the larger cycling-home counts.
 
 | Real production room | FPS | Draws / triangles per frame | Binary updates/s | KiB/s | Evidence |
 | --- | --- | --- | --- | --- | --- |
@@ -49,17 +49,49 @@ Chrome at `/Applications/Google Chrome.app/Contents/MacOS/Google Chrome`, ANGLE 
 
 Rookie's real practice page passes at 2/8 seats with zero eye/near-plane overlaps in its short ground drives. [Practice metrics](practice-metrics.json). The separate unchanged classic 32-driver SwiftShader profile passed its functional checks at **9.1 FPS**, 312 draws and 222,368 triangles/frame, with a 1,717ms worst frame. It is CPU-bound on this Mac and is not comparable to the Metal runs. [Classic metrics](classic-32/kart-32-browser.json).
 
-Before → after: Rookie supply was 6 boxes at two / 10 at eight; it is now 12 / 18. Old large raised maps made 12 boxes at 32; the new large full variants make 48. In an isolated Skyport 32-seat transport run, full JSON was about 869KiB/s versus 81.7KiB/s for the binary stream; complete Room update p95 was 15.3ms. Earlier concurrent-load p95 was 33.3ms. [Initial transport measurements](launch-transport-initial.json) and [latest suite measurements](launch-transport.json) are machine-load-sensitive.
+Before → after: Rookie supply was 6 boxes at two / 10 at eight; it is now 14 / 20 after the active firing follow-up (the original arena build used 12 / 18). Old large raised maps made 12 boxes at 32; the new large full variants make 48. In an isolated Skyport 32-seat transport run, full JSON was about 869KiB/s versus 81.7KiB/s for the binary stream; complete Room update p95 was 15.3ms. Earlier concurrent-load p95 was 33.3ms. [Initial transport measurements](launch-transport-initial.json) and [latest suite measurements](launch-transport.json) are machine-load-sensitive.
+
+## Active firing-probe repair — 10 November follow-up
+
+These are **test-driver bots**, not bots shipped in Pocket Karts. Production practice still has no bots. The failures had both real authority/economy causes and test-driver causes. The authored home counts, 100 HP, all ten weapons, damage, ammo, firing cadence, odds and rare caps are unchanged.
+
+- **Real pickup bug:** joined flat road slabs overlap at the same height. At Rookie home-1, the home ray selected `floor-0` but all four tyres reported `floor-2`. The exact-ID check rejected a kart sitting on the available box. Homes now cache every driveable slab containing their position at the exact authored height; a grounded tyre on any of these can collect. Distance, sight, parked denial and floor separation remain enforced. The real two-sided Rookie replay fails with the old condition and passes with the fix. [Diagnosis and ablations](battle-diagnosis.json).
+- **Real edge placement:** seven compact Skyport upper homes had insufficient supported approach/turn space, including homes exactly on `z=28.5m` deck edges. They now sit farther inward, with 3m of supported run-out in eight directions and at least 8m from same-floor opening starts. IDs and profiles stay fixed; home road-distance columns were rebuilt offline and Skyport's revision is now 2. Future home authoring checks the same run-out. The complete Skyport core gates and the new home-setback regression pass. [Exact before/after positions](skyport-home-insets.json).
+- **Real deck-lip jam:** an upright kart can catch its front tyres beyond a deck edge while the rear tyres remain supported. A legal-start, ordinary-input Skyport replay reproduces failed reverse driving at `z≈27.63m`. Old recovery only handled tipped karts. Production recovery now also handles sustained failed driving with too few supporting tyres, using two seconds of actual position progress rather than misleading velocity jitter. Parking, moving karts, combat slow/spin and feature flights are excluded. Existing clear-bay, cooldown and no-award rules remain. The new regression fails with the old condition and passes with the fix. [Old-rule failure](deck-lip-before.log).
+- **Test-driver faults:** a failed local grid attachment left stale throttle/reverse inputs running; short waypoint pursuit cut corners and open deck edges; exploration goals survived weapon depletion; and returned boxes were sought while the kart was still blocked by the leave/re-enter rule. The driver now reacquires road nodes, always sends a checked ordinary input, forecasts corner/straight steering with the real suspension and collision code in a separate planning world copied from public poses, reselects after depletion and tracks the public parked rule. The driving mask checks support around the whole turning kart at open drops. No authority body is reset or moved by the probe.
+- **Real coverage gap:** high global availability did not prevent long road approaches. With the same corrected driver and 2/3/4s returns, Skyport seed 0 still failed at **9.40s p95** with 25 cycling homes. Cycling 39 existing authored homes cut that replay to **7.05s p95**, with 87.3% mean availability. The intermediate `ceil(A/200)` term still failed two Skyport seeds at 8.30s and 9.30s p95. The final area term is `ceil(A/160)`, from `ceil(A/320)`, within the same authored-home and 48-box caps. At eight seats this cycles the full authored pools: 20 / 40 / 28 / 32 / 32 / 40 / 44. No extra home IDs or geometry were added. Seven existing compact Skyport homes were also moved inward, as described above. [Before home counts](battle-before/final-arenas.json).
+- **Real refill gap:** with the efficient driver but the old 3/4/6s returns, Rookie seed 0 reached 1.55s median / 6.50s p95 unarmed but only **55.6%** median box availability. Safe/exposed/risk returns are now **2/3/4s**. The refill change preserves home IDs and all weapon rules.
+
+Acceptance uses the original wall-clock unarmed definition, including waits through KO/respawn, plus unfinished waits at round end. It runs independently of navigation, so a lost route cannot hide a long wait. Availability must meet 60% by both time mean and median; availability and floor dry time are sampled every 50ms. Stalls count continuous periods of over three seconds without 0.5m movement, including traffic/status cases; earlier blocked manoeuvres are recorded separately. Both `recover` and `recovery` authority events are counted; the old diagnostic counted only the latter. The probe still fires real weapons every 200ms when one is available.
+
+**PASS: 35/35 rounds**, seeds 0–4, eight real authority-input bots, 180 seconds each. Every seed independently meets **median ≤4s, p95 ≤8s, mean and median availability ≥60%, floor dry ≤3s**. Every floor is visited by at least two bots in every seed, and every bot has actual armed intervals. Values below are per-seed ranges; availability columns are the lowest seed mean / median. Results are not pooled to hide a failing seed. [Checked summary](battle-summary.json) · [All 35 gate lines](battle-acceptance.log).
+
+| Arena | Median unarmed (s) | p95 unarmed (s) | Lowest availability mean / median | Max floor dry (s) | Stalls, seeds 0 / 1 / 2 / 3 / 4 | Homes approached across seeds |
+| --- | --- | --- | --- | --- | --- | --- |
+| [Rookie Ribbons](rookie-ribbons-8-battle.json) | 1.20–1.35 | 3.90–4.80 | 65.8% / 65.0% | 2.05 | 1 / 2 / 0 / 1 / 3 | 20/20 |
+| [Skyport Split](skyport-split-8-battle.json) | 1.90–2.00 | 4.40–6.80 | 86.8% / 87.5% | 0.00 | 11 / 13 / 13 / 4 / 13 | 40/40 |
+| [Garden Crown](garden-crown-8-battle.json) | 2.20–2.45 | 3.75–4.90 | 82.4% / 82.1% | 0.00 | 2 / 1 / 3 / 0 / 2 | 28/28 |
+| [Frostbite Crescent](frostbite-crescent-8-battle.json) | 2.20–2.50 | 5.40–6.50 | 84.4% / 84.4% | 0.00 | 1 / 1 / 1 / 0 / 3 | 32/32 |
+| [Neon Switchyard](neon-switchyard-8-battle.json) | 1.90–2.10 | 3.55–5.10 | 84.0% / 84.4% | 0.00 | 3 / 2 / 0 / 0 / 0 | 32/32 |
+| [Harbor Fork](harbor-fork-8-battle.json) | 2.05–2.35 | 4.60–5.95 | 88.5% / 90.0% | 0.00 | 1 / 0 / 1 / 4 / 3 | 35/40 |
+| [Foundry Wheel](foundry-wheel-8-battle.json) | 2.20–2.40 | 4.95–5.70 | 89.1% / 88.6% | 0.00 | 2 / 3 / 11 / 7 / 3 | 44/44 |
+
+The worst median is **2.50s**, worst p95 **6.80s**, lowest mean availability **65.8%**, lowest median availability **65.0%**, and longest floor dry spell **2.05s**. The targets were not lowered. Reproduce with `ARENA_MAP=all ARENA_SEEDS=5 ARENA_SECONDS=180 node tools/kart-arena-battle.mjs` in `apps/games`.
+
+Seed-0 before → after: Rookie median **1.95 → 1.25s**, p95 **20.90 → 4.15s**, stalled approaches **38 → 1**; Garden median **4.75 → 2.20s**, p95 **16.40 → 3.75s**, stalled approaches **25 → 2**. The original before files are preserved under `battle-before/`.
+
+This is a percentile gate, not a zero-stall or full launch-acceptance claim. Individual recorded waits still reach **137.75s**, and Harbor approaches **35/40** cycling homes across this batch. Those outliers remain in the samples and raw reports. The original twenty-seed-per-variant coverage gate, district coverage, human balance and device/performance work remain open. Frostbite/Harbor/Foundry retain their five-seed recordings from the intermediate density step because the final policy yields the identical full 32/40/44-home pools and unchanged controls/layouts/rules.
+
 
 ## Validation
 
-Final full `apps/games npm test`: **PASS, 288 commands**, on the final engine source. [Full log](npm-test.log) · [Validation record](validation.json). All **128 unique kart test files** named across package scripts passed: 123 are in the expanded full suite; the five extra browser files have passed (Garage, classic 32, both complete 120-shot weapon galleries, launch browser). Weapon galleries deliberately configure saved legacy fixtures, and use `KART_WEAPON_BASE=http://127.0.0.1:8351`.
+Follow-up full `apps/games npm test`: **PASS, 289 commands**, after the final pickup, supply, recovery and home-inset changes. [Full log](npm-test.log) · [Validation record](validation.json). The joined-floor and deck-lip regressions fail under their old conditions and pass with the fixes. The runtime was rebuilt with `node scripts/build-kart-runtime.js`; its generated bytes stay current. `apps/games/public/release.json` is absent.
 
-Tests run with `NODE_PATH=/private/tmp/codex-driving-browser/node_modules` and the bounded listener preload. Only task ports 8350–8370 were used. Old classic-only fixtures now name their intended map instead of assuming the room default. The reset transport fixture verifies that saved settings are cleared before running its separate classic schema check; the production facade test verifies the new default. The bundle byte-currentness check passes after rebuild. Final visual review covers 56 CPU 4× cases, with zero browser errors and 59.88 FPS median in every case. The extra browser log is [here](extra-browser.log). This report supersedes the earlier partial and continued-suite files.
+Tests ran with `NODE_PATH=/private/tmp/codex-driving-browser/node_modules` and the bounded listener preload. Only task ports 8350–8370 were used. The original arena-build review covered all **128 unique kart test files**: 123 in the expanded full suite plus five extra browser files (Garage, classic 32, both complete 120-shot weapon galleries, launch browser). Those five extra browser files and the 56 fixed-camera visual review cases were **not rerun for this follow-up**; their earlier evidence remains linked above. No physical-phone or human-session result is claimed.
 
 ## Remaining acceptance — not launch accepted
 
-1. Investigate the stalled approaches and p95 unarmed failures in the real firing-bot probes; then run twenty three-minute seeds per variant, with every district/floor visited by two bots where seats allow, every cycling home approached, ≤4s median / ≤8s p95 unarmed time, ≥60% sustained availability and no floor dry for over 3s. Current Rookie/Garden diagnostics fail this gate.
+1. The five-seed, eight-bot quantitative gate now passes on all seven arenas (table above). Complete the original twenty three-minute seeds per variant, with every district/floor visited by two bots where seats allow, every cycling home approached, ≤4s median / ≤8s p95 unarmed time, ≥60% sustained availability and no floor dry for over 3s. The full variant/district/home-coverage gate remains open; the initial Rookie/Garden failures are preserved as before-fix evidence.
 2. Complete all stress states and directed shortcuts: low/normal/nitro/drift/damaged/opposite-traffic climbs, jump speed/offset/failure spread, every cover/rail corner, parked slopes, occupied arrivals and every cannon/portal direction. Frostbite has a real inlet jump/drop replay; ordinary connectivity does not prove every optional shortcut.
 3. Replay the production chase camera over every route/drop/underside with eye and near-plane checks, low/medium/high tiers and portrait/landscape. The current independent camera-volume sweeps plus short Rookie production drives are narrower than this gate. Fixed review-camera screenshots are not that proof.
 4. Run ten full matches at min/middle/max seats per map and review opening deaths/pickup parity, followed by two human sessions per map. No human balance result is claimed.
@@ -68,7 +100,11 @@ Tests run with `NODE_PATH=/private/tmp/codex-driving-browser/node_modules` and t
 
 ## Plan deviations
 
+The firing follow-up changes the area term from 320 to 160m² per cycling home, returns from 3/4/6s to 2/3/4s, and sets seven compact Skyport homes inward. Weapon rules stay unchanged.
+
 Measured areas, not the sketch estimates, drive the economy. Several variants are larger than their starting A targets. Rookie is 76×52m; its arch has 5.2m clear space underneath and six-metre outer escape lanes. Skyport compact/medium scale all heights with their footprint and omit cannons while retaining portal and ordinary ascents. Foundry compact scales the whole ring to 85% rather than using spoke gates. Harbor compact's upper climb/lookout sits farther back to keep the middle fork clear. Middle/roof quotas changed where real opening coverage required it. These choices are recorded in each map section and still need encounter/balance review. Frostbite and Neon use conservative flat plates; their final footprints differ from the illustrative curves.
+
+The map-by-map sections below retain the original arena-build measurements and captures. Their old supply counts are historical; the current lineup table above and the firing-probe section supersede them.
 
 ## Rookie Ribbons — finished art
 
@@ -100,7 +136,7 @@ Launch arenas now reuse the existing binary transport at their existing 20Hz cad
 
 Respawn scores now use small offline road-distance atlases built from real support/hull graphs. Enemy attachments are accepted only across supported, unobstructed road segments; missing attachments fall back conservatively. No live map raster/search was added to a server tick. Stacked-floor and atlas regression tests pass.
 
-The latest three-minute Rookie eight-bot firing probe is **not a passed gate**: it approached all 18 homes, visited both floors, made 203 pickups and had no server recovery. Median unarmed time was 1.95s, p95 20.9s, median availability 78%, and the test driver logged 38 stalled approaches. [Diagnostic](rookie-ribbons-8-battle.json). These failures need investigation and the full seed batch; isolated route success does not replace this gate.
+The **before-fix** three-minute Rookie eight-bot firing probe failed: it approached all 18 homes, visited both floors, made 203 pickups and recorded no fall-reset events (the old probe omitted `recover` events). Median unarmed time was 1.95s, p95 20.9s, median availability 78%, and the test driver logged 38 stalled approaches. [Before diagnostic](battle-before/rookie-ribbons-8-battle.json). These before-fix failures motivated the follow-up above; the broader per-variant coverage gate remains open.
 
 Final isolated Room transport rerun for this build: 8 / 16 / 32 Skyport drivers used **22.4 / 42.7 / 81.7KiB/s** binary versus **353 / 524 / 869KiB/s** JSON. Full Room update p95 was **2.1 / 6.4 / 15.3ms**. An earlier concurrent browser/test run measured 33.3ms at 32, so these are machine-load-sensitive measurements, not a hardware-independent promise. [Exact final transport run](launch-transport.json).
 
@@ -116,7 +152,7 @@ The core art census is below **30 draws / 18,000 triangles** before the loaded b
 
 The final production-browser profile is in the table above. [Metrics](garden-16/kart-32-browser.json) · [Production screenshot](garden-16/kart-32-browser.png).
 
-The latest three-minute, eight-bot firing probe approached all 18 selected homes and visited both floors, with 186 pickups and no server recovery. Median availability was 83%; median unarmed time was 4.75s, p95 16.4s, with 25 stalled approaches. This **does not pass** the active-combat target. [Diagnostic](garden-crown-8-battle.json).
+The **before-fix** three-minute, eight-bot firing probe approached all 18 selected homes and visited both floors, with 186 pickups and no recorded fall-reset events (the old probe omitted `recover` events). Median availability was 83%; median unarmed time was 4.75s, p95 16.4s, with 25 stalled approaches. This **does not pass** the active-combat target. [Before diagnostic](battle-before/garden-crown-8-battle.json).
 
 Shared addition: a bounded convex flat-slab path now supports exact polygon outlines for the coming hexagon/octagon arenas. It has matching top/bottom/sides in physics, art and camera queries, analytic support tests, proper normals/UVs and a 90m real seam-driving regression. It is not arbitrary terrain, and saved legacy maps do not use it.
 

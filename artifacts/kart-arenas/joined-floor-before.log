@@ -1,0 +1,16 @@
+PASS fixed homes: real pickup, full clip, 3s return, stable ID/pose, parked denial, reconnect, leave/re-enter
+node:internal/modules/run_main:107
+    triggerUncaughtException(
+    ^
+
+AssertionError [ERR_ASSERTION]: same-height joined floor permits a real pickup
+    at file:///Users/divyansh/Projects/giggle/.claude/worktrees/kart-arenas/apps/games/test/kart-arena-economy.mjs:46:3 {
+  generatedMessage: false,
+  code: 'ERR_ASSERTION',
+  actual: null,
+  expected: true,
+  operator: '==',
+  diff: 'simple'
+}
+
+Node.js v24.21.0

@@ -1,0 +1,222 @@
+{
+  "scope": "Five seeded three-minute eight-driver firing rounds on each arena's eight-seat variant. Quantitative follow-up gate; not full launch acceptance.",
+  "targets": {
+    "medianUnarmedMs": 4000,
+    "p95UnarmedMs": 8000,
+    "meanAndMedianAvailability": 0.6,
+    "maxFloorDryMs": 3000
+  },
+  "rounds": 35,
+  "secondsPerRound": 180,
+  "players": 8,
+  "arenas": [
+    {
+      "id": "rookie-ribbons",
+      "variant": "full",
+      "seeds": 5,
+      "cyclingHomes": 20,
+      "medianUnarmedMs": [
+        1200,
+        1350
+      ],
+      "p95UnarmedMs": [
+        3900,
+        4800
+      ],
+      "minimumMeanAvailability": 0.6580277777778061,
+      "minimumMedianAvailability": 0.65,
+      "maxFloorDryMs": 2050,
+      "stallsPerSeed": [
+        1,
+        2,
+        0,
+        1,
+        3
+      ],
+      "recoveryEvents": 0,
+      "homesApproachedAcrossSeeds": 20,
+      "maxIndividualWaitMs": 22600,
+      "pass": true
+    },
+    {
+      "id": "skyport-split",
+      "variant": "compact",
+      "seeds": 5,
+      "cyclingHomes": 40,
+      "medianUnarmedMs": [
+        1900,
+        2000
+      ],
+      "p95UnarmedMs": [
+        4400,
+        6800
+      ],
+      "minimumMeanAvailability": 0.8676736111111307,
+      "minimumMedianAvailability": 0.875,
+      "maxFloorDryMs": 0,
+      "stallsPerSeed": [
+        11,
+        13,
+        13,
+        4,
+        13
+      ],
+      "recoveryEvents": 6,
+      "homesApproachedAcrossSeeds": 40,
+      "maxIndividualWaitMs": 103900,
+      "pass": true
+    },
+    {
+      "id": "garden-crown",
+      "variant": "small",
+      "seeds": 5,
+      "cyclingHomes": 28,
+      "medianUnarmedMs": [
+        2200,
+        2450
+      ],
+      "p95UnarmedMs": [
+        3750,
+        4900
+      ],
+      "minimumMeanAvailability": 0.8244444444444905,
+      "minimumMedianAvailability": 0.8214285714285714,
+      "maxFloorDryMs": 0,
+      "stallsPerSeed": [
+        2,
+        1,
+        3,
+        0,
+        2
+      ],
+      "recoveryEvents": 2,
+      "homesApproachedAcrossSeeds": 28,
+      "maxIndividualWaitMs": 43000,
+      "pass": true
+    },
+    {
+      "id": "frostbite-crescent",
+      "variant": "small",
+      "seeds": 5,
+      "cyclingHomes": 32,
+      "medianUnarmedMs": [
+        2200,
+        2500
+      ],
+      "p95UnarmedMs": [
+        5400,
+        6500
+      ],
+      "minimumMeanAvailability": 0.8437065972222222,
+      "minimumMedianAvailability": 0.84375,
+      "maxFloorDryMs": 0,
+      "stallsPerSeed": [
+        1,
+        1,
+        1,
+        0,
+        3
+      ],
+      "recoveryEvents": 0,
+      "homesApproachedAcrossSeeds": 32,
+      "maxIndividualWaitMs": 137750,
+      "pass": true
+    },
+    {
+      "id": "neon-switchyard",
+      "variant": "small",
+      "seeds": 5,
+      "cyclingHomes": 32,
+      "medianUnarmedMs": [
+        1900,
+        2100
+      ],
+      "p95UnarmedMs": [
+        3550,
+        5100
+      ],
+      "minimumMeanAvailability": 0.8402864583333334,
+      "minimumMedianAvailability": 0.84375,
+      "maxFloorDryMs": 0,
+      "stallsPerSeed": [
+        3,
+        2,
+        0,
+        0,
+        0
+      ],
+      "recoveryEvents": 0,
+      "homesApproachedAcrossSeeds": 32,
+      "maxIndividualWaitMs": 54850,
+      "pass": true
+    },
+    {
+      "id": "harbor-fork",
+      "variant": "compact",
+      "seeds": 5,
+      "cyclingHomes": 40,
+      "medianUnarmedMs": [
+        2050,
+        2350
+      ],
+      "p95UnarmedMs": [
+        4600,
+        5950
+      ],
+      "minimumMeanAvailability": 0.8846111111111533,
+      "minimumMedianAvailability": 0.9,
+      "maxFloorDryMs": 0,
+      "stallsPerSeed": [
+        1,
+        0,
+        1,
+        4,
+        3
+      ],
+      "recoveryEvents": 0,
+      "homesApproachedAcrossSeeds": 35,
+      "maxIndividualWaitMs": 80700,
+      "pass": true
+    },
+    {
+      "id": "foundry-wheel",
+      "variant": "compact",
+      "seeds": 5,
+      "cyclingHomes": 44,
+      "medianUnarmedMs": [
+        2200,
+        2400
+      ],
+      "p95UnarmedMs": [
+        4950,
+        5700
+      ],
+      "minimumMeanAvailability": 0.8908712121212379,
+      "minimumMedianAvailability": 0.8863636363636364,
+      "maxFloorDryMs": 0,
+      "stallsPerSeed": [
+        2,
+        3,
+        11,
+        7,
+        3
+      ],
+      "recoveryEvents": 0,
+      "homesApproachedAcrossSeeds": 44,
+      "maxIndividualWaitMs": 105600,
+      "pass": true
+    }
+  ],
+  "pass": true,
+  "finalSourceCommit": "80a8b52",
+  "unchangedEightSeatResults": "Frostbite, Harbor and Foundry already cycled their full 32/40/44 authored pools under the intermediate area term. Final 160m2 policy produces the identical supplies, layouts, controls and rules; their five-seed recordings are retained.",
+  "rawDataSha256": {
+    "rookie-ribbons": "e52dbd7faa1e3070269cc5f3bb1da20b23265f3eb5451e324f7f358e8c2b976f",
+    "skyport-split": "38fcc4e0f2efb69a6fc66a32f2e6de9f9f42333c99edcf70ef0905c62bb8fc6b",
+    "garden-crown": "54163347898cb1a7dc194d5dc13fc88a08e4306a5e42ad7422b10e3e35c6f0f0",
+    "frostbite-crescent": "92ee9f88f639125311e4bfd31479ffbd6e375321351cc2d5f384a030764aa3e0",
+    "neon-switchyard": "1b418851afd91f03d645e670c3a08beabf65346a0e2cea8a0e1e2c47d580ac7f",
+    "harbor-fork": "983d25d3b420c7ef05d374e5817841ef99f3f0d9fda3cf9ff4c57a2d8b293f09",
+    "foundry-wheel": "d11ee4bd5436e9f87c34d7e78da94b6606a39b6896313217ac7db634c47d38d4"
+  }
+}
