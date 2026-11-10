@@ -8,7 +8,8 @@
  * +100); an even split is half credit (50) for the target. Voters on the
  * winning side of a clear verdict get 25. No votes: no verdict, no points. */
 
-const { dealer, shuffle, roundsSetting, paceSetting, paced } = require('../_sdk');
+const { shuffle, roundsSetting, paceSetting, paced } = require('../_sdk');
+const { cardsFromRows, createCardGame, dealText } = require('../engines/flow/card-game');
 
 const id = 'truth-dare';
 
@@ -64,6 +65,7 @@ function create(ctx) {
   const pack = ctx.content(id) || {};
   const ps = ctx.allPlayers();
   const deals = {};
+  const cards = [];
   for (const kind of ['truth', 'dare']) {
     deals[kind] = {};
     const src = pack[kind + 's'] || {};
@@ -71,8 +73,13 @@ function create(ctx) {
       const list = Array.isArray(src[d]) && src[d].length
         ? src[d]
         : (kind === 'truth' ? FALLBACK_TRUTH : FALLBACK_DARE);
-      deals[kind][d] = dealer(list);
+      cards.push(...cardsFromRows(list, `${kind}-${d}`, [kind, d]).map(c => ({ ...c, roles: c.roles ?? 1 })));
     }
+  }
+  const flow = createCardGame(id, cards, { seed: ctx.flowSeed, players: ps.map(p => ({ id: p.id, name: p.name ?? p.id })) });
+  for (const kind of ['truth', 'dare']) for (const d of DECKS) {
+    deals[kind][d] = () => dealText(flow, { tagsAll: [kind, d], actor: state.target })
+      ?? (kind === 'truth' ? FALLBACK_TRUTH : FALLBACK_DARE)[0];
   }
   const s = ctx.settings ? ctx.settings() : {};
   const state = {
@@ -101,6 +108,7 @@ function create(ctx) {
     labels: pack.labels || {},
   };
   state.deals = deals;
+  state.flow = flow;
   state.rotation = shuffle(ps.map((p) => p.id));
   nextRound(state, ctx);
   return state;
@@ -411,7 +419,7 @@ function onPlayerGone(state, ctx, pid) {
 }
 
 function view(state, pid, ctx) {
-  const { deals, rotation, turns, gone, auto, entries, errors, promptVotes, ...rest } = state;
+  const { deals, flow, rotation, turns, gone, auto, entries, errors, promptVotes, ...rest } = state;
   const out = { ...rest, hostId: ctx ? ctx.hostId() : state.hostId, myVote: state.votes[pid] || null,
     myEntry: entries[pid] || null, myError: errors[pid] || null, promptLimit: PROMPT_LIMIT,
     submitted: Object.keys(entries), promptVoted: Object.keys(promptVotes), myPromptVote: promptVotes[pid] ?? null };

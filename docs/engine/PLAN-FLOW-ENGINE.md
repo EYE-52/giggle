@@ -16,7 +16,7 @@ implementation. Implementation and validation results are recorded at the end.
 | [Ink](https://github.com/inkle/ink), [Yarn Spinner](https://github.com/YarnSpinnerTool/YarnSpinner) | Strong tools for authored dialogue and branching stories. | Keep as possible future authoring tools. Their narrative/compiler model does not supply multiplayer fairness, pacing, or deck uniqueness. Do not embed either now. |
 | [json-rules-engine](https://github.com/CacheControl/json-rules-engine), [Drools](https://docs.drools.org/latest/drools-docs/drools/rule-engine/index.html) | Declarative conditions, fact lookup, rule priorities. | Build a synchronous, bounded predicate subset. No asynchronous fact providers, forward chaining, RETE network, or arbitrary JavaScript. Specificity is explicit matched atomic facts, with declaration order only as a reproducible final tie-break for rule resolution. |
 | [Tracery](https://github.com/galaxykate/tracery) | Grammar symbols produce many phrasings from small banks. | Build a deliberately smaller grammar: `#symbol#`, `{slot}`, and explicit safe modifiers. Reject unknown symbols, cycles, unknown slots, excess depth/length, and unsafe grammar keys. Plain text output; UI must still escape it. |
-| [seedrandom](https://github.com/davidbau/seedrandom), [pure-rand](https://github.com/dubzzz/pure-rand) | Deterministic PRNG streams and reproducible bugs. | Zero runtime dependencies: implement the standard xorshift32 recurrence with hashed string seeds and explicit snapshot state. This is variety/replay, not security. Use Node crypto once for an unspecified session seed. |
+| [seedrandom](https://github.com/davidbau/seedrandom), [pure-rand](https://github.com/dubzzz/pure-rand) | Deterministic PRNG streams and reproducible bugs. | Zero runtime dependencies: implement the standard [xorshift32 recurrence](https://www.jstatsoft.org/article/view/v008i14) with hashed string seeds and explicit snapshot state. This is variety/replay, not security. Use Node crypto once for an unspecified session seed. |
 
 These are design choices based on the sources, not claims that the systems are
 interchangeable. In particular, specificity resolves contextual rules; weights
@@ -100,6 +100,11 @@ Read `claude/adult-preview:apps/games/adult/games/_progression.js`,
 The current implementation includes a per-pair opening route, sampled dwell,
 completed prerequisites, per-player clothing state, pass backoff, a shared night
 RNG, normalized-line/family history and reversible reservations.
+
+The first implementation has one graph cursor per engine. The adult edition
+needs independent per-pair cursors with shared night state and RNG. Add scoped
+graph cursors before replacing its graph; the normal migration does not claim
+that feature is already implemented.
 
 1. Map players and pairs to scoped qualities, keeping IDs private. Map clothing
    counts and exposed-area facts to explicit qualities. Preserve every existing

@@ -1,0 +1,38 @@
+{
+  "definition": "party-demo@1",
+  "seed": "stress",
+  "sessions": 500,
+  "turns": 60,
+  "skipRate": 0.1,
+  "completed": 500,
+  "turnLimited": 0,
+  "deadEnds": {},
+  "totalOffers": 8092,
+  "pacing": {
+    "meanAbsoluteHeatError": 10.335869641974488,
+    "breathers": 2393
+  },
+  "variety": {
+    "uniqueCards": 38,
+    "cardCoverage": 1,
+    "uniqueOrderedPaths": 500,
+    "uniquePhasePaths": 2,
+    "meanJaccardSimilarity": 0.31229358546555414,
+    "meanPositionSimilarity": 0.0775557863774399,
+    "comparedSessionPairs": 19900,
+    "repeats": 0
+  },
+  "fairness": {
+    "meanPlayerExposureSpread": 0.854,
+    "maxPlayerExposureSpread": 1,
+    "meanPairExposureSpread": 1.196,
+    "maxPairExposureSpread": 3
+  },
+  "phaseCoverage": [
+    "cooldown",
+    "debate",
+    "hello",
+    "silly",
+    "stories"
+  ]
+}

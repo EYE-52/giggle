@@ -7,7 +7,12 @@ const path = require('node:path');
 const registry = require('../games/registry');
 const PLAYERS = ['p1','p2','p3','p4'].map(id => ({id,name:id}));
 class Ctx {
-  constructor() { this.time=1000; this.timers=[]; this.awards={}; }
+  constructor() {
+    this.time=1000; this.timers=[]; this.awards={};
+    // Both comparison rooms need the same private flow RNG, independently of
+    // the global Math.random stub used by the other game mechanics below.
+    this.flowSeed='deadline-comparison';
+  }
   allPlayers() { return PLAYERS.slice(); } players() { return this.allPlayers(); }
   hostId() { return 'p1'; } settings() { return {rounds:2}; }
   content(id) { return JSON.parse(fs.readFileSync(path.join(__dirname,'../locales/en',id+'.json'),'utf8')); }

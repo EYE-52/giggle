@@ -1,0 +1,616 @@
+{
+  "schemaVersion": 1,
+  "id": "party-demo",
+  "version": "1",
+  "start": "hello",
+  "repeat": "never",
+  "director": {
+    "curve": [
+      [
+        0,
+        5
+      ],
+      [
+        4,
+        20
+      ],
+      [
+        9,
+        55
+      ],
+      [
+        16,
+        70
+      ],
+      [
+        22,
+        10
+      ]
+    ],
+    "maxHeat": 80,
+    "breatherEvery": 5,
+    "breatherHeat": 15,
+    "recencyWindow": 3,
+    "noveltyBonus": 1,
+    "fairness": 2
+  },
+  "phases": [
+    {
+      "id": "hello",
+      "dwell": [
+        2,
+        4
+      ],
+      "next": [
+        {
+          "to": "stories"
+        },
+        {
+          "to": "silly"
+        }
+      ]
+    },
+    {
+      "id": "stories",
+      "dwell": [
+        3,
+        5
+      ],
+      "prerequisites": [
+        "hello"
+      ],
+      "next": [
+        {
+          "to": "debate"
+        }
+      ]
+    },
+    {
+      "id": "silly",
+      "dwell": [
+        3,
+        5
+      ],
+      "prerequisites": [
+        "hello"
+      ],
+      "next": [
+        {
+          "to": "debate"
+        }
+      ]
+    },
+    {
+      "id": "debate",
+      "dwell": [
+        4,
+        6
+      ],
+      "prerequisites": [
+        "hello"
+      ],
+      "next": [
+        {
+          "to": "cooldown"
+        }
+      ]
+    },
+    {
+      "id": "cooldown",
+      "dwell": [
+        2,
+        3
+      ],
+      "breather": true,
+      "next": [
+        {
+          "to": "done"
+        }
+      ]
+    },
+    {
+      "id": "done",
+      "dwell": [
+        1,
+        1
+      ],
+      "terminal": true
+    }
+  ],
+  "grammar": {
+    "mood": [
+      "cheerful",
+      "sleepy",
+      "surprised"
+    ],
+    "animal": [
+      "cat",
+      "penguin",
+      "elephant"
+    ]
+  },
+  "cards": [
+    {
+      "id": "hello-0",
+      "template": "{actor}, Name a favourite snack.",
+      "tags": [
+        "food"
+      ],
+      "phases": [
+        "hello"
+      ],
+      "roles": 1,
+      "heat": 5,
+      "weight": 1
+    },
+    {
+      "id": "hello-1",
+      "template": "{actor}, Share one good thing from today.",
+      "tags": [
+        "today"
+      ],
+      "phases": [
+        "hello"
+      ],
+      "roles": 1,
+      "heat": 5,
+      "weight": 1
+    },
+    {
+      "id": "hello-2",
+      "template": "{actor}, Name a place you want to visit.",
+      "tags": [
+        "travel"
+      ],
+      "phases": [
+        "hello"
+      ],
+      "roles": 1,
+      "heat": 5,
+      "weight": 1
+    },
+    {
+      "id": "hello-3",
+      "template": "{actor}, Name a song you like.",
+      "tags": [
+        "music"
+      ],
+      "phases": [
+        "hello"
+      ],
+      "roles": 1,
+      "heat": 5,
+      "weight": 1
+    },
+    {
+      "id": "hello-4",
+      "template": "{actor}, Share a small win.",
+      "tags": [
+        "today"
+      ],
+      "phases": [
+        "hello"
+      ],
+      "roles": 1,
+      "heat": 5,
+      "weight": 1
+    },
+    {
+      "id": "hello-5",
+      "template": "{actor}, Name your favourite season.",
+      "tags": [
+        "nature"
+      ],
+      "phases": [
+        "hello"
+      ],
+      "roles": 1,
+      "heat": 5,
+      "weight": 1
+    },
+    {
+      "id": "stories-0",
+      "template": "{actor}, Tell a story about a missed bus.",
+      "tags": [
+        "travel"
+      ],
+      "phases": [
+        "stories"
+      ],
+      "roles": 1,
+      "heat": 25,
+      "weight": 1
+    },
+    {
+      "id": "stories-1",
+      "template": "{actor}, Share a cooking mistake.",
+      "tags": [
+        "food"
+      ],
+      "phases": [
+        "stories"
+      ],
+      "roles": 1,
+      "heat": 25,
+      "weight": 1
+    },
+    {
+      "id": "stories-2",
+      "template": "{actor}, Tell a story about a great teacher.",
+      "tags": [
+        "school"
+      ],
+      "phases": [
+        "stories"
+      ],
+      "roles": 1,
+      "heat": 25,
+      "weight": 1
+    },
+    {
+      "id": "stories-3",
+      "template": "{actor}, Share a lucky moment.",
+      "tags": [
+        "luck"
+      ],
+      "phases": [
+        "stories"
+      ],
+      "roles": 1,
+      "heat": 25,
+      "weight": 1
+    },
+    {
+      "id": "stories-4",
+      "template": "{actor}, Describe a surprise gift.",
+      "tags": [
+        "friends"
+      ],
+      "phases": [
+        "stories"
+      ],
+      "roles": 1,
+      "heat": 25,
+      "weight": 1
+    },
+    {
+      "id": "stories-5",
+      "template": "{actor}, Tell a story about a pet.",
+      "tags": [
+        "nature"
+      ],
+      "phases": [
+        "stories"
+      ],
+      "roles": 1,
+      "heat": 25,
+      "weight": 1
+    },
+    {
+      "id": "silly-0",
+      "template": "{actor}, Do a #mood# #animal# impression.",
+      "tags": [
+        "acting"
+      ],
+      "phases": [
+        "silly"
+      ],
+      "roles": 1,
+      "heat": 25,
+      "weight": 1
+    },
+    {
+      "id": "silly-1",
+      "template": "{actor}, Give an imaginary weather report.",
+      "tags": [
+        "acting"
+      ],
+      "phases": [
+        "silly"
+      ],
+      "roles": 1,
+      "heat": 25,
+      "weight": 1
+    },
+    {
+      "id": "silly-2",
+      "template": "{actor}, Invent a name for a new snack.",
+      "tags": [
+        "food"
+      ],
+      "phases": [
+        "silly"
+      ],
+      "roles": 1,
+      "heat": 25,
+      "weight": 1
+    },
+    {
+      "id": "silly-3",
+      "template": "{actor}, Sing your name.",
+      "tags": [
+        "music"
+      ],
+      "phases": [
+        "silly"
+      ],
+      "roles": 1,
+      "heat": 25,
+      "weight": 1
+    },
+    {
+      "id": "silly-4",
+      "template": "{actor}, Describe a shoe as if it were treasure.",
+      "tags": [
+        "acting"
+      ],
+      "phases": [
+        "silly"
+      ],
+      "roles": 1,
+      "heat": 25,
+      "weight": 1
+    },
+    {
+      "id": "silly-5",
+      "template": "{actor}, Make up a tiny dance.",
+      "tags": [
+        "dance"
+      ],
+      "phases": [
+        "silly"
+      ],
+      "roles": 1,
+      "heat": 25,
+      "weight": 1
+    },
+    {
+      "id": "debate-0",
+      "template": "{actor} and {partner}, discuss: Which is better: a beach or a mountain trip?",
+      "tags": [
+        "travel"
+      ],
+      "phases": [
+        "debate"
+      ],
+      "roles": 2,
+      "heat": 65,
+      "weight": 1
+    },
+    {
+      "id": "debate-1",
+      "template": "{actor} and {partner}, discuss: Should pineapple go on pizza?",
+      "tags": [
+        "food"
+      ],
+      "phases": [
+        "debate"
+      ],
+      "roles": 2,
+      "heat": 65,
+      "weight": 1
+    },
+    {
+      "id": "debate-2",
+      "template": "{actor} and {partner}, discuss: Are cats or dogs better roommates?",
+      "tags": [
+        "nature"
+      ],
+      "phases": [
+        "debate"
+      ],
+      "roles": 2,
+      "heat": 65,
+      "weight": 1
+    },
+    {
+      "id": "debate-3",
+      "template": "{actor} and {partner}, discuss: Would you rather fly or breathe underwater?",
+      "tags": [
+        "powers"
+      ],
+      "phases": [
+        "debate"
+      ],
+      "roles": 2,
+      "heat": 65,
+      "weight": 1
+    },
+    {
+      "id": "debate-4",
+      "template": "{actor} and {partner}, discuss: Is breakfast the best meal?",
+      "tags": [
+        "food"
+      ],
+      "phases": [
+        "debate"
+      ],
+      "roles": 2,
+      "heat": 65,
+      "weight": 1
+    },
+    {
+      "id": "debate-5",
+      "template": "{actor} and {partner}, discuss: Should every weekend have three days?",
+      "tags": [
+        "work"
+      ],
+      "phases": [
+        "debate"
+      ],
+      "roles": 2,
+      "heat": 65,
+      "weight": 1
+    },
+    {
+      "id": "debate-6",
+      "template": "{actor} and {partner}, discuss: Is a book better than its movie?",
+      "tags": [
+        "stories"
+      ],
+      "phases": [
+        "debate"
+      ],
+      "roles": 2,
+      "heat": 65,
+      "weight": 1
+    },
+    {
+      "id": "debate-7",
+      "template": "{actor} and {partner}, discuss: Is winter better than summer?",
+      "tags": [
+        "nature"
+      ],
+      "phases": [
+        "debate"
+      ],
+      "roles": 2,
+      "heat": 65,
+      "weight": 1
+    },
+    {
+      "id": "cooldown-0",
+      "template": "{actor}, Name something that made you smile.",
+      "tags": [
+        "smile"
+      ],
+      "phases": [
+        "cooldown"
+      ],
+      "roles": 1,
+      "heat": 5,
+      "weight": 1,
+      "breather": true
+    },
+    {
+      "id": "cooldown-1",
+      "template": "{actor}, Share a song for the ride home.",
+      "tags": [
+        "music"
+      ],
+      "phases": [
+        "cooldown"
+      ],
+      "roles": 1,
+      "heat": 5,
+      "weight": 1,
+      "breather": true
+    },
+    {
+      "id": "cooldown-2",
+      "template": "{actor}, Give someone a small compliment.",
+      "tags": [
+        "friends"
+      ],
+      "phases": [
+        "cooldown"
+      ],
+      "roles": 1,
+      "heat": 5,
+      "weight": 1,
+      "breather": true
+    },
+    {
+      "id": "cooldown-3",
+      "template": "{actor}, Pick a snack for the group.",
+      "tags": [
+        "food"
+      ],
+      "phases": [
+        "cooldown"
+      ],
+      "roles": 1,
+      "heat": 5,
+      "weight": 1,
+      "breather": true
+    },
+    {
+      "id": "cooldown-4",
+      "template": "{actor}, Share a favourite colour.",
+      "tags": [
+        "colour"
+      ],
+      "phases": [
+        "cooldown"
+      ],
+      "roles": 1,
+      "heat": 5,
+      "weight": 1,
+      "breather": true
+    },
+    {
+      "id": "cooldown-5",
+      "template": "{actor}, Name a peaceful place.",
+      "tags": [
+        "travel"
+      ],
+      "phases": [
+        "cooldown"
+      ],
+      "roles": 1,
+      "heat": 5,
+      "weight": 1,
+      "breather": true
+    },
+    {
+      "id": "breather-0",
+      "text": "Take a slow breath.",
+      "tags": [
+        "pause"
+      ],
+      "breather": true,
+      "heat": 0,
+      "weight": 0.12
+    },
+    {
+      "id": "breather-1",
+      "text": "Stretch your hands.",
+      "tags": [
+        "pause"
+      ],
+      "breather": true,
+      "heat": 0,
+      "weight": 0.12
+    },
+    {
+      "id": "breather-2",
+      "text": "Have a sip of water.",
+      "tags": [
+        "pause"
+      ],
+      "breather": true,
+      "heat": 0,
+      "weight": 0.12
+    },
+    {
+      "id": "breather-3",
+      "text": "Look away from the screen for a moment.",
+      "tags": [
+        "pause"
+      ],
+      "breather": true,
+      "heat": 0,
+      "weight": 0.12
+    },
+    {
+      "id": "breather-4",
+      "text": "Relax your shoulders.",
+      "tags": [
+        "pause"
+      ],
+      "breather": true,
+      "heat": 0,
+      "weight": 0.12
+    },
+    {
+      "id": "breather-5",
+      "text": "Take a short pause.",
+      "tags": [
+        "pause"
+      ],
+      "breather": true,
+      "heat": 0,
+      "weight": 0.12
+    }
+  ]
+}

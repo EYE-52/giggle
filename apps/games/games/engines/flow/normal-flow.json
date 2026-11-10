@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "id": "normal-cards",
+  "version": "1",
+  "repeat": "cycle",
+  "start": "play",
+  "phases": [{ "id": "play", "dwell": [1, 1] }],
+  "director": {
+    "curve": [[0, 0]],
+    "maxHeat": 100,
+    "recencyWindow": 3,
+    "noveltyBonus": 0.5,
+    "fairness": 2
+  }
+}
