@@ -1,0 +1,405 @@
+{
+  "scope": "40 isolated real-authority route runs; a moving bot and a parked rival. Not eight box-seeking/firing bots.",
+  "reports": [
+    {
+      "variant": "duel",
+      "seed": 0,
+      "speed": 4,
+      "at": 180000,
+      "stuck": 200,
+      "events": [],
+      "goal": 47,
+      "poseSamples": 897
+    },
+    {
+      "variant": "duel",
+      "seed": 1,
+      "speed": 4.5,
+      "at": 180000,
+      "stuck": 0,
+      "events": [],
+      "goal": 51,
+      "poseSamples": 898
+    },
+    {
+      "variant": "duel",
+      "seed": 2,
+      "speed": 5,
+      "at": 180000,
+      "stuck": 0,
+      "events": [],
+      "goal": 56,
+      "poseSamples": 910
+    },
+    {
+      "variant": "duel",
+      "seed": 3,
+      "speed": 5.5,
+      "at": 180000,
+      "stuck": 0,
+      "events": [],
+      "goal": 1,
+      "poseSamples": 900
+    },
+    {
+      "variant": "duel",
+      "seed": 4,
+      "speed": 6,
+      "at": 180000,
+      "stuck": 0,
+      "events": [],
+      "goal": 6,
+      "poseSamples": 903
+    },
+    {
+      "variant": "duel",
+      "seed": 5,
+      "speed": 4,
+      "at": 180000,
+      "stuck": 0,
+      "events": [],
+      "goal": 47,
+      "poseSamples": 898
+    },
+    {
+      "variant": "duel",
+      "seed": 6,
+      "speed": 4.5,
+      "at": 180000,
+      "stuck": 0,
+      "events": [],
+      "goal": 51,
+      "poseSamples": 899
+    },
+    {
+      "variant": "duel",
+      "seed": 7,
+      "speed": 5,
+      "at": 180000,
+      "stuck": 0,
+      "events": [],
+      "goal": 56,
+      "poseSamples": 895
+    },
+    {
+      "variant": "duel",
+      "seed": 8,
+      "speed": 5.5,
+      "at": 180000,
+      "stuck": 0,
+      "events": [],
+      "goal": 1,
+      "poseSamples": 893
+    },
+    {
+      "variant": "duel",
+      "seed": 9,
+      "speed": 6,
+      "at": 180000,
+      "stuck": 0,
+      "events": [],
+      "goal": 6,
+      "poseSamples": 901
+    },
+    {
+      "variant": "duel",
+      "seed": 10,
+      "speed": 4,
+      "at": 180000,
+      "stuck": 200,
+      "events": [],
+      "goal": 47,
+      "poseSamples": 897
+    },
+    {
+      "variant": "duel",
+      "seed": 11,
+      "speed": 4.5,
+      "at": 180000,
+      "stuck": 0,
+      "events": [],
+      "goal": 51,
+      "poseSamples": 898
+    },
+    {
+      "variant": "duel",
+      "seed": 12,
+      "speed": 5,
+      "at": 180000,
+      "stuck": 0,
+      "events": [],
+      "goal": 56,
+      "poseSamples": 910
+    },
+    {
+      "variant": "duel",
+      "seed": 13,
+      "speed": 5.5,
+      "at": 180000,
+      "stuck": 0,
+      "events": [],
+      "goal": 1,
+      "poseSamples": 900
+    },
+    {
+      "variant": "duel",
+      "seed": 14,
+      "speed": 6,
+      "at": 180000,
+      "stuck": 0,
+      "events": [],
+      "goal": 6,
+      "poseSamples": 903
+    },
+    {
+      "variant": "duel",
+      "seed": 15,
+      "speed": 4,
+      "at": 180000,
+      "stuck": 0,
+      "events": [],
+      "goal": 47,
+      "poseSamples": 898
+    },
+    {
+      "variant": "duel",
+      "seed": 16,
+      "speed": 4.5,
+      "at": 180000,
+      "stuck": 0,
+      "events": [],
+      "goal": 51,
+      "poseSamples": 899
+    },
+    {
+      "variant": "duel",
+      "seed": 17,
+      "speed": 5,
+      "at": 180000,
+      "stuck": 0,
+      "events": [],
+      "goal": 56,
+      "poseSamples": 895
+    },
+    {
+      "variant": "duel",
+      "seed": 18,
+      "speed": 5.5,
+      "at": 180000,
+      "stuck": 0,
+      "events": [],
+      "goal": 1,
+      "poseSamples": 893
+    },
+    {
+      "variant": "duel",
+      "seed": 19,
+      "speed": 6,
+      "at": 180000,
+      "stuck": 0,
+      "events": [],
+      "goal": 6,
+      "poseSamples": 901
+    },
+    {
+      "variant": "full",
+      "seed": 0,
+      "speed": 4,
+      "at": 180000,
+      "stuck": 200,
+      "events": [],
+      "goal": 28,
+      "poseSamples": 905
+    },
+    {
+      "variant": "full",
+      "seed": 1,
+      "speed": 4.5,
+      "at": 180000,
+      "stuck": 0,
+      "events": [],
+      "goal": 32,
+      "poseSamples": 898
+    },
+    {
+      "variant": "full",
+      "seed": 2,
+      "speed": 5,
+      "at": 180000,
+      "stuck": 0,
+      "events": [],
+      "goal": 41,
+      "poseSamples": 898
+    },
+    {
+      "variant": "full",
+      "seed": 3,
+      "speed": 5.5,
+      "at": 180000,
+      "stuck": 0,
+      "events": [],
+      "goal": 47,
+      "poseSamples": 896
+    },
+    {
+      "variant": "full",
+      "seed": 4,
+      "speed": 6,
+      "at": 180000,
+      "stuck": 0,
+      "events": [],
+      "goal": 48,
+      "poseSamples": 898
+    },
+    {
+      "variant": "full",
+      "seed": 5,
+      "speed": 4,
+      "at": 180000,
+      "stuck": 200,
+      "events": [],
+      "goal": 29,
+      "poseSamples": 899
+    },
+    {
+      "variant": "full",
+      "seed": 6,
+      "speed": 4.5,
+      "at": 180000,
+      "stuck": 0,
+      "events": [],
+      "goal": 30,
+      "poseSamples": 908
+    },
+    {
+      "variant": "full",
+      "seed": 7,
+      "speed": 5,
+      "at": 180000,
+      "stuck": 0,
+      "events": [],
+      "goal": 42,
+      "poseSamples": 901
+    },
+    {
+      "variant": "full",
+      "seed": 8,
+      "speed": 5.5,
+      "at": 180000,
+      "stuck": 0,
+      "events": [],
+      "goal": 47,
+      "poseSamples": 904
+    },
+    {
+      "variant": "full",
+      "seed": 9,
+      "speed": 6,
+      "at": 180000,
+      "stuck": 0,
+      "events": [],
+      "goal": 48,
+      "poseSamples": 908
+    },
+    {
+      "variant": "full",
+      "seed": 10,
+      "speed": 4,
+      "at": 180000,
+      "stuck": 200,
+      "events": [],
+      "goal": 28,
+      "poseSamples": 905
+    },
+    {
+      "variant": "full",
+      "seed": 11,
+      "speed": 4.5,
+      "at": 180000,
+      "stuck": 0,
+      "events": [],
+      "goal": 32,
+      "poseSamples": 898
+    },
+    {
+      "variant": "full",
+      "seed": 12,
+      "speed": 5,
+      "at": 180000,
+      "stuck": 0,
+      "events": [],
+      "goal": 41,
+      "poseSamples": 898
+    },
+    {
+      "variant": "full",
+      "seed": 13,
+      "speed": 5.5,
+      "at": 180000,
+      "stuck": 0,
+      "events": [],
+      "goal": 47,
+      "poseSamples": 896
+    },
+    {
+      "variant": "full",
+      "seed": 14,
+      "speed": 6,
+      "at": 180000,
+      "stuck": 0,
+      "events": [],
+      "goal": 48,
+      "poseSamples": 898
+    },
+    {
+      "variant": "full",
+      "seed": 15,
+      "speed": 4,
+      "at": 180000,
+      "stuck": 200,
+      "events": [],
+      "goal": 29,
+      "poseSamples": 899
+    },
+    {
+      "variant": "full",
+      "seed": 16,
+      "speed": 4.5,
+      "at": 180000,
+      "stuck": 0,
+      "events": [],
+      "goal": 30,
+      "poseSamples": 908
+    },
+    {
+      "variant": "full",
+      "seed": 17,
+      "speed": 5,
+      "at": 180000,
+      "stuck": 0,
+      "events": [],
+      "goal": 42,
+      "poseSamples": 901
+    },
+    {
+      "variant": "full",
+      "seed": 18,
+      "speed": 5.5,
+      "at": 180000,
+      "stuck": 0,
+      "events": [],
+      "goal": 47,
+      "poseSamples": 904
+    },
+    {
+      "variant": "full",
+      "seed": 19,
+      "speed": 6,
+      "at": 180000,
+      "stuck": 0,
+      "events": [],
+      "goal": 48,
+      "poseSamples": 908
+    }
+  ]
+}

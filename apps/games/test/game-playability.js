@@ -1805,7 +1805,7 @@ async function main() {
       // Rematch invariant: a fresh instance boots clean for every pid.
       const def = registry.get(g.id);
       const n = g.id === 'chess' ? 2 : 4;
-      const rc = new FakeCtx(roster(n), {});
+      const rc = new FakeCtx(roster(n), g.id === 'pocket-karts' ? {map:'Rookie Ring'} : {});
       const rs = def.create(rc);
       for (const p of roster(n)) V(def, rs, p.id);
       V(def, rs, 'ghost');

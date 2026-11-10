@@ -1,0 +1,21 @@
+Rookie Ribbons 2 real Room seats PASS; frame bytes=6030
+Rookie Ribbons 8 real Room seats PASS; frame bytes=11776
+Skyport 2 real Room seats PASS; frame bytes=5117
+Skyport 8 real Room seats PASS; frame bytes=10375
+Skyport 32 real Room seats PASS; frame bytes=31517
+Foundry 2 real Room seats PASS; frame bytes=5122
+Foundry 8 real Room seats PASS; frame bytes=10338
+Foundry 32 real Room seats PASS; frame bytes=31461
+Alpine Courtyard 2 real Room seats PASS; frame bytes=4881
+Alpine Courtyard 8 real Room seats PASS; frame bytes=10094
+Alpine Courtyard 32 real Room seats PASS; frame bytes=11337
+Frost Quarry 2 real Room seats PASS; frame bytes=4897
+Frost Quarry 8 real Room seats PASS; frame bytes=10087
+Frost Quarry 32 real Room seats PASS; frame bytes=11330
+Neon Harbor 2 real Room seats PASS; frame bytes=4896
+Neon Harbor 8 real Room seats PASS; frame bytes=10204
+Neon Harbor 32 real Room seats PASS; frame bytes=11454
+Harbor Heights 2 real Room seats PASS; frame bytes=4878
+Harbor Heights 8 real Room seats PASS; frame bytes=10069
+Harbor Heights 32 real Room seats PASS; frame bytes=11316
+Complex Room routing, 2/8/32 seats and elevated-default practice regression PASS

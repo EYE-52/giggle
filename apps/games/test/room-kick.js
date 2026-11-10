@@ -72,7 +72,7 @@ async function unit() {
   room.destroy();
   const kartRoom=new Room('KART',{}),drivers=Array.from({length:3},(_,i)=>kartRoom.addPlayer('Driver '+i,socket()).player);
   let now=Date.now();kartRoom._gameNow=()=>now;
-  eq(kartRoom.startGame(registry.get('pocket-karts'),{},drivers[0].id).ok,true,'Actual classic kart match starts');
+  eq(kartRoom.startGame(registry.get('pocket-karts'),{settings:{map:'Garden Circuit'}},drivers[0].id).ok,true,'Actual classic kart match starts');
   now+=3100;kartRoom.onTick();
   eq(kartRoom.game.state.phase,'drive','Actual countdown enters driving');
   for(let n=0;n<5;n++){const frame=kartRoom.game.def.view(kartRoom.game.state,drivers[1].id),ack=frame.inputAck;kartRoom.onAction(drivers[1].socket,{seq:n+1,life:ack.life,controlEpoch:ack.controlEpoch,input:{steer:.5,throttle:1,boost:true,nitro:true,drift:true}},{i:kartRoom.game.instanceId,w:kartRoom._actionToken()});now+=100;kartRoom.onTick();}

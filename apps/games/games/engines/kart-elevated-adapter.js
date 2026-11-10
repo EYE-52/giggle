@@ -1,11 +1,15 @@
 'use strict';
 
+const {selectArenaVariant}=require('../../public/js/engines/kart-arena-policy.mjs');
+const {launchArenas}=require('../../public/js/engines/kart-launch-arenas.mjs');
+const LAUNCH_ARENA_CAPS=Object.freeze(Object.fromEntries(Object.values(launchArenas).map(m=>[m.name,Object.freeze({min:m.minPlayers,max:m.maxPlayers})])));
 const crypto = require('crypto');
 const { createElevatedCombat } = require('./kart-elevated-combat');
 const { rankStandings } = require('./kart-standings');
 
 const PROFILE = 'elevated-combat-v1';
 const MAP_LABELS = Object.freeze({
+  ...Object.fromEntries(Object.values(launchArenas).map(m=>[m.name,m.id])),
   'Skyport': 'skyport',
   'Foundry': 'foundry',
   'Alpine Courtyard': 'garden',
@@ -26,6 +30,8 @@ const GONE_AFTER_MS = 60000;
 const END_REASONS = { deadline: 'timeout', target: 'goal', 'players-left': 'players-left' };
 
 function freeze(value) {
+  // Buffers live in the private structured clone; JS cannot freeze typed views.
+  if (ArrayBuffer.isView(value)) return value;
   if (value && typeof value === 'object' && !Object.isFrozen(value)) {
     for (const item of Object.values(value)) freeze(item);
     Object.freeze(value);
@@ -64,7 +70,7 @@ function project(raw, map, settings) {
   const result = resultOf(raw);
   return {
     profile: PROFILE, waitForResult: true, combat:raw.combat, projectileRadii:raw.projectileRadii, physicsVersion: raw.physicsVersion, configVersion: raw.configVersion,
-    mapRevision: raw.mapRevision, mapId: raw.mapId,
+    mapRevision: raw.mapRevision, mapId: raw.mapId,...(raw.variantId?{variantId:raw.variantId,arenaVersion:raw.arenaVersion,enabledDistricts:raw.enabledDistricts}:{}),
     map: { id: raw.mapId, label: map.name, environment: map.environment, half: map.half },
     phase: raw.phase, endsAt: raw.phase === 'done' ? 0 : raw.phase === 'countdown' ? raw.liveAt : raw.deadline,
     liveAt: raw.liveAt, deadline: raw.deadline, roundMs: raw.deadline - raw.liveAt,
@@ -89,7 +95,7 @@ function project(raw, map, settings) {
         linearVelocity: vector(k.pose.linearVelocity), angularVelocity: vector(k.pose.angularVelocity),
         grounded: k.pose.grounded, speed: number(k.pose.speed), epoch: k.pose.epoch,
         wheels: k.pose.wheels.map(w => ({ length: number(w.length, 4), rotation: number(w.rotation, 4), steering: number(w.steering, 4) })) } })),
-    crates: raw.crates.map(c => ({ id: c.id, position: vector(c.position), available: c.available })),
+    crates: raw.crates.map(c => ({ id: c.id, position: vector(c.position), available: c.available,...(c.homeId?{homeId:c.homeId,profile:c.profile,readyInMs:number(c.readyInMs)}:{}) })),
     projectiles: raw.projectiles.map(p => ({ id: p.id, owner: p.owner, weapon: p.weapon, ...(p.targetId ? { targetId: p.targetId } : {}),
       position: vector(p.position), velocity: vector(p.velocity), radius: number(p.radius), ttl: number(p.ttl) })),
     mines: raw.mines.map(m => ({ id: m.id, owner: m.owner, ...(m.weapon ? { weapon: m.weapon } : {}), position: vector(m.position), normal: vector(m.normal),
@@ -118,7 +124,9 @@ function createElevatedKartAdapter({ RAPIER, config, maps, defaults, createMatch
   }
   const deps = Object.freeze({ RAPIER: Object.freeze({ ...RAPIER }), config: freeze(structuredClone(config)),
     maps: freeze(structuredClone(maps)), defaults: freeze(structuredClone(defaults)), createMatch });
-  for (const id of Object.values(MAP_LABELS)) {
+  // A diagnostic adapter may supply only immutable legacy fixtures. Production
+  // loadElevatedDependencies supplies every registered launch map as well.
+  for (const id of new Set(['skyport','foundry','garden','frost','neon','harbor',...Object.keys(deps.maps)])) {
     if (!deps.maps[id] || deps.maps[id].id !== id || !deps.maps[id].revision) throw new Error('Elevated arena maps are unavailable.');
   }
   const matches = new WeakMap();
@@ -141,7 +149,8 @@ function createElevatedKartAdapter({ RAPIER, config, maps, defaults, createMatch
     const settings = settingsOf(ctx.settings());
     const check = preflight(settings);
     if (check.error) throw new Error(check.error);
-    const map = deps.maps[MAP_LABELS[settings.map]], state = { profile: PROFILE, phase: 'countdown', endsAt: 0 };
+    const sourceMap=deps.maps[MAP_LABELS[settings.map]];
+    const map=sourceMap?.arenaVersion?selectArenaVariant(sourceMap,ctx.allPlayers().length):sourceMap, state = { profile: PROFILE, phase: 'countdown', endsAt: 0,...(map?.arenaVersion?{arenaVersion:map.arenaVersion}:{}) };
     if (!map) throw new Error('Choose an elevated arena.');
     const match = deps.createMatch(deps.RAPIER, deps.config, map, ctx.allPlayers(), {
       instance: ctx.instanceId, seed: crypto.randomBytes(4).readUInt32LE(0), startAt: ctx.now(), roundMs: settings.roundSeconds * 1000,
@@ -214,6 +223,8 @@ function createElevatedKartAdapter({ RAPIER, config, maps, defaults, createMatch
       coins: own ? own.coins : 0 };
   }
   // Ordinary callers retain independent, mutable snapshots.
+  function publicView(state){return matches.get(state).view;}
+  function privateView(state,pid){const {youDrive,inputAck,coins}=viewForTransport(state,pid);return {youDrive,inputAck,coins};}
   function view(state, pid) { return structuredClone(viewForTransport(state, pid)); }
   function dispose(state) {
     const record = matches.get(state);
@@ -221,7 +232,7 @@ function createElevatedKartAdapter({ RAPIER, config, maps, defaults, createMatch
     record.disposed = true;
     record.match.dispose();
   }
-  return Object.freeze({ preflight, create, onAction, onTick, onConnection, onPlayerGone, view, viewForTransport, dispose, owns: state => matches.has(state) });
+  return Object.freeze({ preflight, create, onAction, onTick, onConnection, onPlayerGone, view, viewForTransport, publicView, privateView, dispose, owns: state => matches.has(state) });
 }
 
-module.exports = { GONE_AFTER_MS, PROFILE, MAP_LABELS, preflightElevated, loadElevatedDependencies, createElevatedKartAdapter };
+module.exports = { GONE_AFTER_MS, PROFILE, MAP_LABELS, LAUNCH_ARENA_CAPS, preflightElevated, loadElevatedDependencies, createElevatedKartAdapter };

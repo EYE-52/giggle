@@ -1,0 +1,2 @@
+{"drivers":32,"connected":32,"seconds":22.8,"browser":{"binaryFramesPerSec":31,"kbPerSec":68,"textFrames":8,"fps":11.1,"worstFrameMs":967,"drawCallsPerFrame":293,"hud":{"rows":9,"canvas":true}},"bots":{"framesPerSec":28.8},"browserKartMovedM":27.4,"fastestForward":12.9,"errors":[]}
+KART_32_BROWSER_PASS

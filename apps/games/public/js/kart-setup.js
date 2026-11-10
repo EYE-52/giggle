@@ -3,6 +3,13 @@ import { esc } from './util.js';
 // Menu previews are small views of the shipped worlds, keyed by profile
 // as well as map ID: the classic and elevated gardens are different arenas.
 export const KART_ARENAS = [
+  { label: 'Rookie Ribbons', key: 'arena-rookie-ribbons', elevated: true, launch: true, players: '2–8', levels: 2, description: 'Two toy lobes, a real arch bridge and two gentle climbs. A smaller duel arena for two.' },
+  { label: 'Garden Crown', key: 'arena-garden-crown', elevated: true, launch: true, players: '4–16', levels: 2, description: 'A crown walk around the fountain. Two garden climbs, shelter below and a marked drop.' },
+  { label: 'Frostbite Crescent', key: 'arena-frostbite-crescent', elevated: true, launch: true, players: '6–16', levels: 2, description: 'Dry shore or slippery ice. Climb the quarry shelf, or jump the inlet beside its shore bypass.' },
+  { label: 'Neon Switchyard', key: 'arena-neon-switchyard', elevated: true, launch: true, players: '6–24', levels: 2, description: 'Offset market streets under two sign bridges. Cyan A and pink B mark the crossings.' },
+  { label: 'Harbor Fork', key: 'arena-harbor-fork', elevated: true, complex: true, launch: true, players: '8–32', levels: 3, description: 'Three cargo fingers, two cross-dock bridges and a high harbor lookout.' },
+  { label: 'Skyport Split', key: 'arena-skyport-split', elevated: true, complex: true, launch: true, players: '8–32', levels: 3, description: 'Twin parking towers, a two-turn helix and a roof gap with a safe bridge around it.' },
+  { label: 'Foundry Wheel', key: 'arena-foundry-wheel', elevated: true, complex: true, launch: true, players: '8–32', levels: 3, description: 'Three furnace rings, opposing belt lanes, service tunnels and a high sorter.' },
   { label: 'Skyport', key: 'elevated-skyport', elevated: true, complex: true, description: 'Three floors, a spiral car park, roof jumps and sky bridges.' },
   { label: 'Foundry', key: 'elevated-foundry', elevated: true, complex: true, description: 'Three floors, furnace tunnels, moving belts and a high gantry.' },
   { label: 'Alpine Courtyard', key: 'elevated-garden', elevated: true, description: 'Two climbs, a raised courtyard and an underpass.' },
@@ -52,6 +59,7 @@ const snapRound = v => typeof v === 'string' ? String(roundMinutes(v) * 60) : ro
 export function resolveKartSetup(settings, changedKey) {
   const next = { ...settings };
   if (next.roundSeconds !== undefined) next.roundSeconds = snapRound(next.roundSeconds);
+  if(changedKey === 'mode' && next.mode === 'Zap Battle' && !KART_ARENAS.some(a => a.label === next.map && a.launch)) next.map = 'Rookie Ribbons';
   if (elevated(next.map) && next.mode !== 'Zap Battle') {
     if (changedKey === 'mode') next.map = 'Garden Circuit';
     else next.mode = 'Zap Battle';
@@ -71,8 +79,8 @@ function choices(g, key, values, selected, host, labels = {}, cards = false) {
 export function kartSetupHtml(g, current, host) {
   const settings = Object.fromEntries(g.schema.settings.map(s => [s.key, current[s.key] ?? s.def]));
   const field = key => g.schema.settings.find(s => s.key === key);
-  const arenas = KART_ARENAS.filter(a => field('map').options.includes(a.label));
-  const arena = arenas.find(a => a.label === settings.map) || arenas[0];
+  const arenas = KART_ARENAS.filter(a => (a.launch || !a.elevated) && field('map').options.includes(a.label));
+  const arena = KART_ARENAS.find(a => a.label === settings.map) || arenas.find(a => a.launch);
   const dis = host ? '' : 'disabled';
   const number = (key, label, step) => {
     const s = field(key);
@@ -88,8 +96,8 @@ export function kartSetupHtml(g, current, host) {
       <figure class="ks-preview"><img id="kartArenaPreview" src="/assets/karts/previews/${arena.key}.webp" width="480" height="270" alt="${esc(arena.label)} arena overview"><figcaption id="kartArenaDescription">${esc(arena.description)}</figcaption></figure>
       <input type="hidden" id="df-${g.id}-map" value="${esc(settings.map)}">
       <div class="ks-map-nav"><button type="button" class="ks-map-arrow" data-kart-scroll="-1" aria-label="Previous arenas">‹</button>
-        <div class="ks-map-list" role="radiogroup" aria-label="Arena">${arenas.map(a => `<button type="button" class="ks-map" role="radio" aria-label="${esc(a.label + (a.complex ? ", three levels" : a.elevated ? ", elevated" : ", classic") + ": " + a.description)}" aria-checked="${a.label === settings.map}" tabindex="${a.label === settings.map ? 0 : -1}" data-kart-key="map" data-kart-value="${esc(a.label)}" data-hostonly ${dis}>
-          <img src="/assets/karts/previews/${a.key}.webp" width="480" height="270" alt=""><span>${esc(a.label)}</span><small>${a.complex ? '3 levels · 2–32 players' : a.elevated ? 'Elevated · 2–8 players' : 'Classic · 2–32 players'}</small></button>`).join('')}</div>
+        <div class="ks-map-list" role="radiogroup" aria-label="Arena">${arenas.map(a => `<button type="button" class="ks-map" data-kart-launch="${Boolean(a.launch)}" ${Boolean(a.launch) !== (settings.mode === 'Zap Battle') ? 'hidden' : ''} role="radio" aria-label="${esc(a.label + (a.complex ? ", three levels" : a.elevated ? ", elevated" : ", classic") + ": " + a.description)}" aria-checked="${a.label === settings.map}" tabindex="${a.label === settings.map ? 0 : -1}" data-kart-key="map" data-kart-value="${esc(a.label)}" data-hostonly ${dis}>
+          <img src="/assets/karts/previews/${a.key}.webp" width="480" height="270" alt=""><span>${esc(a.label)}</span><small>${a.players ? `${a.levels} levels · ${a.players} players` : a.complex ? '3 levels · 2–32 players' : a.elevated ? 'Elevated · 2–8 players' : 'Classic · 2–32 players'}</small></button>`).join('')}</div>
         <button type="button" class="ks-map-arrow" data-kart-scroll="1" aria-label="More arenas">›</button></div>
       <p class="ks-change-note" id="kartSetupNotice" role="status"></p></section>
     <section class="ks-rules"><h3>Match rules</h3><div class="ks-rule-row">
@@ -113,6 +121,7 @@ export function syncKartSetup(g, { repair = false, changedKey, announce = false 
     const selected = next[b.dataset.kartKey] === b.dataset.kartValue;
     b.setAttribute('aria-checked', String(selected));
     b.tabIndex = selected ? 0 : -1;
+    if(b.dataset.kartKey === 'map') b.hidden = (b.dataset.kartLaunch === 'true') !== (next.mode === 'Zap Battle');
   }
   const arena = KART_ARENAS.find(a => a.label === next.map);
   if (arena) {
@@ -159,7 +168,7 @@ export function wireKartSetup(g) {
     b.onkeydown = e => {
       if (e.ctrlKey || e.metaKey || e.altKey) return;
       if (!['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End'].includes(e.key)) return;
-      const choices = [...b.closest('[role="radiogroup"]').querySelectorAll('[role="radio"]')].filter(c => !c.disabled);
+      const choices = [...b.closest('[role="radiogroup"]').querySelectorAll('[role="radio"]')].filter(c => !c.disabled && !c.hidden);
       if (!choices.length) return;
       e.preventDefault();
       const i = choices.indexOf(b);

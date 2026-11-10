@@ -1,3 +1,4 @@
+import {elevatedStatics} from '../public/js/engines/kart-feature-solids.mjs';
 // The authored heading must work. No alternate heading, steering, recovery,
 // or teleport is permitted during a spawn's actual driving check.
 import assert from 'node:assert/strict';
@@ -8,7 +9,7 @@ import {elevatedMap,elevatedMapIds} from '../public/js/engines/kart-elevated-map
 import {spawnLaneOracle,yaw} from './helpers/kart-spawn-lane.mjs';
 await RAPIER.init();let runs=0;
 for(const id of elevatedMapIds){const map=elevatedMap(id),w=createKartPhysics(RAPIER,CONFIG);
-  try{map.colliders.forEach(d=>w.addStatic(d));w.addKart('bot',{position:{x:0,y:1,z:0}});const lane=spawnLaneOracle(RAPIER,w,map);
+  try{elevatedStatics(map).forEach(d=>w.addStatic(d));w.addKart('bot',{position:{x:0,y:1,z:0}});const lane=spawnLaneOracle(RAPIER,w,map);
     for(const p of map.spawns){
       assert(lane(p,20),id+'/'+p.id+' complete kart hull clears 20m, with support beneath every corner');
       w.resetKart('bot',{position:{x:p.x,y:p.y+1,z:p.z},rotation:yaw(p.angle)});w.applyIntent('bot',{throttle:0,steer:0});for(let t=0;t<90;t++)w.step();

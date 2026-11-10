@@ -1,0 +1,51 @@
+{
+  "date": "2026-11-10",
+  "node": "v24.21.0",
+  "branch": "claude/kart-arenas-nov10",
+  "fullNpmTest": {
+    "exitCode": 0,
+    "expandedCommands": 288,
+    "log": "npm-test.log"
+  },
+  "kartFiles": {
+    "unique": 128,
+    "inExpandedNpmTest": 123,
+    "extraBrowserFiles": [
+      "kart-garage-browser.cjs",
+      "kart-32-browser.cjs",
+      "kart-weapon-system-browser.cjs",
+      "kart-weapon-raised-browser.cjs",
+      "kart-launch-browser.cjs"
+    ],
+    "allPassed": true,
+    "log": "extra-browser.log"
+  },
+  "renderReview": {
+    "cases": 56,
+    "cpuThrottle": 4,
+    "viewports": [
+      [
+        1280,
+        720
+      ],
+      [
+        390,
+        844
+      ]
+    ],
+    "palettes": [
+      "Daybreak",
+      "Starlight"
+    ],
+    "errors": 0,
+    "medianFps": 59.88023952095874,
+    "cameraScope": "Fixed review-camera top/chase and per-floor views; not complete production-camera route stress."
+  },
+  "launchAccepted": false,
+  "remaining": "See the six Remaining acceptance items in REPORT.md",
+  "pushOrDeploy": false,
+  "ports": [
+    8350,
+    8370
+  ]
+}

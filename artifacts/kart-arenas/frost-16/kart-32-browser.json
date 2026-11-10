@@ -1,0 +1,25 @@
+{
+  "map": "Frostbite Crescent",
+  "drivers": 16,
+  "connected": 16,
+  "seconds": 21.1,
+  "browser": {
+    "binaryFramesPerSec": 20.2,
+    "kbPerSec": 35.9,
+    "textFrames": 6,
+    "fps": 59.6,
+    "worstFrameMs": 133,
+    "drawCallsPerFrame": 89,
+    "submittedTrianglesPerFrame": 47712,
+    "hud": {
+      "rows": 0,
+      "canvas": true
+    }
+  },
+  "bots": {
+    "framesPerSec": 18.7
+  },
+  "browserKartMovedM": 55.8,
+  "fastestForward": 24.3,
+  "errors": []
+}

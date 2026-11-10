@@ -1,3 +1,4 @@
+import {createKartLaunchWorld} from './kart-launch-world.mjs';
 import {raisedWedgeVertices} from './kart-raised-support.mjs';
 import {mergeStaticMeshes} from './kart-instancing.mjs';
 import {createKartFestiveLights} from './kart-festive-lights.mjs';
@@ -58,6 +59,7 @@ function beveledBox(THREE,h,b){
 export function createKartElevatedWorld(THREE,{scene,map,palette,lighting=true,terrain,assets={},quality='high',reducedMotion=false}={}){
   const data=typeof map==='string'?elevatedMap(map):structuredClone(map||elevatedMap('garden'));
   if(!Array.isArray(data.colliders)||!Number.isFinite(data.half))throw new TypeError('An authored elevated map is required');
+  if(data.arenaVersion)return createKartLaunchWorld(THREE,{scene,map:data,palette,lighting,solidGeometry:elevatedSolidGeometry});
   if(data.complex)return createKartComplexWorld(THREE,{scene,map:data,palette,lighting,quality,reducedMotion,solidGeometry:elevatedSolidGeometry});
   const harbor=data.environment==='harbor',frost=data.environment==='frost',half=data.half;
   const group=new THREE.Group();group.name='elevated-combat-'+data.id;scene?.add(group);

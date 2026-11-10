@@ -1,0 +1,45 @@
+{
+  "reports": [
+    {
+      "label": "Rookie Ribbons",
+      "players": 8,
+      "variant": "full",
+      "comparisons": 400,
+      "binaryKiBs": 30.851293103448274,
+      "jsonKiBs": 355.5564875587774,
+      "updateP95": 3.066874999999982,
+      "updateP99": 5.6034590000000435
+    },
+    {
+      "label": "Skyport Split",
+      "players": 8,
+      "variant": "compact",
+      "comparisons": 400,
+      "binaryKiBs": 25.36007298197492,
+      "jsonKiBs": 369.51514743338555,
+      "updateP95": 3.58266599999979,
+      "updateP99": 4.252417000000037
+    },
+    {
+      "label": "Skyport Split",
+      "players": 16,
+      "variant": "medium",
+      "comparisons": 400,
+      "binaryKiBs": 41.522580329153605,
+      "jsonKiBs": 509.7921972962382,
+      "updateP95": 6.928792000000158,
+      "updateP99": 8.120249999999942
+    },
+    {
+      "label": "Skyport Split",
+      "players": 32,
+      "variant": "full",
+      "comparisons": 400,
+      "binaryKiBs": 77.93305495689654,
+      "jsonKiBs": 866.0748310148903,
+      "updateP95": 14.372875000000022,
+      "updateP99": 15.581416999999874
+    }
+  ],
+  "scope": "Mixed real Room binary/JSON clients, 20s, motion, ACKs, reconnect and fixed homes; not a 5-minute active-combat bandwidth claim."
+}

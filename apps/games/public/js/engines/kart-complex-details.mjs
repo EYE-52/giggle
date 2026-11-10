@@ -2,6 +2,9 @@
 // thin face details and flush rollers do not change driving clearance.
 export function addComplexDetails(THREE,{map,soft,geo,mat,texture,block,item,box,ink,white,yellow,orange,green,light}){
   const sky=map.id==='skyport',wheel=geo(new THREE.CylinderGeometry(1,1,1,8)),pipe=geo(new THREE.CylinderGeometry(1,1,1,8,1,true));
+  // Tank/fitting bottom caps are buried inside their solid base. Keep the
+  // visible eight-sided walls and top, without drawing those hidden backs.
+  if(!sky){const bottom=wheel.groups.find(g=>g.materialIndex===2);wheel.setIndex(Array.from(wheel.index.array).slice(0,bottom.start));wheel.clearGroups();}
   const axisZ=new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1,0,0),Math.PI/2),axisX=new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,0,1),Math.PI/2);
   const labelQuads=[];
   function label(word,x,y,z,w,h,a=0){labelQuads.push({word,x,y,z,w,h,a});}

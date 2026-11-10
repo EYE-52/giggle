@@ -1,0 +1,31 @@
+{
+  "reports": [
+    {
+      "width": 1280,
+      "battle": [
+        "Rookie Ribbons",
+        "Garden Crown",
+        "Frostbite Crescent",
+        "Neon Switchyard",
+        "Harbor Fork",
+        "Skyport Split",
+        "Foundry Wheel"
+      ],
+      "classic": 5
+    },
+    {
+      "width": 390,
+      "battle": [
+        "Rookie Ribbons",
+        "Garden Crown",
+        "Frostbite Crescent",
+        "Neon Switchyard",
+        "Harbor Fork",
+        "Skyport Split",
+        "Foundry Wheel"
+      ],
+      "classic": 5
+    }
+  ],
+  "errors": []
+}

@@ -1,0 +1,253 @@
+{
+  "note": "Source-derived geometry, not playtest or FPS evidence. Live box columns: 2 / 8 / 32 players. Frost y=.12 is grouped into L0. Distance is Euclidean in 3D.",
+  "maps": [
+    {
+      "kind": "classic",
+      "id": "classic-ring",
+      "name": "Rookie Ring",
+      "width": 60,
+      "levels": [
+        0
+      ],
+      "sockets": 31,
+      "live": "6 / 10 / 10",
+      "starts": 8,
+      "startsMax": 32,
+      "firstPair": 30.463092423455635,
+      "minMax": 4.6,
+      "revision": "ring-bowtie-20261109-1"
+    },
+    {
+      "kind": "classic",
+      "id": "classic-blocks",
+      "name": "Bumper Blocks",
+      "width": 60,
+      "levels": [
+        0
+      ],
+      "sockets": 25,
+      "live": "6 / 10 / 10",
+      "starts": 8,
+      "startsMax": 32,
+      "firstPair": 38.62641583165593,
+      "minMax": 4.6,
+      "revision": "blocks-switchback-20261109-2"
+    },
+    {
+      "kind": "classic",
+      "id": "classic-garden",
+      "name": "Garden Circuit",
+      "width": 120,
+      "levels": [
+        0
+      ],
+      "sockets": 38,
+      "live": "6 / 10 / 10",
+      "starts": 10,
+      "startsMax": 32,
+      "firstPair": 38,
+      "minMax": 4.6,
+      "revision": "garden-fountain-20261109-1"
+    },
+    {
+      "kind": "classic",
+      "id": "classic-frost",
+      "name": "Frosty Pass",
+      "width": 120,
+      "levels": [
+        0
+      ],
+      "sockets": 39,
+      "live": "6 / 10 / 10",
+      "starts": 10,
+      "startsMax": 32,
+      "firstPair": 50,
+      "minMax": 4.600000000000001,
+      "revision": "frost-split-lake-20261109-1"
+    },
+    {
+      "kind": "classic",
+      "id": "classic-neon",
+      "name": "Neon Yard",
+      "width": 120,
+      "levels": [
+        0
+      ],
+      "sockets": 37,
+      "live": "6 / 10 / 10",
+      "starts": 10,
+      "startsMax": 32,
+      "firstPair": 46,
+      "minMax": 4.6,
+      "revision": "neon-city-20261109-1"
+    },
+    {
+      "kind": "raised",
+      "id": "raised-skyport",
+      "name": "Skyport",
+      "width": 244,
+      "levels": [
+        0,
+        10,
+        20
+      ],
+      "sockets": 46,
+      "socketsByLevel": {
+        "0": 16,
+        "10": 15,
+        "20": 15
+      },
+      "live": "9 / 9 / 12",
+      "starts": 32,
+      "startsMax": 32,
+      "spawnsByLevel": {
+        "0": 11,
+        "10": 11,
+        "20": 10
+      },
+      "firstPair": 124.40257232067188,
+      "minMax": 6,
+      "mapColliders": 61,
+      "totalStatics": 65,
+      "revision": "complex-1-routes-2"
+    },
+    {
+      "kind": "raised",
+      "id": "raised-foundry",
+      "name": "Foundry",
+      "width": 244,
+      "levels": [
+        0,
+        10,
+        20
+      ],
+      "sockets": 45,
+      "socketsByLevel": {
+        "0": 16,
+        "10": 14,
+        "20": 15
+      },
+      "live": "9 / 9 / 12",
+      "starts": 32,
+      "startsMax": 32,
+      "spawnsByLevel": {
+        "0": 11,
+        "10": 11,
+        "20": 10
+      },
+      "firstPair": 122.40914998479484,
+      "minMax": 4,
+      "mapColliders": 76,
+      "totalStatics": 80,
+      "revision": "complex-1-routes-2"
+    },
+    {
+      "kind": "raised",
+      "id": "raised-garden",
+      "name": "Alpine Courtyard",
+      "width": 120,
+      "levels": [
+        0,
+        7
+      ],
+      "sockets": 24,
+      "socketsByLevel": {
+        "0": 20,
+        "7": 4
+      },
+      "live": "6 / 6 / unavailable",
+      "starts": 8,
+      "startsMax": 8,
+      "spawnsByLevel": {
+        "0": 6,
+        "7": 2
+      },
+      "firstPair": 121.62236636408618,
+      "minMax": 19.4164878389476,
+      "mapColliders": 21,
+      "totalStatics": 24,
+      "revision": "combat-elevation-2-routes-2"
+    },
+    {
+      "kind": "raised",
+      "id": "raised-frost",
+      "name": "Frost Quarry",
+      "width": 120,
+      "levels": [
+        0,
+        8
+      ],
+      "sockets": 25,
+      "socketsByLevel": {
+        "0": 18,
+        "8": 7
+      },
+      "live": "6 / 6 / unavailable",
+      "starts": 8,
+      "startsMax": 8,
+      "spawnsByLevel": {
+        "0": 6,
+        "8": 2
+      },
+      "firstPair": 128.70120434556935,
+      "minMax": 31.064449134018133,
+      "mapColliders": 31,
+      "totalStatics": 34,
+      "revision": "combat-elevation-2-routes-2"
+    },
+    {
+      "kind": "raised",
+      "id": "raised-neon",
+      "name": "Neon Harbor",
+      "width": 120,
+      "levels": [
+        0,
+        6
+      ],
+      "sockets": 24,
+      "socketsByLevel": {
+        "0": 20,
+        "6": 4
+      },
+      "live": "6 / 6 / unavailable",
+      "starts": 8,
+      "startsMax": 8,
+      "spawnsByLevel": {
+        "0": 6,
+        "6": 2
+      },
+      "firstPair": 127.27922061357856,
+      "minMax": 20,
+      "mapColliders": 26,
+      "totalStatics": 29,
+      "revision": "combat-elevation-2-routes-2"
+    },
+    {
+      "kind": "raised",
+      "id": "raised-harbor",
+      "name": "Harbor Heights",
+      "width": 172,
+      "levels": [
+        0,
+        7
+      ],
+      "sockets": 24,
+      "socketsByLevel": {
+        "0": 18,
+        "7": 6
+      },
+      "live": "6 / 6 / unavailable",
+      "starts": 8,
+      "startsMax": 8,
+      "spawnsByLevel": {
+        "0": 6,
+        "7": 2
+      },
+      "firstPair": 193.8762491900439,
+      "minMax": 39.102429592034305,
+      "mapColliders": 40,
+      "totalStatics": 43,
+      "revision": "combat-elevation-2-routes-2"
+    }
+  ]
+}

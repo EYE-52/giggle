@@ -53,10 +53,10 @@ export function createElevatedPrediction(R){
   function ingest(snapshot,arrival,serverAt=arrival){
     if(retired||!snapshot.youDrive||!snapshot.inputAck)return;
     const source=snapshot.karts.find(k=>k.id===snapshot.you);if(!source)return;
-    const key=[snapshot.instanceId,snapshot.mapId,snapshot.mapRevision,snapshot.you].join(':');
+    const key=[snapshot.instanceId,snapshot.mapId,snapshot.mapRevision,snapshot.variantId||'',snapshot.you].join(':');
     if(key!==identity){
       clear();identity=key;physics=createKartPhysics(R,CONFIG);
-      const map=elevatedMap(snapshot.mapId);elevatedStatics(map).forEach(d=>physics.addStatic(d));
+      const map=elevatedMap(snapshot.mapId,snapshot.variantId);elevatedStatics(map).forEach(d=>physics.addStatic(d));
       for(const k of snapshot.karts){physics.addKart(k.id,k.pose);peers.add(k.id);if(k.id!==source.id)physics.freezeKart(k.id,true);}
       kart={...structuredClone(source),input:neutral()};motion=createElevatedMotion({physics,map,karts:[kart]});
     }

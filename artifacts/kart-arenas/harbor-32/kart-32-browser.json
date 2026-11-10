@@ -1,0 +1,25 @@
+{
+  "map": "Harbor Fork",
+  "drivers": 32,
+  "connected": 32,
+  "seconds": 21.1,
+  "browser": {
+    "binaryFramesPerSec": 20.2,
+    "kbPerSec": 77.5,
+    "textFrames": 6,
+    "fps": 60,
+    "worstFrameMs": 17,
+    "drawCallsPerFrame": 137,
+    "submittedTrianglesPerFrame": 79032,
+    "hud": {
+      "rows": 0,
+      "canvas": true
+    }
+  },
+  "bots": {
+    "framesPerSec": 18.8
+  },
+  "browserKartMovedM": 82.6,
+  "fastestForward": 24.4,
+  "errors": []
+}

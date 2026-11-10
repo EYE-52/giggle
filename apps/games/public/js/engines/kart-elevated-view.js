@@ -182,7 +182,7 @@ export function createElevatedKartView() {
     let warmup,world,art,library,healthBars,impactFX,skids,threats,arsenalFX,cameraCollision,arena,drivingFX,scenePrediction,pickups,shadows,kartLod,lastPredictionTime=null;const slidePose={angle:0,physicalPose:{linearVelocity:null,grounded:true}};const lodEntries=[],models=new Map(),rigs=new Map(),objects=new Map(),effects=[];
     try{
       const physicsReady=S.youDrive?loadElevatedPhysics().catch(()=>null):Promise.resolve(null);
-      const map=elevatedMap(S.mapId);if(map.revision!==S.mapRevision)throw Error('Arena revision mismatch');
+      const map=elevatedMap(S.mapId,S.variantId);if(map.revision!==S.mapRevision)throw Error('Arena revision mismatch');
       if(gen!==generation)throw Error('Retired arena');
       const {GLTFLoader}=await import('../../vendor/three/loaders/GLTFLoader.js');
       const {mergeGeometries}=await import('../../vendor/three/utils/BufferGeometryUtils.js');

@@ -1,0 +1,2118 @@
+{
+  "fixtureGallery": true,
+  "shots": [
+    {
+      "device": "desktop",
+      "theme": "day",
+      "kind": "machinegun",
+      "fire": false,
+      "file": "desktop-day-machinegun-mounted.png",
+      "layout": {
+        "x": 512,
+        "y": 566,
+        "viewportWidth": 1280,
+        "viewportHeight": 732,
+        "width": 256,
+        "height": 96,
+        "label": "Machine Gun",
+        "labelHidden": false,
+        "scroll": false,
+        "mounts": [
+          "machinegun",
+          "machinegun"
+        ]
+      }
+    },
+    {
+      "device": "desktop",
+      "theme": "day",
+      "kind": "machinegun",
+      "fire": false,
+      "view": "three-quarter",
+      "file": "desktop-day-machinegun-mounted-three-quarter.png"
+    },
+    {
+      "device": "desktop",
+      "theme": "day",
+      "kind": "machinegun",
+      "fire": true,
+      "file": "desktop-day-machinegun-firing.png",
+      "layout": {
+        "x": 512,
+        "y": 566,
+        "viewportWidth": 1280,
+        "viewportHeight": 732,
+        "width": 256,
+        "height": 96,
+        "label": "Machine Gun",
+        "labelHidden": false,
+        "scroll": false,
+        "mounts": [
+          "machinegun",
+          "machinegun"
+        ]
+      }
+    },
+    {
+      "device": "desktop",
+      "theme": "day",
+      "kind": "trishot",
+      "fire": false,
+      "file": "desktop-day-trishot-mounted.png",
+      "layout": {
+        "x": 512,
+        "y": 566,
+        "viewportWidth": 1280,
+        "viewportHeight": 732,
+        "width": 256,
+        "height": 96,
+        "label": "Tri-Shot",
+        "labelHidden": false,
+        "scroll": false,
+        "mounts": [
+          "trishot",
+          "trishot"
+        ]
+      }
+    },
+    {
+      "device": "desktop",
+      "theme": "day",
+      "kind": "trishot",
+      "fire": false,
+      "view": "three-quarter",
+      "file": "desktop-day-trishot-mounted-three-quarter.png"
+    },
+    {
+      "device": "desktop",
+      "theme": "day",
+      "kind": "trishot",
+      "fire": true,
+      "file": "desktop-day-trishot-firing.png",
+      "layout": {
+        "x": 512,
+        "y": 566,
+        "viewportWidth": 1280,
+        "viewportHeight": 732,
+        "width": 256,
+        "height": 96,
+        "label": "Tri-Shot",
+        "labelHidden": false,
+        "scroll": false,
+        "mounts": [
+          "trishot",
+          "trishot"
+        ]
+      }
+    },
+    {
+      "device": "desktop",
+      "theme": "day",
+      "kind": "mine",
+      "fire": false,
+      "file": "desktop-day-mine-mounted.png",
+      "layout": {
+        "x": 512,
+        "y": 566,
+        "viewportWidth": 1280,
+        "viewportHeight": 732,
+        "width": 256,
+        "height": 96,
+        "label": "Mine",
+        "labelHidden": false,
+        "scroll": false,
+        "mounts": [
+          "mine",
+          "mine"
+        ]
+      }
+    },
+    {
+      "device": "desktop",
+      "theme": "day",
+      "kind": "mine",
+      "fire": false,
+      "view": "three-quarter",
+      "file": "desktop-day-mine-mounted-three-quarter.png"
+    },
+    {
+      "device": "desktop",
+      "theme": "day",
+      "kind": "mine",
+      "fire": true,
+      "file": "desktop-day-mine-firing.png",
+      "layout": {
+        "x": 512,
+        "y": 566,
+        "viewportWidth": 1280,
+        "viewportHeight": 732,
+        "width": 256,
+        "height": 96,
+        "label": "Mine",
+        "labelHidden": false,
+        "scroll": false,
+        "mounts": [
+          "mine",
+          "mine"
+        ]
+      }
+    },
+    {
+      "device": "desktop",
+      "theme": "day",
+      "kind": "missile",
+      "fire": false,
+      "file": "desktop-day-missile-mounted.png",
+      "layout": {
+        "x": 512,
+        "y": 566,
+        "viewportWidth": 1280,
+        "viewportHeight": 732,
+        "width": 256,
+        "height": 96,
+        "label": "Homing Missile",
+        "labelHidden": false,
+        "scroll": false,
+        "mounts": [
+          "missile",
+          "missile"
+        ]
+      }
+    },
+    {
+      "device": "desktop",
+      "theme": "day",
+      "kind": "missile",
+      "fire": false,
+      "view": "three-quarter",
+      "file": "desktop-day-missile-mounted-three-quarter.png"
+    },
+    {
+      "device": "desktop",
+      "theme": "day",
+      "kind": "missile",
+      "fire": true,
+      "file": "desktop-day-missile-firing.png",
+      "layout": {
+        "x": 512,
+        "y": 566,
+        "viewportWidth": 1280,
+        "viewportHeight": 732,
+        "width": 256,
+        "height": 96,
+        "label": "Homing Missile",
+        "labelHidden": false,
+        "scroll": false,
+        "mounts": [
+          "missile",
+          "missile"
+        ]
+      }
+    },
+    {
+      "device": "desktop",
+      "theme": "day",
+      "kind": "cannon",
+      "fire": false,
+      "file": "desktop-day-cannon-mounted.png",
+      "layout": {
+        "x": 512,
+        "y": 566,
+        "viewportWidth": 1280,
+        "viewportHeight": 732,
+        "width": 256,
+        "height": 96,
+        "label": "Cannon",
+        "labelHidden": false,
+        "scroll": false,
+        "mounts": [
+          "cannon",
+          "cannon"
+        ]
+      }
+    },
+    {
+      "device": "desktop",
+      "theme": "day",
+      "kind": "cannon",
+      "fire": false,
+      "view": "three-quarter",
+      "file": "desktop-day-cannon-mounted-three-quarter.png"
+    },
+    {
+      "device": "desktop",
+      "theme": "day",
+      "kind": "cannon",
+      "fire": true,
+      "file": "desktop-day-cannon-firing.png",
+      "layout": {
+        "x": 512,
+        "y": 566,
+        "viewportWidth": 1280,
+        "viewportHeight": 732,
+        "width": 256,
+        "height": 96,
+        "label": "Cannon",
+        "labelHidden": false,
+        "scroll": false,
+        "mounts": [
+          "cannon",
+          "cannon"
+        ]
+      }
+    },
+    {
+      "device": "desktop",
+      "theme": "day",
+      "kind": "blades",
+      "fire": false,
+      "file": "desktop-day-blades-mounted.png",
+      "layout": {
+        "x": 512,
+        "y": 566,
+        "viewportWidth": 1280,
+        "viewportHeight": 732,
+        "width": 256,
+        "height": 96,
+        "label": "Spinning Blades",
+        "labelHidden": false,
+        "scroll": false,
+        "mounts": [
+          "blades",
+          "blades"
+        ]
+      }
+    },
+    {
+      "device": "desktop",
+      "theme": "day",
+      "kind": "blades",
+      "fire": false,
+      "view": "three-quarter",
+      "file": "desktop-day-blades-mounted-three-quarter.png"
+    },
+    {
+      "device": "desktop",
+      "theme": "day",
+      "kind": "blades",
+      "fire": true,
+      "file": "desktop-day-blades-firing.png",
+      "layout": {
+        "x": 512,
+        "y": 566,
+        "viewportWidth": 1280,
+        "viewportHeight": 732,
+        "width": 256,
+        "height": 96,
+        "label": "Spinning Blades",
+        "labelHidden": false,
+        "scroll": false,
+        "mounts": [
+          "blades",
+          "blades"
+        ]
+      }
+    },
+    {
+      "device": "desktop",
+      "theme": "day",
+      "kind": "frost",
+      "fire": false,
+      "file": "desktop-day-frost-mounted.png",
+      "layout": {
+        "x": 512,
+        "y": 566,
+        "viewportWidth": 1280,
+        "viewportHeight": 732,
+        "width": 256,
+        "height": 96,
+        "label": "Frost Bomb",
+        "labelHidden": false,
+        "scroll": false,
+        "mounts": [
+          "frost",
+          "frost"
+        ]
+      }
+    },
+    {
+      "device": "desktop",
+      "theme": "day",
+      "kind": "frost",
+      "fire": false,
+      "view": "three-quarter",
+      "file": "desktop-day-frost-mounted-three-quarter.png"
+    },
+    {
+      "device": "desktop",
+      "theme": "day",
+      "kind": "frost",
+      "fire": true,
+      "file": "desktop-day-frost-firing.png",
+      "layout": {
+        "x": 512,
+        "y": 566,
+        "viewportWidth": 1280,
+        "viewportHeight": 732,
+        "width": 256,
+        "height": 96,
+        "label": "Frost Bomb",
+        "labelHidden": false,
+        "scroll": false,
+        "mounts": [
+          "frost",
+          "frost"
+        ]
+      }
+    },
+    {
+      "device": "desktop",
+      "theme": "day",
+      "kind": "ram",
+      "fire": false,
+      "file": "desktop-day-ram-mounted.png",
+      "layout": {
+        "x": 512,
+        "y": 566,
+        "viewportWidth": 1280,
+        "viewportHeight": 732,
+        "width": 256,
+        "height": 96,
+        "label": "Turbo Ram",
+        "labelHidden": false,
+        "scroll": false,
+        "mounts": [
+          "ram",
+          "ram"
+        ]
+      }
+    },
+    {
+      "device": "desktop",
+      "theme": "day",
+      "kind": "ram",
+      "fire": false,
+      "view": "three-quarter",
+      "file": "desktop-day-ram-mounted-three-quarter.png"
+    },
+    {
+      "device": "desktop",
+      "theme": "day",
+      "kind": "ram",
+      "fire": true,
+      "file": "desktop-day-ram-firing.png",
+      "layout": {
+        "x": 512,
+        "y": 566,
+        "viewportWidth": 1280,
+        "viewportHeight": 732,
+        "width": 256,
+        "height": 96,
+        "label": "Turbo Ram",
+        "labelHidden": false,
+        "scroll": false,
+        "mounts": [
+          "ram",
+          "ram"
+        ]
+      }
+    },
+    {
+      "device": "desktop",
+      "theme": "day",
+      "kind": "supernova",
+      "fire": false,
+      "file": "desktop-day-supernova-mounted.png",
+      "layout": {
+        "x": 512,
+        "y": 566,
+        "viewportWidth": 1280,
+        "viewportHeight": 732,
+        "width": 256,
+        "height": 96,
+        "label": "Supernova",
+        "labelHidden": false,
+        "scroll": false,
+        "mounts": [
+          "supernova",
+          "supernova"
+        ]
+      }
+    },
+    {
+      "device": "desktop",
+      "theme": "day",
+      "kind": "supernova",
+      "fire": false,
+      "view": "three-quarter",
+      "file": "desktop-day-supernova-mounted-three-quarter.png"
+    },
+    {
+      "device": "desktop",
+      "theme": "day",
+      "kind": "supernova",
+      "fire": true,
+      "file": "desktop-day-supernova-firing.png",
+      "layout": {
+        "x": 512,
+        "y": 566,
+        "viewportWidth": 1280,
+        "viewportHeight": 732,
+        "width": 256,
+        "height": 96,
+        "label": "Supernova",
+        "labelHidden": false,
+        "scroll": false,
+        "mounts": [
+          "supernova",
+          "supernova"
+        ]
+      }
+    },
+    {
+      "device": "desktop",
+      "theme": "day",
+      "kind": "nuke",
+      "fire": false,
+      "file": "desktop-day-nuke-mounted.png",
+      "layout": {
+        "x": 512,
+        "y": 566,
+        "viewportWidth": 1280,
+        "viewportHeight": 732,
+        "width": 256,
+        "height": 96,
+        "label": "Nuke",
+        "labelHidden": false,
+        "scroll": false,
+        "mounts": [
+          "nuke",
+          "nuke"
+        ]
+      }
+    },
+    {
+      "device": "desktop",
+      "theme": "day",
+      "kind": "nuke",
+      "fire": false,
+      "view": "three-quarter",
+      "file": "desktop-day-nuke-mounted-three-quarter.png"
+    },
+    {
+      "device": "desktop",
+      "theme": "day",
+      "kind": "nuke",
+      "fire": true,
+      "file": "desktop-day-nuke-firing.png",
+      "layout": {
+        "x": 512,
+        "y": 566,
+        "viewportWidth": 1280,
+        "viewportHeight": 732,
+        "width": 256,
+        "height": 96,
+        "label": "Nuke",
+        "labelHidden": false,
+        "scroll": false,
+        "mounts": [
+          "nuke",
+          "nuke"
+        ]
+      }
+    },
+    {
+      "device": "desktop",
+      "theme": "night",
+      "kind": "machinegun",
+      "fire": false,
+      "file": "desktop-night-machinegun-mounted.png",
+      "layout": {
+        "x": 512,
+        "y": 566,
+        "viewportWidth": 1280,
+        "viewportHeight": 732,
+        "width": 256,
+        "height": 96,
+        "label": "Machine Gun",
+        "labelHidden": false,
+        "scroll": false,
+        "mounts": [
+          "machinegun",
+          "machinegun"
+        ]
+      }
+    },
+    {
+      "device": "desktop",
+      "theme": "night",
+      "kind": "machinegun",
+      "fire": false,
+      "view": "three-quarter",
+      "file": "desktop-night-machinegun-mounted-three-quarter.png"
+    },
+    {
+      "device": "desktop",
+      "theme": "night",
+      "kind": "machinegun",
+      "fire": true,
+      "file": "desktop-night-machinegun-firing.png",
+      "layout": {
+        "x": 512,
+        "y": 566,
+        "viewportWidth": 1280,
+        "viewportHeight": 732,
+        "width": 256,
+        "height": 96,
+        "label": "Machine Gun",
+        "labelHidden": false,
+        "scroll": false,
+        "mounts": [
+          "machinegun",
+          "machinegun"
+        ]
+      }
+    },
+    {
+      "device": "desktop",
+      "theme": "night",
+      "kind": "trishot",
+      "fire": false,
+      "file": "desktop-night-trishot-mounted.png",
+      "layout": {
+        "x": 512,
+        "y": 566,
+        "viewportWidth": 1280,
+        "viewportHeight": 732,
+        "width": 256,
+        "height": 96,
+        "label": "Tri-Shot",
+        "labelHidden": false,
+        "scroll": false,
+        "mounts": [
+          "trishot",
+          "trishot"
+        ]
+      }
+    },
+    {
+      "device": "desktop",
+      "theme": "night",
+      "kind": "trishot",
+      "fire": false,
+      "view": "three-quarter",
+      "file": "desktop-night-trishot-mounted-three-quarter.png"
+    },
+    {
+      "device": "desktop",
+      "theme": "night",
+      "kind": "trishot",
+      "fire": true,
+      "file": "desktop-night-trishot-firing.png",
+      "layout": {
+        "x": 512,
+        "y": 566,
+        "viewportWidth": 1280,
+        "viewportHeight": 732,
+        "width": 256,
+        "height": 96,
+        "label": "Tri-Shot",
+        "labelHidden": false,
+        "scroll": false,
+        "mounts": [
+          "trishot",
+          "trishot"
+        ]
+      }
+    },
+    {
+      "device": "desktop",
+      "theme": "night",
+      "kind": "mine",
+      "fire": false,
+      "file": "desktop-night-mine-mounted.png",
+      "layout": {
+        "x": 512,
+        "y": 566,
+        "viewportWidth": 1280,
+        "viewportHeight": 732,
+        "width": 256,
+        "height": 96,
+        "label": "Mine",
+        "labelHidden": false,
+        "scroll": false,
+        "mounts": [
+          "mine",
+          "mine"
+        ]
+      }
+    },
+    {
+      "device": "desktop",
+      "theme": "night",
+      "kind": "mine",
+      "fire": false,
+      "view": "three-quarter",
+      "file": "desktop-night-mine-mounted-three-quarter.png"
+    },
+    {
+      "device": "desktop",
+      "theme": "night",
+      "kind": "mine",
+      "fire": true,
+      "file": "desktop-night-mine-firing.png",
+      "layout": {
+        "x": 512,
+        "y": 566,
+        "viewportWidth": 1280,
+        "viewportHeight": 732,
+        "width": 256,
+        "height": 96,
+        "label": "Mine",
+        "labelHidden": false,
+        "scroll": false,
+        "mounts": [
+          "mine",
+          "mine"
+        ]
+      }
+    },
+    {
+      "device": "desktop",
+      "theme": "night",
+      "kind": "missile",
+      "fire": false,
+      "file": "desktop-night-missile-mounted.png",
+      "layout": {
+        "x": 512,
+        "y": 566,
+        "viewportWidth": 1280,
+        "viewportHeight": 732,
+        "width": 256,
+        "height": 96,
+        "label": "Homing Missile",
+        "labelHidden": false,
+        "scroll": false,
+        "mounts": [
+          "missile",
+          "missile"
+        ]
+      }
+    },
+    {
+      "device": "desktop",
+      "theme": "night",
+      "kind": "missile",
+      "fire": false,
+      "view": "three-quarter",
+      "file": "desktop-night-missile-mounted-three-quarter.png"
+    },
+    {
+      "device": "desktop",
+      "theme": "night",
+      "kind": "missile",
+      "fire": true,
+      "file": "desktop-night-missile-firing.png",
+      "layout": {
+        "x": 512,
+        "y": 566,
+        "viewportWidth": 1280,
+        "viewportHeight": 732,
+        "width": 256,
+        "height": 96,
+        "label": "Homing Missile",
+        "labelHidden": false,
+        "scroll": false,
+        "mounts": [
+          "missile",
+          "missile"
+        ]
+      }
+    },
+    {
+      "device": "desktop",
+      "theme": "night",
+      "kind": "cannon",
+      "fire": false,
+      "file": "desktop-night-cannon-mounted.png",
+      "layout": {
+        "x": 512,
+        "y": 566,
+        "viewportWidth": 1280,
+        "viewportHeight": 732,
+        "width": 256,
+        "height": 96,
+        "label": "Cannon",
+        "labelHidden": false,
+        "scroll": false,
+        "mounts": [
+          "cannon",
+          "cannon"
+        ]
+      }
+    },
+    {
+      "device": "desktop",
+      "theme": "night",
+      "kind": "cannon",
+      "fire": false,
+      "view": "three-quarter",
+      "file": "desktop-night-cannon-mounted-three-quarter.png"
+    },
+    {
+      "device": "desktop",
+      "theme": "night",
+      "kind": "cannon",
+      "fire": true,
+      "file": "desktop-night-cannon-firing.png",
+      "layout": {
+        "x": 512,
+        "y": 566,
+        "viewportWidth": 1280,
+        "viewportHeight": 732,
+        "width": 256,
+        "height": 96,
+        "label": "Cannon",
+        "labelHidden": false,
+        "scroll": false,
+        "mounts": [
+          "cannon",
+          "cannon"
+        ]
+      }
+    },
+    {
+      "device": "desktop",
+      "theme": "night",
+      "kind": "blades",
+      "fire": false,
+      "file": "desktop-night-blades-mounted.png",
+      "layout": {
+        "x": 512,
+        "y": 566,
+        "viewportWidth": 1280,
+        "viewportHeight": 732,
+        "width": 256,
+        "height": 96,
+        "label": "Spinning Blades",
+        "labelHidden": false,
+        "scroll": false,
+        "mounts": [
+          "blades",
+          "blades"
+        ]
+      }
+    },
+    {
+      "device": "desktop",
+      "theme": "night",
+      "kind": "blades",
+      "fire": false,
+      "view": "three-quarter",
+      "file": "desktop-night-blades-mounted-three-quarter.png"
+    },
+    {
+      "device": "desktop",
+      "theme": "night",
+      "kind": "blades",
+      "fire": true,
+      "file": "desktop-night-blades-firing.png",
+      "layout": {
+        "x": 512,
+        "y": 566,
+        "viewportWidth": 1280,
+        "viewportHeight": 732,
+        "width": 256,
+        "height": 96,
+        "label": "Spinning Blades",
+        "labelHidden": false,
+        "scroll": false,
+        "mounts": [
+          "blades",
+          "blades"
+        ]
+      }
+    },
+    {
+      "device": "desktop",
+      "theme": "night",
+      "kind": "frost",
+      "fire": false,
+      "file": "desktop-night-frost-mounted.png",
+      "layout": {
+        "x": 512,
+        "y": 566,
+        "viewportWidth": 1280,
+        "viewportHeight": 732,
+        "width": 256,
+        "height": 96,
+        "label": "Frost Bomb",
+        "labelHidden": false,
+        "scroll": false,
+        "mounts": [
+          "frost",
+          "frost"
+        ]
+      }
+    },
+    {
+      "device": "desktop",
+      "theme": "night",
+      "kind": "frost",
+      "fire": false,
+      "view": "three-quarter",
+      "file": "desktop-night-frost-mounted-three-quarter.png"
+    },
+    {
+      "device": "desktop",
+      "theme": "night",
+      "kind": "frost",
+      "fire": true,
+      "file": "desktop-night-frost-firing.png",
+      "layout": {
+        "x": 512,
+        "y": 566,
+        "viewportWidth": 1280,
+        "viewportHeight": 732,
+        "width": 256,
+        "height": 96,
+        "label": "Frost Bomb",
+        "labelHidden": false,
+        "scroll": false,
+        "mounts": [
+          "frost",
+          "frost"
+        ]
+      }
+    },
+    {
+      "device": "desktop",
+      "theme": "night",
+      "kind": "ram",
+      "fire": false,
+      "file": "desktop-night-ram-mounted.png",
+      "layout": {
+        "x": 512,
+        "y": 566,
+        "viewportWidth": 1280,
+        "viewportHeight": 732,
+        "width": 256,
+        "height": 96,
+        "label": "Turbo Ram",
+        "labelHidden": false,
+        "scroll": false,
+        "mounts": [
+          "ram",
+          "ram"
+        ]
+      }
+    },
+    {
+      "device": "desktop",
+      "theme": "night",
+      "kind": "ram",
+      "fire": false,
+      "view": "three-quarter",
+      "file": "desktop-night-ram-mounted-three-quarter.png"
+    },
+    {
+      "device": "desktop",
+      "theme": "night",
+      "kind": "ram",
+      "fire": true,
+      "file": "desktop-night-ram-firing.png",
+      "layout": {
+        "x": 512,
+        "y": 566,
+        "viewportWidth": 1280,
+        "viewportHeight": 732,
+        "width": 256,
+        "height": 96,
+        "label": "Turbo Ram",
+        "labelHidden": false,
+        "scroll": false,
+        "mounts": [
+          "ram",
+          "ram"
+        ]
+      }
+    },
+    {
+      "device": "desktop",
+      "theme": "night",
+      "kind": "supernova",
+      "fire": false,
+      "file": "desktop-night-supernova-mounted.png",
+      "layout": {
+        "x": 512,
+        "y": 566,
+        "viewportWidth": 1280,
+        "viewportHeight": 732,
+        "width": 256,
+        "height": 96,
+        "label": "Supernova",
+        "labelHidden": false,
+        "scroll": false,
+        "mounts": [
+          "supernova",
+          "supernova"
+        ]
+      }
+    },
+    {
+      "device": "desktop",
+      "theme": "night",
+      "kind": "supernova",
+      "fire": false,
+      "view": "three-quarter",
+      "file": "desktop-night-supernova-mounted-three-quarter.png"
+    },
+    {
+      "device": "desktop",
+      "theme": "night",
+      "kind": "supernova",
+      "fire": true,
+      "file": "desktop-night-supernova-firing.png",
+      "layout": {
+        "x": 512,
+        "y": 566,
+        "viewportWidth": 1280,
+        "viewportHeight": 732,
+        "width": 256,
+        "height": 96,
+        "label": "Supernova",
+        "labelHidden": false,
+        "scroll": false,
+        "mounts": [
+          "supernova",
+          "supernova"
+        ]
+      }
+    },
+    {
+      "device": "desktop",
+      "theme": "night",
+      "kind": "nuke",
+      "fire": false,
+      "file": "desktop-night-nuke-mounted.png",
+      "layout": {
+        "x": 512,
+        "y": 566,
+        "viewportWidth": 1280,
+        "viewportHeight": 732,
+        "width": 256,
+        "height": 96,
+        "label": "Nuke",
+        "labelHidden": false,
+        "scroll": false,
+        "mounts": [
+          "nuke",
+          "nuke"
+        ]
+      }
+    },
+    {
+      "device": "desktop",
+      "theme": "night",
+      "kind": "nuke",
+      "fire": false,
+      "view": "three-quarter",
+      "file": "desktop-night-nuke-mounted-three-quarter.png"
+    },
+    {
+      "device": "desktop",
+      "theme": "night",
+      "kind": "nuke",
+      "fire": true,
+      "file": "desktop-night-nuke-firing.png",
+      "layout": {
+        "x": 512,
+        "y": 566,
+        "viewportWidth": 1280,
+        "viewportHeight": 732,
+        "width": 256,
+        "height": 96,
+        "label": "Nuke",
+        "labelHidden": false,
+        "scroll": false,
+        "mounts": [
+          "nuke",
+          "nuke"
+        ]
+      }
+    },
+    {
+      "device": "phone",
+      "theme": "day",
+      "kind": "machinegun",
+      "fire": false,
+      "file": "phone-day-machinegun-mounted.png",
+      "layout": {
+        "x": 222,
+        "y": 684,
+        "viewportWidth": 390,
+        "viewportHeight": 780,
+        "width": 72,
+        "height": 80,
+        "label": "Machine Gun",
+        "labelHidden": true,
+        "scroll": false,
+        "mounts": [
+          "machinegun",
+          "machinegun"
+        ]
+      }
+    },
+    {
+      "device": "phone",
+      "theme": "day",
+      "kind": "machinegun",
+      "fire": false,
+      "view": "three-quarter",
+      "file": "phone-day-machinegun-mounted-three-quarter.png"
+    },
+    {
+      "device": "phone",
+      "theme": "day",
+      "kind": "machinegun",
+      "fire": true,
+      "file": "phone-day-machinegun-firing.png",
+      "layout": {
+        "x": 222,
+        "y": 684,
+        "viewportWidth": 390,
+        "viewportHeight": 780,
+        "width": 72,
+        "height": 80,
+        "label": "Machine Gun",
+        "labelHidden": true,
+        "scroll": false,
+        "mounts": [
+          "machinegun",
+          "machinegun"
+        ]
+      }
+    },
+    {
+      "device": "phone",
+      "theme": "day",
+      "kind": "trishot",
+      "fire": false,
+      "file": "phone-day-trishot-mounted.png",
+      "layout": {
+        "x": 222,
+        "y": 684,
+        "viewportWidth": 390,
+        "viewportHeight": 780,
+        "width": 72,
+        "height": 80,
+        "label": "Tri-Shot",
+        "labelHidden": true,
+        "scroll": false,
+        "mounts": [
+          "trishot",
+          "trishot"
+        ]
+      }
+    },
+    {
+      "device": "phone",
+      "theme": "day",
+      "kind": "trishot",
+      "fire": false,
+      "view": "three-quarter",
+      "file": "phone-day-trishot-mounted-three-quarter.png"
+    },
+    {
+      "device": "phone",
+      "theme": "day",
+      "kind": "trishot",
+      "fire": true,
+      "file": "phone-day-trishot-firing.png",
+      "layout": {
+        "x": 222,
+        "y": 684,
+        "viewportWidth": 390,
+        "viewportHeight": 780,
+        "width": 72,
+        "height": 80,
+        "label": "Tri-Shot",
+        "labelHidden": true,
+        "scroll": false,
+        "mounts": [
+          "trishot",
+          "trishot"
+        ]
+      }
+    },
+    {
+      "device": "phone",
+      "theme": "day",
+      "kind": "mine",
+      "fire": false,
+      "file": "phone-day-mine-mounted.png",
+      "layout": {
+        "x": 222,
+        "y": 684,
+        "viewportWidth": 390,
+        "viewportHeight": 780,
+        "width": 72,
+        "height": 80,
+        "label": "Mine",
+        "labelHidden": true,
+        "scroll": false,
+        "mounts": [
+          "mine",
+          "mine"
+        ]
+      }
+    },
+    {
+      "device": "phone",
+      "theme": "day",
+      "kind": "mine",
+      "fire": false,
+      "view": "three-quarter",
+      "file": "phone-day-mine-mounted-three-quarter.png"
+    },
+    {
+      "device": "phone",
+      "theme": "day",
+      "kind": "mine",
+      "fire": true,
+      "file": "phone-day-mine-firing.png",
+      "layout": {
+        "x": 222,
+        "y": 684,
+        "viewportWidth": 390,
+        "viewportHeight": 780,
+        "width": 72,
+        "height": 80,
+        "label": "Mine",
+        "labelHidden": true,
+        "scroll": false,
+        "mounts": [
+          "mine",
+          "mine"
+        ]
+      }
+    },
+    {
+      "device": "phone",
+      "theme": "day",
+      "kind": "missile",
+      "fire": false,
+      "file": "phone-day-missile-mounted.png",
+      "layout": {
+        "x": 222,
+        "y": 684,
+        "viewportWidth": 390,
+        "viewportHeight": 780,
+        "width": 72,
+        "height": 80,
+        "label": "Homing Missile",
+        "labelHidden": true,
+        "scroll": false,
+        "mounts": [
+          "missile",
+          "missile"
+        ]
+      }
+    },
+    {
+      "device": "phone",
+      "theme": "day",
+      "kind": "missile",
+      "fire": false,
+      "view": "three-quarter",
+      "file": "phone-day-missile-mounted-three-quarter.png"
+    },
+    {
+      "device": "phone",
+      "theme": "day",
+      "kind": "missile",
+      "fire": true,
+      "file": "phone-day-missile-firing.png",
+      "layout": {
+        "x": 222,
+        "y": 684,
+        "viewportWidth": 390,
+        "viewportHeight": 780,
+        "width": 72,
+        "height": 80,
+        "label": "Homing Missile",
+        "labelHidden": true,
+        "scroll": false,
+        "mounts": [
+          "missile",
+          "missile"
+        ]
+      }
+    },
+    {
+      "device": "phone",
+      "theme": "day",
+      "kind": "cannon",
+      "fire": false,
+      "file": "phone-day-cannon-mounted.png",
+      "layout": {
+        "x": 222,
+        "y": 684,
+        "viewportWidth": 390,
+        "viewportHeight": 780,
+        "width": 72,
+        "height": 80,
+        "label": "Cannon",
+        "labelHidden": true,
+        "scroll": false,
+        "mounts": [
+          "cannon",
+          "cannon"
+        ]
+      }
+    },
+    {
+      "device": "phone",
+      "theme": "day",
+      "kind": "cannon",
+      "fire": false,
+      "view": "three-quarter",
+      "file": "phone-day-cannon-mounted-three-quarter.png"
+    },
+    {
+      "device": "phone",
+      "theme": "day",
+      "kind": "cannon",
+      "fire": true,
+      "file": "phone-day-cannon-firing.png",
+      "layout": {
+        "x": 222,
+        "y": 684,
+        "viewportWidth": 390,
+        "viewportHeight": 780,
+        "width": 72,
+        "height": 80,
+        "label": "Cannon",
+        "labelHidden": true,
+        "scroll": false,
+        "mounts": [
+          "cannon",
+          "cannon"
+        ]
+      }
+    },
+    {
+      "device": "phone",
+      "theme": "day",
+      "kind": "blades",
+      "fire": false,
+      "file": "phone-day-blades-mounted.png",
+      "layout": {
+        "x": 222,
+        "y": 684,
+        "viewportWidth": 390,
+        "viewportHeight": 780,
+        "width": 72,
+        "height": 80,
+        "label": "Spinning Blades",
+        "labelHidden": true,
+        "scroll": false,
+        "mounts": [
+          "blades",
+          "blades"
+        ]
+      }
+    },
+    {
+      "device": "phone",
+      "theme": "day",
+      "kind": "blades",
+      "fire": false,
+      "view": "three-quarter",
+      "file": "phone-day-blades-mounted-three-quarter.png"
+    },
+    {
+      "device": "phone",
+      "theme": "day",
+      "kind": "blades",
+      "fire": true,
+      "file": "phone-day-blades-firing.png",
+      "layout": {
+        "x": 222,
+        "y": 684,
+        "viewportWidth": 390,
+        "viewportHeight": 780,
+        "width": 72,
+        "height": 80,
+        "label": "Spinning Blades",
+        "labelHidden": true,
+        "scroll": false,
+        "mounts": [
+          "blades",
+          "blades"
+        ]
+      }
+    },
+    {
+      "device": "phone",
+      "theme": "day",
+      "kind": "frost",
+      "fire": false,
+      "file": "phone-day-frost-mounted.png",
+      "layout": {
+        "x": 222,
+        "y": 684,
+        "viewportWidth": 390,
+        "viewportHeight": 780,
+        "width": 72,
+        "height": 80,
+        "label": "Frost Bomb",
+        "labelHidden": true,
+        "scroll": false,
+        "mounts": [
+          "frost",
+          "frost"
+        ]
+      }
+    },
+    {
+      "device": "phone",
+      "theme": "day",
+      "kind": "frost",
+      "fire": false,
+      "view": "three-quarter",
+      "file": "phone-day-frost-mounted-three-quarter.png"
+    },
+    {
+      "device": "phone",
+      "theme": "day",
+      "kind": "frost",
+      "fire": true,
+      "file": "phone-day-frost-firing.png",
+      "layout": {
+        "x": 222,
+        "y": 684,
+        "viewportWidth": 390,
+        "viewportHeight": 780,
+        "width": 72,
+        "height": 80,
+        "label": "Frost Bomb",
+        "labelHidden": true,
+        "scroll": false,
+        "mounts": [
+          "frost",
+          "frost"
+        ]
+      }
+    },
+    {
+      "device": "phone",
+      "theme": "day",
+      "kind": "ram",
+      "fire": false,
+      "file": "phone-day-ram-mounted.png",
+      "layout": {
+        "x": 222,
+        "y": 684,
+        "viewportWidth": 390,
+        "viewportHeight": 780,
+        "width": 72,
+        "height": 80,
+        "label": "Turbo Ram",
+        "labelHidden": true,
+        "scroll": false,
+        "mounts": [
+          "ram",
+          "ram"
+        ]
+      }
+    },
+    {
+      "device": "phone",
+      "theme": "day",
+      "kind": "ram",
+      "fire": false,
+      "view": "three-quarter",
+      "file": "phone-day-ram-mounted-three-quarter.png"
+    },
+    {
+      "device": "phone",
+      "theme": "day",
+      "kind": "ram",
+      "fire": true,
+      "file": "phone-day-ram-firing.png",
+      "layout": {
+        "x": 222,
+        "y": 684,
+        "viewportWidth": 390,
+        "viewportHeight": 780,
+        "width": 72,
+        "height": 80,
+        "label": "Turbo Ram",
+        "labelHidden": true,
+        "scroll": false,
+        "mounts": [
+          "ram",
+          "ram"
+        ]
+      }
+    },
+    {
+      "device": "phone",
+      "theme": "day",
+      "kind": "supernova",
+      "fire": false,
+      "file": "phone-day-supernova-mounted.png",
+      "layout": {
+        "x": 222,
+        "y": 684,
+        "viewportWidth": 390,
+        "viewportHeight": 780,
+        "width": 72,
+        "height": 80,
+        "label": "Supernova",
+        "labelHidden": true,
+        "scroll": false,
+        "mounts": [
+          "supernova",
+          "supernova"
+        ]
+      }
+    },
+    {
+      "device": "phone",
+      "theme": "day",
+      "kind": "supernova",
+      "fire": false,
+      "view": "three-quarter",
+      "file": "phone-day-supernova-mounted-three-quarter.png"
+    },
+    {
+      "device": "phone",
+      "theme": "day",
+      "kind": "supernova",
+      "fire": true,
+      "file": "phone-day-supernova-firing.png",
+      "layout": {
+        "x": 222,
+        "y": 684,
+        "viewportWidth": 390,
+        "viewportHeight": 780,
+        "width": 72,
+        "height": 80,
+        "label": "Supernova",
+        "labelHidden": true,
+        "scroll": false,
+        "mounts": [
+          "supernova",
+          "supernova"
+        ]
+      }
+    },
+    {
+      "device": "phone",
+      "theme": "day",
+      "kind": "nuke",
+      "fire": false,
+      "file": "phone-day-nuke-mounted.png",
+      "layout": {
+        "x": 222,
+        "y": 684,
+        "viewportWidth": 390,
+        "viewportHeight": 780,
+        "width": 72,
+        "height": 80,
+        "label": "Nuke",
+        "labelHidden": true,
+        "scroll": false,
+        "mounts": [
+          "nuke",
+          "nuke"
+        ]
+      }
+    },
+    {
+      "device": "phone",
+      "theme": "day",
+      "kind": "nuke",
+      "fire": false,
+      "view": "three-quarter",
+      "file": "phone-day-nuke-mounted-three-quarter.png"
+    },
+    {
+      "device": "phone",
+      "theme": "day",
+      "kind": "nuke",
+      "fire": true,
+      "file": "phone-day-nuke-firing.png",
+      "layout": {
+        "x": 222,
+        "y": 684,
+        "viewportWidth": 390,
+        "viewportHeight": 780,
+        "width": 72,
+        "height": 80,
+        "label": "Nuke",
+        "labelHidden": true,
+        "scroll": false,
+        "mounts": [
+          "nuke",
+          "nuke"
+        ]
+      }
+    },
+    {
+      "device": "phone",
+      "theme": "night",
+      "kind": "machinegun",
+      "fire": false,
+      "file": "phone-night-machinegun-mounted.png",
+      "layout": {
+        "x": 222,
+        "y": 684,
+        "viewportWidth": 390,
+        "viewportHeight": 780,
+        "width": 72,
+        "height": 80,
+        "label": "Machine Gun",
+        "labelHidden": true,
+        "scroll": false,
+        "mounts": [
+          "machinegun",
+          "machinegun"
+        ]
+      }
+    },
+    {
+      "device": "phone",
+      "theme": "night",
+      "kind": "machinegun",
+      "fire": false,
+      "view": "three-quarter",
+      "file": "phone-night-machinegun-mounted-three-quarter.png"
+    },
+    {
+      "device": "phone",
+      "theme": "night",
+      "kind": "machinegun",
+      "fire": true,
+      "file": "phone-night-machinegun-firing.png",
+      "layout": {
+        "x": 222,
+        "y": 684,
+        "viewportWidth": 390,
+        "viewportHeight": 780,
+        "width": 72,
+        "height": 80,
+        "label": "Machine Gun",
+        "labelHidden": true,
+        "scroll": false,
+        "mounts": [
+          "machinegun",
+          "machinegun"
+        ]
+      }
+    },
+    {
+      "device": "phone",
+      "theme": "night",
+      "kind": "trishot",
+      "fire": false,
+      "file": "phone-night-trishot-mounted.png",
+      "layout": {
+        "x": 222,
+        "y": 684,
+        "viewportWidth": 390,
+        "viewportHeight": 780,
+        "width": 72,
+        "height": 80,
+        "label": "Tri-Shot",
+        "labelHidden": true,
+        "scroll": false,
+        "mounts": [
+          "trishot",
+          "trishot"
+        ]
+      }
+    },
+    {
+      "device": "phone",
+      "theme": "night",
+      "kind": "trishot",
+      "fire": false,
+      "view": "three-quarter",
+      "file": "phone-night-trishot-mounted-three-quarter.png"
+    },
+    {
+      "device": "phone",
+      "theme": "night",
+      "kind": "trishot",
+      "fire": true,
+      "file": "phone-night-trishot-firing.png",
+      "layout": {
+        "x": 222,
+        "y": 684,
+        "viewportWidth": 390,
+        "viewportHeight": 780,
+        "width": 72,
+        "height": 80,
+        "label": "Tri-Shot",
+        "labelHidden": true,
+        "scroll": false,
+        "mounts": [
+          "trishot",
+          "trishot"
+        ]
+      }
+    },
+    {
+      "device": "phone",
+      "theme": "night",
+      "kind": "mine",
+      "fire": false,
+      "file": "phone-night-mine-mounted.png",
+      "layout": {
+        "x": 222,
+        "y": 684,
+        "viewportWidth": 390,
+        "viewportHeight": 780,
+        "width": 72,
+        "height": 80,
+        "label": "Mine",
+        "labelHidden": true,
+        "scroll": false,
+        "mounts": [
+          "mine",
+          "mine"
+        ]
+      }
+    },
+    {
+      "device": "phone",
+      "theme": "night",
+      "kind": "mine",
+      "fire": false,
+      "view": "three-quarter",
+      "file": "phone-night-mine-mounted-three-quarter.png"
+    },
+    {
+      "device": "phone",
+      "theme": "night",
+      "kind": "mine",
+      "fire": true,
+      "file": "phone-night-mine-firing.png",
+      "layout": {
+        "x": 222,
+        "y": 684,
+        "viewportWidth": 390,
+        "viewportHeight": 780,
+        "width": 72,
+        "height": 80,
+        "label": "Mine",
+        "labelHidden": true,
+        "scroll": false,
+        "mounts": [
+          "mine",
+          "mine"
+        ]
+      }
+    },
+    {
+      "device": "phone",
+      "theme": "night",
+      "kind": "missile",
+      "fire": false,
+      "file": "phone-night-missile-mounted.png",
+      "layout": {
+        "x": 222,
+        "y": 684,
+        "viewportWidth": 390,
+        "viewportHeight": 780,
+        "width": 72,
+        "height": 80,
+        "label": "Homing Missile",
+        "labelHidden": true,
+        "scroll": false,
+        "mounts": [
+          "missile",
+          "missile"
+        ]
+      }
+    },
+    {
+      "device": "phone",
+      "theme": "night",
+      "kind": "missile",
+      "fire": false,
+      "view": "three-quarter",
+      "file": "phone-night-missile-mounted-three-quarter.png"
+    },
+    {
+      "device": "phone",
+      "theme": "night",
+      "kind": "missile",
+      "fire": true,
+      "file": "phone-night-missile-firing.png",
+      "layout": {
+        "x": 222,
+        "y": 684,
+        "viewportWidth": 390,
+        "viewportHeight": 780,
+        "width": 72,
+        "height": 80,
+        "label": "Homing Missile",
+        "labelHidden": true,
+        "scroll": false,
+        "mounts": [
+          "missile",
+          "missile"
+        ]
+      }
+    },
+    {
+      "device": "phone",
+      "theme": "night",
+      "kind": "cannon",
+      "fire": false,
+      "file": "phone-night-cannon-mounted.png",
+      "layout": {
+        "x": 222,
+        "y": 684,
+        "viewportWidth": 390,
+        "viewportHeight": 780,
+        "width": 72,
+        "height": 80,
+        "label": "Cannon",
+        "labelHidden": true,
+        "scroll": false,
+        "mounts": [
+          "cannon",
+          "cannon"
+        ]
+      }
+    },
+    {
+      "device": "phone",
+      "theme": "night",
+      "kind": "cannon",
+      "fire": false,
+      "view": "three-quarter",
+      "file": "phone-night-cannon-mounted-three-quarter.png"
+    },
+    {
+      "device": "phone",
+      "theme": "night",
+      "kind": "cannon",
+      "fire": true,
+      "file": "phone-night-cannon-firing.png",
+      "layout": {
+        "x": 222,
+        "y": 684,
+        "viewportWidth": 390,
+        "viewportHeight": 780,
+        "width": 72,
+        "height": 80,
+        "label": "Cannon",
+        "labelHidden": true,
+        "scroll": false,
+        "mounts": [
+          "cannon",
+          "cannon"
+        ]
+      }
+    },
+    {
+      "device": "phone",
+      "theme": "night",
+      "kind": "blades",
+      "fire": false,
+      "file": "phone-night-blades-mounted.png",
+      "layout": {
+        "x": 222,
+        "y": 684,
+        "viewportWidth": 390,
+        "viewportHeight": 780,
+        "width": 72,
+        "height": 80,
+        "label": "Spinning Blades",
+        "labelHidden": true,
+        "scroll": false,
+        "mounts": [
+          "blades",
+          "blades"
+        ]
+      }
+    },
+    {
+      "device": "phone",
+      "theme": "night",
+      "kind": "blades",
+      "fire": false,
+      "view": "three-quarter",
+      "file": "phone-night-blades-mounted-three-quarter.png"
+    },
+    {
+      "device": "phone",
+      "theme": "night",
+      "kind": "blades",
+      "fire": true,
+      "file": "phone-night-blades-firing.png",
+      "layout": {
+        "x": 222,
+        "y": 684,
+        "viewportWidth": 390,
+        "viewportHeight": 780,
+        "width": 72,
+        "height": 80,
+        "label": "Spinning Blades",
+        "labelHidden": true,
+        "scroll": false,
+        "mounts": [
+          "blades",
+          "blades"
+        ]
+      }
+    },
+    {
+      "device": "phone",
+      "theme": "night",
+      "kind": "frost",
+      "fire": false,
+      "file": "phone-night-frost-mounted.png",
+      "layout": {
+        "x": 222,
+        "y": 684,
+        "viewportWidth": 390,
+        "viewportHeight": 780,
+        "width": 72,
+        "height": 80,
+        "label": "Frost Bomb",
+        "labelHidden": true,
+        "scroll": false,
+        "mounts": [
+          "frost",
+          "frost"
+        ]
+      }
+    },
+    {
+      "device": "phone",
+      "theme": "night",
+      "kind": "frost",
+      "fire": false,
+      "view": "three-quarter",
+      "file": "phone-night-frost-mounted-three-quarter.png"
+    },
+    {
+      "device": "phone",
+      "theme": "night",
+      "kind": "frost",
+      "fire": true,
+      "file": "phone-night-frost-firing.png",
+      "layout": {
+        "x": 222,
+        "y": 684,
+        "viewportWidth": 390,
+        "viewportHeight": 780,
+        "width": 72,
+        "height": 80,
+        "label": "Frost Bomb",
+        "labelHidden": true,
+        "scroll": false,
+        "mounts": [
+          "frost",
+          "frost"
+        ]
+      }
+    },
+    {
+      "device": "phone",
+      "theme": "night",
+      "kind": "ram",
+      "fire": false,
+      "file": "phone-night-ram-mounted.png",
+      "layout": {
+        "x": 222,
+        "y": 684,
+        "viewportWidth": 390,
+        "viewportHeight": 780,
+        "width": 72,
+        "height": 80,
+        "label": "Turbo Ram",
+        "labelHidden": true,
+        "scroll": false,
+        "mounts": [
+          "ram",
+          "ram"
+        ]
+      }
+    },
+    {
+      "device": "phone",
+      "theme": "night",
+      "kind": "ram",
+      "fire": false,
+      "view": "three-quarter",
+      "file": "phone-night-ram-mounted-three-quarter.png"
+    },
+    {
+      "device": "phone",
+      "theme": "night",
+      "kind": "ram",
+      "fire": true,
+      "file": "phone-night-ram-firing.png",
+      "layout": {
+        "x": 222,
+        "y": 684,
+        "viewportWidth": 390,
+        "viewportHeight": 780,
+        "width": 72,
+        "height": 80,
+        "label": "Turbo Ram",
+        "labelHidden": true,
+        "scroll": false,
+        "mounts": [
+          "ram",
+          "ram"
+        ]
+      }
+    },
+    {
+      "device": "phone",
+      "theme": "night",
+      "kind": "supernova",
+      "fire": false,
+      "file": "phone-night-supernova-mounted.png",
+      "layout": {
+        "x": 222,
+        "y": 684,
+        "viewportWidth": 390,
+        "viewportHeight": 780,
+        "width": 72,
+        "height": 80,
+        "label": "Supernova",
+        "labelHidden": true,
+        "scroll": false,
+        "mounts": [
+          "supernova",
+          "supernova"
+        ]
+      }
+    },
+    {
+      "device": "phone",
+      "theme": "night",
+      "kind": "supernova",
+      "fire": false,
+      "view": "three-quarter",
+      "file": "phone-night-supernova-mounted-three-quarter.png"
+    },
+    {
+      "device": "phone",
+      "theme": "night",
+      "kind": "supernova",
+      "fire": true,
+      "file": "phone-night-supernova-firing.png",
+      "layout": {
+        "x": 222,
+        "y": 684,
+        "viewportWidth": 390,
+        "viewportHeight": 780,
+        "width": 72,
+        "height": 80,
+        "label": "Supernova",
+        "labelHidden": true,
+        "scroll": false,
+        "mounts": [
+          "supernova",
+          "supernova"
+        ]
+      }
+    },
+    {
+      "device": "phone",
+      "theme": "night",
+      "kind": "nuke",
+      "fire": false,
+      "file": "phone-night-nuke-mounted.png",
+      "layout": {
+        "x": 222,
+        "y": 684,
+        "viewportWidth": 390,
+        "viewportHeight": 780,
+        "width": 72,
+        "height": 80,
+        "label": "Nuke",
+        "labelHidden": true,
+        "scroll": false,
+        "mounts": [
+          "nuke",
+          "nuke"
+        ]
+      }
+    },
+    {
+      "device": "phone",
+      "theme": "night",
+      "kind": "nuke",
+      "fire": false,
+      "view": "three-quarter",
+      "file": "phone-night-nuke-mounted-three-quarter.png"
+    },
+    {
+      "device": "phone",
+      "theme": "night",
+      "kind": "nuke",
+      "fire": true,
+      "file": "phone-night-nuke-firing.png",
+      "layout": {
+        "x": 222,
+        "y": 684,
+        "viewportWidth": 390,
+        "viewportHeight": 780,
+        "width": 72,
+        "height": 80,
+        "label": "Nuke",
+        "labelHidden": true,
+        "scroll": false,
+        "mounts": [
+          "nuke",
+          "nuke"
+        ]
+      }
+    }
+  ],
+  "latency": [
+    {
+      "rtt": 80,
+      "beforeMeanMs": 80.94999999801318,
+      "afterMeanMs": 0.008333335320154825,
+      "samples": 12
+    },
+    {
+      "rtt": 100,
+      "beforeMeanMs": 100.90833333134651,
+      "afterMeanMs": 0,
+      "samples": 12
+    },
+    {
+      "rtt": 150,
+      "beforeMeanMs": 150.98333332935968,
+      "afterMeanMs": 0.008333335320154825,
+      "samples": 12
+    }
+  ],
+  "errors": [],
+  "livePractice": {
+    "before": {
+      "x": -13.996000289916992,
+      "z": -6,
+      "hp": 100
+    },
+    "after": {
+      "x": -1.284999966621399,
+      "z": 1.2309999465942383,
+      "hp": 100
+    }
+  }
+}

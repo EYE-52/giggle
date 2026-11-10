@@ -219,7 +219,10 @@ async function main() {
     eq(resumed.state.garage, true); eq(resumed.state.mode, 'battle'); eq(resumed.state.winRule, 'Score target'); ok(!resumed.state.profile);
     const resetFrames = host.frames.length; send(host, { t: 'configure', game: 'pocket-karts', reset: true });
     await until(() => host.frames.slice(resetFrames).some(f => f.t === 'room'), 'configuration reset');
-    await start(clients, undefined, host);
+    // The reset default is a launch arena; this 24-seat legacy watcher
+    // fixture explicitly keeps its classic map for the final schema check.
+    ok(!host.room.config['pocket-karts'],'reset removes the saved override');
+    await start(clients, {map:'Garden Circuit'}, host);
     eq(resumed.state.map.label, 'Garden Circuit'); eq(resumed.state.roundMs, 180000);
     eq(resumed.state.modeLabel, 'Zap Battle'); eq(resumed.state.garage, false); eq(resumed.state.winRule, 'Time limit'); ok(!resumed.state.profile);
     metrics.scope = 'Node 24 real production server/WebSocket, localhost 8 drivers plus 16 watchers and a separate classic room; complete 60s deadline, no simulated clock; not WAN/device performance.';

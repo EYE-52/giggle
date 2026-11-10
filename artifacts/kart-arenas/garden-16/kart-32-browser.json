@@ -1,0 +1,25 @@
+{
+  "map": "Garden Crown",
+  "drivers": 16,
+  "connected": 16,
+  "seconds": 21.2,
+  "browser": {
+    "binaryFramesPerSec": 20.1,
+    "kbPerSec": 36.8,
+    "textFrames": 6,
+    "fps": 59.7,
+    "worstFrameMs": 117,
+    "drawCallsPerFrame": 147,
+    "submittedTrianglesPerFrame": 68626,
+    "hud": {
+      "rows": 0,
+      "canvas": true
+    }
+  },
+  "bots": {
+    "framesPerSec": 18.7
+  },
+  "browserKartMovedM": 45.9,
+  "fastestForward": 24,
+  "errors": []
+}

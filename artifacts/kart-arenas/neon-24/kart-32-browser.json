@@ -1,0 +1,25 @@
+{
+  "map": "Neon Switchyard",
+  "drivers": 24,
+  "connected": 24,
+  "seconds": 21.2,
+  "browser": {
+    "binaryFramesPerSec": 20.2,
+    "kbPerSec": 71.8,
+    "textFrames": 6,
+    "fps": 59.7,
+    "worstFrameMs": 117,
+    "drawCallsPerFrame": 113,
+    "submittedTrianglesPerFrame": 55826,
+    "hud": {
+      "rows": 0,
+      "canvas": true
+    }
+  },
+  "bots": {
+    "framesPerSec": 18.7
+  },
+  "browserKartMovedM": 11.2,
+  "fastestForward": 18.4,
+  "errors": []
+}
