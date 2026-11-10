@@ -133,9 +133,9 @@ async function main() {
     const ico = Buffer.from(await icon.arrayBuffer());
     assert.equal(ico.readUInt16LE(0), 0, 'ICO reserved field');
     assert.equal(ico.readUInt16LE(2), 1, 'ICO image type');
-    assert.equal(ico.readUInt16LE(4), 2, '16px and 32px icon images');
-    for (let n = 0; n < 2; n++) {
-      const entry = 6 + n * 16, size = [16, 32][n];
+    assert.equal(ico.readUInt16LE(4), 3, '16px, 32px and 48px icon images');
+    for (let n = 0; n < 3; n++) {
+      const entry = 6 + n * 16, size = [16, 32, 48][n];
       assert.equal(ico[entry], size); assert.equal(ico[entry + 1], size);
       const start = ico.readUInt32LE(entry + 12), length = ico.readUInt32LE(entry + 8);
       assert(start + length <= ico.length, 'icon image stays within the asset');

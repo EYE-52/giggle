@@ -24,7 +24,7 @@ function empty(title, description, busy = false) {
   section.className = 'practice-empty boot-view';
   section.setAttribute('role', busy ? 'status' : 'alert');
   section.setAttribute('aria-busy', String(busy));
-  if (busy) section.innerHTML = '<span class="loading-mark" aria-hidden="true"><i></i><i></i><i></i></span>';
+  if (busy) section.innerHTML = '<span class="loading-mark loading-logo" aria-hidden="true"><i></i><i></i><i></i></span>';
   const heading = document.createElement('h2'); heading.textContent = title;
   const text = document.createElement('p'); text.textContent = description;
   section.append(heading); if (description) section.append(text);

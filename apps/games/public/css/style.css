@@ -273,7 +273,7 @@ h3 { font-size: 19px; font-weight: 800; }
   color: var(--ink-dim); letter-spacing: 0; white-space: nowrap;
 }
 .brand .dot { color: var(--accent); }
-.brandmark { flex: none; display: block; transform: rotate(-6deg); }
+.brandmark { flex: none; display: block; }
 /* Compact header utilities: icon + readable label. Icons are inline SVG
  * in the DOM (JS repaints icon + label on toggle); no pseudo glyphs. */
 .topbar .btn.ghost { min-height: 44px; padding: 7px 14px; font-size: 14px; border-width: 1px; box-shadow: none; }
@@ -2423,3 +2423,9 @@ body.is-embed .partystrip { box-shadow: none; }
 @media (max-width: 540px) {
   .play-title .play-game-mark { display: none; }
 }
+
+/* The GG family anchors platform loading; readiness and timing stay unchanged. */
+.loading-mark.loading-logo { display: inline-block; width: 28px; height: 28px; background: url('/favicon.svg') center / contain no-repeat; }
+.loading-mark.loading-logo i { display: none; animation: none; }
+.boot-view .loading-mark.loading-logo { width: 88px; height: 88px; background-image: url('/icon.svg'); }
+.loading-mark.loading-logo[hidden] { display: none; }

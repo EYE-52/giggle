@@ -938,13 +938,8 @@ function fanfare(prev, S) {
 
 /* ---------------- screens ---------------- */
 
-/* Code-native brand mark: sunshine smiley sticker with a raspberry grin.
- * Flat, no gradients — the same motif anchors the nav on every screen. */
-const BRANDMARK = `<svg class="brandmark" width="30" height="30" viewBox="0 0 30 30" aria-hidden="true">` +
-  `<rect x="2.5" y="2.5" width="25" height="25" rx="9" fill="#FFB020" stroke="#2B1220" stroke-width="2.5"/>` +
-  `<circle cx="11.5" cy="13" r="2.3" fill="#2B1220"/>` +
-  `<circle cx="18.5" cy="13" r="2.3" fill="#2B1220"/>` +
-  `<path d="M10.5 18.5 Q15 23 19.5 18.5" fill="none" stroke="#DE1E6A" stroke-width="2.6" stroke-linecap="round"/></svg>`;
+/* Shared GG family mark. SVG source: design/brand/games/icon.svg. */
+const BRANDMARK = '<img class="brandmark" src="/icon.svg" width="30" height="30" alt="">';
 
 /* Original code-native doodles for the hero poster wall (decorative). */
 const DOODLE_STAR = (cls, size, fill) => `<svg class="doodle ${cls}" width="${size}" height="${size}" viewBox="0 0 44 44" aria-hidden="true">` +
@@ -1166,7 +1161,7 @@ function render() {
   if(PRACTICE_GAME&&!room&&gameById(PRACTICE_GAME)){
     // The practice chooser already picked a game. Avoid fetching an entire
     // home catalogue while this seat creates/joins that game room.
-    app.innerHTML='<section class="boot-view" role="status"><span class="loading-mark" aria-hidden="true"><i></i><i></i><i></i></span><h1>Opening practice room…</h1></section>';
+    app.innerHTML='<section class="boot-view" role="status"><span class="loading-mark loading-logo" aria-hidden="true"><i></i><i></i><i></i></span><h1>Opening practice room…</h1></section>';
     return;
   }
   const screen = !room ? 'home' : (!room.game || leftToLobby() ? 'lobby' : 'game');
@@ -2678,7 +2673,7 @@ function renderGame() {
     const g = gameById(room?.game);
     app.innerHTML = connbarHtml() + `
       <header class="play-toolbar"><div class="play-title">${g ? artImg(g, 'gthumb') : ''}<div><h1>${esc(gameName(room?.game))}</h1></div></div></header>
-      <main class="game-stage" aria-busy="true"><div class="game-loading">${g ? artImg(g, 'game-loading-art') : ''}<p class="gk-wait" role="status"><span class="loading-mark" aria-hidden="true"><i></i><i></i><i></i></span> Loading the game…</p></div></main>`;
+      <main class="game-stage" aria-busy="true"><div class="game-loading">${g ? artImg(g, 'game-loading-art') : ''}<p class="gk-wait" role="status"><span class="loading-mark loading-logo" aria-hidden="true"><i></i><i></i><i></i></span> Loading the game…</p></div></main>`;
     return;
   }
   const g = gameById(gameId);
