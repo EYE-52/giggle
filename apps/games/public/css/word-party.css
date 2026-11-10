@@ -414,3 +414,6 @@ body.game-playing:is(
 /* The helper shares the action row's height, without a duplicate card lip. */
 .word-party .wp-composer { align-items: stretch; }
 .word-party .wp-cue { margin: 0; display: grid; place-items: center; box-shadow: none; }
+
+/* The answer field's 3px ring needs room inside the game edge. */
+#gbody .word-party .wp-composer { padding-inline: var(--space-4); }
