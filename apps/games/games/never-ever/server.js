@@ -2,7 +2,8 @@
 /* Never Ever: a "never have I ever" card is shown, everyone taps
  * Have / Never, counts are revealed. Pure players score + streaks. */
 
-const { dealer, allIn, roundsSetting, paceSetting, paced } = require('../_sdk');
+const { allIn, roundsSetting, paceSetting, paced } = require('../_sdk');
+const { cardsFromRows, createCardGame, dealText } = require('../engines/flow/card-game');
 
 const id = 'never-ever';
 
@@ -57,7 +58,8 @@ function create(ctx) {
     hostId: ctx.hostId(),
     labels: pack.labels || {},
   };
-  state.deal = dealer(list);
+  state.flow = createCardGame(id, cardsFromRows(list, 'statement', ['statement']), { seed: ctx.flowSeed, players: ctx.allPlayers().map(p => ({ id: p.id, name: p.name ?? p.id })) });
+  state.deal = () => dealText(state.flow) ?? FALLBACK[0];
   nextRound(state, ctx);
   return state;
 }
@@ -150,7 +152,7 @@ function onPlayerGone(state, ctx) {
 }
 
 function view(state, pid, ctx) {
-  const { deal, ...rest } = state;
+  const { deal, flow, ...rest } = state;
   const out = { ...rest, hostId: ctx ? ctx.hostId() : state.hostId, myVote: state.votes[pid] || null };
   if (state.phase === 'vote') {
     out.votes = {};
