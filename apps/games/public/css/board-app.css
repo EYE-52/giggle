@@ -15,9 +15,9 @@
   height:var(--game-viewport-height,100dvh); min-height:0; width:100%; min-width:0;
   padding:var(--space-8) var(--space-16); margin:0; font:var(--text-body);
 }
-#gbody .bk-game[data-family="board"] :is(.bk-panel,.bk-players) { display:contents; }
+#gbody .bk-game[data-family="board"] :is(.bk-panel,.bk-players) { display:contents; overflow:visible; }
 #gbody .bk-game[data-family="board"] .bk-head { grid-area:head; order:initial; display:flex; flex-direction:row; align-items:center; justify-content:center; min-height:0; height:var(--space-48); padding:0; margin:0; overflow:hidden; }
-#gbody .bk-game[data-family="board"] .bk-title { max-width:calc(100cqw - 176px); margin:0; font:var(--text-title); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; text-wrap:nowrap; }
+#gbody .bk-game[data-family="board"] .bk-title { max-width:calc(100cqw - 176px); margin:0; font:var(--text-title); line-height:1.4; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; text-wrap:nowrap; }
 #gbody .bk-game[data-family="board"] .bk-meta { display:none; }
 #gbody .bk-game[data-family="board"] .bk-stage { grid-area:board; order:initial; width:100%; height:auto; min-width:0; max-width:none; max-height:none; align-self:center; justify-self:center; margin:0; }
 #gbody .bk-game[data-family="board"] .bk-player { grid-area:top; height:var(--control-h); min-height:var(--control-h); display:grid; grid-template-columns:var(--space-32) minmax(0,1fr) auto; grid-template-rows:1fr; align-items:center; gap:var(--space-8); padding:var(--space-4) var(--space-8); border:var(--outline-w) solid transparent; border-radius:var(--radius-md); background:color-mix(in srgb,var(--card) 65%,transparent); box-shadow:none; }
@@ -27,7 +27,7 @@
 #gbody .bk-game[data-family="board"] .bk-player.is-turn { border-color:var(--bk-player-rim); background:var(--card); box-shadow:none; }
 #gbody .bk-game[data-family="board"] .bk-name { font:var(--text-button-sm); }
 #gbody .bk-game[data-family="board"] .bk-chip { width:var(--space-32); height:var(--space-32); }
-#gbody .bk-game[data-family="board"] .bk-side { font:var(--text-caption); line-height:1.2; height:1.2em; }
+#gbody .bk-game[data-family="board"] .bk-side { font:var(--text-caption); line-height:1.4; height:1.4em; }
 #gbody .bk-game[data-family="board"] .bk-player .bk-stat { height:var(--space-32); width:auto; min-width:var(--space-48); display:flex; flex-direction:row; gap:var(--space-4); align-items:center; justify-content:center; padding:0 var(--space-8); border:0; border-radius:var(--radius-sm); background:var(--well); }
 #gbody .bk-game[data-family="board"] .bk-stat-value { font:var(--text-button-sm); min-height:0; }
 #gbody .bk-game[data-family="board"] .bk-stat-label { position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); }
@@ -132,7 +132,7 @@
 #gbody .bk-game[data-family="board"].fl-game .fl-fire { min-height:var(--control-h); box-shadow:none; }
 #gbody .bk-game[data-family="board"].fl-game .fl-chart-tools .tb-btn { min-height:var(--control-h-sm); font:var(--text-caption); border:0; border-radius:var(--radius-md); box-shadow:none; padding:0 var(--space-8); }
 #gbody .bk-game[data-family="board"].fl-game .fl-tabs { padding:var(--space-4); border:0; border-radius:var(--radius-md); box-shadow:none; }
-#gbody .bk-game[data-family="board"].fl-game .fl-tabs button { min-height:var(--space-40); padding:0 var(--space-8); font:var(--text-caption); border:0; border-radius:var(--radius-sm); }
+#gbody .bk-game[data-family="board"].fl-game .fl-tabs button { min-height:var(--control-h-sm); padding:0 var(--space-4); font:var(--text-caption); border:0; border-radius:var(--radius-sm); }
 @container(min-width:1000px) {
  #gbody .bk-game[data-family="board"].fl-game:has(.bk-extra):not(:has(.chhist-wrap)) { --bk-extra-space:var(--control-h-lg); grid-template-rows:var(--space-48) var(--bk-roster) calc(var(--bk-size) + var(--control-h-lg)) var(--bk-bottom) var(--space-48) var(--control-h-sm); }
  #gbody .bk-game[data-family="board"].fl-game .fl-placement { grid-template-columns:auto auto; }

@@ -553,3 +553,19 @@ body.game-playing[data-game="draw-phone"] .game-zoom { display:none; }
 @container game (min-width: 1100px) and (min-height: 700px) {
   .dp.ck.dp-write > .dp-layout { min-height: calc(100cqh - 3 * var(--space-64)); align-items: center; }
 }
+
+/* The first task and all three ideas fit together on a small phone. The
+ * full-size writing treatment is useful on a desk, but costs a whole screen
+ * before a player can reach the last idea on a 667px-tall device. */
+@container game (max-width: 700px) {
+  #gbody .sk-phone.dp.dp-write { padding: var(--space-8) var(--space-12); }
+  #gbody .dp-write .dp-header { min-height: var(--control-h-sm); height: auto; margin-bottom: var(--space-8); }
+  #gbody .dp-write :is(.dp-writing-book, .dp-writing) { min-height: 0; }
+  #gbody .dp-write .dp-writing { padding: var(--space-12) var(--space-12) var(--space-12) var(--space-32); }
+  #gbody .sk-phone.dp.dp-write .dp-writing h3 { font: var(--text-title); margin: var(--space-8) 0; }
+  #gbody .dp-write .dp-writing > p { font: var(--text-caption); }
+  #gbody .dp-write .dp-writing .dp-status { margin-bottom: var(--space-8); }
+  #gbody .dp-write .dp-inspiration { margin-top: var(--space-12); }
+  #gbody .dp-write .dp-inspiration h4 { font: var(--text-caption); }
+  #gbody .sk-phone.dp.dp-write .dp-suggestion { padding: var(--space-8); }
+}

@@ -166,7 +166,7 @@
 .party-wheel { position: relative; width: 240px; height: 240px; margin: 18px auto; border: 6px solid var(--card); border-radius: 50%; box-shadow: 0 0 0 1px var(--line-strong); }
 .party-wheel-disc { position: absolute; inset: 0; border-radius: 50%; transform: rotate(var(--wheel-angle, 0deg)); transition: transform var(--dur-slow) var(--ease); }
 .party-wheel-disc::after { content: ''; position: absolute; inset: 38%; border: 1px solid var(--line-strong); border-radius: 50%; background: var(--card); }
-.party-wheel-name { position: absolute; inset: 0; transform: rotate(var(--seat-angle)); }
+.party-wheel-name { position: absolute; inset: 0; transform: rotate(var(--seat-angle)); pointer-events: none; }
 .party-wheel-name > span { position: absolute; top: 10px; left: calc(50% - 16px); width: 32px; height: 32px; display: grid; place-items: center; border-radius: 50%; background: var(--card); color: var(--ink); font-size: 15px; font-weight: 800; transform: rotate(calc(0deg - var(--seat-angle))); }
 .party-wheel-pin { position: absolute; z-index: 2; top: -13px; left: calc(50% - 11px); border: 11px solid transparent; border-top: 22px solid var(--accent); }
 #gbody .party-spin-desk > #drSpin { position: relative; margin-top: 0; min-height: 48px; width: 100%; }
@@ -844,7 +844,7 @@ body.game-playing:is([data-game="story-builder"],[data-game="would-you-rather"],
  * cannot push the payoff or Next below the laptop fold. The HUD spans both
  * columns and the roster's top edge stays fixed across phase updates. */
 @container game (min-width:1000px) {
- #gbody .pl-fill[data-family="party"] { position:relative; padding-right:calc(4 * var(--space-64) + var(--space-16)); }
+ #gbody[data-game][data-layout] .pl-fill[data-family="party"] { position:relative; padding-right:calc(4 * var(--space-64) + var(--space-16)); }
  #gbody .pl-fill[data-family="party"] > :is(.gk-hud,.party-hud) { width:calc(100% + 4 * var(--space-64) + var(--space-16)); }
  #gbody .pl-fill[data-family="party"] > .pl-live { position:absolute; right:0; top:calc(var(--space-8) + var(--control-h-sm) + var(--space-16)); width:calc(4 * var(--space-64)); max-height:calc(var(--pl-stage-height,100cqh) - var(--space-64) - var(--space-16)); overflow:auto; margin:0; }
  #gbody .pl-fill[data-family="party"] > .pl-live .pl-seats { grid-template-columns:minmax(0,1fr); }
@@ -959,7 +959,8 @@ body.game-playing:is([data-game="story-builder"],[data-game="would-you-rather"],
     justify-content: safe center;
   }
   body:is([data-game="five-second"], [data-game="pick-one"], [data-game="reaction-tap"]) #gbody > .pl-fill > :is(.gk-hud, .party-hud) { position: absolute; top: var(--space-8); left: 0; width: 100%; }
-  body:is([data-game="five-second"], [data-game="pick-one"], [data-game="reaction-tap"]) #gbody > .pl-fill > .pl-live { position: absolute; bottom: var(--space-16); left: 0; width: 100%; max-height: calc(2 * var(--space-64)); overflow: auto; scrollbar-width: thin; }
+  body:is([data-game="five-second"], [data-game="pick-one"], [data-game="reaction-tap"]) #gbody > .pl-fill > .pl-live { position: absolute; bottom: var(--space-8); left: 0; width: 100%; max-height: calc(2 * var(--space-64)); overflow: auto; scrollbar-width: thin; }
+  #gbody[data-game="pick-one"] .pick-status { min-height: var(--space-32); padding-block: var(--space-4); font: var(--text-caption); }
 }
 
 /* Short helper lines keep their final words together on phones. */

@@ -94,7 +94,7 @@
   --choice-color: var(--sun-ink);
 }
 .knowme-option-1 {
-  --choice-bg: var(--melon-soft);
+  --choice-bg: color-mix(in srgb, var(--melon) 16%, var(--card));
   --choice-color: var(--melon-deep);
 }
 .knowme-option-2 {

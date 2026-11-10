@@ -147,7 +147,7 @@
 .bk-game.ch-tabletop .chboard .sq .ch-file { bottom:var(--space-4); right:var(--space-4); left:auto; }
 @media(max-width:599px) { .bk-game.ch-tabletop .chboard .sq :is(.ch-rank,.ch-file) { font-size:9px; } }
 [data-theme="night"] .bk-game.ch-tabletop.theme-mono,body.is-embed .bk-game.ch-tabletop.theme-mono { --ch-light:#b9c4b5; --ch-dark:#526b5c; --ch-frame:#344c3d; --ch-coord-light:#344b3b; --ch-coord-dark:#edf2e8; }
-body.is-embed .bk-game.ch-tabletop { --card:var(--app-embed-card); --well:var(--app-embed-well); }
+[data-theme="night"] body.is-embed .bk-game.ch-tabletop { --card:var(--app-embed-card); --well:var(--app-embed-well); }
 
 /* Give coordinates their own rim, clear of every piece. */
 .bk-game.ch-tabletop .ch-frame { padding: var(--space-16); }

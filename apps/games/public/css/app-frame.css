@@ -44,3 +44,22 @@ body.game-playing #roomMenu .room-size-label { font: var(--text-button-sm); colo
 body.game-playing #roomMenu .room-size .game-zoom { margin-left: 0; border: 0; background: transparent; box-shadow: none; }
 body.game-playing #roomMenu .room-size .game-zoom button { min-width: var(--control-h-sm); min-height: var(--control-h-sm); border-radius: var(--radius-sm); }
 body.game-playing #roomMenu .room-size .game-zoom .game-zoom-value { position: static; width: auto; height: auto; min-width: 56px; clip-path: none; clip: auto; overflow: visible; border-inline: 0; font: var(--text-button-sm); }
+
+/* Drawing uses the same four header slots as the rest of the app. Keep the
+ * utilities in normal flow instead of translating a fixed button off-screen. */
+body.game-playing:has(.sk-doodle.dg, .sk-phone.dp) .play-toolbar {
+ position: relative; inset: auto; display: grid;
+ grid-template-columns: minmax(0, 1fr) repeat(3, var(--control-h-sm));
+ align-items: center; gap: var(--space-8); height: auto;
+ min-height: var(--control-h-lg); margin: 0; padding: var(--space-8) var(--space-12);
+ border-bottom: 1px solid var(--line); background: var(--bg);
+}
+body.game-playing:has(.sk-doodle.dg, .sk-phone.dp) .play-toolbar .play-title { display: flex; min-width: 0; }
+body.game-playing:has(.sk-doodle.dg, .sk-phone.dp) .play-toolbar .play-title h1 { font: var(--text-button); line-height: 1.5; }
+body.game-playing:has(.sk-doodle.dg, .sk-phone.dp) .play-toolbar :is(#roomMenu, .game-report-icon, .game-screen-toggle) {
+ position: static; inset: auto; translate: none;
+}
+#gbody .sk-phone.dp .dp-identity { display: none; }
+#gbody .sk-phone.dp .dp-header { padding-inline: 0; }
+#gbody .sk-doodle.dg { padding-inline: var(--space-16); }
+#gbody .sk-doodle.dg :is(.dg-header.sk-deskcue, .dg-hud) { padding-left: 0; }
