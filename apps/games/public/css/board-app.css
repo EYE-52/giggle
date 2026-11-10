@@ -164,13 +164,13 @@
  * table's height rather than allowing a fixed art height to cover a seat. */
 #gbody .bk-game[data-family="board"].pd-game { --bk-aspect:.8; }
 #gbody .bk-game[data-family="board"].pd-game .bk-stage { height:100%; }
-#gbody .bk-game[data-family="board"] .pd-table { box-sizing:border-box; display:grid; grid-template-columns:minmax(0,1fr); grid-template-rows:minmax(0,1fr) var(--space-48) var(--space-24) var(--control-h) var(--space-24); align-items:center; justify-items:center; gap:var(--space-8); height:100%; min-height:0; padding:var(--space-8); }
-#gbody .bk-game[data-family="board"] .pd-pig { grid-row:1; width:min(100%,260px); height:100%; max-height:200px; }
-#gbody .bk-game[data-family="board"] .pd-pot { top:12%; }
+#gbody .bk-game[data-family="board"] .pd-table { box-sizing:border-box; display:grid; grid-template-columns:minmax(0,1fr); grid-template-rows:var(--space-64) minmax(0,1fr) var(--space-48) var(--space-24) var(--control-h) var(--space-24); align-items:center; justify-items:center; gap:var(--space-8); height:100%; min-height:0; padding:var(--space-8); }
+#gbody .bk-game[data-family="board"] .pd-pig { grid-row:2; width:min(100%,260px); height:100%; max-height:200px; }
+#gbody .bk-game[data-family="board"] .pd-pot { position:static; transform:none; grid-row:1; }
 #gbody .bk-game[data-family="board"] .pd-pot b { font-size:var(--space-32); }
-#gbody .bk-game[data-family="board"] .pd-dice-tray { grid-row:2; padding:0; background:transparent; }
+#gbody .bk-game[data-family="board"] .pd-dice-tray { grid-row:3; padding:0; background:transparent; }
 #gbody .bk-game[data-family="board"] .pd-dice-tray .b5-die { width:var(--space-48); height:var(--space-48); }
-#gbody .bk-game[data-family="board"] .pd-controls { grid-row:4; }
+#gbody .bk-game[data-family="board"] .pd-controls { grid-row:5; }
 #gbody .bk-game[data-family="board"] .pd-controls .tb-btn { min-height:var(--control-h); height:var(--control-h); padding:var(--space-8); box-shadow:none; }
 #gbody .bk-game[data-family="board"] .pd-coins { display:none; }
 #gbody .bk-game[data-family="board"].fl-game .fl-placement { align-self:start; }
@@ -203,4 +203,25 @@ body.game-immersive:has(#gameScreenPrompt) #gbody .bk-game[data-family="board"] 
  #gbody .bk-game[data-family="board"].fl-game .fl-placement { grid-template-columns:auto auto; }
  #gbody .bk-game[data-family="board"].fl-game .fl-placement .fl-place-actions { grid-column:1/-1; grid-row:2; }
  #gbody .bk-game[data-family="board"].fl-game .fl-reason { grid-row:3; }
+}
+
+/* A board without a working side panel keeps one centred column. Small
+ * auxiliary actions belong below the board, not in an empty desktop rail. */
+@container (min-width: 1000px) {
+ #gbody .bk-game[data-family="board"]:not(:has(.bk-extra)),
+ #gbody .bk-game[data-family="board"]:has(.bk-extra > .b5-action-reason:only-child),
+ #gbody .bk-game[data-family="board"]:has(.fv-swap) {
+   --bk-size: min(calc(100cqw - var(--space-32)), calc((var(--game-viewport-height, 100dvh) - var(--bk-chrome)) * var(--bk-aspect)));
+   grid-template-columns: minmax(0, var(--bk-size));
+   grid-template-areas: "head" "top" "board" "bottom" "status" "tools";
+ }
+ #gbody .bk-game[data-family="board"]:has(.fv-swap) .bk-extra { grid-area: tools; width: auto; padding: 0; justify-self: start; align-self: center; }
+ #gbody .bk-game[data-family="board"]:has(.fv-swap) .bk-tools { justify-content: end; }
+ #gbody .bk-game[data-family="board"]:has(.fv-swap) .fv-swap-reason { display: none; }
+ #gbody .bk-game[data-family="board"] .bk-head { grid-area: head; }
+}
+
+@container (min-width: 1000px) {
+ #gbody .bk-game[data-family="board"] .bk-head { grid-column: 1; grid-row: 1; }
+ #gbody .bk-game.ch-tabletop { --bk-sidebar: calc(3 * var(--space-64) + var(--space-16)); }
 }

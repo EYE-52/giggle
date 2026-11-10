@@ -190,3 +190,8 @@ body.game-immersive:has(.pke) #gbody>#rematch{bottom:18px;background:var(--card)
  .pke.pke-touch-mode .pke-actions [data-nitro]{right:var(--space-8);bottom:calc(var(--space-64) + var(--space-16))}
  .pke.pke-touch-mode .pke-actions [data-brake]{left:auto;right:var(--space-8);bottom:calc(var(--space-48)*3)}
 }
+
+/* The three shared arena utilities own the first three toolbar slots. */
+@container pke (min-width: 651px) {
+ .pke-has-room .pke-score { margin-left: calc(3 * var(--control-h-sm) + 3 * var(--space-8)); }
+}

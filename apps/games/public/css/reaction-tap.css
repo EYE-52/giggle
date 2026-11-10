@@ -135,7 +135,7 @@
 @container game (max-width:560px) { #gbody .rt.pl-fill .rt-pad { grid-template-rows:var(--space-40) clamp(120px,22cqh,200px) 2.3em; } }
 #gbody .rt.pl-fill .gk-hud .gk-hud-phase.is-foul:not(:empty) { color:var(--ink); }
 
-@container game (min-width: 1100px) {
+@container game (min-width: 1000px) {
   #gbody .rt.pl-fill { position: relative; padding-right: calc(4 * var(--space-64) + var(--space-16)); }
   #gbody .rt.pl-fill > .gk-hud { width: 100%; }
   #gbody .rt.pl-fill > .pl-live { position: absolute; right: 0; top: 50%; transform: translateY(-50%); width: calc(4 * var(--space-64)); }
@@ -145,4 +145,46 @@
 @container game (max-width: 560px) {
   #gbody .rt.pl-fill :is(#rInstruction, #rStatus) { height: var(--space-32); min-height: var(--space-32); }
   #gbody .rt.pl-fill #rTip { height: var(--space-24); min-height: var(--space-24); }
+}
+
+/* One viewport budget for the cabinet and results keeps the roster steady.
+ * The result fills the cabinet's space instead of leaving empty bands. */
+#gbody[data-game] .rt.pl-fill {
+ display: grid; height: var(--pl-stage-height); min-height: 0;
+ grid-template-rows: var(--control-h-sm) var(--space-32) minmax(0, 1fr) var(--space-32) var(--space-24) auto;
+ gap: var(--space-8); padding-top: var(--space-8); padding-bottom: var(--space-16);
+}
+#gbody[data-game] .rt.pl-fill > .gk-hud { position: static; width: 100%; }
+#gbody .rt.pl-fill :is(#rInstruction, #rStatus) { height: var(--space-32); min-height: var(--space-32); }
+#gbody .rt.pl-fill #rTip { height: var(--space-24); min-height: var(--space-24); }
+#gbody .rt.pl-fill .rt-pad {
+ min-height: 0; max-height: none; height: 100%; padding: var(--space-8);
+ grid-template-rows: var(--space-40) minmax(0, 1fr) var(--space-48); gap: var(--space-8);
+}
+#gbody .rt.pl-fill .rt-pad::before { width: min(100%, 100cqh, 160px); height: min(100%, 160px); aspect-ratio: 1; }
+#gbody .rt.pl-fill .rt-pad::after { height: var(--space-40); }
+#gbody .rt.pl-fill .rt-pad-label { height: var(--space-48); font: var(--text-title); }
+#gbody[data-game] .rt.pl-fill[data-phase="roundEnd"] { grid-template-rows: var(--control-h-sm) minmax(0, 1fr) auto; }
+.rt-result-stage { display: grid; align-content: center; justify-items: center; gap: var(--space-16); min-height: 0; padding: var(--space-16); border-radius: var(--radius-xl); background: var(--fam-soft); overflow: auto; }
+.rt-result-stage > * { margin: 0; }
+.rt-result-stage .wg-rows { width: 100%; }
+@container game (min-width: 1000px) {
+ #gbody[data-game] .rt.pl-fill { grid-template-rows: var(--control-h-sm) var(--space-32) minmax(0, 1fr) var(--space-32) var(--space-24); }
+ #gbody[data-game] .rt.pl-fill[data-phase="roundEnd"] { grid-template-rows: var(--control-h-sm) minmax(0, 1fr); }
+}
+@container game (max-width: 560px) {
+ #gbody[data-game] .rt.pl-fill { grid-template-rows: var(--space-64) var(--space-32) minmax(0, 1fr) var(--space-32) var(--space-24) auto; }
+ #gbody[data-game] .rt.pl-fill > .pl-live { position: static; transform: none; width: 100%; max-height: none; overflow: visible; }
+ #gbody[data-game] .rt.pl-fill[data-phase="roundEnd"] { grid-template-rows: var(--space-64) minmax(0, 1fr) auto; }
+}
+/* Explicit rows also work when the shared desktop HUD is out of flow. */
+#gbody[data-game] .rt.pl-fill { grid-template-columns: minmax(0, 1fr); justify-content: stretch; align-content: stretch; }
+#gbody .rt.pl-fill > #rInstruction { grid-row: 2; }
+#gbody .rt.pl-fill > #rPad { grid-row: 3; }
+#gbody .rt.pl-fill > #rStatus { grid-row: 4; }
+#gbody .rt.pl-fill > #rTip { grid-row: 5; }
+#gbody .rt.pl-fill > .rt-result-stage { grid-row: 2; }
+@container game (max-width: 999px) {
+ #gbody .rt.pl-fill > .pl-live { grid-row: 6; }
+ #gbody .rt.pl-fill[data-phase="roundEnd"] > .pl-live { grid-row: 3; }
 }

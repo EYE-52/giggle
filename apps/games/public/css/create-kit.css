@@ -260,3 +260,6 @@
 /* Primary actions use the named primary size; caption text stays ink. */
 .ck[data-family] .gk-btn.gk-primary { font:var(--text-primary); }
 .ck[data-family] :is(input,textarea)::placeholder { color:var(--ink-dim); opacity:1; }
+
+/* A short practice name, including '(you)', fits before truncating long names. */
+.ck[data-family] .ck-pname { white-space: normal; overflow-wrap: anywhere; }

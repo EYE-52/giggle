@@ -210,3 +210,34 @@ body.game-playing .game-stage > #gbody[data-game][data-layout] { flex: 0 0 var(-
 /* Size containment needs a scrollport for secondary content beyond the
  * standard game's height budget, including its Rules launcher. */
 #gbody[data-layout="standard"] { overflow:auto; overscroll-behavior:contain; }
+
+/* The sketchbook frame hugs the square paper. Its binding and caption
+ * have their own gutters rather than sitting on drawable pixels. */
+#gbody :is(.do-easel, .si-sketchbook) {
+  --paper-frame-height: max(calc(var(--game-paper-min) + var(--space-32)), calc(100cqh - 7 * var(--space-64)));
+  width: min(100%, var(--paper-frame-height)); height: var(--paper-frame-height);
+  min-height: 0; margin-inline: auto;
+}
+#gbody .si-sketchbook { --paper-frame-height: max(calc(var(--game-paper-min) + var(--space-64)), calc(100cqh - 7 * var(--space-64))); width: min(100%, calc(var(--paper-frame-height) - var(--space-24))); }
+#gbody .si-sketchbook { padding-top: var(--space-48); }
+#gbody .si-sketchbook .si-page-label { top: var(--space-8); right: var(--space-8); }
+
+/* Drawing owns the desktop stage; tools and players share the side rail. */
+@container game (min-width: 1000px) {
+ #gbody .b6-world:has(:is(.do-easel, .si-sketchbook)) {
+  grid-template-columns: minmax(0, 1fr) calc(4 * var(--space-64));
+  grid-template-rows: var(--control-h-sm) auto auto auto 1fr;
+  column-gap: var(--space-24); align-content: start;
+ }
+ #gbody .b6-world:has(:is(.do-easel, .si-sketchbook)) > :is(.party-hud, .b6-prompt) { grid-column: 1 / -1; }
+ #gbody .b6-world:has(:is(.do-easel, .si-sketchbook)) .b6-field { display: contents; }
+ #gbody :is(.do-easel, .si-sketchbook) { --paper-frame-height: max(calc(var(--game-paper-min) + var(--space-64)), calc(100cqh - 4 * var(--space-64))); grid-column: 1; grid-row: 3 / 6; }
+ #gbody .b6-world:has(:is(.do-easel, .si-sketchbook)) .b6-tools { grid-column: 2; grid-row: 3; align-self: start; flex-wrap: wrap; }
+ #gbody .b6-world:has(:is(.do-easel, .si-sketchbook)) .b6-actions { grid-column: 2; grid-row: 4; }
+ #gbody .b6-world:has(:is(.do-easel, .si-sketchbook)) > .pl-live { grid-column: 2; grid-row: 5; align-self: start; }
+ #gbody .b6-world:has(:is(.do-easel, .si-sketchbook)) > .pl-live .pl-seats { grid-template-columns: minmax(0, 1fr); }
+}
+@container game (max-width: 560px) {
+ /* A second roster row owns another spacing unit on the drawing desk. */
+ #gbody .b6-world:has(.pl-seat:nth-child(4)) :is(.do-easel, .si-sketchbook) { --paper-frame-height: max(calc(var(--game-paper-min) + var(--space-64)), calc(100cqh - 8 * var(--space-64))); }
+}

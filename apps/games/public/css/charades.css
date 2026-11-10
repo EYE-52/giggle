@@ -149,3 +149,8 @@ body.game-playing[data-game="charades"] {
   .ch.ck:not(.gk-final) { min-height: calc(100cqh - 2 * var(--space-64)); align-content: center; }
   .ch.ck:not(.gk-final) > .ch-players { align-self: center; }
 }
+
+/* Body cannot query the playfield container below it in the DOM. */
+@media (max-width: 1000px) {
+ body.game-playing[data-game="charades"] { background-image: none; }
+}

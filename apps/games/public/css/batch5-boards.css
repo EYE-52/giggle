@@ -207,3 +207,15 @@
 @container game (min-width: 760px) and (min-height: 760px) {
   .b5-game:is([data-seats="2"], [data-seats="3"], [data-seats="4"]) .bk-players { grid-template-columns: minmax(0, 1fr) !important; }
 }
+/* Board app chrome keeps the turn clock beside the turn instructions.
+ * The old round label is redundant, but its live clock is still needed. */
+#gbody .bk-game[data-family="board"].b5-game .b5-hud { display: contents; }
+#gbody .bk-game[data-family="board"].b5-game .b5-hud > :not(.gk-hud-timer) { display: none; }
+#gbody .bk-game[data-family="board"].b5-game .b5-hud .gk-hud-timer {
+ grid-area: status; align-self: center; justify-self: end; z-index: 1;
+ width: var(--space-64); min-width: 0; margin: 0; padding: var(--space-8);
+ border-radius: var(--radius-sm); background: var(--card); color: var(--ink);
+ font: var(--text-button-sm); font-variant-numeric: tabular-nums; text-align: center;
+}
+#gbody .bk-game[data-family="board"].b5-game .b5-hud .gk-hud-timer:empty { visibility: hidden; }
+#gbody .bk-game[data-family="board"].b5-game .bk-status { padding-right: calc(var(--space-64) + var(--space-8)); }

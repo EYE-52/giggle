@@ -393,14 +393,20 @@ body.game-playing:is(
 }
 
 @container game (max-width: 560px) {
-  #gbody .word-party .wp-actions { height: auto; grid-template-rows: var(--space-32) calc(var(--control-h-lg) / var(--round-zoom, 1)); }
+  #gbody .word-party .wp-actions { height: auto; grid-template-rows: minmax(var(--space-48), auto) calc(var(--control-h-lg) / var(--round-zoom, 1)); }
 }
 
-@container game (min-width: 1100px) {
+@container game (min-width: 1000px) {
   #gbody .word-party.pl-fill { position: relative; padding-right: calc(4 * var(--space-64) + var(--space-16)); align-content: center; min-height: var(--pl-stage-height); }
   #gbody .word-party > .party-hud { width: calc(100% + 4 * var(--space-64) + var(--space-16)); }
   #gbody .word-party .wp-play { height: auto; }
-  #gbody .word-party .wp-actions { height: auto; grid-template-rows: var(--space-32) var(--control-h-lg); }
+  #gbody .word-party .wp-actions { height: auto; grid-template-rows: minmax(var(--space-48), auto) var(--control-h-lg); }
   #gbody .word-party > .pl-live { position: absolute; right: 0; top: 50%; transform: translateY(-50%); width: calc(4 * var(--space-64)); max-height: calc(var(--pl-stage-height) - var(--space-64)); overflow: auto; scrollbar-width: thin; }
   #gbody .word-party > .pl-live .pl-seats { grid-template-columns: minmax(0, 1fr); }
 }
+
+/* Wrapped helper copy owns its row; the primary never paints over it. */
+#gbody .word-party .wp-status { height: auto; min-height: var(--space-48); }
+#gbody .word-party .wp-actions { height: auto; grid-template-rows: minmax(var(--space-48), auto) calc(var(--control-h-lg) / var(--round-zoom, 1)); }
+/* Six letter rows and the input must fit in the same reserved play track. */
+#gbody .word-party .wp-play { height: auto; min-height: min-content; }

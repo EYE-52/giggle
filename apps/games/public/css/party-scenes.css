@@ -823,7 +823,7 @@ body #gbody .pl-fill :is(button.gk-choice, button.party-choice):not(:disabled):a
 
 /* Short laptop rounds form one balanced group. The HUD and roster keep
  * their fixed seats, including when a tally or phase label changes. */
-@container game (min-width:1100px) {
+@container game (min-width:1000px) {
  #gbody .pl-fill:is(.party-scene--hot,.pick-world,.rt-scene) { justify-content:safe center; padding-top:calc(var(--space-8) + var(--control-h-sm) + var(--space-24)); }
  #gbody .pl-fill:is(.party-scene--hot,.pick-world,.rt-scene) > :is(.gk-hud,.party-hud) { position:absolute; top:var(--space-8); left:0; }
 }
@@ -843,17 +843,17 @@ body.game-playing:is([data-game="story-builder"],[data-game="would-you-rather"],
 /* Desktop party rounds reserve a roster column beside the game. Scores
  * cannot push the payoff or Next below the laptop fold. The HUD spans both
  * columns and the roster's top edge stays fixed across phase updates. */
-@container game (min-width:1100px) {
- #gbody .pl-fill[data-family="party"]:not(.tq) { position:relative; padding-right:calc(4 * var(--space-64) + var(--space-16)); }
- #gbody .pl-fill[data-family="party"]:not(.tq) > :is(.gk-hud,.party-hud) { width:calc(100% + 4 * var(--space-64) + var(--space-16)); }
- #gbody .pl-fill[data-family="party"]:not(.tq) > .pl-live { position:absolute; right:0; top:calc(var(--space-8) + var(--control-h-sm) + var(--space-16)); width:calc(4 * var(--space-64)); max-height:calc(var(--pl-stage-height,100cqh) - var(--space-64) - var(--space-16)); overflow:auto; margin:0; }
- #gbody .pl-fill[data-family="party"]:not(.tq) > .pl-live .pl-seats { grid-template-columns:minmax(0,1fr); }
+@container game (min-width:1000px) {
+ #gbody .pl-fill[data-family="party"] { position:relative; padding-right:calc(4 * var(--space-64) + var(--space-16)); }
+ #gbody .pl-fill[data-family="party"] > :is(.gk-hud,.party-hud) { width:calc(100% + 4 * var(--space-64) + var(--space-16)); }
+ #gbody .pl-fill[data-family="party"] > .pl-live { position:absolute; right:0; top:calc(var(--space-8) + var(--control-h-sm) + var(--space-16)); width:calc(4 * var(--space-64)); max-height:calc(var(--pl-stage-height,100cqh) - var(--space-64) - var(--space-16)); overflow:auto; margin:0; }
+ #gbody .pl-fill[data-family="party"] > .pl-live .pl-seats { grid-template-columns:minmax(0,1fr); }
  #gbody .likely-world .likely-results { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); }
  #gbody .likely-world .likely-row { padding:var(--space-8); }
  #gbody .likely-world .likely-row-body { gap:var(--space-4); }
 }
-@container game (min-width:1100px) {
- #gbody .pl-fill[data-family="party"]:not(.tq) > .pl-live .pl-head { height:calc(var(--space-48) + var(--space-24)); min-height:calc(var(--space-48) + var(--space-24)); align-content:center; }
+@container game (min-width:1000px) {
+ #gbody .pl-fill[data-family="party"] > .pl-live .pl-head { height:calc(var(--space-48) + var(--space-24)); min-height:calc(var(--space-48) + var(--space-24)); align-content:center; }
  /* An absolute HUD measures from the full stage, including its roster
   * gutter; it must not add that gutter to its width a second time. */
  #gbody .pl-fill[data-family="party"]:is(.party-scene--hot,.pick-world,.rt-scene) > :is(.gk-hud,.party-hud) { width:100%; }
@@ -880,7 +880,7 @@ body.game-playing:is([data-game="story-builder"],[data-game="would-you-rather"],
 #gbody[data-game] .pl-live .pl-dots > li { border-color: var(--line-strong); background: var(--line-strong); }
 #gbody[data-game] .pl-live .pl-dots > li.is-now { background: var(--card); border-color: var(--fam); }
 #gbody[data-game] .pl-live .pl-dots > li.is-done { background: var(--fam); }
-@container game (min-width: 1100px) {
+@container game (min-width: 1000px) {
   /* Centre the round and its compact roster as one stage below the HUD. */
   #gbody[data-game] .pl-fill:not(.b4-stage):not(.b6-world):not(.word-party):not(.b2-scene) {
     position: relative; min-height: var(--pl-stage-height); justify-content: safe center;
@@ -889,11 +889,11 @@ body.game-playing:is([data-game="story-builder"],[data-game="would-you-rather"],
   #gbody[data-game] .pl-fill:not(.b4-stage):not(.b6-world):not(.word-party):not(.b2-scene) > :is(.gk-hud, .party-hud) {
     position: absolute; top: var(--space-8); left: 0; width: 100%;
   }
-  #gbody[data-game] .pl-fill[data-family="party"]:not(.tq) > .pl-live {
+  #gbody[data-game] .pl-fill[data-family="party"] > .pl-live {
     top: var(--space-64); max-height: calc(var(--pl-stage-height) - var(--space-64));
     scrollbar-width: thin;
   }
-  #gbody[data-game] .pl-fill[data-family="party"]:not(.tq) > .pl-live .pl-seats { grid-template-columns: minmax(0, 1fr); }
+  #gbody[data-game] .pl-fill[data-family="party"] > .pl-live .pl-seats { grid-template-columns: minmax(0, 1fr); }
 }
 @container game (max-width: 560px) {
   #gbody[data-game] .pl-fill { gap: var(--space-8); padding-bottom: var(--space-16); }
@@ -936,8 +936,8 @@ body.game-playing:is([data-game="story-builder"],[data-game="would-you-rather"],
   #gbody[data-game] .pl-live .pl-state { max-width: 100%; }
 }
 
-@container game (min-width: 1100px) {
-  #gbody[data-game] .pl-fill[data-family="party"]:not(.tq) > .pl-live { top: 50%; transform: translateY(-50%); }
+@container game (min-width: 1000px) {
+  #gbody[data-game] .pl-fill[data-family="party"] > .pl-live { top: 50%; transform: translateY(-50%); }
 }
 
 @container game (max-width: 560px) {

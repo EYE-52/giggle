@@ -50,3 +50,9 @@
 .si-world .si-guess {
   min-height: var(--control-h-lg);
 }
+
+/* Rounded wire loops make the notebook binding recognisable. */
+.si-world .si-sketchbook::before {
+  width: var(--space-12); left: var(--space-4); top: var(--space-48);
+  background: radial-gradient(ellipse at center, transparent 0 25%, var(--outline) 30% 55%, transparent 60%) center top / var(--space-12) var(--space-24) repeat-y;
+}

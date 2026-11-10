@@ -150,11 +150,11 @@ function renderResults(el, S, t) {
   const isHost = S.me === S.hostId && !watch;
   el.innerHTML = `<section class="wg rt gk-col gk-stack" data-game="reaction-tap" data-phase="roundEnd" aria-label="Reaction Tap results">`
     + hudHtml({ round: roundLabel(S.round, S.rounds), phase: 'Results', progress: `${order.length} tapped`, timer: '' })
-    + `<h2 class="gk-prompt">${esc(headline)}</h2>`
+    + `<div class="rt-result-stage"><h2 class="gk-prompt">${esc(headline)}</h2>`
     + `<p class="wg-status${mine ? ' is-good' : ''}" role="status">${watch ? 'You are watching.' : mine ? `Your time: ${mine.ms} ms · +${mine.pts ?? 0}` : (S.last?.fouled || []).includes(S.me) ? 'You tapped before GO: +0' : 'You did not tap in time.'}</p>`
     + `<div class="wg-slot">${isHost ? '<button class="gk-btn gk-primary" id="rNext" type="button">Next</button>' : waitingHtml(S.round >= S.rounds ? 'Final scores are next' : (t.next_round || 'Next round soon'))}</div>`
     + (rows ? `<ol class="wg-rows" aria-label="Round times">${rows}</ol>` : '')
-    + `</section>`;
+    + `</div></section>`;
   const nx = el.querySelector('#rNext');
   if (nx) {
     nx.disabled = !!S.preparing;

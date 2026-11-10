@@ -290,6 +290,6 @@
   display: none;
 }
 
-@container game (min-width: 1100px) {
+@container game (min-width: 1000px) {
   #gbody .b6-world.pl-fill { min-height: var(--pl-stage-height); align-content: center; }
 }

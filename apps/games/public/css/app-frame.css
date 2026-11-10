@@ -28,3 +28,10 @@ body.is-embed[data-game] { --bg:var(--app-embed-bg); --card:var(--app-embed-card
 
 /* Game Day surfaces can be light while the Meet utilities stay dark. */
 body.is-embed :is(#roomMenu,.game-report-icon,.game-screen-toggle) { --card:var(--app-embed-card); --well:var(--app-embed-well); --ink:var(--app-embed-ink); --ink-dim:var(--app-embed-dim); }
+
+/* Long game names use the same single utility row as short names. */
+@media (max-width: 599px) {
+ body.game-playing .play-toolbar:has(.game-zoom) { flex-wrap: nowrap; }
+ body.game-playing .play-toolbar:has(.game-zoom) .play-title { min-width: 0; }
+ body.game-playing .play-toolbar .play-title h1 { font: var(--text-caption); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+}

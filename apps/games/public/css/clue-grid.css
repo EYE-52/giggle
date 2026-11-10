@@ -186,3 +186,7 @@
 @container game (max-width: 560px) {
   .cg-world .cg-grid.is-setup { height: calc(3 * var(--space-64)); }
 }
+
+/* Setup uses a compact crew card, with a full gap before reshuffling. */
+.cg-world .cg-grid.is-setup { height: auto; min-height: calc(2 * var(--space-64)); margin-bottom: var(--space-12); }
+.cg-world .cg-tools { min-height: var(--control-h-sm); }

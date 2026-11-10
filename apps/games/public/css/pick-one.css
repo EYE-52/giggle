@@ -6,13 +6,13 @@
 #gbody .pick-world .pick-text { display: block; font: 800 clamp(26px, 3.2cqw, 36px)/1.15 var(--font-display); color: var(--ink); overflow-wrap: anywhere; text-wrap: balance; }
 .pick-world .pl-pick { align-self: flex-start; }
 .pick-result { display: grid; gap: var(--space-8); }
-.pick-choices:not(.is-reveal) .pick-result { display: none; }
+.pick-choices:not(.is-reveal) .pick-result { visibility: hidden; }
 .pick-bar { height: 12px; border-radius: var(--radius-pill); background: var(--card); border: var(--outline-w) solid var(--outline); overflow: hidden; }
 .pick-fill { display: block; height: 100%; background: var(--side, var(--fam)); border-radius: inherit; }
 .pick-choice.is-majority { box-shadow: var(--shadow-sticker-lg), inset 0 0 0 3px var(--side); }
 #gbody .pick-world .pick-count { color: var(--ink); font: var(--text-caption); font-weight: 800; font-variant-numeric: tabular-nums; }
 .pick-status { min-height: var(--control-h-sm); }
-.pick-actions:not(:has(> :not([hidden]))) { display: none; }
+.pick-actions:not(:has(> :not([hidden]))) { visibility: hidden; }
 @container game (max-width: 560px) {
   #gbody .pl-fill .pick-world .pl-ab.is-duo, #gbody .pick-world.pl-fill .pl-ab.is-duo { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-8); }
   #gbody .pick-world.pl-fill .pl-ab.is-duo > .gk-choice { flex-direction: column; align-items: flex-start; padding: var(--space-12); }
@@ -82,3 +82,14 @@ body.game-playing[data-game="pick-one"] {
 
 /* Decorative scene silhouette; colours follow the Day/Night game skin. */
 body.game-playing[data-game="pick-one"] { --pl-scene-art:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%201000%20600%22%3E%3Cg%20fill%3D%22none%22%20stroke%3D%22white%22%20stroke-width%3D%228%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M40%20555v-60h230v60m-250%200h270M730%20555v-60h230v60m-250%200h270M85%20450l-25-160%20105-20%2075%20140zM770%20450l-10-170%20110%203%2050%20158zM25%20180l145%20315M975%20180%20830%20495M50%20155l200%20340M950%20155%20750%20495%22%2F%3E%3Ccircle%20cx%3D%2232%22%20cy%3D%22155%22%20r%3D%2226%22%2F%3E%3Ccircle%20cx%3D%22968%22%20cy%3D%22155%22%20r%3D%2226%22%2F%3E%3Cpath%20d%3D%22m130%20360%2015%2012%2029-39m637%202%2028%2038m0-38-28%2038M350%20565h300M400%20590h200%22%2F%3E%3C%2Fg%3E%3C%2Fsvg%3E"); }
+
+/* Keep the tally and host action slots through vote, lock and reveal. */
+#gbody .pick-world .pick-result { display: flex; flex-wrap: wrap; align-content: start; justify-content: center; gap: var(--space-8); width: 100%; min-height: calc(var(--space-64) + var(--space-32)); }
+#gbody .pick-world .pick-bar { flex: 1 0 100%; }
+#gbody .pick-world .pick-actions { min-height: var(--control-h-lg); }
+#gbody .pick-world .pick-body { position: relative; }
+#gbody .pick-world .pl-pick { position: absolute; bottom: 0; }
+/* A full group can pick one side. Names scroll inside their tally slot. */
+#gbody .pick-world .pick-result { display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: var(--space-12) var(--space-40) var(--space-64); min-height: 0; height: calc(2 * var(--space-64) + var(--space-4)); }
+#gbody .pick-world .pick-count { align-self: center; }
+#gbody .pick-world .pick-voters { align-content: start; justify-content: center; max-height: var(--space-64); overflow: auto; }

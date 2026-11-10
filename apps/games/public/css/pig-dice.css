@@ -46,3 +46,7 @@
   .pd-game .pd-pot b { font-size: 32px; }
   .pd-game .pd-reason { display: none; }
 }
+
+/* The turn total has its own place above the pig, at every board size. */
+.pd-game .pd-pot { position: static; transform: none; color: var(--ink); order: -1; }
+.pd-game .pd-coins { left: var(--space-16); top: var(--space-16); }
