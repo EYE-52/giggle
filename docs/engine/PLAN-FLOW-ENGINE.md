@@ -139,3 +139,50 @@ seeds with numeric assertions and a checked-in example report. Run the full
 `npm test` in `apps/games`. If it builds pages, commit generated game HTML; remove
 `public/release.json` if created and restore the kart launch transport artifact.
 Commit with `Co-Authored-By: Codex <noreply@openai.com>`. No push or deployment.
+
+
+## Implementation and validation results
+
+Implemented locally on `claude/flow-engine`; main implementation commit
+`e1923cb2`. The engine lives in `apps/games/games/engines/flow/` with no new runtime
+dependencies. It includes the typed API, runtime lint, scoped qualities,
+completion-only effects, rule groups, phase graph, dwell, breathers, weighted
+sampling, player/pair exposure, literal-safe templates, private snapshots and a
+simulator CLI. See [the author guide](README.md) and
+[the runnable content example](examples/party.json).
+
+Truth or Dare and Never Have I Ever now use the engine for prompt dealing. Their
+existing action phases, timers, votes, scores, custom writing and public views
+remain in their game servers. Instant prompt adapters reject activity effects;
+unchosen pool options cannot grant prerequisites. The adult branch was only read,
+not edited. Its independent per-pair graph cursors remain later adapter work.
+
+Validation completed on Node `v24.21.0`:
+
+- `npm test` in `apps/games`: passed, exit 0. This includes the existing server,
+  transport, renderer and browser checks. The final container sweep checked all
+  72 games with 1,224 measurements and zero failures; telemetry browser checks
+  also passed.
+- `npm run test:flow`: 24 test groups passed. Tests cover seeds/replay, scoped
+  conditions/effects, graph/dwell/prerequisites, skip behavior, breathers,
+  weighted selection, novelty/recency, player/pair assignments, content/grammar
+  safety, atomic failure, private state, real game matches and CLI exit codes.
+- `npm run build`: passed, generated 72 game pages. No tracked generated HTML
+  changed.
+- Public declarations and a typed caller were checked with TypeScript 6.0.3
+  using strict/no-emit checking, including expected invalid-quality/card/effect
+  cases. Passed; TypeScript was used through npm exec, not added as a dependency.
+- Simulator: 500 sessions, six players, up to 60 turns, seed `stress`, skip chance
+  0.1. All 500 completed; zero dead ends or repeated card IDs; 500 distinct
+  ordered paths, both phase branches, all 38 cards reached, maximum player
+  exposure spread 1. Full metrics are in
+  [simulation-report.json](examples/simulation-report.json).
+
+The initial full run found a deadline fixture that assumed global `Math.random`
+controlled every source of randomness. The two comparison rooms now receive the
+same explicit `flowSeed`. All assertions remain: 32 expired windows still match
+clock-driven timeout results and award points exactly once. The fresh full run
+then passed.
+
+The generated `artifacts/kart-arenas/launch-transport.json` was restored and
+`apps/games/public/release.json` is absent. No push or deployment was performed.
