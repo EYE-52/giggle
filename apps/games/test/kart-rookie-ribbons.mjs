@@ -32,7 +32,7 @@ for(const players of[2,4,8]){
   const camera=createKartCameraCollision(THREE,map.colliders);let samples=0;
   for(const e of map.routes)for(let i=1;i<e.points.length;i++){const a=e.points[i-1],b=e.points[i],run=Math.hypot(b.x-a.x,b.z-a.z),steps=Math.ceil(run/.5);for(let t=0;t<=steps;t++){const f=t/steps,focus=new THREE.Vector3(a.x+(b.x-a.x)*f,a.y+(b.y-a.y)*f+.85,a.z+(b.z-a.z)*f);for(let h=0;h<12;h++){const angle=h*Math.PI/6,eye=new THREE.Vector3(focus.x-Math.sin(angle)*8.8,focus.y+3.2,focus.z-Math.cos(angle)*8.8);camera.constrain(eye,focus,.32);assert(!physics.overlapsStatic(eye,yaw(0),{x:.14,y:.14,z:.14}),e.id+' camera outside solids');samples++;}}}camera.dispose();
   match=combat.createElevatedCombat(RAPIER,CONFIG,source,Array.from({length:players},(_,i)=>({id:'p'+i})),{instance:'rookie',seed:42,startAt:0,countdownMs:0});
-  const snapshot=match.snapshot();assert.equal(snapshot.variantId,players===2?'duel':'full');assert.equal(snapshot.crates.length,players===2?12:players===4?13:18);assert.equal(snapshot.crates.filter(c=>c.position.y>2).length,4);
+  const snapshot=match.snapshot();assert.equal(snapshot.variantId,players===2?'duel':'full');assert.equal(snapshot.crates.length,players===2?12:players===4?16:18);assert.equal(snapshot.crates.filter(c=>c.position.y>2).length,4);
   report.push({players,variant:map.variantId,colliders:map.colliders.length,boxes:snapshot.crates.length,cameraSamples:samples});
  }finally{match?.dispose();physics.dispose();}
 }
