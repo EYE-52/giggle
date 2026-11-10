@@ -21,6 +21,90 @@ security response, provider access, topology and current rollback pairs.
 The historical production checkpoints below are not a claim of current
 provider state.
 
+## Games automatic problem inbox
+
+This is implemented in `apps/games`; it becomes available after a normal
+reviewed Games release. It has not been deployed by the monitoring task.
+
+- Open `https://play.gigglemeet.com/reports/`, use the existing private
+  report inbox key, and choose **Problems**. Filter by game, type, release,
+  time period and status. Counts rank the top 100 groups. Mark a group
+  **Triaged** or **Resolved**. A new occurrence reopens a resolved group.
+- Use the same `GAME_REPORT_DB` as player reports. In Railway, keep the
+  existing persistent `/data/reports.sqlite` volume and
+  `GAME_REPORT_ADMIN_TOKEN` (at least 32 characters). Without a configured
+  database in production, capture stays disabled. Do not use a temporary
+  filesystem for this store. No extra service or account is needed.
+- `GAME_REPORT_TRUST_RAILWAY=1` trusts Railway ingress `X-Real-IP` only
+  when `RAILWAY_ENVIRONMENT_ID` is also present. Enable it only on the
+  Railway service behind its trusted ingress. Direct/local servers ignore
+  forwarding headers. IP addresses are used only for a short memory limit;
+  they are never saved. Each IP can send 60 batches per minute, with at most
+  20 events and 16 KiB per batch.
+
+From `apps/games`, an agent can read production through the protected API.
+The command reuses `GAME_REPORT_ADMIN_TOKEN` or the existing private
+`GAME_REPORT_ACCESS_FILE` used by `npm run reports`. Keep keys out of Git
+and command arguments.
+
+```sh
+GAME_REPORT_URL=https://play.gigglemeet.com node scripts/telemetry-digest.js --since 24h
+GAME_REPORT_URL=https://play.gigglemeet.com node scripts/telemetry-digest.js --since 24h --json
+```
+
+To read the mounted database inside the linked Railway Games service:
+
+```sh
+railway ssh --service giggle-play -- sh -lc 'cd /app && node scripts/telemetry-digest.js --since 24h --json'
+```
+
+Local development uses `.data/reports.sqlite` by default. Set
+`GAME_REPORT_DB` to inspect another local store. The digest also accepts
+`--game`, `--type`, `--release` and `--status`. `--since` accepts minutes,
+hours or days, from `1m` to `15d`, so the previous equal period fits in
+the 30-day history. `SPIKE` means at least 10 observations and at least
+twice the previous period. Counts use minute buckets; the current minute
+may be incomplete. These are sampled observations, not unique users or
+an error rate. Compare the same release and sampling policy when triaging.
+
+The Games `/health` endpoint exposes only stored counts and storage
+availability under `telemetry`; it never exposes problem messages or
+selectors. This is the Games host, separate from Meet's API `/health`.
+Vercel proxies the exact telemetry, triage and health routes to Games.
+
+The browser batches events after five seconds, sends at most two batches
+of ten events per minute, and suppresses repeated local fingerprints for
+ten seconds. Layout shifts, long tasks and routine frame summaries are
+sampled at 10%; errors, failed loads, reconnect loops and sustained low
+FPS are retained within those limits. Hidden tabs, hidden practice seats
+and tabs with no input for 60 seconds send nothing. Failed sends are
+dropped without retry or persistent browser queues. The early hook is
+under 2 KiB gzip, with a separate small performance observer module.
+Pocket Karts reuses the existing frame sampler: five-second windows
+report FPS and frame-time p95, and two poor windows (FPS below 30 or p95
+above 50 ms) flag low FPS. Groups include map, device class and device tier.
+Device tier is a coarse CPU/memory hint, not a hardware identifier.
+Routine frame samples stay out of the default problem list; use
+`--type frame-summary` or that type in the inbox to inspect them.
+
+Only fixed error/asset labels, structural element selectors, game,
+screen/phase, release, coarse browser/device facts and eight short event
+breadcrumbs are accepted. No raw exception text, stack, URL, DOM text,
+DOM ids/classes, user agent, names, chat, room code, ticket or player
+identity is sent. To investigate, use game/type/selector and reproduce in
+practice. Capture pages set `no-referrer` so beacon request headers cannot
+attach a room URL or its query parameters. Attach the existing local run
+log to a player report when more timing detail is needed. HTML builds add
+the early hook to every authored game document; other game-owned files
+remain unchanged.
+
+SQLite retains 30 days of telemetry and caps it at 5,000 release groups
+and 100,000 minute counters. Cleanup runs on ingest or read, at most once
+per minute, and removes old groups first when caps are reached. Existing
+player reports have their own rules. Run `npm run test:telemetry` for the
+unit and real Chromium practice-to-digest checks; these also run in
+`npm test`.
+
 ## Current production setup
 
 Last verified: **4 October 2026 (Asia/Kolkata)**. This section records the live setup; the provisioning and release requirements below also cover work that is not yet enabled.

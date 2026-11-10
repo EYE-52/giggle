@@ -8,9 +8,10 @@ const source = fs.readFileSync(require.resolve('../public/js/app.js'), 'utf8');
 const code = source.slice(source.indexOf('function openSocket() {'), source.indexOf('\nfunction paintConn()', source.indexOf('function openSocket() {')));
 const contextCode = source.match(/context: \(\) => \((\{[^\n]+\})\),/)[1];
 const admissionCode = source.match(/(const audioBaseline = !ws\?\.hasGameState;[\s\S]*?if \(ws\) ws\.hasGameState = true;)/)[1];
-const sockets = [], events = [], received = [], timers = new Map();
+const sockets = [], events = [], received = [], monitored = [], timers = new Map();
 let sequence = 0, clears = 0, clocks = 0, renders = 0, soundStops = 0;
 const ctx = {
+  socketCloses: [], telemetry: { capture: type => monitored.push(type) },
   ws: null, publicConfig: {}, location: { protocol: 'http:', host: '127.0.0.1:8446' },
   runLog:{event(){},snapshot(){},pause(){},finish(){}},
   wsTargetFromConfig: () => null,
@@ -45,6 +46,7 @@ ctx.qa(); const live = sockets[1];
 const timerBefore = ctx.socketStartTimer;
 old.onopen(); old.onmessage({ data: '{"t":"state","instanceId":"retired"}' }); old.onclose({ code: 1006 });
 assert.equal(events.length, 0, 'retired close cannot stop the replacement game');
+assert.equal(monitored.length, 0, 'retired socket callbacks cannot report false disconnects');
 assert.equal(received.length, 0, 'retired socket cannot replace the current snapshot');
 assert.equal(clears + clocks + renders, 0, 'retired events cannot clear timers, clocks, requests or view');
 assert.equal(soundStops, 0, 'retired socket cannot stop the current game audio');
@@ -58,6 +60,7 @@ assert.equal(received[0].instanceId, 'current');
 ctx.admitState();
 assert.equal(ctx.connection(), true, 'first current game state admits a recovered seat');
 live.readyState = 3; live.onclose({ code: 1006 });
+assert(monitored.includes('socket-close'), 'current disconnect reaches automatic monitoring');
 assert.equal(ctx.connection(), false, 'closed connection cannot collect held inputs');
 assert.equal(events.length, 1, 'current disconnect releases held game inputs once');
 assert.equal(events[0].type, 'game-screenchange');

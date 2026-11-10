@@ -7,7 +7,7 @@ const os = require('node:os');
 const { pathToFileURL } = require('node:url');
 const { spawnSync } = require('node:child_process');
 const { validateManifest } = require('../games/_validate');
-const { build } = require('../scripts/build-game-pages');
+const { build, instrumentHtml } = require('../scripts/build-game-pages');
 const registry = require('../games/registry');
 const ROOT = path.join(__dirname, '..');
 function emitter() {
@@ -61,12 +61,12 @@ function emitter() {
     const game = { ...registry.list().find(g => g.id === 'chain-reaction'), id: 'any-game', homepage: true, runtime: { type: 'frame', entry: 'build/index.html' } };
     const publicDir = path.join(tmp, 'public');
     build({ publicDir, games: [game], gamesDir: path.join(tmp, 'games') });
-    assert.equal(fs.readFileSync(path.join(publicDir, 'games/any-game/index.html'), 'utf8'), home);
+    assert.equal(fs.readFileSync(path.join(publicDir, 'games/any-game/index.html'), 'utf8'), instrumentHtml(home));
     const packed = fs.readFileSync(path.join(publicDir, 'game-assets/any-game/build/engine.wasm'));
     assert.deepEqual(packed, wasm); assert.equal((await WebAssembly.instantiate(packed)).instance.exports.answer(), 42);
     fs.symlinkSync(path.join(source, 'home/index.html'), path.join(source, 'home/leak.html'));
     assert.throws(() => build({ publicDir, games: [game], gamesDir: path.join(tmp, 'games') }), /symlink/);
-    assert.equal(fs.readFileSync(path.join(publicDir, 'games/any-game/index.html'), 'utf8'), home, 'failed preflight leaves previous build intact');
+    assert.equal(fs.readFileSync(path.join(publicDir, 'games/any-game/index.html'), 'utf8'), instrumentHtml(home), 'failed preflight leaves previous build intact');
     fs.unlinkSync(path.join(source, 'home/leak.html'));
     fs.writeFileSync(path.join(source, 'home/.env'), 'fixture-only');
     assert.throws(() => build({ publicDir, games: [game], gamesDir: path.join(tmp, 'games') }), /private/);

@@ -252,7 +252,8 @@ function renderSitemap(games) {
     urls.map((u) => `  <url><loc>${esc(u)}</loc></url>`).join('\n') + `\n</urlset>\n`;
 }
 
-/* Copy trusted game-owned browser exports byte-for-byte. Refuse links and
+/* Copy trusted game-owned browser exports; HTML gets the early error hook.
+ * Everything else stays byte-for-byte. Refuse links and
  * hidden/dependency trees so a mistaken source folder cannot publish .env,
  * repository metadata or files outside the game. Rendering is unrestricted. */
 function assetFiles(source, relative = '') {
@@ -270,6 +271,13 @@ function assetFiles(source, relative = '') {
     else throw new Error(`Unsupported asset: ${file}`);
   }
   return out;
+}
+
+function instrumentHtml(html) {
+  const hook = '<meta name="referrer" content="no-referrer">\n<script src="/js/telemetry.min.js"></script>';
+  if (html.includes(hook)) return html;
+  if (/<head\b[^>]*>/i.test(html)) return html.replace(/<head\b[^>]*>/i, head => head + '\n' + hook);
+  return html.replace(/^(\s*<!doctype[^>]*>)?/i, start => start + '\n' + hook);
 }
 
 /* Build pages for `games` (registry list shape) into publicDir/games/.
@@ -303,7 +311,8 @@ function build({ publicDir, games, gamesDir = path.join(ROOT, 'games') }) {
     for (const { file, rel } of files) {
       const target = path.join(dest, rel);
       fs.mkdirSync(path.dirname(target), { recursive: true });
-      fs.copyFileSync(file, target);
+      if (rel.endsWith('.html')) fs.writeFileSync(target, instrumentHtml(fs.readFileSync(file, 'utf8')));
+      else fs.copyFileSync(file, target);
     }
   };
   for (const g of games) {
@@ -319,7 +328,7 @@ function build({ publicDir, games, gamesDir = path.join(ROOT, 'games') }) {
     else {
       fs.rmSync(dir, { recursive: true, force: true });
       fs.mkdirSync(dir, { recursive: true });
-      fs.writeFileSync(path.join(dir, 'index.html'), renderPage({ ...g, id }, publicDir));
+      fs.writeFileSync(path.join(dir, 'index.html'), instrumentHtml(renderPage({ ...g, id }, publicDir)));
     }
     if (owned?.browser) { framed.add(id); copy(owned.browser, path.join(assetsRoot, id)); }
   }
@@ -343,4 +352,4 @@ if (require.main === module) {
   console.log(`game-pages: wrote ${count} pages + sitemap.xml`);
 }
 
-module.exports = { build, renderPage, renderSitemap, safeId, esc, splitHowto, pills, assetFiles };
+module.exports = { build, renderPage, renderSitemap, safeId, esc, splitHowto, pills, assetFiles, instrumentHtml };

@@ -191,9 +191,11 @@ async function loadCatalog() {
   empty('Shuffling the games…', '', true);
   try {
     timer = setTimeout(() => { controller.abort(); socket?.close(); }, 8000);
-    const response = await fetch('/config.json', { signal: controller.signal, cache: 'no-store' });
-    if (!response.ok) throw new Error('Config unavailable');
-    const config = await response.json();
+    const config = await (window.GiggleTelemetry?.configPromise || Promise.resolve(null)).then(cached => cached || fetch('/config.json', { signal: controller.signal, cache: 'no-store' }).then(response => {
+      if (!response.ok) throw new Error('Config unavailable');
+      return response.json();
+    }));
+    window.GiggleTelemetry?.configure(config);
     if (config.ok !== true) throw new Error('Config unavailable');
     const override = wsTargetFromConfig(config, { allowWs: location.protocol !== 'https:' });
     socket = new WebSocket(override || `${location.protocol === 'https:' ? 'wss:' : 'ws:'}//${location.host}`);

@@ -220,6 +220,7 @@ const reportApi = createReportApi({
   file: process.env.GAME_REPORT_DB || (process.env.NODE_ENV !== 'production' ? path.join(ROOT, '.data', 'reports.sqlite') : ''),
   token: process.env.GAME_REPORT_ADMIN_TOKEN,
   gameIds: new Set(registry.list().map(game => game.id)),
+  maps: new Set(registry.list().find(game => game.id === 'pocket-karts')?.schema?.settings?.find(setting => setting.key === 'map')?.options || []),
   catalog: registry.list().map(({ id, name }) => ({ id, name })),
   version: releaseVersion,
   trustRailwayProxy: process.env.GAME_REPORT_TRUST_RAILWAY === '1' && !!process.env.RAILWAY_ENVIRONMENT_ID,
@@ -235,9 +236,14 @@ const server = http.createServer(async (req, res) => {
     res.setHeader('Content-Security-Policy', frameAncestorsPolicy());
   };
   const reqPath = String(req.url || '').split('?')[0];
-  if (reqPath === '/api/reports' || reqPath.startsWith('/api/reports/')) {
+  if (reqPath === '/api/reports' || reqPath.startsWith('/api/reports/') || reqPath === '/api/telemetry' || reqPath.startsWith('/api/telemetry/')) {
     setFraming();
     await reportApi.handle(req, res);
+    return;
+  }
+  if (req.method === 'GET' && reqPath === '/health') {
+    res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' });
+    res.end(JSON.stringify({ ok: true, telemetry: reportApi.telemetryCounts() }));
     return;
   }
   if (req.method === 'GET' && reqPath === '/qr.svg') {
@@ -297,6 +303,7 @@ const server = http.createServer(async (req, res) => {
       deploymentId: process.env.RAILWAY_DEPLOYMENT_ID || null,
       reportingEnabled: reportApi.enabled,
       reportingUrl: publicWebsocketUrl() ? publicWebsocketUrl().replace(/^ws/, 'http') + '/api/reports' : '/api/reports',
+      telemetryUrl: '/api/telemetry',
     }));
     return;
   }

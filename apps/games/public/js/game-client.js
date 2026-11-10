@@ -23,9 +23,10 @@ export function createGameClient({ window: win = globalThis.window } = {}) {
     const d = event.data;
     if (!d.state || typeof d.state !== 'object' || !Number.isFinite(d.serverNow)) return;
     state = d.state; context = d.context || {};
+    win.GiggleTelemetry?.context({ game: state.game, screen: 'game', phase: state.preparing ? 'loading' : state.phase === 'done' ? 'done' : 'playing', map: state.map?.label || state.map?.name || state.map?.id || '' });
     anchor = { server: d.serverNow, local: monotonic() };
-    for (const fn of listeners) { try { fn(state, context); } catch (error) { diagnostic('runtime-error'); console.error('Game snapshot subscriber failed', error); } }
-    for (const fn of voiceListeners) { try { fn(context.voice || {}); } catch (error) { console.error('Game voice subscriber failed', error); } }
+    for (const fn of listeners) { try { fn(state, context); } catch (error) { diagnostic('runtime-error'); win.GiggleTelemetry?.capture('runtime-error', 'Error'); console.error('Game snapshot subscriber failed', error); } }
+    for (const fn of voiceListeners) { try { fn(context.voice || {}); } catch (error) { win.GiggleTelemetry?.capture('runtime-error', 'Error'); console.error('Game voice subscriber failed', error); } }
   }
   win.addEventListener('message', handle);
   const unlockAudio = event => {

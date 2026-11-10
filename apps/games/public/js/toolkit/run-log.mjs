@@ -5,10 +5,11 @@ import { RUN_EVENTS as EVENTS, sanitizeRunLog } from './run-log-schema.mjs';
 const finite = value => typeof value === 'number' && Number.isFinite(value) && value >= 0;
 const rounded = value => Math.round(value * 100) / 100;
 
-export function createRunLog({ now = () => performance.now(), storage, requestFrame = globalThis.requestAnimationFrame, cancelFrame = globalThis.cancelAnimationFrame, visible = () => !globalThis.document?.hidden } = {}) {
+export function createRunLog({ now = () => performance.now(), storage, requestFrame = globalThis.requestAnimationFrame, cancelFrame = globalThis.cancelAnimationFrame, visible = () => !globalThis.document?.hidden, onFrames } = {}) {
   try { storage ??= globalThis.localStorage; } catch { storage = null; }
   let current = null, identity = null, raf = 0, lastFrame = 0, lastSave = 0, playableSnapshot = null;
   let history = [];
+  let monitorAt = 0, monitorCount = 0;
   try { const text = storage?.getItem(KEY) || '[]'; const saved = text.length < 100000 ? JSON.parse(text) : []; if (Array.isArray(saved)) history = saved.slice(-10).map(item => sanitizeRunLog(item)).filter(Boolean); } catch { /* Private mode or a corrupt local record must not affect play. */ }
   const sample = (list, value) => { if (finite(value)) { list.push(value); if (list.length > 1800) list.shift(); } };
   const percentile = (list, p) => { const sorted = [...list].sort((a, b) => a - b); return sorted.length ? rounded(sorted[Math.ceil(sorted.length * p) - 1]) : 0; };
@@ -50,7 +51,15 @@ export function createRunLog({ now = () => performance.now(), storage, requestFr
         if (interval > 50) { current.longFrames++; span('frame', now(), interval); }
       }
       lastFrame = time;
-    } else lastFrame = 0;
+    } else { lastFrame = 0; monitorAt = time; monitorCount = current.frameCount; }
+    if (onFrames && current.game === 'pocket-karts' && current.playing && visible() && time - monitorAt >= 5000) {
+      const frames = current.frames.slice(-Math.min(current.frames.length, current.frameCount - monitorCount));
+      if (frames.length >= 30 && current.frameCount > monitorCount) {
+        const total = frames.reduce((sum, ms) => sum + ms, 0);
+        if (total >= 4000) { try { onFrames({ fps: rounded(1000 * frames.length / total), p95: percentile(frames, .95) }); } catch { /* Monitoring never interrupts play. */ } }
+      }
+      monitorAt = time; monitorCount = current.frameCount;
+    }
     if (now() - lastSave >= 5000) save();
     if (requestFrame) raf = requestFrame(frame);
   }
@@ -67,6 +76,7 @@ export function createRunLog({ now = () => performance.now(), storage, requestFr
       snapshots: 0, snapshotGapMaxMs: 0, rendererSampleCount: 0, drawCallsMax: 0, trianglesMax: 0, geometriesMax: 0, texturesMax: 0,
       frames: [], render: [], events: [], counts: {}, timings: { frame: [], render: [], snapshot: [] } };
     lastSave = now(); lastFrame = 0; playableSnapshot = null;
+    monitorAt = now(); monitorCount = 0;
     if (requestFrame) raf = requestFrame(frame);
   }
   function snapshot(state) {
@@ -113,7 +123,7 @@ export function createRunLog({ now = () => performance.now(), storage, requestFr
     }
   }
   function latest(game) { const records = [...history, summary()].filter(Boolean); return records.reverse().find(item => !game || game === 'platform' || item.game === game) || null; }
-  function pause() { if (current) current.playing = false; lastFrame = 0; playableSnapshot = null; }
-  const visibility = () => { lastFrame = 0; playableSnapshot = null; };
+  function pause() { if (current) current.playing = false; lastFrame = 0; playableSnapshot = null; monitorAt = now(); monitorCount = current?.frameCount || 0; }
+  const visibility = () => { lastFrame = 0; playableSnapshot = null; monitorAt = now(); monitorCount = current?.frameCount || 0; };
   return { snapshot, event, renderFrame, finish, save, latest, pause, visibility };
 }

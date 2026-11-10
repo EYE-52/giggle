@@ -114,7 +114,12 @@ async function main() {
   const buildPkg = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8'));
   assert.match(buildPkg.scripts.build, /vendor/);
   assert.match(buildPkg.scripts.build, /build:pages/);
-  assert.equal(vercel.rewrites.length, 5, 'Only config, QR, two report endpoints and the room route');
+  assert.equal(vercel.rewrites.length, 8, 'Only config, QR, report/telemetry endpoints, health and the room route');
+  assert.deepEqual(vercel.rewrites.slice(5), [
+    { source: '/api/telemetry', destination: 'https://giggle-play-production.up.railway.app/api/telemetry' },
+    { source: '/api/telemetry/:id', destination: 'https://giggle-play-production.up.railway.app/api/telemetry/:id' },
+    { source: '/health', destination: 'https://giggle-play-production.up.railway.app/health' },
+  ]);
   assert.deepEqual(vercel.rewrites[0], {source:'/api/reports', destination:'https://giggle-play-production.up.railway.app/api/reports'});
   assert.deepEqual(vercel.rewrites[1], {source:'/api/reports/:id', destination:'https://giggle-play-production.up.railway.app/api/reports/:id'});
   assert.deepEqual(vercel.rewrites[2],
@@ -128,7 +133,7 @@ async function main() {
     assert(!r.destination.includes('?'), 'no declared query, so Vercel forwards the incoming query');
   }
   const external = vercel.rewrites.filter((r) => /^https?:\/\//.test(r.destination));
-  assert.equal(external.length, 4, 'four bounded backend HTTP endpoints');
+  assert.equal(external.length, 7, 'seven bounded backend HTTP endpoints');
   assert(!vercelRaw.includes('wss:') && !vercelRaw.includes('"ws:'), 'no WS proxy through Vercel');
   assert(!vercelRaw.includes('*'), 'no wildcard anywhere');
   assert(!/secret|ticket|GAME_BRIDGE/i.test(vercelRaw), 'no secret material');

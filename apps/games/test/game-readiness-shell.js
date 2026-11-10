@@ -6,13 +6,14 @@ const source = fs.readFileSync(require.resolve('../public/js/app.js'), 'utf8');
 const apiCode = source.slice(source.indexOf('const api = {'), source.indexOf('\nfunction isHost()', source.indexOf('const api = {')));
 const timerCode = source.slice(source.indexOf('function startTimer('), source.indexOf("\ndocument.addEventListener('click'", source.indexOf('function startTimer(')));
 const preparationCode = source.slice(source.indexOf('function paintGamePreparation()'), source.indexOf('\nfunction paintGameLoadError(', source.indexOf('function paintGamePreparation()')));
-const packets = [], clicks = [], ticks = [];
+const packets = [], clicks = [], ticks = [], monitored = [];
 const fill = { style: {} }, text = { hidden: true, textContent: '' };
 const bar = { hidden: true, firstElementChild: fill, classList: { toggle() {} } };
 const body = { inert: false, setAttribute() {} }, preparation = { hidden: true, classList: { toggle() {} } };
 const pageBody = {};
 const noop = () => {};
 const ctx = {
+  telemetry: { capture: (...args) => monitored.push(args) },
   serverClock: { now: () => 12000 }, lastState: { instanceId: 'match-a', w: '1|vote', preparing: true, gameNow: 8000, clockOffset: 4000, endsAt: 18000, phase: 'vote', phaseStartedAt: 8000 },
   ws: { readyState: 1 }, instanceId: 'match-a', gameId: 'would-you-rather', room: null,
   send: value => packets.push(value), sound: { click: () => clicks.push('click'), tick: () => ticks.push('tick') },
@@ -28,6 +29,9 @@ const ctx = {
 vm.createContext(ctx);
 vm.runInContext(apiCode + '\n' + timerCode + '\n' + preparationCode + '\nglobalThis.qa = { api, startTimer, paintGamePreparation, rememberPreparationFocus, restorePreparationFocus };', ctx);
 const { api, startTimer, paintGamePreparation } = ctx.qa;
+api.diagnostics.event('fire'); assert.equal(monitored.length, 0, 'gameplay diagnostics stay local');
+api.diagnostics.event('render-error'); api.diagnostics.event('webgl-lost');
+assert.equal(JSON.stringify(monitored), JSON.stringify([['render-error', 'failed'], ['webgl-lost', 'context-lost']]));
 paintGamePreparation();
 assert.equal(body.inert, true, 'ordinary game inputs remain inert during preparation');
 ctx.gameById = () => ({ runtime: { type: 'frame' } });
