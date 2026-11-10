@@ -557,8 +557,8 @@ export function renderCameraParty(el, S, api) {
   const spotlight = S.mode === 'spotlight';
   if (S.phase === 'perform') {
     sub = spotlight
-      ? (S.actor === you && !S.spectator ? 'You are on. Perform it on camera, then tap “Done, judge me”.' : `${nameOf(S, S.actor)} is performing. Watch the call.`)
-      : S.spectator ? 'Everyone is hunting for it. Watch the call.' : 'Find it, hold it up to your camera, then tap I found it.';
+      ? (S.actor === you && !S.spectator ? 'You are on. Perform on camera, then mark yourself done.' : `${nameOf(S, S.actor)} is performing. Watch the call.`)
+      : S.spectator ? 'Everyone is hunting for it. Watch the call.' : 'Find it and hold it up to your camera.';
   } else if (S.phase === 'vote') {
     const others = cands.filter((c) => c !== you).length;
     sub = S.spectator ? 'The room is judging. Watch the call.'

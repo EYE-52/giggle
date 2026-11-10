@@ -33,7 +33,7 @@
 }
 @container game (max-width: 759px) {
   .sl-game { --b5-extra-height: 88px; }
-  .sl-game .sl-number { font-size: 24px; }
+  .sl-game .sl-number { font-size: 20px; }
   .sl-game .sl-trail-note { display: none; }
   .sl-game .sl-roll { justify-content: center; }
   .sl-game .sl-roll .tb-primary { max-width: 260px; }

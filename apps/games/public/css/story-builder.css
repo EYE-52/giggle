@@ -138,3 +138,5 @@ body.game-playing[data-game="story-builder"] {
 
 /* Decorative scene silhouette; colours follow the Day/Night game skin. */
 body.game-playing[data-game="story-builder"] { --pl-scene-art:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%201000%20600%22%3E%3Cg%20fill%3D%22none%22%20stroke%3D%22white%22%20stroke-width%3D%228%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M0%20455h200M800%20455h200M0%20555h245M755%20555h245M25%20448V290h38v158m10%200V325h32v123m12%200-10-115%2034-3%2010%20118m690%200V280h38v168m12%200V310h30v138m13%200%2025-126%2032%206-25%20120M15%20548v-66h30v66m14%200v-66h40v66m30%200-10-57%2031-5%2010%2062m660%200v-64h35v64m16%200%2012-64%2034%207-12%2057%22%2F%3E%3Cpath%20d%3D%22M365%20565v-90q67-25%20135%2012%2068-37%20135-12v90q-68-28-135%200-68-28-135%200zm135-78v78M397%20503l68%207m-68%2017%2068%207m70-24%2068-7m-68%2031%2068-7M865%20220v-45m-35-3h70l-14-45h-42z%22%2F%3E%3C%2Fg%3E%3C%2Fsvg%3E"); }
+/* The second blank line is a readable next step, not a faded stray number. */
+#gbody .pl-fill .sb-story.is-empty .sb-ghost-line { opacity: 1; }

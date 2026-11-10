@@ -27,7 +27,7 @@ export default partyRound({
   field(S) {
     return S.phase === "reveal"
       ? `<div class="think-piles">${piles(S)}</div>`
-      : `<div class="think-cloud"><span class="think-kicker">QUICK, FIRST THOUGHT!</span><label><input data-input maxlength="30" autocomplete="off" aria-label="Your answer" placeholder="We’re thinking…"></label><p>1–30 characters · Can you think like the room?</p><i class="think-dot" aria-hidden="true"></i></div>`;
+      : `<div class="think-cloud"><span class="think-kicker">QUICK, FIRST THOUGHT!</span><label><input data-input maxlength="30" autocomplete="off" aria-label="Your answer" placeholder="Type your answer…"></label><p>1–30 characters · Can you think like the room?</p><i class="think-dot" aria-hidden="true"></i></div>`;
   },
   describe({ S, local }) {
     const locked = S.myAnswer != null;

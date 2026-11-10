@@ -309,3 +309,10 @@
 @container game (min-width: 1100px) {
   .camera-party:not(.gk-final) { min-height: calc(100cqh - 2 * var(--space-64)); align-content: center; }
 }
+
+/* Prompt and crew share one row; their lower edges line up naturally. */
+@container game (min-width: 1024px) {
+  .camera-party:not(.gk-final) > .cp-stage { grid-row: 2; align-self: stretch; }
+  .camera-party:not(.gk-final) > .cp-prompt-card { align-self: stretch; }
+  .camera-party:not(.gk-final) > .cp-call { grid-column: 1 / -1; max-width: none; }
+}

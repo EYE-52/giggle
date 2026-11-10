@@ -419,16 +419,27 @@
   }
   #gbody[data-game][data-layout] :is(.gk-hud, .party-hud) .gk-hud-round { grid-area: 1 / 1 / 2 / 2; }
   #gbody[data-game][data-layout] :is(.gk-hud, .party-hud) :is(.gk-hud-phase, .b4-hud-status) { grid-area: 1 / 2 / 2 / 4; justify-self: end; }
-  #gbody[data-game][data-layout] :is(.gk-hud, .party-hud) .gk-hud-progress { grid-area: 2 / 1 / 3 / 3; text-align: right; align-self: center; }
+  #gbody[data-game][data-layout] :is(.gk-hud, .party-hud) .gk-hud-progress { grid-area: 2 / 1 / 3 / 3; text-align: left; align-self: center; }
   #gbody[data-game][data-layout] :is(.gk-hud, .party-hud) .gk-hud-timer { grid-area: 2 / 3 / 3 / 4; min-height: var(--space-32); height: var(--space-32); padding: 0 var(--space-8); animation: none; }
 }
 
 
 #gbody[data-game] .gk-hud-timer.is-urgent { color: var(--ink); background: var(--danger-soft); }
 
-#gbody[data-game][data-layout] :is(.gk-hud, .party-hud) .gk-hud-phase { width: 100%; max-width: 100%; }
+#gbody[data-game][data-layout] :is(.gk-hud, .party-hud) .gk-hud-phase { width: max-content; max-width: 100%; }
 
 #gbody[data-game][data-layout] .gk-hud-round { justify-self: start; }
 
 /* Urgency changes colour, never the clock's measured position. */
 #gbody[data-game][data-layout] :is(.gk-hud, .party-hud) .gk-hud-timer { animation: none; }
+
+/* Give the countdown rail its own space below the digits. */
+:is(#gbody .pl-fill, .ck[data-family]) .gk-hud-timer {
+  padding-block-end: var(--space-4);
+}
+:is(#gbody .pl-fill, .ck[data-family]) .gk-hud-timer::before {
+  bottom: 2px;
+}
+
+/* A note's placeholder uses the same quiet cue as text inputs. */
+#gbody .pl-fill textarea::placeholder { font: var(--text-body); color: var(--ink-dim); opacity: 1; }

@@ -36,7 +36,7 @@ export default partyRound({
           : "Buzz",
       ready: !watching && !lead && (teammate ? !!local.text.trim() : !S.coop),
       status: lead
-        ? `Speak to your team. ${3 - (S.skips || 0)} skips left.`
+        ? 'Speak to your team. Keep the target word secret.'
         : S.myFeedback ||
           (teammate
             ? "Type a guess. Correct answers deal a fresh card."

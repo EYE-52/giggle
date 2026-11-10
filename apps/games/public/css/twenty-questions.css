@@ -276,3 +276,36 @@ body.game-playing[data-game="twenty-questions"] {
  /* Four readable filters fit the history card beside the roster rail. */
  #gbody .tq.pl-fill .tq-filters { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
+
+/* Keep the unlit question lamps visible in either sky. */
+#gbody .tq.pl-fill .tq-budget {
+  background: repeating-linear-gradient(90deg, var(--line-strong) 0 calc(5% - 3px), var(--card) calc(5% - 3px) 5%);
+}
+
+/* A phone is a compact question notebook. Empty feedback and an empty queue
+ * need no blank pages; real questions and misses remain in the normal flow. */
+@container game (max-width: 560px) {
+  #gbody .tq.pl-fill .tq-wordline { height: auto; min-height: var(--space-32); }
+  #gbody .tq.pl-fill .tq-top { gap: var(--space-4); }
+  #gbody .tq.pl-fill .tq-spot { padding: var(--space-8) var(--space-16); gap: var(--space-4); }
+  #gbody .tq.pl-fill .tq-spot.is-idle .tq-qmeta { display: none; }
+  #gbody .tq.pl-fill .tq-qtext { height: auto; min-height: var(--space-48); font-size: 20px; overflow: visible; }
+  #gbody .tq.pl-fill .tq-spot.is-idle .tq-qtext { min-height: var(--space-32); }
+  #gbody .tq.pl-fill .tq-askslot { gap: var(--space-8); }
+  #gbody .tq.pl-fill .tq-askstate:empty { display: none; }
+  #gbody .tq.pl-fill #tqQWrap { height: auto; max-height: var(--space-64); }
+  #gbody .tq.pl-fill #tqQWrap:has(.tq-empty) { display: none; }
+  #gbody .tq.pl-fill .tq-filters { width: 100%; }
+  #gbody .tq.pl-fill .tq-filter { flex: 1; min-height: var(--control-h); padding-inline: var(--space-4); }
+  #gbody .tq.pl-fill .tq-hist { height: auto; min-height: var(--space-48); max-height: calc(var(--space-64) + var(--space-48)); }
+  #gbody .tq.pl-fill .tq-wrong { height: auto; min-height: var(--space-24); max-height: var(--space-48); }
+  #gbody .tq.pl-fill .tq-wrong:empty { display: none; }
+}
+@container game (max-width: 560px) {
+  #gbody .tq.pl-fill .tq-filter { gap: 2px; font-size: 13px; }
+  #gbody .tq.pl-fill .tq-filter-label { white-space: nowrap; }
+}
+.tq-arch:has(.tq-hist.has-more) > .tq-sec::after {
+  content: " · Scroll for earlier answers";
+  font: var(--text-caption); color: var(--ink-dim);
+}

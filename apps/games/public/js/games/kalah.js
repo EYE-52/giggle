@@ -30,7 +30,10 @@ function stones(i, count) {
   const p = point(i), store = i === 6 || i === 13, total = Math.min(count, store ? 25 : 14);
   let html = '';
   for (let n = 0; n < total; n++) {
-    const a = n * 2.39996 + i * .73, radius = Math.sqrt((n + .6) / total);
+    // Small handfuls stay separate, so the starting four read as four seeds.
+    const spread = !store && total <= 4;
+    const a = spread ? n * 2 * Math.PI / total : n * 2.39996 + i * .73;
+    const radius = spread ? (total === 1 ? 0 : .9) : Math.sqrt((n + .6) / total);
     const dx = Math.cos(a) * radius * (store ? (portrait ? 104 : 26) : 32);
     const dy = Math.sin(a) * radius * (store ? (portrait ? 10 : 84) : portrait ? 12 : 21);
     html += seed(p.x + dx, p.y + dy, store ? 13 : 12, n + i);

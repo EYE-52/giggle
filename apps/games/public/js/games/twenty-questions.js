@@ -92,6 +92,7 @@ function historyFilters() {
 function paintHistory(includePending = false) {
   if (!R.hist || !liveS) return;
   R.hist.innerHTML = histHtml(liveS, includePending);
+  R.hist.classList?.toggle('has-more', R.hist.scrollHeight > R.hist.clientHeight + 4);
   if (R.filters) R.filters.querySelectorAll('[data-filter]').forEach((b) => {
     const key = b.dataset.filter;
     const count = (liveS.questions || []).filter(q => key === 'all' ? includePending || q.answer : q.answer === key).length;
@@ -131,7 +132,7 @@ function buildPlay(el, S, api, isAns) {
         <button class="gk-btn tq-ans" id="tqNo" type="button" aria-label="Answer no">${answerIcon('no')} No</button>
         <button class="gk-btn tq-ans" id="tqSome" type="button" aria-label="Answer sometimes">${answerIcon('sometimes')} Sometimes</button>
       </div>`
-    : '<p class="gk-wait tq-wait" id="tqSpotWait" role="status"></p>';
+    : '';
   const ask = isAns ? '' : `<div class="tq-askslot">
       <div class="tq-askrow">
         <input id="tQ" class="gk-input" type="text" placeholder="Ask a yes/no question…" maxlength="140"
@@ -175,7 +176,7 @@ function buildPlay(el, S, api, isAns) {
         <section class="tq-arch" aria-label="Answered questions">
           <div class="tq-sec">Answered</div>
           ${historyFilters()}
-          <div class="tq-hist" id="tqHist" role="list"
+          <div class="tq-hist" id="tqHist" role="list" tabindex="0"
             aria-label="Answered questions, newest first"></div>
           <div class="tq-wrong" id="tqWrong"></div>
         </section>
@@ -189,7 +190,6 @@ function buildPlay(el, S, api, isAns) {
     spot: el.querySelector('.tq-spot'),
     spotMeta: el.querySelector('#tqSpotMeta'),
     spotQ: el.querySelector('#tqSpotQ'),
-    spotWait: el.querySelector('#tqSpotWait'),
     qwrap: el.querySelector('#tqQWrap'),
     queue: el.querySelector('#tqQueue'),
     hist: el.querySelector('#tqHist'),
@@ -287,8 +287,6 @@ function updatePlay(el, S, api, isAns) {
       const b = el.querySelector(id);
       if (b) b.disabled = lock;
     }
-  } else if (R.spotWait) {
-    R.spotWait.textContent = cur ? `Waiting on ${nameOf(S, S.answerer)}…` : (S.answered ? 'Ask another question.' : 'Ask the first question.');
   }
 
   const rest = pend.slice(1);

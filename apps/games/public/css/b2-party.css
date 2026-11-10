@@ -374,3 +374,10 @@
 @container game (min-width: 1000px) {
  #gbody .b2-scene.pl-fill > .party-hud { width: 100%; }
 }
+
+/* An input's wrapped helper stays with its field, above the action slot. */
+@container game (max-width: 560px) {
+  #gbody .b2-scene.b2-has-input .b2-play {
+    grid-template-rows: minmax(calc(var(--space-64) + var(--space-32)), auto) minmax(calc(2 * var(--space-64) + var(--space-32)), auto);
+  }
+}

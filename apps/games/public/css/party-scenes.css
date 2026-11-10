@@ -631,7 +631,7 @@
 }
 /* An odd last card in a two-column answer grid spans the row, never sits
  * alone in half of it. */
-#gbody .pl-fill .gk-choices:not(.pl-ab) > :last-child:nth-child(odd) { grid-column: 1 / -1; }
+#gbody .pl-fill .gk-choices:not(.pl-ab):not(.b2-options) > :last-child:nth-child(odd) { grid-column: 1 / -1; }
 .pl-seat.is-role.is-bad .pl-badge { background: var(--danger); color: var(--on-danger); }
 .pl-seat.is-role.is-bad .pl-badge::before { content: "✕"; }
 
@@ -905,7 +905,7 @@ body.game-playing:is([data-game="story-builder"],[data-game="would-you-rather"],
   #gbody[data-game] .pl-live .pl-seat {
     grid-template-columns: minmax(0, 1fr); grid-template-areas: "name" "state" "pts";
     grid-template-rows: var(--space-24) var(--space-24) var(--space-24);
-    padding: var(--space-4); max-width: none; width: auto;
+    padding: var(--space-4) var(--space-8); max-width: none; width: auto;
   }
   #gbody[data-game] .pl-live .pl-avatar { display: none; }
   #gbody[data-game] .pl-live .pl-name { font: var(--text-caption); }
@@ -928,11 +928,12 @@ body.game-playing:is([data-game="story-builder"],[data-game="would-you-rather"],
   #gbody[data-game] .pl-live .pl-head { min-height: var(--space-24); }
   #gbody[data-game] .pl-live .pl-seat {
     grid-template-columns: minmax(0, 1fr) auto;
-    grid-template-areas: "name name" "state pts";
-    grid-template-rows: var(--space-24) var(--space-24);
+    grid-template-areas: "name name" "state state" "pts pts";
+    grid-template-rows: repeat(3, 18px);
     column-gap: var(--space-4);
   }
-  #gbody[data-game] .pl-live .pl-points { grid-column: 2; }
+  #gbody[data-game] .pl-live .pl-points { grid-column: 1 / -1; }
+  #gbody[data-game] .pl-live .pl-points b { font-size: 16px; line-height: 18px; }
   #gbody[data-game] .pl-live .pl-state { max-width: 100%; }
 }
 
@@ -959,4 +960,9 @@ body.game-playing:is([data-game="story-builder"],[data-game="would-you-rather"],
   }
   body:is([data-game="five-second"], [data-game="pick-one"], [data-game="reaction-tap"]) #gbody > .pl-fill > :is(.gk-hud, .party-hud) { position: absolute; top: var(--space-8); left: 0; width: 100%; }
   body:is([data-game="five-second"], [data-game="pick-one"], [data-game="reaction-tap"]) #gbody > .pl-fill > .pl-live { position: absolute; bottom: var(--space-16); left: 0; width: 100%; max-height: calc(2 * var(--space-64)); overflow: auto; scrollbar-width: thin; }
+}
+
+/* Short helper lines keep their final words together on phones. */
+#gbody .pl-fill :is(.gk-sub, .gk-wait, .party-sub, .wp-status, .b4-status) {
+  text-wrap: pretty;
 }

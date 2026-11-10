@@ -31,11 +31,11 @@ for (const exactFinish of [false,true]) {
     // Inspect the live pawn at the start of each hop, before any transport.
     r.el._b5.motion.stop();
     const track=r.trailMotion(r.el,r.el._b5.S);track.frame(500+i*130);
-    const expected=r.point(squares[i]);expected[0]-=12;
+    const expected=r.point(squares[i]);expected[0]-=11;
     eq(pose(r),expected,'rendered square order matches the actual board path');
   }
   const track=r.trailMotion(r.el,r.el._b5.S);track.frame(track.duration);
-  const target=r.point(r.state.positions.a);target[0]-=12;
+  const target=r.point(r.state.positions.a);target[0]-=11;
   eq(pose(r),target,'last rendered position equals server state');
   eq(r.el.querySelectorAll('[data-sl-pawn]').length,2,'one pawn per active seat');
   r.view.dispose(r.el);eq(r.frames.size+r.timers.size,0,'unmount leaves no scheduled work');
@@ -58,7 +58,7 @@ for (const exactFinish of [false,true]) {
   const sampled=[];snake.getTotalLength=()=>200;snake.getPointAtLength=n=>{sampled.push(n);return{x:100+n,y:200+n};};
   const track=r.trailMotion(r.el,r.el._b5.S);track.frame(500+2*130+180+400);
   eq(sampled,[100],'snake slide samples its drawn curve at half its length');eq(pose(r),[200,300],'pawn rides the actual centre of the snake');
-  track.frame(track.duration);const expected=r.point(r.state.positions.a);expected[0]-=12;eq(pose(r),expected,'curve ride ends in its exact server seat slot');r.view.dispose(r.el);
+  track.frame(track.duration);const expected=r.point(r.state.positions.a);expected[0]-=11;eq(pose(r),expected,'curve ride ends in its exact server seat slot');r.view.dispose(r.el);
 }
 {
   const r=ludoRig('ludo');r.state.phase='move';r.state.die=6;r.state.pawns[0][0]=10;r.render();

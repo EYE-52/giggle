@@ -50,7 +50,8 @@ function board(S,c,animate){
     const legal=!S.preparing&&side===S.youAre&&!S.spectator&&!c.pending&&!c.settling&&S.legal.includes(i);
     return `<g transform="translate(${px} ${py})" id="ld-pawn-${side}-${i}" class="ld-piece ${legal?'is-legal':''} ${S.resigned.includes(side)?'is-resigned':''}" data-pawn="${i}" data-side="${side}" role="button" tabindex="-1" aria-label="${NAMES[lane]} pawn ${i+1}${pos===56?', home':pos<0?', in yard':''}${legal?', legal move':''}"><g class="ld-pawn-motion">${legal?`<g transform="scale(${scale})" pointer-events="none"><circle r="25" class="ld-glow"/></g>`:''}${pawn(lane,i,scale)}</g></g>`;
   }).join('')).join('');
-  return `<svg class="ld-board" viewBox="-12 -12 654 654" role="img" aria-label="Ludo board, four coloured yards around a shared trail"><rect x="-9" y="-9" width="648" height="648" rx="22" class="ld-base"/>${homes}${trail}<rect x="252" y="252" width="126" height="126" rx="6" fill="#ffffff"/>${lanes}<path d="M315 285L345 315L315 345L285 315Z" fill="#e6e8ec"/>${lastMark}${pieces}</svg>`;
+  const finish = COLORS.map((color, side) => `<path d="M252 252L378 252L315 315Z" transform="rotate(${(side + 2) * 90} 315 315)" fill="${color}" stroke="#fbf8f0" stroke-width="2"/>`).join('');
+  return `<svg class="ld-board" viewBox="-12 -12 654 654" role="img" aria-label="Ludo board, four coloured yards around a shared trail"><rect x="-9" y="-9" width="648" height="648" rx="22" class="ld-base"/>${homes}${trail}${lanes}<g class="ld-finish">${finish}</g>${lastMark}${pieces}</svg>`;
 
 }
 function outLabel(S,side){return {timeout:'Out of time',forfeit:'Left',resign:'Resigned'}[S.outReason?.[side]]||'Out';}

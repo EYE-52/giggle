@@ -246,3 +246,19 @@ body[data-game="number-hunt"].game-playing {
   box-shadow: inset 0 0 0 var(--outline-w) var(--fam);
 }
 [data-theme="night"] #gbody .nh.pl-fill .nh-pin { border-color: var(--ink-dim); }
+
+/* The clue card uses compact, steady rows rather than blank caption lines.
+ * These slots still fit a live reading and its heat hint after a guess. */
+@container game (max-width: 560px) {
+  #gbody .wg.pl-fill.nh > .gk-prompt { min-height: 0; padding-block: var(--space-4); }
+  #gbody .nh.pl-fill .nh-range { padding: var(--space-12); }
+  #gbody .nh.pl-fill .nh-between { height: 1.5lh; min-height: 1.5lh; }
+  #gbody .nh.pl-fill .nh-reading {
+    grid-template-columns: minmax(0,1fr) var(--space-40) minmax(0,1.5fr);
+    grid-template-rows: var(--space-32) var(--space-16);
+    padding-top: var(--space-8);
+  }
+  #gbody .nh.pl-fill #nDirection { font: var(--text-button-sm); gap: var(--space-4); }
+  #gbody .nh.pl-fill #nMine { height: 1.5lh; min-height: 1.5lh; }
+  #gbody .nh.pl-fill #nFeed { height: var(--space-64); }
+}

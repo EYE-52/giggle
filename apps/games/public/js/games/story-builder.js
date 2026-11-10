@@ -55,7 +55,7 @@ function storyHtml(S, lines, withAuthors) {
     + `<span class="sb-text">${esc(l.text)}${withAuthors && l.pid ? ` <small class="gk-meta">${esc(nameOf(S, l.pid))}</small>` : ''}</span></li>`).join('');
   // Empty: placeholder line strips that say where the story will appear.
   return `<ol class="sb-story${rows ? '' : ' is-empty'}" aria-label="Story so far">${rows || '<li class="sb-line sb-empty"><span class="sb-ghost" aria-hidden="true">1</span><span class="sb-empty-text">No lines yet. The first one is being written.</span></li>'
-    + '<li class="sb-line sb-empty sb-ghost-line" aria-hidden="true"><span class="sb-ghost">2</span></li>'}</ol>`;
+    + '<li class="sb-line sb-empty sb-ghost-line"><span class="sb-ghost" aria-hidden="true">2</span><span class="sb-empty-text">The next line follows here.</span></li>'}</ol>`;
 }
 
 function revealHtml(S, watch) {

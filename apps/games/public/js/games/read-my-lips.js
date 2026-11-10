@@ -16,14 +16,14 @@ export default partyRound({
         S.phase === "reveal"
           ? S.last.phrase
           : lead
-            ? "Your mic off. Your lips on."
+            ? "Can they read your lips?"
             : "Watch closely. What did they say?",
       phase: S.phase === "reveal" ? "Results" : lead ? "Mouth" : "Guess",
       progress: `${S.acted?.length || 0} / ${activePlayers(S).filter((p) => p.id !== S.lead).length} guessed`,
       button: lead ? "Mouth the phrase silently" : "Guess phrase",
       ready: !watching && !lead && !full && !!local.text.trim(),
       status: lead
-        ? "Mic off in your call. Mouth the phrase."
+        ? "Watch the guesses as they come in."
         : full
           ? "Every word matched. Wait for the others."
           : S.myFeedback || "Type what you see. Your best guess counts.",
@@ -37,7 +37,7 @@ export default partyRound({
       lead = S.me === S.lead;
     setHtml(
       el.querySelector(".lips-silent"),
-      `<span class="lips-icon" aria-hidden="true">${reveal ? "✓" : '<svg viewBox="0 0 48 48" width="48" height="48" aria-hidden="true"><path d="M4 24 Q12 12 24 16 Q36 12 44 24 Q36 38 24 34 Q12 38 4 24Z" fill="var(--fam-soft)" stroke="var(--fam)" stroke-width="3"/><path d="M4 24 Q24 29 44 24" fill="none" stroke="var(--fam)" stroke-width="3"/></svg>'}</span><div class="wp-face">${faceHtml(S, S.lead, { name: true })}</div><h4>${esc(reveal ? S.last.phrase : lead ? S.phrase || "" : "Read their lips on video")}</h4><p>${lead && !reveal ? "Mic muted? Nothing is recorded." : reveal ? `${Object.values(S.last.results || {}).filter((n) => n === 100).length} full matches` : "The phrase stays with the Mouther."}</p>`,
+      `<span class="lips-icon" aria-hidden="true">${reveal ? "✓" : '<svg viewBox="0 0 48 48" width="48" height="48" aria-hidden="true"><path d="M4 24 Q12 12 24 16 Q36 12 44 24 Q36 38 24 34 Q12 38 4 24Z" fill="var(--fam-soft)" stroke="var(--fam)" stroke-width="3"/><path d="M4 24 Q24 29 44 24" fill="none" stroke="var(--fam)" stroke-width="3"/></svg>'}</span><div class="wp-face">${faceHtml(S, S.lead, { name: true })}</div><h4>${esc(reveal ? S.last.phrase : lead ? S.phrase || "" : "Read their lips on video")}</h4><p>${lead && !reveal ? "Repeat slowly. Nothing is recorded." : reveal ? `${Object.values(S.last.results || {}).filter((n) => n === 100).length} full matches` : "The phrase stays with the Mouther."}</p>`,
     );
     const locked = watching || lead || reveal || S.myResult === 100;
     const input = el.querySelector("[data-input]");
@@ -48,7 +48,7 @@ export default partyRound({
     cue.textContent = reveal
       ? "Full phrase: 100 points · Half the words: 50"
       : lead
-        ? "Camera on · Mic off · Repeat slowly"
+        ? "Camera on · Mic off"
         : S.myResult === 100
           ? "✓ Full phrase matched"
           : "Watch the Mouther’s video";

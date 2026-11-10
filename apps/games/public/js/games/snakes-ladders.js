@@ -7,6 +7,13 @@ export function point(square) {
   return [25 + (row % 2 ? 9 - col : col) * 50, 475 - row * 50];
 }
 
+// Give each seat a separate spot even when everyone shares square one.
+function pawnLayout(side, count) {
+  const cols = Math.min(2, count), rows = Math.ceil(count / cols);
+  const step = count > 4 ? 16 : 22;
+  return { offset: [(side % cols - (cols - 1) / 2) * step, (Math.floor(side / cols) - (rows - 1) / 2) * step], scale: count > 4 ? .7 : 1 };
+}
+
 function ladder(from, to) {
   const [x, y] = point(Number(from)), [tx, ty] = point(to), dx = tx - x, dy = ty - y;
   const length = Math.hypot(dx, dy), px = -dy / length * 6, py = dx / length * 6;
@@ -26,18 +33,18 @@ function snake(from, to, i) {
 function board(S) {
   const cells = Array.from({ length: 100 }, (_, i) => {
     const [x, y] = point(i + 1);
-    return `<g><rect class="sl-square sl-shade-${(Math.floor(i / 10) + i) % 3}" x="${x - 25}" y="${y - 25}" width="50" height="50"/><text class="sl-number" x="${x - 20}" y="${y - 11}">${i + 1}</text></g>`;
+    return `<g><rect class="sl-square sl-shade-${(Math.floor(i / 10) + i) % 3}" x="${x - 25}" y="${y - 25}" width="50" height="50"/><text class="sl-number" x="${x - 20}" y="${y - 6}">${i + 1}</text></g>`;
   }).join('');
   // Print square labels above the snakes and ladders, like a real board.
   const numbers = Array.from({ length: 100 }, (_, i) => {
     const [x, y] = point(i + 1);
-    return `<text class="sl-number" x="${x - 20}" y="${y - 11}">${i + 1}</text>`;
+    return `<text class="sl-number" x="${x - 20}" y="${y - 6}">${i + 1}</text>`;
   }).join('');
   const pawns = S.seats.map((pid, i) => {
     if (S.out.includes(pid)) return '';
     const [x, y] = point(Math.max(1, S.positions[pid]));
-    const ox = (i % 3 - 1) * 12, oy = Math.floor(i / 3) * 14;
-    return `<g class="sl-pawn b5-seat-${i}" data-sl-pawn="${i}" data-square="${S.positions[pid]}" transform="translate(${x + ox} ${y + oy})"><g class="sl-pawn-motion"><circle class="sl-pawn-shadow" cy="5" r="11"/><circle class="sl-pawn-piece" r="10"/><text y="4">${i + 1}</text></g></g>`;
+    const { offset: [ox, oy], scale } = pawnLayout(i, S.seats.length);
+    return `<g class="sl-pawn b5-seat-${i}" data-sl-pawn="${i}" data-square="${S.positions[pid]}" transform="translate(${x + ox} ${y + oy})"><g class="sl-pawn-motion"><g transform="scale(${scale})"><circle class="sl-pawn-shadow" cy="5" r="11"/><circle class="sl-pawn-piece" r="10"/><text y="4">${i + 1}</text></g></g></g>`;
   }).join('');
   const last = S.lastMove ? point(S.lastMove.to) : null;
   return `<div class="sl-scene"><svg class="sl-board" viewBox="-8 -8 516 516" role="img" aria-label="Garden trail from 1 to 100, eight snakes and eight ladders"><rect class="sl-frame" x="-8" y="-8" width="516" height="516" rx="18"/>${cells}<g pointer-events="none">${Object.entries(S.ladders).map(([a, b]) => ladder(a, b)).join('')}${Object.entries(S.snakes).map(([a, b], i) => snake(a, b, i)).join('')}${last ? `<circle class="sl-last" cx="${last[0]}" cy="${last[1]}" r="22"/>` : ''}${numbers}${pawns}<g class="sl-pop" opacity="0"><circle r="15"/></g><g class="sl-confetti" aria-hidden="true">${Array.from({length: 18}, (_, i) => `<rect class="b5-seat-${i % 6}" width="5" height="9" rx="2" opacity="0"/>`).join('')}</g></g></svg><p class="sl-trail-note">${esc(b5Text(S, 'trailNote'))}</p></div>`;
@@ -49,7 +56,7 @@ export function trailMotion(el, S) {
   const m = S.lastMove, pid = S.seats[m.side];
   if (!pid || S.positions[pid] !== m.to || S.out.includes(pid)) return null;
   const node = el.querySelector(`[data-sl-pawn="${m.side}"]`)?.querySelector('.sl-pawn-motion');
-  const offset = [(m.side % 3 - 1) * 12, Math.floor(m.side / 3) * 14];
+  const { offset } = pawnLayout(m.side, S.seats.length);
   const withOffset = p => p.map((v, i) => v + offset[i]);
   const destination = withOffset(point(m.to));
   const squares = raceSquares(m.from, m.die, 100, S.exactFinish);
