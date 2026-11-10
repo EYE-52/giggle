@@ -1,4 +1,5 @@
 {
+  "scope": "Final art after scenery extension; Chrome, CPU 4x, 1280x720 and 390x844, Day/Night, fixed review cameras, eight drivers except two-seat duel.",
   "errors": [],
   "reports": [
     {
@@ -25,12 +26,12 @@
       },
       "frameMs": {
         "median": 16.699999999999818,
-        "p95": 16.700000000000728,
+        "p95": 16.799999999999272,
         "p99": 16.800000000000182,
         "stalls": 0
       },
       "fps": 59.88023952095874,
-      "samples": 299
+      "samples": 300
     },
     {
       "id": "harbor-fork",
@@ -48,7 +49,7 @@
         "colliders": 33
       },
       "renderer": {
-        "frame": 395,
+        "frame": 399,
         "calls": 126,
         "triangles": 89642,
         "points": 0,
@@ -56,7 +57,7 @@
       },
       "frameMs": {
         "median": 16.699999999999818,
-        "p95": 16.700000000000728,
+        "p95": 16.800000000000182,
         "p99": 16.800000000000182,
         "stalls": 0
       },
@@ -79,7 +80,7 @@
         "colliders": 33
       },
       "renderer": {
-        "frame": 385,
+        "frame": 375,
         "calls": 47,
         "triangles": 40396,
         "points": 0,
@@ -110,7 +111,7 @@
         "colliders": 33
       },
       "renderer": {
-        "frame": 375,
+        "frame": 376,
         "calls": 47,
         "triangles": 40396,
         "points": 0,
@@ -141,7 +142,7 @@
         "colliders": 33
       },
       "renderer": {
-        "frame": 397,
+        "frame": 393,
         "calls": 111,
         "triangles": 74800,
         "points": 0,
@@ -172,7 +173,7 @@
         "colliders": 33
       },
       "renderer": {
-        "frame": 392,
+        "frame": 393,
         "calls": 111,
         "triangles": 74800,
         "points": 0,
@@ -185,7 +186,7 @@
         "stalls": 0
       },
       "fps": 59.88023952095874,
-      "samples": 299
+      "samples": 300
     },
     {
       "id": "harbor-fork",
@@ -203,7 +204,7 @@
         "colliders": 33
       },
       "renderer": {
-        "frame": 373,
+        "frame": 374,
         "calls": 47,
         "triangles": 35356,
         "points": 0,
@@ -211,12 +212,12 @@
       },
       "frameMs": {
         "median": 16.699999999999818,
-        "p95": 16.799999999999727,
+        "p95": 16.700000000000728,
         "p99": 16.800000000000182,
         "stalls": 0
       },
       "fps": 59.88023952095874,
-      "samples": 300
+      "samples": 299
     },
     {
       "id": "harbor-fork",

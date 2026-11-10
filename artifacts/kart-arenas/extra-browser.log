@@ -1,0 +1,45 @@
+kart-garage-final.log
+GARAGE_BROWSER_STARTED 157.0.8103.38
+GARAGE_BROWSER_CASE_PASS 1280x800-day
+GARAGE_BROWSER_CASE_PASS 768x1024-day
+GARAGE_BROWSER_CASE_PASS 390x844-day
+GARAGE_BROWSER_CASE_PASS 320x740-day
+GARAGE_BROWSER_CASE_PASS 430x932-day
+GARAGE_BROWSER_CASE_PASS 1280x800-night
+GARAGE_BROWSER_CASE_PASS 768x1024-night
+GARAGE_BROWSER_CASE_PASS 390x844-night
+GARAGE_BROWSER_CASE_PASS 320x740-night
+GARAGE_BROWSER_CASE_PASS 430x932-night
+GARAGE_BROWSER_PASS 10
+
+
+kart-classic-32-final.log
+{"map":"Garden Circuit","drivers":32,"connected":32,"seconds":25.4,"browser":{"binaryFramesPerSec":30.9,"kbPerSec":68.7,"textFrames":8,"fps":9.1,"worstFrameMs":1717,"drawCallsPerFrame":312,"submittedTrianglesPerFrame":222368,"hud":{"rows":9,"canvas":true}},"bots":{"framesPerSec":28.9},"browserKartMovedM":106.4,"fastestForward":16.8,"errors":[]}
+KART_32_BROWSER_PASS
+
+
+kart-weapons-browser-final.log
+{"screenshots":120,"latency":[{"rtt":80,"beforeMeanMs":81.41666667660077,"afterMeanMs":0.01666667064030965,"samples":12},{"rtt":100,"beforeMeanMs":101.16666666666667,"afterMeanMs":0,"samples":12},{"rtt":150,"beforeMeanMs":151.13333333532015,"afterMeanMs":0,"samples":12}],"errors":[],"live":{"before":{"x":-13.996000289916992,"z":-6,"hp":100},"after":{"x":-0.7649999856948853,"z":1.5269999504089355,"hp":100}}}
+
+
+kart-weapons-raised-final.log
+{"screenshots":120,"errors":[]}
+
+
+kart-production-profiles-final.log
+{"map":"Skyport Split","drivers":32,"connected":32,"seconds":21.2,"browser":{"binaryFramesPerSec":20.1,"kbPerSec":71.3,"textFrames":6,"fps":59.6,"worstFrameMs":117,"drawCallsPerFrame":169,"submittedTrianglesPerFrame":79161,"hud":{"rows":0,"canvas":true}},"bots":{"framesPerSec":18.7},"browserKartMovedM":52,"fastestForward":24.3,"errors":[]}
+KART_32_BROWSER_PASS
+{"map":"Garden Crown","drivers":16,"connected":16,"seconds":21.2,"browser":{"binaryFramesPerSec":20.1,"kbPerSec":36.8,"textFrames":6,"fps":59.7,"worstFrameMs":117,"drawCallsPerFrame":147,"submittedTrianglesPerFrame":68626,"hud":{"rows":0,"canvas":true}},"bots":{"framesPerSec":18.7},"browserKartMovedM":45.9,"fastestForward":24,"errors":[]}
+KART_32_BROWSER_PASS
+{"map":"Frostbite Crescent","drivers":16,"connected":16,"seconds":21.1,"browser":{"binaryFramesPerSec":20.2,"kbPerSec":35.9,"textFrames":6,"fps":59.6,"worstFrameMs":133,"drawCallsPerFrame":89,"submittedTrianglesPerFrame":47712,"hud":{"rows":0,"canvas":true}},"bots":{"framesPerSec":18.7},"browserKartMovedM":55.8,"fastestForward":24.3,"errors":[]}
+KART_32_BROWSER_PASS
+{"map":"Neon Switchyard","drivers":24,"connected":24,"seconds":21.2,"browser":{"binaryFramesPerSec":20.2,"kbPerSec":71.8,"textFrames":6,"fps":59.7,"worstFrameMs":117,"drawCallsPerFrame":113,"submittedTrianglesPerFrame":55826,"hud":{"rows":0,"canvas":true}},"bots":{"framesPerSec":18.7},"browserKartMovedM":11.2,"fastestForward":18.4,"errors":[]}
+KART_32_BROWSER_PASS
+{"map":"Harbor Fork","drivers":32,"connected":32,"seconds":21.1,"browser":{"binaryFramesPerSec":20.2,"kbPerSec":77.5,"textFrames":6,"fps":60,"worstFrameMs":17,"drawCallsPerFrame":137,"submittedTrianglesPerFrame":79032,"hud":{"rows":0,"canvas":true}},"bots":{"framesPerSec":18.8},"browserKartMovedM":82.6,"fastestForward":24.4,"errors":[]}
+KART_32_BROWSER_PASS
+{"map":"Foundry Wheel","drivers":32,"connected":32,"seconds":21.2,"browser":{"binaryFramesPerSec":20.1,"kbPerSec":59.5,"textFrames":6,"fps":59.7,"worstFrameMs":100,"drawCallsPerFrame":136,"submittedTrianglesPerFrame":72649,"hud":{"rows":0,"canvas":true}},"bots":{"framesPerSec":18.7},"browserKartMovedM":23.8,"fastestForward":20.9,"errors":[]}
+KART_32_BROWSER_PASS
+
+
+kart-picker-final.log
+PASS seven launch Battle cards, five classic mode cards, every preview and day/night layouts

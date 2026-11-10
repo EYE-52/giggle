@@ -89,7 +89,7 @@ export function createKartLaunchWorld(THREE,{scene,map,palette='Daybreak',lighti
  // A low ground apron is scenery only. The shaped driving slabs and guards
  // above it are the complete physical footprint; there is no square collider.
  const ground=material('backdrop-ground',map.artId==='foundry'?0x674c42:map.artId==='frost'?0x4686ad:map.artId==='neon'?0x304c68:['harbor','skyport'].includes(map.artId)?0x438fa7:0x82b59a);
- add(scenery,geo(new THREE.CylinderGeometry(map.half+18,map.half+23,3,12)),ground,[0,-3.1,0]);
+ add(scenery,geo(new THREE.CylinderGeometry(map.half+140,map.half+145,3,12)),ground,[0,-3.1,0]);
  const sky=createKartSky(THREE,{parent:scenery,radius:330,geometry:geo,material:mat});
  const backdrop=createKartBackdrop(THREE,{parent:scenery,theme:map.backdrop||map.artId,radius:map.half+130,geometry:geo,material:mat,texture,isAlive:()=>!disposed});
  // Trees sit outside the guarded road and never hide a route decision.

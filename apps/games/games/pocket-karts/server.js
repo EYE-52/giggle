@@ -64,7 +64,7 @@ const owns = state => elevated && elevated.owns(state);
 const def = {
   ...legacy,
   manifest: { ...legacy.manifest, sameRoom: false, settings: legacy.manifest.settings.map(s => s.key === 'map'
-    ? { ...s, def: DEFAULT_ARENA, options: [...s.options, ...Object.keys(MAP_LABELS)] } : s) },
+    ? { ...s, def: 'Rookie Ribbons', options: [...s.options, ...Object.keys(MAP_LABELS)] } : s) },
   async initialize(load = loadElevatedDependencies) {
     if (!initialization) initialization = Promise.resolve().then(load).then(deps => {
       classicDependencies=deps;

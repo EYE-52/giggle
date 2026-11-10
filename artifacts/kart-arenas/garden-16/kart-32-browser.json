@@ -2,15 +2,15 @@
   "map": "Garden Crown",
   "drivers": 16,
   "connected": 16,
-  "seconds": 21.1,
+  "seconds": 21.2,
   "browser": {
     "binaryFramesPerSec": 20.1,
-    "kbPerSec": 37,
+    "kbPerSec": 36.8,
     "textFrames": 6,
-    "fps": 59.6,
-    "worstFrameMs": 133,
-    "drawCallsPerFrame": 137,
-    "submittedTrianglesPerFrame": 68285,
+    "fps": 59.7,
+    "worstFrameMs": 117,
+    "drawCallsPerFrame": 147,
+    "submittedTrianglesPerFrame": 68626,
     "hud": {
       "rows": 0,
       "canvas": true
@@ -19,7 +19,7 @@
   "bots": {
     "framesPerSec": 18.7
   },
-  "browserKartMovedM": 42.7,
-  "fastestForward": 23.9,
+  "browserKartMovedM": 45.9,
+  "fastestForward": 24,
   "errors": []
 }

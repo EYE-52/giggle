@@ -1,4 +1,5 @@
 {
+  "scope": "Final art after scenery extension; Chrome, CPU 4x, 1280x720 and 390x844, Day/Night, fixed review cameras, eight drivers except two-seat duel.",
   "errors": [],
   "reports": [
     {
@@ -17,7 +18,7 @@
         "colliders": 21
       },
       "renderer": {
-        "frame": 376,
+        "frame": 378,
         "calls": 76,
         "triangles": 48482,
         "points": 0,
@@ -48,7 +49,7 @@
         "colliders": 21
       },
       "renderer": {
-        "frame": 374,
+        "frame": 377,
         "calls": 76,
         "triangles": 48482,
         "points": 0,
@@ -56,7 +57,7 @@
       },
       "frameMs": {
         "median": 16.699999999999818,
-        "p95": 16.799999999999272,
+        "p95": 16.800000000000182,
         "p99": 16.800000000000182,
         "stalls": 0
       },
@@ -110,7 +111,7 @@
         "colliders": 21
       },
       "renderer": {
-        "frame": 364,
+        "frame": 369,
         "calls": 61,
         "triangles": 38680,
         "points": 0,
@@ -141,7 +142,7 @@
         "colliders": 21
       },
       "renderer": {
-        "frame": 377,
+        "frame": 376,
         "calls": 106,
         "triangles": 65278,
         "points": 0,
@@ -172,7 +173,7 @@
         "colliders": 21
       },
       "renderer": {
-        "frame": 376,
+        "frame": 378,
         "calls": 106,
         "triangles": 65278,
         "points": 0,
@@ -180,7 +181,7 @@
       },
       "frameMs": {
         "median": 16.699999999999818,
-        "p95": 16.700000000000728,
+        "p95": 16.799999999999727,
         "p99": 16.800000000000182,
         "stalls": 0
       },
@@ -234,7 +235,7 @@
         "colliders": 21
       },
       "renderer": {
-        "frame": 365,
+        "frame": 362,
         "calls": 61,
         "triangles": 35872,
         "points": 0,
@@ -242,7 +243,7 @@
       },
       "frameMs": {
         "median": 16.699999999999818,
-        "p95": 16.799999999999727,
+        "p95": 16.799999999999272,
         "p99": 16.800000000000182,
         "stalls": 0
       },

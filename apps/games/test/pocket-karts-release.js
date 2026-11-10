@@ -541,7 +541,7 @@ async function part2() {
     assert(ha.seatToken, 'hello carries a resume token');
     const b = await mk();
     await helloOf(b, { t: 'join', name: 'Bob', code: ha.code });
-    send(a, { t: 'start', game: 'pocket-karts' });
+    send(a, { t: 'start', game: 'pocket-karts', settings: {map:'Garden Circuit'} });
     await waitPhase(a, 'drive', 8000);
     const sendInput = (ws, input) => {
       const state=last(ws,'state'),ack=state.inputAck;

@@ -1,4 +1,5 @@
 {
+  "scope": "Final art after scenery extension; Chrome, CPU 4x, 1280x720 and 390x844, Day/Night, fixed review cameras, eight drivers except two-seat duel.",
   "errors": [],
   "reports": [
     {
@@ -48,7 +49,7 @@
         "colliders": 25
       },
       "renderer": {
-        "frame": 381,
+        "frame": 383,
         "calls": 115,
         "triangles": 70724,
         "points": 0,
@@ -79,7 +80,7 @@
         "colliders": 25
       },
       "renderer": {
-        "frame": 368,
+        "frame": 367,
         "calls": 64,
         "triangles": 38092,
         "points": 0,
@@ -87,7 +88,7 @@
       },
       "frameMs": {
         "median": 16.699999999999818,
-        "p95": 16.799999999999727,
+        "p95": 16.700000000000728,
         "p99": 16.800000000000182,
         "stalls": 0
       },
@@ -118,7 +119,7 @@
       },
       "frameMs": {
         "median": 16.699999999999818,
-        "p95": 16.700000000000728,
+        "p95": 16.799999999999727,
         "p99": 16.800000000000182,
         "stalls": 0
       },
@@ -149,7 +150,7 @@
       },
       "frameMs": {
         "median": 16.699999999999818,
-        "p95": 16.799999999999272,
+        "p95": 16.700000000000728,
         "p99": 16.800000000000182,
         "stalls": 0
       },
@@ -172,7 +173,7 @@
         "colliders": 21
       },
       "renderer": {
-        "frame": 381,
+        "frame": 378,
         "calls": 107,
         "triangles": 64350,
         "points": 0,
@@ -185,7 +186,7 @@
         "stalls": 0
       },
       "fps": 59.88023952095874,
-      "samples": 299
+      "samples": 300
     },
     {
       "id": "garden-crown",
@@ -203,7 +204,7 @@
         "colliders": 21
       },
       "renderer": {
-        "frame": 363,
+        "frame": 362,
         "calls": 62,
         "triangles": 34944,
         "points": 0,
@@ -211,7 +212,7 @@
       },
       "frameMs": {
         "median": 16.699999999999818,
-        "p95": 16.799999999999727,
+        "p95": 16.800000000000182,
         "p99": 16.800000000000182,
         "stalls": 0
       },
@@ -234,7 +235,7 @@
         "colliders": 21
       },
       "renderer": {
-        "frame": 363,
+        "frame": 365,
         "calls": 62,
         "triangles": 34944,
         "points": 0,
@@ -247,7 +248,7 @@
         "stalls": 0
       },
       "fps": 59.88023952095874,
-      "samples": 299
+      "samples": 300
     }
   ]
 }

@@ -118,7 +118,7 @@ async function rooms() {
     await flush(); legacy.room.onAction(legacy.socks[0], { typed: legacy.room.game.state.target });
     assert.equal(legacy.room.game.state.finished.length, 1, 'legacy Room/SDK harnesses retain their explicit ungated contract');
 
-    const karts = make(); karts.room.startGame(registry.get('pocket-karts'), { ready: true }, karts.ps[0].id); await flush();
+    const karts = make(); karts.room.startGame(registry.get('pocket-karts'), { ready: true, settings:{map:'Garden Circuit'} }, karts.ps[0].id); await flush();
     const initialKart = stateOf(karts.socks[0]); await advance(4000); karts.room.onTick();
     assert.equal(karts.room.game.state.phase, 'countdown'); assert.equal(karts.room.game.state.lastTick, initialKart.simAt, 'held physics never advances early');
     const loadingGame=karts.room.game,heldNow=karts.room._gameNow();

@@ -1,4 +1,5 @@
 {
+  "scope": "Final art after scenery extension; Chrome, CPU 4x, 1280x720 and 390x844, Day/Night, fixed review cameras, eight drivers except two-seat duel.",
   "errors": [],
   "reports": [
     {
@@ -17,7 +18,7 @@
         "colliders": 25
       },
       "renderer": {
-        "frame": 372,
+        "frame": 383,
         "calls": 84,
         "triangles": 55630,
         "points": 0,
@@ -25,7 +26,7 @@
       },
       "frameMs": {
         "median": 16.699999999999818,
-        "p95": 16.799999999999272,
+        "p95": 16.799999999999727,
         "p99": 16.800000000000182,
         "stalls": 0
       },
@@ -48,7 +49,7 @@
         "colliders": 25
       },
       "renderer": {
-        "frame": 384,
+        "frame": 383,
         "calls": 84,
         "triangles": 55630,
         "points": 0,
@@ -79,7 +80,7 @@
         "colliders": 25
       },
       "renderer": {
-        "frame": 364,
+        "frame": 363,
         "calls": 56,
         "triangles": 37390,
         "points": 0,
@@ -110,7 +111,7 @@
         "colliders": 25
       },
       "renderer": {
-        "frame": 362,
+        "frame": 367,
         "calls": 56,
         "triangles": 37390,
         "points": 0,
@@ -118,12 +119,12 @@
       },
       "frameMs": {
         "median": 16.699999999999818,
-        "p95": 16.700000000000728,
+        "p95": 16.799999999999272,
         "p99": 16.800000000000182,
         "stalls": 0
       },
       "fps": 59.88023952095874,
-      "samples": 299
+      "samples": 300
     },
     {
       "id": "frostbite-crescent",
@@ -141,7 +142,7 @@
         "colliders": 25
       },
       "renderer": {
-        "frame": 381,
+        "frame": 382,
         "calls": 84,
         "triangles": 55466,
         "points": 0,
@@ -172,7 +173,7 @@
         "colliders": 25
       },
       "renderer": {
-        "frame": 382,
+        "frame": 379,
         "calls": 84,
         "triangles": 55466,
         "points": 0,
@@ -180,7 +181,7 @@
       },
       "frameMs": {
         "median": 16.699999999999818,
-        "p95": 16.700000000000728,
+        "p95": 16.799999999999272,
         "p99": 16.800000000000182,
         "stalls": 0
       },
@@ -203,7 +204,7 @@
         "colliders": 25
       },
       "renderer": {
-        "frame": 365,
+        "frame": 363,
         "calls": 56,
         "triangles": 37226,
         "points": 0,
@@ -234,7 +235,7 @@
         "colliders": 25
       },
       "renderer": {
-        "frame": 362,
+        "frame": 363,
         "calls": 56,
         "triangles": 37226,
         "points": 0,
@@ -242,7 +243,7 @@
       },
       "frameMs": {
         "median": 16.699999999999818,
-        "p95": 16.800000000000182,
+        "p95": 16.799999999999727,
         "p99": 16.800000000000182,
         "stalls": 0
       },

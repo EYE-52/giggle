@@ -1,0 +1,25 @@
+{
+  "map": "Garden Circuit",
+  "drivers": 32,
+  "connected": 32,
+  "seconds": 25.4,
+  "browser": {
+    "binaryFramesPerSec": 30.9,
+    "kbPerSec": 68.7,
+    "textFrames": 8,
+    "fps": 9.1,
+    "worstFrameMs": 1717,
+    "drawCallsPerFrame": 312,
+    "submittedTrianglesPerFrame": 222368,
+    "hud": {
+      "rows": 9,
+      "canvas": true
+    }
+  },
+  "bots": {
+    "framesPerSec": 28.9
+  },
+  "browserKartMovedM": 106.4,
+  "fastestForward": 16.8,
+  "errors": []
+}

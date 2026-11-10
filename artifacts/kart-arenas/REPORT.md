@@ -1,113 +1,76 @@
-# Pocket Karts arenas — partial implementation
+# Pocket Karts — seven arena build report
 
-10 November 2026. Local work only. Nothing pushed or deployed.
+10 November 2026. Local branch only. No push or deployment. The game-fixes branch was merged first (`5a0b43e`), and the runtime bundle was rebuilt after engine changes.
 
-**The seven-arena request is unfinished.** Shared support and the first Rookie Ribbons playable slice are implemented. Rookie has useful driving, camera and render evidence, but has not passed every launch gate. Skyport now also has a three-floor build and core automated evidence. The other five maps have not yet been completed. The old menu entries remain until the replacement lineup is ready; their IDs still load their original worlds.
+**All seven arenas are built and committed in the requested order. Full launch acceptance remains open.** Geometry, ordinary route driving, starts, selected-home supply, camera-volume sweeps and art-budget checks pass. The active combat probes below fail their unarmed-time/stall targets. Physical-phone and human sessions have not been run.
 
-## Map status, in the required build order
+## Current lineup and measured supply
 
-| Arena | Implementation | Evidence / next work |
-| --- | --- | --- |
-| Rookie Ribbons | Playable duel/full slice; 2 floors | Screenshots and measurements below. Combat supply, balance and full acceptance remain. |
-| Skyport Split | Three-floor build with four variants and finished shared art | Core geometry, driving, camera, starts, supply, transport and render checks pass. Wider combat/device/human gates remain. |
-| Garden Crown | Two-floor small/full build with themed art | Core geometry, routes, starts, supply, cameras and art budgets pass. Combat and device gates remain. |
-| Frostbite Crescent | Not built | Crescent shoreline, ice/shelf, jump/bypass, variants, starts/homes, art and all gates remain. |
-| Neon Switchyard | Not built | Hexagon, sign bridges, market cover, variants, starts/homes, art and all gates remain. |
-| Harbor Fork | Not built | Trident, cargo loop/lookout, water edges, climbs, variants, starts/homes, art and all gates remain. |
-| Foundry Wheel | Not built | Octagonal rings, guarded furnace, tunnels, belts, climbs, variants, starts/homes, art and all gates remain. |
+Numbers follow compact → medium → wide → full where present. A is real support/hull-audited usable area, not square bounds. B is the cycling home count at each variant's maximum seats. [Exact final data](final-arenas.json).
 
-## Shared support implemented
+| Arena / commit | Seats | A (m²) | Authored homes S | Cycling boxes B | Max statics incl. frames / cap |
+| --- | --- | --- | --- | --- | --- |
+| Rookie Ribbons `72e6eb8` | 2–8 | 2,117 / 3,160.5 | 16 / 20 | 12 / 18 | 42 / 44 |
+| Skyport Split `d0cf4e0` | 8–32 | 7,795 / 9,212.5 / 12,704.25 / 18,189.25 | 40 / 48 / 64 / 72 | 25 / 29 / 40 / 48 | 63 / 92 |
+| Garden Crown `c8ca1db` | 4–16 | 5,253 / 8,269 | 28 / 40 | 18 / 28 | 25 / 60 |
+| Frostbite Crescent `0ec3d7c` | 6–16 | 6,736.5 / 7,224.5 | 32 / 44 | 22 / 28 | 25 / 62 |
+| Neon Switchyard `3dccb8f` | 6–24 | 5,404 / 7,714 / 9,698.5 | 32 / 48 / 48 | 18 / 28 / 38 | 21 / 60 |
+| Harbor Fork `96538e6` | 8–32 | 9,203.75 / 9,203.75 / 12,339.25 / 17,027 | 40 / 48 / 64 / 64 | 29 / 29 / 39 / 48 | 34 / 84 |
+| Foundry Wheel `6a450b6` | 8–32 | 10,588.5 / 12,294.75 / 13,659.25 / 15,433.25 | 44 / 56 / 64 / 64 | 34 / 39 / 43 / 48 | 53 / 96 |
 
-- Versioned arena/variant contract. Authority chooses a variant before the match. Snapshots carry its identity; art and prediction load that same variant. Separate pools allow up to 64 respawn candidates and 32 initial starts.
-- The exact `min(S, 48, max(12, ceil(A/320), ceil(1.25*P)+8))` box rule. Stable, seeded homes with floor/district selection and at least four per floor. New arenas use 3/4/6-second simulation timers. Old map IDs retain their old economy.
-- A parked kart must leave the 3m home radius before collecting again. Loaded karts cannot consume boxes. Reconnect preserves the rule and the same home/entity IDs.
-- Ten-weapon ordinary/risk odds, normal odds for the opening eight seconds, and server-owned 12-second rare limits. The plan now names the ten current weapons and 100 HP.
-- A bounded 48-box batch, star-marked risk homes, quiet home outlines and a final return cue. No per-box bodies, materials or shadows.
-- Real Rapier support/hull route sampling, a layer-aware clearance graph, an area audit, continuous authority-input route replays and camera checks.
-- New arenas have explicit room capacities. A 32-person room cannot silently start Rookie and turn 24 drivers into watchers. Legacy saved fixtures keep their old behavior.
-- Toy art reuses the raised solid skin, level/drop/ramp markings, painted grove backdrop, full kart models and shared lights. New arena IDs are separate from art IDs.
+The Battle picker offers these seven arenas, with finished world previews, floor counts and seat ranges. Star Rush and Garage retain their five compatible classic courses. Old labels remain accepted for saved fixtures; retired raised maps are absent from the picker. New rooms default to Rookie Ribbons. [Picker checks](picker-metrics.json) · [Phone Day](picker-390-day.png) · [Phone Night cards](picker-390-night-cards.png) · [Desktop Night](picker-1280-night.png).
 
-Not finished in shared support: actual travel-time-based spawn scoring, all directed shortcut/landing checks, every camera stress replay, transport profiling for new 32-player arenas, and the synthetic three-floor variant/prediction/gate acceptance matrix. Current tests cover policy, two/three-floor authority setup, reconnects and the existing prediction suites; these are narrower than the full Phase 1 exit gate.
+## Shared support and passed core checks
 
-## Rookie Ribbons
+- Versioned layouts select before countdown; authority, prediction, art and reconnect share the same variant identity. Up to 64 respawn candidates and 32 initial starts are separate bounded lists.
+- Exact `B = min(S,48,max(12,ceil(A/320),ceil(1.25*P)+8))`, fixed seeded homes, at least four cycling homes per floor, route/district coverage, and 3/4/6s returns. Loaded karts cannot consume a box; parked karts must leave 3m before collecting again. Reconnect retains home IDs and the parked rule.
+- The ten current weapons and 100 HP are preserved. Common/uncommon/rare odds are 52/43/5, risk 40/50/10 after eight seconds, with the 1/2/3 rare awards per 12s limits. Risk tags cannot remove a start's second reachable ordinary home.
+- Every selected start has two selected ordinary homes within 32m of real road distance, over twenty supply seeds per reference count. Candidate hulls and 20m departures include shortcut frames. All selected drivers physically depart together.
+- Every ordinary directed route drives both ways through the real authority with normal inputs. All variants remain connected with one climb blocked. Rookie also has forty isolated three-minute route stress runs. These are not active eight-bot matches.
+- Flat convex polygon slabs have exact finite physics, visible geometry, camera proxies, normals and tiled UVs. Grouped guards retain their individual exact art/query envelopes. No arbitrary terrain path or dynamic map bodies were added.
+- Finished skins reuse the existing 256px surface atlases, painted backdrops, full models and shared lights. Roads/decks have metre-scale texture, route marks, edge rails, hazard trims and supports. Static art merges by material. Each map is under its draw, triangle and 12MiB texture cap in the unculled census.
+- Launch arenas use the raised binary pose stream at 20Hz. Legacy raised fixtures keep their JSON contract. Offline road atlases score respawns without a live raster/search in a tick.
+- The stronger feature-frame spawn audit also exposed five old fixture starts. One Skyport and two Foundry headings changed; another Foundry start moved 4m and one Alpine start moved 8m. Their map IDs and solid layouts remain loadable. All 96 old authored starts now pass the stronger frame-inclusive cast and 2.5s drive check. Buried bottom caps on the old Foundry tank fittings were removed to keep its existing 25k triangle cap after the corrected starts added a lane marker. Visible sides and tops retain their eight-sided shape.
 
-| Measure | Old Rookie Ring | New duel | New full |
-| --- | --- | --- | --- |
-| Useful floors | 1 | 2: ground / +6m | 2: ground / +6m |
-| Created boxes at supported reference seats | 6 at 2; 10 at 8 | 12 at 2 | 13 at 4; 18 at 8 |
-| Legal homes | 31 ground sockets | 16: 12 ground / 4 arch | 20: 16 ground / 4 arch |
-| Maximum selected starts / candidates | 8 authored, then generated | 2 / 4 | 8 / 16 |
-| Statics | Different classic profile | 23 | 33, below 44 cap |
-| Measured usable area | Not audited here | 2,353.5m² | 3,426.5m² |
-| Unculled loaded world draws | Not measured here | 18 | 18, below 45 cap |
-| Unculled loaded world triangles | Not measured here | 3,640 | 4,248, below 28,000 cap |
-| Loaded world textures | Not measured here | 3,884,287 bytes | 3,884,287 bytes, below 12MiB cap |
+No loading, vendor or game-host source was changed.
 
-Area uses a 0.5m raster of the final loaded Rapier supports, removes full hull margins/cover, counts the same-height union once, and includes ramps by horizontal projection. The box formula uses these measured values. This is a finite raster estimate, not an analytic mesh-area claim.
+## Measured browser results
 
-Both variants have two ordinary 1:4 ramps, an actual arch underside, a lower connection, guarded shaped ground and marked drops onto catch ground. Every selected start and candidate clears a 20m hull lane and drives that departure. Selected starts have at least 8m clearance from homes. Every start/home joins the clearance graph; blocking either climb leaves ordinary access to all homes. Old physics/feature IDs are not reassigned.
+Chrome at `/Applications/Google Chrome.app/Contents/MacOS/Google Chrome`, ANGLE Metal, 1280×720, CPU 4×. Each map also has 390×844 Day/Night top/chase review cases with eight visible full drivers; those short review cases measured about 59.9 FPS. They do not establish phone performance. Renderer counts below are submitted aggregate counts, not separately profiled shadow/colour passes.
 
-### Driving and camera evidence
+| Real production room | FPS | Draws / triangles per frame | Binary updates/s | KiB/s | Evidence |
+| --- | --- | --- | --- | --- | --- |
+| Skyport, 32 drivers | 59.6 | 169 / 79,161 | 20.1 | 71.3 | [Metrics](skyport-32/kart-32-browser.json) |
+| Garden, 16 | 59.7 | 147 / 68,626 | 20.1 | 36.8 | [Metrics](garden-16/kart-32-browser.json) |
+| Frostbite, 16 | 59.6 | 89 / 47,712 | 20.2 | 35.9 | [Metrics](frost-16/kart-32-browser.json) |
+| Neon, 24 | 59.7 | 113 / 55,826 | 20.2 | 71.8 | [Metrics](neon-24/kart-32-browser.json) |
+| Harbor, 32 | 60 | 137 / 79,032 | 20.2 | 77.5 | [Metrics](harbor-32/kart-32-browser.json) |
+| Foundry, 32 | 59.7 | 136 / 72,649 | 20.1 | 59.5 | [Metrics](foundry-32/kart-32-browser.json) |
 
-- Clockwise and counterclockwise authority-input circuits complete on both variants. No teleports, pose restores, stuck recovery or route resets during traversal.
-- Forty three-minute isolated route runs: 20 seeds per variant, alternating direction and varying target speed from 4–6m/s. A moving bot plus a parked rival; all completed the timed run without a stuck/recovery event. See [replay summary](rookie-stress.json).
-- This is **not** the planned eight-driver box-seeking/firing trial. It does not establish combat supply or human balance.
-- 10,032 route camera-eye volume samples pass against independent Rapier solids, across 2/4/8-seat variants. Existing camera suites also remain required.
-- The real practice page runs duel at 2 drivers and full at 8, with the correct 12/18 boxes. Production chase-camera eye and four near-plane corners were checked against a separate Rapier world during a short actual ground drive. See [practice measurements](practice-metrics.json). This is not every ramp/drop replay.
+Rookie's real practice page passes at 2/8 seats with zero eye/near-plane overlaps in its short ground drives. [Practice metrics](practice-metrics.json). The separate unchanged classic 32-driver SwiftShader profile passed its functional checks at **9.1 FPS**, 312 draws and 222,368 triangles/frame, with a 1,717ms worst frame. It is CPU-bound on this Mac and is not comparable to the Metal runs. [Classic metrics](classic-32/kart-32-browser.json).
 
-### Render measurements
+Before → after: Rookie supply was 6 boxes at two / 10 at eight; it is now 12 / 18. Old large raised maps made 12 boxes at 32; the new large full variants make 48. In an isolated Skyport 32-seat transport run, full JSON was about 869KiB/s versus 81.7KiB/s for the binary stream; complete Room update p95 was 15.3ms. Earlier concurrent-load p95 was 33.3ms. [Initial transport measurements](launch-transport-initial.json) and [latest suite measurements](launch-transport.json) are machine-load-sensitive.
 
-Chrome on this Mac, desktop emulation, 4× CPU throttle, 1280×720 and 390×844, day/night. Full has eight detailed drivers; duel has two. Five-second samples after scene warmup. These views use fixed review poses, not active combat.
+## Validation
 
-All eight final review cases measured about **59.9 FPS**, with p95 frame time about **16.7–16.8ms**. See [exact renderer/frame measurements](browser-metrics.json). No physical iPhone or thermal testing was done. A narrow sample at fixed poses does not prove the game's whole performance budget.
+Final full `apps/games npm test`: **PASS, 288 commands**, on the final engine source. [Full log](npm-test.log) · [Validation record](validation.json). All **128 unique kart test files** named across package scripts passed: 123 are in the expanded full suite; the five extra browser files have passed (Garage, classic 32, both complete 120-shot weapon galleries, launch browser). Weapon galleries deliberately configure saved legacy fixtures, and use `KART_WEAPON_BASE=http://127.0.0.1:8351`.
 
-The separate existing 32-driver classic browser regression passed with 32 connected, 31 binary frames/s, 68 KB/s reported traffic, 293 draw calls/frame, **11.1 FPS**, a 967ms worst frame and no browser errors. It used the test's default software renderer on this busy Mac. This is a regression result, not a new raised-map benchmark, and is not a launch-quality FPS result. [Numbers](kart-32-browser.json) · [Screenshot](kart-32-browser.png).
+Tests run with `NODE_PATH=/private/tmp/codex-driving-browser/node_modules` and the bounded listener preload. Only task ports 8350–8370 were used. Old classic-only fixtures now name their intended map instead of assuming the room default. The reset transport fixture verifies that saved settings are cleared before running its separate classic schema check; the production facade test verifies the new default. The bundle byte-currentness check passes after rebuild. Final visual review covers 56 CPU 4× cases, with zero browser errors and 59.88 FPS median in every case. The extra browser log is [here](extra-browser.log). This report supersedes the earlier partial and continued-suite files.
 
-### Screenshots reviewed
+## Remaining acceptance — not launch accepted
 
-| Variant / size | Day top | Day chase | Night top | Night chase |
-| --- | --- | --- | --- | --- |
-| Full / 1280 | [top](rookie-ribbons-full-1280-day-top.png) | [chase](rookie-ribbons-full-1280-day-chase.png) | [top](rookie-ribbons-full-1280-night-top.png) | [chase](rookie-ribbons-full-1280-night-chase.png) |
-| Full / 390 | [top](rookie-ribbons-full-390-day-top.png) | [chase](rookie-ribbons-full-390-day-chase.png) | [top](rookie-ribbons-full-390-night-top.png) | [chase](rookie-ribbons-full-390-night-chase.png) |
-| Duel / 1280 | [top](rookie-ribbons-duel-1280-day-top.png) | [chase](rookie-ribbons-duel-1280-day-chase.png) | [top](rookie-ribbons-duel-1280-night-top.png) | [chase](rookie-ribbons-duel-1280-night-chase.png) |
-| Duel / 390 | [top](rookie-ribbons-duel-390-day-top.png) | [chase](rookie-ribbons-duel-390-day-chase.png) | [top](rookie-ribbons-duel-390-night-top.png) | [chase](rookie-ribbons-duel-390-night-chase.png) |
+1. Investigate the stalled approaches and p95 unarmed failures in the real firing-bot probes; then run twenty three-minute seeds per variant, with every district/floor visited by two bots where seats allow, every cycling home approached, ≤4s median / ≤8s p95 unarmed time, ≥60% sustained availability and no floor dry for over 3s. Current Rookie/Garden diagnostics fail this gate.
+2. Complete all stress states and directed shortcuts: low/normal/nitro/drift/damaged/opposite-traffic climbs, jump speed/offset/failure spread, every cover/rail corner, parked slopes, occupied arrivals and every cannon/portal direction. Frostbite has a real inlet jump/drop replay; ordinary connectivity does not prove every optional shortcut.
+3. Replay the production chase camera over every route/drop/underside with eye and near-plane checks, low/medium/high tiers and portrait/landscape. The current independent camera-volume sweeps plus short Rookie production drives are narrower than this gate. Fixed review-camera screenshots are not that proof.
+4. Run ten full matches at min/middle/max seats per map and review opening deaths/pickup parity, followed by two human sessions per map. No human balance result is claimed.
+5. Run five-minute active-combat performance per tier/map, separate physics/projection and shadow/colour counts, reconnect/keyframe spikes, and ten rematch/map-swap leak checks. Use a named physical iPhone with OS, browser and thermal state. The short Chrome profiles and disposal tests do not replace these runs.
+6. Finish the full synthetic three-floor variant/prediction/gate stress matrix. Existing real map, prediction, reconnect, physics, economy and feature suites cover parts of it, not the whole Phase 1 exit gate.
 
-Production UI: [2-seat day](practice-2-day.png), [2-seat phone](practice-2-phone.png), [8-seat day](practice-8-day.png), [8-seat phone](practice-8-phone.png). The phone UI images use the Night UI theme; the world palette in those practice images remains Daybreak. The review table above contains actual Night world captures.
+## Plan deviations
 
-Local practice videos: `practice-2-drive.webm`, `practice-8-drive.webm`. They include real ground driving, not a complete upper-floor traversal. Review videos also record static top/chase view changes; they are not route-clearance proof. Videos are local artifacts, not committed binaries.
+Measured areas, not the sketch estimates, drive the economy. Several variants are larger than their starting A targets. Rookie is 76×52m; its arch has 5.2m clear space underneath and six-metre outer escape lanes. Skyport compact/medium scale all heights with their footprint and omit cannons while retaining portal and ordinary ascents. Foundry compact scales the whole ring to 85% rather than using spoke gates. Harbor compact's upper climb/lookout sits farther back to keep the middle fork clear. Middle/roof quotas changed where real opening coverage required it. These choices are recorded in each map section and still need encounter/balance review. Frostbite and Neon use conservative flat plates; their final footprints differ from the illustrative curves.
 
-Visual review against the sketches: the shaped lobes, arch, two ramp directions, level colour, pickup symbols and danger/drop stripes are readable in day/night. Lane ticks and floor emblems follow the smaller variant too. The art is still a first playable slice; final visual acceptance and human feedback are outstanding.
-
-### Deviations and remaining Rookie gates
-
-- Full footprint is 76×52m, compared with the 76×48m sketch. The extra lower apron was needed after driving tests found the descent turns too tight. Duel is a separate 60×44m layout. Both keep the two lobes and two climbs.
-- Areas exceed the starting 1,800/2,800m² targets. Measured area is used for supply. Encounter time and district occupancy still need testing before accepting these sizes.
-- The +6m deck has a 5.2m clear underside, below the plan's initial 6m clearance target. Current camera checks pass; this remains a declared geometry exception pending all replay/device checks.
-- The small variant has its own shaped floors and boundary, rather than the proposed visible gates on one shared full layout.
-- Some outer escape lanes are narrower than the 8m optional-route target. Opposite traffic, nitro/drift/spun approaches, all cover corners, both drops, weapon shots across levels and every ordinary edge at stress speed still need acceptance.
-- The clear graph and seeded home selection do not prove opening pickup times or <=1s parity. Full active firing/box-seeking trials, >=60% available supply, per-floor starvation checks, claim-race coverage, KO/dropout/spectator/map-swap coverage and the 10-match/human balance sessions remain.
-- No new 32-driver map, raised transport budget, five-minute combat profile, ten rematches/leak profile or physical-phone acceptance is claimed.
-
-## Test results
-
-The exact final results and baseline reproductions are recorded alongside this report. `npm test` was attempted; it stops at `test/word-rules.js`, “equal tries share first place” (70 vs 100). The same failure was reproduced from an isolated archive of the original starting commit `029537add4a80e9823585345cc7c5faa0e5c3041`, inside this worktree. See [clean-base log](word-rules-clean-base.log).
-
-The rest of the npm chain is run command by command so the first failure does not hide the remaining kart suites. [Full attempted npm log](npm-test.log) · [continued results](full-suite-results.json) · [continued log](continued-test.log).
-
-The four separately listed browser commands are also run: garage, 32-driver, classic weapon gallery and raised weapon gallery. The weapon-gallery tests' hard-coded 8290 URL is changed **in memory only** to the task's 8351 server. Their test behavior and source files are unchanged. Auto-selected test listeners use 8358–8370 through the test-only preload. No loading/vendor/game-host source was changed. The engine runtime was rebuilt with the required script.
-
-Final result: **117/117 unique kart commands listed in package scripts passed**, including the four separately listed browser commands. The expanded full chain contains 278 commands: **277 effective passes and one confirmed baseline Word Rules failure**, after explicit passing reruns of the two fixed kart regressions. The original `npm test` command itself remains failed. See [final ledger](FINAL-VALIDATION.json), [backdrop rerun](kart-backdrop-final.log), [room rerun](kart-complex-rooms-final.log), [garage browser log](kart-garage-browser.log), [classic weapon gallery](classic-weapons-browser.json) and [raised weapon gallery](raised-weapons-browser.json).
-
-The short production practice probes checked 1,745 camera eye/near-plane samples at two seats and 1,740 at eight, with zero overlaps in those drives. Both measured about 59.9 FPS. A parked returned box can still overlap the kart art; that visual case needs review before acceptance.
-
-## Resume next
-
-1. Finish the shared Phase 1 and Rookie acceptance gaps above; do not label this slice launch-ready.
-2. Build Skyport Split next. Prove its three-floor variants and 8/16/32-player transport/performance before Garden.
-3. Then Garden Crown, Frostbite Crescent, Neon Switchyard, Harbor Fork and Foundry Wheel, with a separate commit after each map's gates pass.
-4. Only after all seven pass, retire old Battle menu entries, keep their IDs loadable, and retain the separate classic Star Rush/Garage compatibility menu.
-
-## 10 November continuation — Rookie art and merge
+## Rookie Ribbons — finished art
 
 Merged `claude/game-fixes-nov9` (merge `5a0b43e`). Word Rules passes after the merge, and the runtime bundle was rebuilt. Final full-suite results below will supersede the earlier failed run.
 
@@ -115,29 +78,29 @@ Rookie now uses the existing 256px surface atlases for paving/deck joints, metre
 
 After this change: duel **32** statics, full **42** (cap 44); measured accessible area **2,117 / 3,160.5 m²**, used by the supply formula. Loaded art is **31 world draws**, **11,042 / 12,962 triangles**, **4,561,492 texture bytes**. Before: 18 world draws, 3,640 / 4,248 triangles; no slope guards or piers. The higher counts buy visible finished surfaces and safety details and remain within the 45 / 28,000 / 12MiB budgets.
 
-All sixteen named duel/full screenshots above were refreshed. [Review sheet](rookie-art-review.jpg). Eight 4× CPU cases measured 59.9 FPS, p95 16.7–16.8ms. The real practice page passed again: 1,785 / 1,770 eye and near-plane samples, zero overlaps, 59.9 FPS, 12 / 18 boxes. Practice renderer counts were 52 / 66 draws and 21,496 / 33,377 triangles. These are short drives, not a sustained-combat or physical-phone result.
+Duel/full top/chase shots at 1280/390 in Day/Night were refreshed. [Full review](rookie-ribbons-full-review.jpg) · [Duel review](rookie-ribbons-duel-review.jpg). Files use `rookie-ribbons-{duel,full}-{1280,390}-{day,night}-{top,chase}.png`. Eight 4× CPU cases measured 59.9 FPS, p95 16.7–16.8ms. The real practice page passed again: zero eye or near-plane overlaps in both runs, 59.9 FPS, 12 / 18 boxes. Practice renderer counts were 52 / 66 draws and 21,496 / 33,377 triangles. These are short drives, not a sustained-combat or physical-phone result.
 
 The solid rails caught the old test driver's cut turns. The driver now detects passed waypoint planes and slows tight turns; it does not reset or teleport. Both complete circuit directions, all departures/routes, 10,032 camera checks and forty three-minute stress replays pass with the guards present. New `kart-launch-art.mjs` checks texture mipmaps/UVs, finite camera envelopes, slope-guard transforms, bridge supports, disposal and map art budgets; it is in `npm test`.
 
-Still outstanding: the full shared and combat acceptance items listed above, including active box-seeking/fire trials and physical-device/human sessions. These results do not close those gates.
+The remaining acceptance work is listed below. These short runs and isolated routes do not close the combat or device gates.
 
 ## Skyport Split — first built large arena
 
 Four fixed variants now have measured areas **7,795 / 9,212.5 / 12,704.25 / 18,189.25 m²**, **40 / 48 / 64 / 72** authored homes and **25 / 29 / 40 / 48** cycling boxes at 8 / 16 / 24 / 32 drivers. Pools contain **16 / 32 / 48 / 64** legal candidates. Max starts are 16 ground / 8 middle / 8 roof, interleaved across the roster. All 32 full-map starts physically drive 20m together; full-hull casts include the cannon and portal frames.
 
-The west two-turn helix, east switchback, middle bridges, protected roof bridge, optional roof gap/lower catch, full-map two cannons and cross-level portal are built. Every ordinary directed route passes authority-input driving in both directions on compact/full. Real clearance graphs connect every start/home; closing either tier of the helix or either east climb leaves the ordinary network connected. Closures block the climb interior, preserving supported endpoint aprons. Twenty supply seeds per reference count pass fixed-home count/floor checks. [Core audit](skyport-gates.json).
+The west two-turn helix, east switchback, middle bridges, protected roof bridge, optional roof gap/lower catch, full-map two cannons and cross-level portal are built. Every ordinary directed route passes authority-input driving in both directions on every variant. Real clearance graphs connect every start/home; closing either tier of the helix or either east climb leaves the ordinary network connected. Closures block the climb interior, preserving supported endpoint aprons. Twenty supply seeds per reference count pass fixed-home count/floor checks. [Core audit](skyport-split-gates.json).
 
 Uniform compact geometry retains the ramp grades while bringing eight-driver area down from the first 14,861m² prototype to **7,795m²**. Its floors are 0 / 7.5 / 15m; medium uses 0 / 8 / 16m; wide 0 / 8.5 / 17m; full retains **0 / 10 / 20m**. Compact/medium omit the two cannons because those narrower street loops do not need them. The portal and both ordinary ascent systems remain. These are explicit changes from the plan. Medium/wide/full area remains above its starting sketch target; encounter/balance testing still matters.
 
 The skin has metre-tiled steel/paving, warm roof and teal middle floors, parking bays, H/P markings, runway lamps, reflected guard caps, roof utility pods and a windowed helix core. Existing painted harbor scenery and full driver models are reused. Guard boxes combine into bounded static meshes; their individual transforms remain the exact art/camera proxies. No arbitrary terrain mesh was introduced. Maximum statics including feature frames: **63**, cap 92. Full world plus shortcut art: **40 draws / 38,726 triangles**, cap 65 / 43,000, before the one loaded backdrop draw. Loaded texture accounting is under 5MiB. Top/chase and each floor slice are captured at 1280×720 and 390×844 in both palettes.
 
-Eight-driver render review cases measured **59.9 FPS** at 4× CPU throttle. The separate real **32-driver** production-browser run measured **59.6 FPS**, **125 draws/frame**, **20.2 binary updates/s**, **79.7KiB/s**, 15.1m confirmed keyboard movement and no browser errors. [32-driver metrics](skyport-32/kart-32-browser.json) · [production screenshot](skyport-32/kart-32-browser.png). This is a short run on this Mac using Chrome/Metal, not physical-phone or five-minute combat proof.
+Eight-driver render review cases measured **59.9 FPS** at 4× CPU throttle. The final 32-driver production-browser profile is in the table above. [32-driver metrics](skyport-32/kart-32-browser.json) · [production screenshot](skyport-32/kart-32-browser.png). This is a short run on this Mac using Chrome/Metal, not physical-phone or five-minute combat proof.
 
 Launch arenas now reuse the existing binary transport at their existing 20Hz cadence; legacy raised fixture IDs keep their JSON contract. A mixed real-Room test compares binary-decoded poses, health, districts and homes to JSON clients for 20 seconds, including disconnect/resume. It measured about **27–83KiB/s binary versus 335–871KiB/s full JSON**, depending on seats, before this final geometry refresh. [Current measurements](launch-transport.json) supersede that range. No loading, vendor or game-host code changed.
 
 Respawn scores now use small offline road-distance atlases built from real support/hull graphs. Enemy attachments are accepted only across supported, unobstructed road segments; missing attachments fall back conservatively. No live map raster/search was added to a server tick. Stacked-floor and atlas regression tests pass.
 
-An additional active box-seeking/firing probe is diagnostic, **not a passed gate**: at eight on Rookie, one three-minute seed approached all 18 homes and visited both levels, with 183 pickups and no server recovery. Median unarmed time was 2s and median availability 83%, but p95 unarmed time was 16.7s and the test driver logged 30 stalled approaches. It still needs better turn/goal handling and the full 20-seed acceptance run. The earlier isolated route replays remain passing, but do not replace this combat gate. Do not describe either map as launch accepted on this evidence.
+The latest three-minute Rookie eight-bot firing probe is **not a passed gate**: it approached all 18 homes, visited both floors, made 203 pickups and had no server recovery. Median unarmed time was 1.95s, p95 20.9s, median availability 78%, and the test driver logged 38 stalled approaches. [Diagnostic](rookie-ribbons-8-battle.json). These failures need investigation and the full seed batch; isolated route success does not replace this gate.
 
 Final isolated Room transport rerun for this build: 8 / 16 / 32 Skyport drivers used **22.4 / 42.7 / 81.7KiB/s** binary versus **353 / 524 / 869KiB/s** JSON. Full Room update p95 was **2.1 / 6.4 / 15.3ms**. An earlier concurrent browser/test run measured 33.3ms at 32, so these are machine-load-sensitive measurements, not a hardware-independent promise. [Exact final transport run](launch-transport.json).
 
@@ -151,9 +114,9 @@ The clover uses stepped joined slabs, broad ramp aprons, the +7m crown loop, rea
 
 The core art census is below **30 draws / 18,000 triangles** before the loaded backdrop, under the 55 / 38,000 map budget. Eight-driver top/chase review runs at 1280 and 390, Day/Night, measured **59.9 FPS** at 4× CPU throttle. Each floor has its own captures. [Full review](garden-crown-full-review.jpg) · [Small review](garden-crown-small-review.jpg) · [Render measurements](garden-browser-metrics.json).
 
-The real 16-driver browser measured **59.6 FPS**, **137 draws / 68,285 submitted triangles per frame**, **20.1 binary updates/s**, **37KiB/s**, 42.7m keyboard movement and no browser errors. [Metrics](garden-16/kart-32-browser.json) · [Production screenshot](garden-16/kart-32-browser.png).
+The final production-browser profile is in the table above. [Metrics](garden-16/kart-32-browser.json) · [Production screenshot](garden-16/kart-32-browser.png).
 
-The additional three-minute, eight-bot firing probe approached all 18 selected homes, visited both floors, made 194 pickups and had no server recovery. Median supply was 83% available. Median unarmed time was 4.05s, p95 15s, with 26 stalled approaches logged by the test driver. This **does not pass** the active-combat acceptance target. [Diagnostic run](garden-crown-8-battle.json). Full combat seeds, all stress states, longer profiles, physical-device and human sessions remain.
+The latest three-minute, eight-bot firing probe approached all 18 selected homes and visited both floors, with 186 pickups and no server recovery. Median availability was 83%; median unarmed time was 4.75s, p95 16.4s, with 25 stalled approaches. This **does not pass** the active-combat target. [Diagnostic](garden-crown-8-battle.json).
 
 Shared addition: a bounded convex flat-slab path now supports exact polygon outlines for the coming hexagon/octagon arenas. It has matching top/bottom/sides in physics, art and camera queries, analytic support tests, proper normals/UVs and a 90m real seam-driving regression. It is not arbitrary terrain, and saved legacy maps do not use it.
 
@@ -163,7 +126,7 @@ Small/full measured area is **6,736.5 / 7,224.5m²**, with **32 / 44 homes**, **
 
 The inlet is an actual eight-metre missing-floor jump, with a dry ordinary bypass. A real physics replay leaves the kicker, crosses the water and lands on the opposite shore. The marked east shelf drop lands on dry ground with no recovery. The inner low-grip bowl has six or more homes; its ordinary approaches remain on grippy shore. The quarry shelf, striped piers, slate paving, rail caps, ice cracks, snow banks and outside hoist share merged art. Each variant has **24 world draws / at most 17,178 triangles** before loaded backdrop, below 58 / 40,000.
 
-Reviewed [full](frostbite-crescent-full-review.jpg) and [small](frostbite-crescent-small-review.jpg) sheets include each floor, top/chase, Day/Night, 1280/390. Eight-driver render cases measured about **59.9 FPS** with CPU 4×. [Render metrics](frost-browser-metrics.json). The real 16-driver browser measured **59.7 FPS**, **114 draws / 61,290 submitted triangles**, **20.1 binary updates/s**, **39.3KiB/s**, 48.6m keyboard movement and no browser errors. [Production metrics](frost-16/kart-32-browser.json). This remains core implementation evidence; long active-combat, physical-phone and human balance gates are still open.
+Reviewed [full](frostbite-crescent-full-review.jpg) and [small](frostbite-crescent-small-review.jpg) sheets include each floor, top/chase, Day/Night, 1280/390. Eight-driver render cases measured about **59.9 FPS** with CPU 4×. [Render metrics](frost-browser-metrics.json). The final production-browser profile is in the table above. [Production metrics](frost-16/kart-32-browser.json). This remains core implementation evidence; long active-combat, physical-phone and human balance gates are still open.
 
 The shared box selector now uses road distance to homes and strongly reserves two reachable ordinary homes per initial start. The stronger gate exposed a seven-home roof quota for four Skyport medium starts; medium now assigns eight homes to each upper floor. Home profiles now follow the intended roughly 70% safe / 30% exposed split, with a small explicit risk share, rather than treating every upper home as exposed.
 
@@ -171,7 +134,7 @@ The shared box selector now uses road distance to homes and strongly reserves tw
 
 The exact hexagonal ground supports three variants, two +7m sign bridges, opposite climbs, six market cover masses and marked side drops. Every variant passes both directions on the climbs and complete raised circuit, alternate-climb connectivity, actual selected-home coverage over twenty seeds, full-hull departures and camera sweeps. An initial drive caught a sign cover too close to the lane; its shallow edge placement now leaves the driving line clear. [Core audit](neon-switchyard-gates.json).
 
-Finished art uses cyan/pink shutters, striped awnings, inset lights, large A/B signs, steel panels, road paving and reflected rail caps. [Full review](neon-switchyard-full-review.jpg) and [small review](neon-switchyard-small-review.jpg) cover both floors in Day/Night, top/chase, 1280/390. Eight-driver review cases measured **59.9 FPS** at CPU 4×. [Render metrics](neon-browser-metrics.json). The real 24-driver browser measured **59.7 FPS**, **107 draws / 53,159 submitted triangles**, **20.2 binary updates/s**, **60.9KiB/s**, 11.2m keyboard movement and no browser errors. [Production metrics](neon-24/kart-32-browser.json). Long combat/device/human gates remain open.
+Finished art uses cyan/pink shutters, striped awnings, inset lights, large A/B signs, steel panels, road paving and reflected rail caps. [Full review](neon-switchyard-full-review.jpg) and [small review](neon-switchyard-small-review.jpg) cover both floors in Day/Night, top/chase, 1280/390. Eight-driver review cases measured **59.9 FPS** at CPU 4×. [Render metrics](neon-browser-metrics.json). The final production-browser profile is in the table above. [Production metrics](neon-24/kart-32-browser.json). Long combat/device/human gates remain open.
 
 ## Harbor Fork
 
@@ -179,7 +142,7 @@ Four seat variants have measured A **9,203.75 / 9,203.75 / 12,339.25 / 17,027m²
 
 Container ribs/doors, steel deck textures, lane marks, supported dock edges, bright rim trims, lookout insets, mooring bollards and an orange crane finish the harbor skin. World plus cannon art is **37 draws / at most 30,428 triangles**, below 65 / 45,000 before the loaded backdrop. [Full](harbor-fork-full-review.jpg) and [compact](harbor-fork-compact-review.jpg) sheets were reviewed at 1280/390, Day/Night, top/chase and each of the three floor slices. Eight-driver review cases ran at **59.9 FPS** at CPU 4×. [Metrics](harbor-browser-metrics.json).
 
-The real 32-driver browser measured **59.7 FPS**, **109 draws / 62,284 submitted triangles**, **20.1 binary updates/s**, **79.4KiB/s**, 83.1m keyboard movement and no browser errors. [Production metrics](harbor-32/kart-32-browser.json). Full long-combat, device and human acceptance is still open. Full area exceeds the sketch target; compact does not simply reuse the full ground footprint. The authority atlas now rounds home distances upward, so a 32.24m route cannot round down into the 32m opening allowance.
+The final production-browser profile is in the table above. [Production metrics](harbor-32/kart-32-browser.json). Full long-combat, device and human acceptance is still open. Full area exceeds the sketch target; compact does not simply reuse the full ground footprint. The authority atlas now rounds home distances upward, so a 32.24m route cannot round down into the 32m opening allowance.
 
 ## Foundry Wheel
 
@@ -187,6 +150,8 @@ All four octagonal variants are built: area **10,588.5 / 12,294.75 / 13,659.25 /
 
 The initial narrow side rings failed traversal because the ramps filled their lanes. The final layout widens the inner bypasses, keeps the 136×128m outer octagon, moves the cannon off a service landing and tanks off the loop, and places the belts in separate ground lanes. A sealed glowing furnace, west blue tank cage, orange crane, striped tunnel piers, steel decks, inset lamps and rim guards finish the industrial skin. Compact is uniformly scaled to 85%, retaining grades; that differs from the proposed spoke gates. Its floor heights are 0 / 6.8 / 13.6m; full retains 0 / 8 / 16m. World plus shortcut art uses **51 draws / at most 34,302 triangles**, below 68 / 46,000 before the loaded backdrop.
 
-[Full review](foundry-wheel-full-review.jpg) and [compact review](foundry-wheel-compact-review.jpg) include all floors, Day/Night, top/chase, 1280/390. Eight-driver CPU 4× cases measured **59.9 FPS**. [Render metrics](foundry-browser-metrics.json). The real 32-driver browser measured **59.6 FPS**, **135 draws / 74,015 submitted triangles**, **20.1 binary updates/s**, **66.3KiB/s**, 33.7m keyboard movement and no browser errors. [Production metrics](foundry-32/kart-32-browser.json).
+[Full review](foundry-wheel-full-review.jpg) and [compact review](foundry-wheel-compact-review.jpg) include all floors, Day/Night, top/chase, 1280/390. Eight-driver CPU 4× cases measured **59.9 FPS**. [Render metrics](foundry-browser-metrics.json). The final production-browser profile is in the table above. [Production metrics](foundry-32/kart-32-browser.json).
 
 The full box quota is **20 / 16 / 12**, changed from the sketch's 24 / 12 / 12 to preserve the two-home opening on the eight middle starts. Risk tagging cannot consume a start's second reachable ordinary home. Full long-combat, device and human acceptance remains open.
+
+The final scenery extension carries the water/yard below the guarded roads to the painted backdrop, removing the pale empty strip seen in early production captures. It changes no driving collider and adds no triangles or draws. The final captures and picker previews were refreshed after this change.

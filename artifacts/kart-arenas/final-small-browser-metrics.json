@@ -1,0 +1,377 @@
+{
+  "errors": [],
+  "reports": [
+    {
+      "id": "garden-crown",
+      "variant": "small",
+      "viewport": [
+        1280,
+        720
+      ],
+      "phase": 0,
+      "world": {
+        "drawCalls": 30,
+        "triangles": 14980,
+        "textureBytes": 4561492,
+        "textureCount": 5,
+        "colliders": 21
+      },
+      "renderer": {
+        "frame": 380,
+        "calls": 107,
+        "triangles": 64350,
+        "points": 0,
+        "lines": 0
+      },
+      "frameMs": {
+        "median": 16.699999999999818,
+        "p95": 16.700000000000728,
+        "p99": 16.800000000000182,
+        "stalls": 0
+      },
+      "fps": 59.88023952095874,
+      "samples": 299
+    },
+    {
+      "id": "garden-crown",
+      "variant": "small",
+      "viewport": [
+        1280,
+        720
+      ],
+      "phase": 1,
+      "world": {
+        "drawCalls": 30,
+        "triangles": 14980,
+        "textureBytes": 4561492,
+        "textureCount": 5,
+        "colliders": 21
+      },
+      "renderer": {
+        "frame": 378,
+        "calls": 107,
+        "triangles": 64350,
+        "points": 0,
+        "lines": 0
+      },
+      "frameMs": {
+        "median": 16.699999999999818,
+        "p95": 16.700000000000728,
+        "p99": 16.800000000000182,
+        "stalls": 0
+      },
+      "fps": 59.88023952095874,
+      "samples": 300
+    },
+    {
+      "id": "garden-crown",
+      "variant": "small",
+      "viewport": [
+        390,
+        844
+      ],
+      "phase": 0,
+      "world": {
+        "drawCalls": 30,
+        "triangles": 14980,
+        "textureBytes": 4561492,
+        "textureCount": 5,
+        "colliders": 21
+      },
+      "renderer": {
+        "frame": 362,
+        "calls": 62,
+        "triangles": 34944,
+        "points": 0,
+        "lines": 0
+      },
+      "frameMs": {
+        "median": 16.699999999999818,
+        "p95": 16.800000000000182,
+        "p99": 16.800000000000182,
+        "stalls": 0
+      },
+      "fps": 59.88023952095874,
+      "samples": 299
+    },
+    {
+      "id": "garden-crown",
+      "variant": "small",
+      "viewport": [
+        390,
+        844
+      ],
+      "phase": 1,
+      "world": {
+        "drawCalls": 30,
+        "triangles": 14980,
+        "textureBytes": 4561492,
+        "textureCount": 5,
+        "colliders": 21
+      },
+      "renderer": {
+        "frame": 365,
+        "calls": 62,
+        "triangles": 34944,
+        "points": 0,
+        "lines": 0
+      },
+      "frameMs": {
+        "median": 16.699999999999818,
+        "p95": 16.799999999999727,
+        "p99": 16.800000000000182,
+        "stalls": 0
+      },
+      "fps": 59.88023952095874,
+      "samples": 300
+    },
+    {
+      "id": "frostbite-crescent",
+      "variant": "small",
+      "viewport": [
+        1280,
+        720
+      ],
+      "phase": 0,
+      "world": {
+        "drawCalls": 25,
+        "triangles": 17226,
+        "textureBytes": 4793172,
+        "textureCount": 5,
+        "colliders": 25
+      },
+      "renderer": {
+        "frame": 382,
+        "calls": 84,
+        "triangles": 55466,
+        "points": 0,
+        "lines": 0
+      },
+      "frameMs": {
+        "median": 16.699999999999818,
+        "p95": 16.700000000000728,
+        "p99": 16.800000000000182,
+        "stalls": 0
+      },
+      "fps": 59.88023952095874,
+      "samples": 300
+    },
+    {
+      "id": "frostbite-crescent",
+      "variant": "small",
+      "viewport": [
+        1280,
+        720
+      ],
+      "phase": 1,
+      "world": {
+        "drawCalls": 25,
+        "triangles": 17226,
+        "textureBytes": 4793172,
+        "textureCount": 5,
+        "colliders": 25
+      },
+      "renderer": {
+        "frame": 379,
+        "calls": 84,
+        "triangles": 55466,
+        "points": 0,
+        "lines": 0
+      },
+      "frameMs": {
+        "median": 16.699999999999818,
+        "p95": 16.799999999999272,
+        "p99": 16.800000000000182,
+        "stalls": 0
+      },
+      "fps": 59.88023952095874,
+      "samples": 299
+    },
+    {
+      "id": "frostbite-crescent",
+      "variant": "small",
+      "viewport": [
+        390,
+        844
+      ],
+      "phase": 0,
+      "world": {
+        "drawCalls": 25,
+        "triangles": 17226,
+        "textureBytes": 4793172,
+        "textureCount": 5,
+        "colliders": 25
+      },
+      "renderer": {
+        "frame": 363,
+        "calls": 56,
+        "triangles": 37226,
+        "points": 0,
+        "lines": 0
+      },
+      "frameMs": {
+        "median": 16.699999999999818,
+        "p95": 16.799999999999727,
+        "p99": 16.800000000000182,
+        "stalls": 0
+      },
+      "fps": 59.88023952095874,
+      "samples": 299
+    },
+    {
+      "id": "frostbite-crescent",
+      "variant": "small",
+      "viewport": [
+        390,
+        844
+      ],
+      "phase": 1,
+      "world": {
+        "drawCalls": 25,
+        "triangles": 17226,
+        "textureBytes": 4793172,
+        "textureCount": 5,
+        "colliders": 25
+      },
+      "renderer": {
+        "frame": 363,
+        "calls": 56,
+        "triangles": 37226,
+        "points": 0,
+        "lines": 0
+      },
+      "frameMs": {
+        "median": 16.699999999999818,
+        "p95": 16.799999999999727,
+        "p99": 16.800000000000182,
+        "stalls": 0
+      },
+      "fps": 59.88023952095874,
+      "samples": 299
+    },
+    {
+      "id": "neon-switchyard",
+      "variant": "small",
+      "viewport": [
+        1280,
+        720
+      ],
+      "phase": 0,
+      "world": {
+        "drawCalls": 30,
+        "triangles": 15920,
+        "textureBytes": 4793172,
+        "textureCount": 5,
+        "colliders": 21
+      },
+      "renderer": {
+        "frame": 376,
+        "calls": 106,
+        "triangles": 65278,
+        "points": 0,
+        "lines": 0
+      },
+      "frameMs": {
+        "median": 16.699999999999818,
+        "p95": 16.700000000000728,
+        "p99": 16.800000000000182,
+        "stalls": 0
+      },
+      "fps": 59.88023952095874,
+      "samples": 299
+    },
+    {
+      "id": "neon-switchyard",
+      "variant": "small",
+      "viewport": [
+        1280,
+        720
+      ],
+      "phase": 1,
+      "world": {
+        "drawCalls": 30,
+        "triangles": 15920,
+        "textureBytes": 4793172,
+        "textureCount": 5,
+        "colliders": 21
+      },
+      "renderer": {
+        "frame": 378,
+        "calls": 106,
+        "triangles": 65278,
+        "points": 0,
+        "lines": 0
+      },
+      "frameMs": {
+        "median": 16.699999999999818,
+        "p95": 16.799999999999727,
+        "p99": 16.800000000000182,
+        "stalls": 0
+      },
+      "fps": 59.88023952095874,
+      "samples": 300
+    },
+    {
+      "id": "neon-switchyard",
+      "variant": "small",
+      "viewport": [
+        390,
+        844
+      ],
+      "phase": 0,
+      "world": {
+        "drawCalls": 30,
+        "triangles": 15920,
+        "textureBytes": 4793172,
+        "textureCount": 5,
+        "colliders": 21
+      },
+      "renderer": {
+        "frame": 364,
+        "calls": 61,
+        "triangles": 35872,
+        "points": 0,
+        "lines": 0
+      },
+      "frameMs": {
+        "median": 16.699999999999818,
+        "p95": 16.700000000000728,
+        "p99": 16.800000000000182,
+        "stalls": 0
+      },
+      "fps": 59.88023952095874,
+      "samples": 299
+    },
+    {
+      "id": "neon-switchyard",
+      "variant": "small",
+      "viewport": [
+        390,
+        844
+      ],
+      "phase": 1,
+      "world": {
+        "drawCalls": 30,
+        "triangles": 15920,
+        "textureBytes": 4793172,
+        "textureCount": 5,
+        "colliders": 21
+      },
+      "renderer": {
+        "frame": 362,
+        "calls": 61,
+        "triangles": 35872,
+        "points": 0,
+        "lines": 0
+      },
+      "frameMs": {
+        "median": 16.699999999999818,
+        "p95": 16.799999999999272,
+        "p99": 16.800000000000182,
+        "stalls": 0
+      },
+      "fps": 59.88023952095874,
+      "samples": 299
+    }
+  ]
+}

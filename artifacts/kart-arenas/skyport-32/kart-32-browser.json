@@ -2,14 +2,15 @@
   "map": "Skyport Split",
   "drivers": 32,
   "connected": 32,
-  "seconds": 21.1,
+  "seconds": 21.2,
   "browser": {
-    "binaryFramesPerSec": 20.2,
-    "kbPerSec": 79.7,
+    "binaryFramesPerSec": 20.1,
+    "kbPerSec": 71.3,
     "textFrames": 6,
     "fps": 59.6,
     "worstFrameMs": 117,
-    "drawCallsPerFrame": 125,
+    "drawCallsPerFrame": 169,
+    "submittedTrianglesPerFrame": 79161,
     "hud": {
       "rows": 0,
       "canvas": true
@@ -18,7 +19,7 @@
   "bots": {
     "framesPerSec": 18.7
   },
-  "browserKartMovedM": 15.1,
-  "fastestForward": 21,
+  "browserKartMovedM": 52,
+  "fastestForward": 24.3,
   "errors": []
 }

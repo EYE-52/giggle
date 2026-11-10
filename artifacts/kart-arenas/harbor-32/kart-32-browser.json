@@ -4,22 +4,22 @@
   "connected": 32,
   "seconds": 21.1,
   "browser": {
-    "binaryFramesPerSec": 20.1,
-    "kbPerSec": 79.4,
+    "binaryFramesPerSec": 20.2,
+    "kbPerSec": 77.5,
     "textFrames": 6,
-    "fps": 59.7,
-    "worstFrameMs": 117,
-    "drawCallsPerFrame": 109,
-    "submittedTrianglesPerFrame": 62284,
+    "fps": 60,
+    "worstFrameMs": 17,
+    "drawCallsPerFrame": 137,
+    "submittedTrianglesPerFrame": 79032,
     "hud": {
       "rows": 0,
       "canvas": true
     }
   },
   "bots": {
-    "framesPerSec": 18.7
+    "framesPerSec": 18.8
   },
-  "browserKartMovedM": 83.1,
+  "browserKartMovedM": 82.6,
   "fastestForward": 24.4,
   "errors": []
 }

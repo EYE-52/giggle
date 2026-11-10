@@ -1,0 +1,873 @@
+{
+  "errors": [],
+  "reports": [
+    {
+      "id": "rookie-ribbons",
+      "variant": "full",
+      "viewport": [
+        1280,
+        720
+      ],
+      "phase": 0,
+      "world": {
+        "drawCalls": 31,
+        "triangles": 12962,
+        "textureBytes": 4561492,
+        "textureCount": 5,
+        "colliders": 42
+      },
+      "renderer": {
+        "frame": 342,
+        "calls": 84,
+        "triangles": 48242,
+        "points": 0,
+        "lines": 0
+      },
+      "frameMs": {
+        "median": 16.699999999999818,
+        "p95": 16.799999999999272,
+        "p99": 16.800000000000182,
+        "stalls": 0
+      },
+      "fps": 59.88023952095874,
+      "samples": 299
+    },
+    {
+      "id": "rookie-ribbons",
+      "variant": "full",
+      "viewport": [
+        1280,
+        720
+      ],
+      "phase": 1,
+      "world": {
+        "drawCalls": 31,
+        "triangles": 12962,
+        "textureBytes": 4561492,
+        "textureCount": 5,
+        "colliders": 42
+      },
+      "renderer": {
+        "frame": 345,
+        "calls": 84,
+        "triangles": 48242,
+        "points": 0,
+        "lines": 0
+      },
+      "frameMs": {
+        "median": 16.699999999999818,
+        "p95": 16.700000000000728,
+        "p99": 16.800000000000182,
+        "stalls": 0
+      },
+      "fps": 59.88023952095874,
+      "samples": 299
+    },
+    {
+      "id": "rookie-ribbons",
+      "variant": "full",
+      "viewport": [
+        390,
+        844
+      ],
+      "phase": 0,
+      "world": {
+        "drawCalls": 31,
+        "triangles": 12962,
+        "textureBytes": 4561492,
+        "textureCount": 5,
+        "colliders": 42
+      },
+      "renderer": {
+        "frame": 341,
+        "calls": 68,
+        "triangles": 39512,
+        "points": 0,
+        "lines": 0
+      },
+      "frameMs": {
+        "median": 16.699999999999818,
+        "p95": 16.700000000000728,
+        "p99": 16.800000000000182,
+        "stalls": 0
+      },
+      "fps": 59.88023952095874,
+      "samples": 299
+    },
+    {
+      "id": "rookie-ribbons",
+      "variant": "full",
+      "viewport": [
+        390,
+        844
+      ],
+      "phase": 1,
+      "world": {
+        "drawCalls": 31,
+        "triangles": 12962,
+        "textureBytes": 4561492,
+        "textureCount": 5,
+        "colliders": 42
+      },
+      "renderer": {
+        "frame": 341,
+        "calls": 68,
+        "triangles": 39512,
+        "points": 0,
+        "lines": 0
+      },
+      "frameMs": {
+        "median": 16.699999999999818,
+        "p95": 16.799999999999272,
+        "p99": 16.800000000000182,
+        "stalls": 0
+      },
+      "fps": 59.88023952095874,
+      "samples": 299
+    },
+    {
+      "id": "skyport-split",
+      "variant": "full",
+      "viewport": [
+        1280,
+        720
+      ],
+      "phase": 0,
+      "world": {
+        "drawCalls": 25,
+        "triangles": 34742,
+        "textureBytes": 4793172,
+        "textureCount": 5,
+        "colliders": 59
+      },
+      "renderer": {
+        "frame": 388,
+        "calls": 117,
+        "triangles": 87928,
+        "points": 0,
+        "lines": 0
+      },
+      "frameMs": {
+        "median": 16.699999999999818,
+        "p95": 16.700000000000728,
+        "p99": 16.800000000000182,
+        "stalls": 0
+      },
+      "fps": 59.88023952095874,
+      "samples": 299
+    },
+    {
+      "id": "skyport-split",
+      "variant": "full",
+      "viewport": [
+        1280,
+        720
+      ],
+      "phase": 1,
+      "world": {
+        "drawCalls": 25,
+        "triangles": 34742,
+        "textureBytes": 4793172,
+        "textureCount": 5,
+        "colliders": 59
+      },
+      "renderer": {
+        "frame": 391,
+        "calls": 117,
+        "triangles": 87928,
+        "points": 0,
+        "lines": 0
+      },
+      "frameMs": {
+        "median": 16.699999999999818,
+        "p95": 16.700000000000728,
+        "p99": 16.800000000000182,
+        "stalls": 0
+      },
+      "fps": 59.88023952095874,
+      "samples": 299
+    },
+    {
+      "id": "skyport-split",
+      "variant": "full",
+      "viewport": [
+        390,
+        844
+      ],
+      "phase": 0,
+      "world": {
+        "drawCalls": 25,
+        "triangles": 34742,
+        "textureBytes": 4793172,
+        "textureCount": 5,
+        "colliders": 59
+      },
+      "renderer": {
+        "frame": 374,
+        "calls": 86,
+        "triangles": 67752,
+        "points": 0,
+        "lines": 0
+      },
+      "frameMs": {
+        "median": 16.699999999999818,
+        "p95": 16.700000000000728,
+        "p99": 16.800000000000182,
+        "stalls": 0
+      },
+      "fps": 59.88023952095874,
+      "samples": 299
+    },
+    {
+      "id": "skyport-split",
+      "variant": "full",
+      "viewport": [
+        390,
+        844
+      ],
+      "phase": 1,
+      "world": {
+        "drawCalls": 25,
+        "triangles": 34742,
+        "textureBytes": 4793172,
+        "textureCount": 5,
+        "colliders": 59
+      },
+      "renderer": {
+        "frame": 373,
+        "calls": 86,
+        "triangles": 67752,
+        "points": 0,
+        "lines": 0
+      },
+      "frameMs": {
+        "median": 16.699999999999818,
+        "p95": 16.799999999999272,
+        "p99": 16.800000000000182,
+        "stalls": 0
+      },
+      "fps": 59.88023952095874,
+      "samples": 299
+    },
+    {
+      "id": "garden-crown",
+      "variant": "full",
+      "viewport": [
+        1280,
+        720
+      ],
+      "phase": 0,
+      "world": {
+        "drawCalls": 32,
+        "triangles": 17968,
+        "textureBytes": 4561492,
+        "textureCount": 5,
+        "colliders": 25
+      },
+      "renderer": {
+        "frame": 382,
+        "calls": 115,
+        "triangles": 70724,
+        "points": 0,
+        "lines": 0
+      },
+      "frameMs": {
+        "median": 16.699999999999818,
+        "p95": 16.700000000000728,
+        "p99": 16.800000000000182,
+        "stalls": 0
+      },
+      "fps": 59.88023952095874,
+      "samples": 299
+    },
+    {
+      "id": "garden-crown",
+      "variant": "full",
+      "viewport": [
+        1280,
+        720
+      ],
+      "phase": 1,
+      "world": {
+        "drawCalls": 32,
+        "triangles": 17968,
+        "textureBytes": 4561492,
+        "textureCount": 5,
+        "colliders": 25
+      },
+      "renderer": {
+        "frame": 383,
+        "calls": 115,
+        "triangles": 70724,
+        "points": 0,
+        "lines": 0
+      },
+      "frameMs": {
+        "median": 16.699999999999818,
+        "p95": 16.700000000000728,
+        "p99": 16.800000000000182,
+        "stalls": 0
+      },
+      "fps": 59.88023952095874,
+      "samples": 299
+    },
+    {
+      "id": "garden-crown",
+      "variant": "full",
+      "viewport": [
+        390,
+        844
+      ],
+      "phase": 0,
+      "world": {
+        "drawCalls": 32,
+        "triangles": 17968,
+        "textureBytes": 4561492,
+        "textureCount": 5,
+        "colliders": 25
+      },
+      "renderer": {
+        "frame": 367,
+        "calls": 64,
+        "triangles": 38092,
+        "points": 0,
+        "lines": 0
+      },
+      "frameMs": {
+        "median": 16.699999999999818,
+        "p95": 16.700000000000728,
+        "p99": 16.800000000000182,
+        "stalls": 0
+      },
+      "fps": 59.88023952095874,
+      "samples": 299
+    },
+    {
+      "id": "garden-crown",
+      "variant": "full",
+      "viewport": [
+        390,
+        844
+      ],
+      "phase": 1,
+      "world": {
+        "drawCalls": 32,
+        "triangles": 17968,
+        "textureBytes": 4561492,
+        "textureCount": 5,
+        "colliders": 25
+      },
+      "renderer": {
+        "frame": 366,
+        "calls": 64,
+        "triangles": 38092,
+        "points": 0,
+        "lines": 0
+      },
+      "frameMs": {
+        "median": 16.699999999999818,
+        "p95": 16.799999999999727,
+        "p99": 16.800000000000182,
+        "stalls": 0
+      },
+      "fps": 59.88023952095874,
+      "samples": 299
+    },
+    {
+      "id": "frostbite-crescent",
+      "variant": "full",
+      "viewport": [
+        1280,
+        720
+      ],
+      "phase": 0,
+      "world": {
+        "drawCalls": 25,
+        "triangles": 17370,
+        "textureBytes": 4793172,
+        "textureCount": 5,
+        "colliders": 25
+      },
+      "renderer": {
+        "frame": 383,
+        "calls": 84,
+        "triangles": 55630,
+        "points": 0,
+        "lines": 0
+      },
+      "frameMs": {
+        "median": 16.699999999999818,
+        "p95": 16.799999999999727,
+        "p99": 16.800000000000182,
+        "stalls": 0
+      },
+      "fps": 59.88023952095874,
+      "samples": 299
+    },
+    {
+      "id": "frostbite-crescent",
+      "variant": "full",
+      "viewport": [
+        1280,
+        720
+      ],
+      "phase": 1,
+      "world": {
+        "drawCalls": 25,
+        "triangles": 17370,
+        "textureBytes": 4793172,
+        "textureCount": 5,
+        "colliders": 25
+      },
+      "renderer": {
+        "frame": 383,
+        "calls": 84,
+        "triangles": 55630,
+        "points": 0,
+        "lines": 0
+      },
+      "frameMs": {
+        "median": 16.699999999999818,
+        "p95": 16.700000000000728,
+        "p99": 16.800000000000182,
+        "stalls": 0
+      },
+      "fps": 59.88023952095874,
+      "samples": 299
+    },
+    {
+      "id": "frostbite-crescent",
+      "variant": "full",
+      "viewport": [
+        390,
+        844
+      ],
+      "phase": 0,
+      "world": {
+        "drawCalls": 25,
+        "triangles": 17370,
+        "textureBytes": 4793172,
+        "textureCount": 5,
+        "colliders": 25
+      },
+      "renderer": {
+        "frame": 363,
+        "calls": 56,
+        "triangles": 37390,
+        "points": 0,
+        "lines": 0
+      },
+      "frameMs": {
+        "median": 16.699999999999818,
+        "p95": 16.700000000000728,
+        "p99": 16.800000000000182,
+        "stalls": 0
+      },
+      "fps": 59.88023952095874,
+      "samples": 299
+    },
+    {
+      "id": "frostbite-crescent",
+      "variant": "full",
+      "viewport": [
+        390,
+        844
+      ],
+      "phase": 1,
+      "world": {
+        "drawCalls": 25,
+        "triangles": 17370,
+        "textureBytes": 4793172,
+        "textureCount": 5,
+        "colliders": 25
+      },
+      "renderer": {
+        "frame": 367,
+        "calls": 56,
+        "triangles": 37390,
+        "points": 0,
+        "lines": 0
+      },
+      "frameMs": {
+        "median": 16.699999999999818,
+        "p95": 16.799999999999272,
+        "p99": 16.800000000000182,
+        "stalls": 0
+      },
+      "fps": 59.88023952095874,
+      "samples": 300
+    },
+    {
+      "id": "neon-switchyard",
+      "variant": "full",
+      "viewport": [
+        1280,
+        720
+      ],
+      "phase": 0,
+      "world": {
+        "drawCalls": 30,
+        "triangles": 18468,
+        "textureBytes": 4793172,
+        "textureCount": 5,
+        "colliders": 21
+      },
+      "renderer": {
+        "frame": 378,
+        "calls": 76,
+        "triangles": 48482,
+        "points": 0,
+        "lines": 0
+      },
+      "frameMs": {
+        "median": 16.699999999999818,
+        "p95": 16.700000000000728,
+        "p99": 16.800000000000182,
+        "stalls": 0
+      },
+      "fps": 59.88023952095874,
+      "samples": 299
+    },
+    {
+      "id": "neon-switchyard",
+      "variant": "full",
+      "viewport": [
+        1280,
+        720
+      ],
+      "phase": 1,
+      "world": {
+        "drawCalls": 30,
+        "triangles": 18468,
+        "textureBytes": 4793172,
+        "textureCount": 5,
+        "colliders": 21
+      },
+      "renderer": {
+        "frame": 377,
+        "calls": 76,
+        "triangles": 48482,
+        "points": 0,
+        "lines": 0
+      },
+      "frameMs": {
+        "median": 16.699999999999818,
+        "p95": 16.800000000000182,
+        "p99": 16.800000000000182,
+        "stalls": 0
+      },
+      "fps": 59.88023952095874,
+      "samples": 299
+    },
+    {
+      "id": "neon-switchyard",
+      "variant": "full",
+      "viewport": [
+        390,
+        844
+      ],
+      "phase": 0,
+      "world": {
+        "drawCalls": 30,
+        "triangles": 18468,
+        "textureBytes": 4793172,
+        "textureCount": 5,
+        "colliders": 21
+      },
+      "renderer": {
+        "frame": 364,
+        "calls": 61,
+        "triangles": 38680,
+        "points": 0,
+        "lines": 0
+      },
+      "frameMs": {
+        "median": 16.699999999999818,
+        "p95": 16.700000000000728,
+        "p99": 16.800000000000182,
+        "stalls": 0
+      },
+      "fps": 59.88023952095874,
+      "samples": 299
+    },
+    {
+      "id": "neon-switchyard",
+      "variant": "full",
+      "viewport": [
+        390,
+        844
+      ],
+      "phase": 1,
+      "world": {
+        "drawCalls": 30,
+        "triangles": 18468,
+        "textureBytes": 4793172,
+        "textureCount": 5,
+        "colliders": 21
+      },
+      "renderer": {
+        "frame": 369,
+        "calls": 61,
+        "triangles": 38680,
+        "points": 0,
+        "lines": 0
+      },
+      "frameMs": {
+        "median": 16.699999999999818,
+        "p95": 16.799999999999727,
+        "p99": 16.800000000000182,
+        "stalls": 0
+      },
+      "fps": 59.88023952095874,
+      "samples": 299
+    },
+    {
+      "id": "harbor-fork",
+      "variant": "full",
+      "viewport": [
+        1280,
+        720
+      ],
+      "phase": 0,
+      "world": {
+        "drawCalls": 28,
+        "triangles": 29644,
+        "textureBytes": 4793172,
+        "textureCount": 5,
+        "colliders": 33
+      },
+      "renderer": {
+        "frame": 396,
+        "calls": 126,
+        "triangles": 89642,
+        "points": 0,
+        "lines": 0
+      },
+      "frameMs": {
+        "median": 16.699999999999818,
+        "p95": 16.799999999999272,
+        "p99": 16.800000000000182,
+        "stalls": 0
+      },
+      "fps": 59.88023952095874,
+      "samples": 300
+    },
+    {
+      "id": "harbor-fork",
+      "variant": "full",
+      "viewport": [
+        1280,
+        720
+      ],
+      "phase": 1,
+      "world": {
+        "drawCalls": 28,
+        "triangles": 29644,
+        "textureBytes": 4793172,
+        "textureCount": 5,
+        "colliders": 33
+      },
+      "renderer": {
+        "frame": 399,
+        "calls": 126,
+        "triangles": 89642,
+        "points": 0,
+        "lines": 0
+      },
+      "frameMs": {
+        "median": 16.699999999999818,
+        "p95": 16.800000000000182,
+        "p99": 16.800000000000182,
+        "stalls": 0
+      },
+      "fps": 59.88023952095874,
+      "samples": 299
+    },
+    {
+      "id": "harbor-fork",
+      "variant": "full",
+      "viewport": [
+        390,
+        844
+      ],
+      "phase": 0,
+      "world": {
+        "drawCalls": 28,
+        "triangles": 29644,
+        "textureBytes": 4793172,
+        "textureCount": 5,
+        "colliders": 33
+      },
+      "renderer": {
+        "frame": 375,
+        "calls": 47,
+        "triangles": 40396,
+        "points": 0,
+        "lines": 0
+      },
+      "frameMs": {
+        "median": 16.699999999999818,
+        "p95": 16.799999999999272,
+        "p99": 16.800000000000182,
+        "stalls": 0
+      },
+      "fps": 59.88023952095874,
+      "samples": 299
+    },
+    {
+      "id": "harbor-fork",
+      "variant": "full",
+      "viewport": [
+        390,
+        844
+      ],
+      "phase": 1,
+      "world": {
+        "drawCalls": 28,
+        "triangles": 29644,
+        "textureBytes": 4793172,
+        "textureCount": 5,
+        "colliders": 33
+      },
+      "renderer": {
+        "frame": 376,
+        "calls": 47,
+        "triangles": 40396,
+        "points": 0,
+        "lines": 0
+      },
+      "frameMs": {
+        "median": 16.699999999999818,
+        "p95": 16.700000000000728,
+        "p99": 16.800000000000182,
+        "stalls": 0
+      },
+      "fps": 59.88023952095874,
+      "samples": 299
+    },
+    {
+      "id": "foundry-wheel",
+      "variant": "full",
+      "viewport": [
+        1280,
+        720
+      ],
+      "phase": 0,
+      "world": {
+        "drawCalls": 33,
+        "triangles": 31294,
+        "textureBytes": 4793172,
+        "textureCount": 5,
+        "colliders": 50
+      },
+      "renderer": {
+        "frame": 396,
+        "calls": 71,
+        "triangles": 50994,
+        "points": 0,
+        "lines": 0
+      },
+      "frameMs": {
+        "median": 16.699999999999818,
+        "p95": 16.700000000000728,
+        "p99": 16.800000000000182,
+        "stalls": 0
+      },
+      "fps": 59.88023952095874,
+      "samples": 299
+    },
+    {
+      "id": "foundry-wheel",
+      "variant": "full",
+      "viewport": [
+        1280,
+        720
+      ],
+      "phase": 1,
+      "world": {
+        "drawCalls": 33,
+        "triangles": 31294,
+        "textureBytes": 4793172,
+        "textureCount": 5,
+        "colliders": 50
+      },
+      "renderer": {
+        "frame": 394,
+        "calls": 71,
+        "triangles": 50994,
+        "points": 0,
+        "lines": 0
+      },
+      "frameMs": {
+        "median": 16.699999999999818,
+        "p95": 16.700000000000728,
+        "p99": 16.800000000000182,
+        "stalls": 0
+      },
+      "fps": 59.88023952095874,
+      "samples": 299
+    },
+    {
+      "id": "foundry-wheel",
+      "variant": "full",
+      "viewport": [
+        390,
+        844
+      ],
+      "phase": 0,
+      "world": {
+        "drawCalls": 33,
+        "triangles": 31294,
+        "textureBytes": 4793172,
+        "textureCount": 5,
+        "colliders": 50
+      },
+      "renderer": {
+        "frame": 374,
+        "calls": 67,
+        "triangles": 50706,
+        "points": 0,
+        "lines": 0
+      },
+      "frameMs": {
+        "median": 16.699999999999818,
+        "p95": 16.799999999999727,
+        "p99": 16.800000000000182,
+        "stalls": 0
+      },
+      "fps": 59.88023952095874,
+      "samples": 299
+    },
+    {
+      "id": "foundry-wheel",
+      "variant": "full",
+      "viewport": [
+        390,
+        844
+      ],
+      "phase": 1,
+      "world": {
+        "drawCalls": 33,
+        "triangles": 31294,
+        "textureBytes": 4793172,
+        "textureCount": 5,
+        "colliders": 50
+      },
+      "renderer": {
+        "frame": 373,
+        "calls": 67,
+        "triangles": 50706,
+        "points": 0,
+        "lines": 0
+      },
+      "frameMs": {
+        "median": 16.699999999999818,
+        "p95": 16.799999999999727,
+        "p99": 16.800000000000182,
+        "stalls": 0
+      },
+      "fps": 59.88023952095874,
+      "samples": 299
+    }
+  ]
+}
