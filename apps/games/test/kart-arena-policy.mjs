@@ -10,9 +10,10 @@ import {elevatedMap} from '../public/js/engines/kart-elevated-maps.mjs';
 import combat from '../games/engines/kart-elevated-combat.js';
 import contract from '../games/engines/kart-combat-config.js';
 import {arenaBoxCount,arenaFloorQuotas,selectArenaHomes,selectArenaVariant,validateArenaContract,createArenaRewardPolicy,arenaRespawnMs} from '../public/js/engines/kart-arena-policy.mjs';
-assert.deepEqual([2,4,8,16,24,32].map(n=>arenaBoxCount(15000,n,72)),[47,47,47,47,47,48]);
+assert.deepEqual([2,4,8,16,24,32].map(n=>arenaBoxCount(15000,n,72)),[48,48,48,48,48,48]);
+assert.equal(arenaBoxCount(7795,8,40),39);assert.equal(arenaBoxCount(5404,8,32),28);
 assert.equal(arenaBoxCount(1800,2,16),12);assert.equal(arenaBoxCount(2800,8,20),18);
-assert.equal(arenaBoxCount(6300,16,44),28);assert.equal(arenaBoxCount(9600,24,48),38);
+assert.equal(arenaBoxCount(6300,16,44),32);assert.equal(arenaBoxCount(9600,24,48),48);
 assert.deepEqual(['safe','exposed','risk'].map(arenaRespawnMs),[2000,3000,4000]);
 for(const seats of [2,8,16,32]){
  let i=0;const reward=createArenaRewardPolicy(contract.config.weapons,seats,()=>i++%2?.99:.999),cap=seats<=8?1:seats<=16?2:3;

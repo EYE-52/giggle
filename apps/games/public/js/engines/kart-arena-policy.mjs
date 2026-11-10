@@ -3,7 +3,9 @@ export const ARENA_POLICY_VERSION = 1;
 export const ARENA_LIMITS = Object.freeze({homes:96, boxes:48, candidates:64, starts:32});
 export function arenaBoxCount(area, players, sockets) {
   if(!Number.isFinite(area)||area<=0||!Number.isInteger(players)||players<2||players>32||!Number.isInteger(sockets)||sockets<12||sockets>96)throw new RangeError('Invalid arena supply');
-  return Math.min(sockets,48,Math.max(12,Math.ceil(area/320),Math.ceil(1.25*players)+8));
+  // Active firing probes exposed long road gaps at 320m2 per box.
+  // Cycle more existing homes while retaining the 48-box and seat caps.
+  return Math.min(sockets,48,Math.max(12,Math.ceil(area/200),Math.ceil(1.25*players)+8));
 }
 export function selectArenaVariant(source, players, requested) {
   if(!source.arenaVersion)return structuredClone(source);
