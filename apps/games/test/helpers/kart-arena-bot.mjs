@@ -1,8 +1,8 @@
-// Test-only local driving planner. It predicts ordinary steering/throttle
-// paths against the audited road grid; it never moves an authority body.
+// Test-only planning world. Candidate controls start from a COPY of the public
+// pose and use the same suspension/collision code. The real authority receives
+// ordinary inputs only; no authority pose, inventory or clock is modified.
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
-const wrap=n=>Math.atan2(Math.sin(n),Math.cos(n));
-export function createArenaBotPlanner(nav){
+export function createArenaBotPlanner(nav,query){
  const columns=new Map();
  for(const n of nav.nodes){const key=n.x+':'+n.z;if(!columns.has(key))columns.set(key,[]);columns.get(key).push(n);}
  function attach(x,y,z){
@@ -11,28 +11,32 @@ export function createArenaBotPlanner(nav){
    const d=Math.hypot(n.x-x,n.z-z);
    if(Math.abs(n.y-y)<1&&d<score){best=n;score=d;}
   }
-  return score<.75?best:null;
+  return score<.9?best:null;
  }
- function drive(pose,node,home){
-  const yaw=Math.atan2(2*(pose.rotation.w*pose.rotation.y+pose.rotation.x*pose.rotation.z),1-2*(pose.rotation.y**2+pose.rotation.x**2));
+ let added=false;
+ function controls(steer,wanted,speed){return {steer,throttle:wanted<0?-.65:clamp((wanted-speed)*.3,0,.8),brake:wanted>0&&speed>wanted+.8?.3:0};}
+ function drive(pose,node,home,brain,at){
+  if(brain.planGoal===home.id&&at<brain.planUntil&&!brain.recoveryNeeded)return controls(brain.planSteer,brain.planSpeed,pose.speed);
+  if(!added){query.addKart('planning-copy',pose);added=true;}
   let best=null;
-  for(const wanted of [3,6,11,-4])for(const steer of [-1,-.75,-.5,-.25,0,.25,.5,.75,1]){
-   let arrived=false;let x=pose.position.x,z=pose.position.z,y=node.y,a=yaw,v=pose.speed,last=node,valid=true;
-   const direction=Math.sign(wanted);
-   for(let step=0;step<12;step++){
-    v+=clamp(wanted-v,-2,2);a-=v/2*Math.tan(steer*.43/(1+Math.abs(v)*.055))*.12;
-    x+=Math.sin(a)*v*.12;z+=Math.cos(a)*v*.12;
-    const n=attach(x,y,z);if(!n||!Number.isFinite(home.field.distance[n.index])){valid=false;break;}
-    y=n.y;last=n;
-    if(Math.hypot(home.x-x,home.z-z)<1.8&&Math.abs(home.y-y)<.3){arrived=true;break;}
+  for(const [steer,wanted] of [[-1,5],[-.5,8],[0,11],[.5,8],[1,5],[-1,-4],[0,-4],[1,-4]]){
+   query.resetKart('planning-copy',pose);query.restoreKart('planning-copy',pose);
+   let p=pose,valid=true,arrived=false,elapsed=0;
+   for(let j=0;j<20;j++){
+    query.applyIntent('planning-copy',controls(steer,wanted,p.speed));query.step(3);p=query.pose('planning-copy');elapsed+=.05;
+    if((p.position.y<pose.position.y-1&&!p.grounded)||1-2*(p.rotation.x**2+p.rotation.z**2)<.65){valid=false;break;}
+    if(Math.hypot(home.x-p.position.x,home.z-p.position.z)<2.1&&Math.abs(home.y-p.position.y+.65)<.4&&p.grounded){arrived=true;break;}
    }
-   if(!valid)continue;
-   const next=nav.nodes[home.field.parents[last.index]],heading=next?Math.atan2(next.x-last.x,next.z-last.z):Math.atan2(home.x-x,home.z-z);
-   const score=(arrived?-5:home.field.distance[last.index]+Math.hypot(x-last.x,z-last.z)+Math.abs(wrap(a-heading-(direction<0?Math.PI:0)))*.5)+(direction<0?3:0);
+   if(!valid||p.wheels.filter(w=>w.contact).length<3)continue;
+   const n=attach(p.position.x,p.position.y-.65,p.position.z);if(!n||!Number.isFinite(home.field.distance[n.index]))continue;
+   const moved=Math.hypot(p.position.x-pose.position.x,p.position.z-pose.position.z);
+   const score=(arrived?-10+elapsed:home.metres[n.index]+Math.hypot(p.position.x-n.x,p.position.z-n.z))+(wanted<0?1:0)+(moved<.3?5:0);
    if(!best||score<best.score)best={score,steer,wanted};
   }
-  if(!best)return null;
-  return {steer:best.steer,throttle:best.wanted<0?-.6:clamp((best.wanted-pose.speed)*.3,0,.8),brake:best.wanted>0&&pose.speed>best.wanted+1?.3:0};
+  query.drainImpacts();brain.recoveryNeeded=false;
+  if(!best){brain.planUntil=at;return null;}
+  brain.planGoal=home.id;brain.planUntil=at+200;brain.planSteer=best.steer;brain.planSpeed=best.wanted;
+  return controls(best.steer,best.wanted,pose.speed);
  }
  return {drive,attach};
 }
