@@ -308,10 +308,19 @@ function createElevatedCombat(RAPIER,config,map,seats,options={}) {
   function recoverStuck(k,p) {
     // A stopped kart on its side can have suspension rays touching a nearby
     // ramp. Contacts alone neither prove it is upright nor distinguish flight.
-    if(simAt<k.recoverAfter || rotate({x:0,y:1,z:0},p.rotation).y>=RECOVERY.up || length(p.linearVelocity)>RECOVERY.linear || length(p.angularVelocity)>RECOVERY.angular) {k.stuck=null;return false;}
+    const tipped=rotate({x:0,y:1,z:0},p.rotation).y<RECOVERY.up;
+    // An upright chassis can also catch a deck lip with its front tyres in
+    // the air. It cannot reverse up that lip, despite two grounded rear tyres.
+    // Require sustained failed driving, few tyre contacts and nearby support;
+    // ordinary parking, moving ramps and feature flights cannot trigger this.
+    const contacts=p.wheels.filter(w=>w.contact).length;
+    if(k.stuck?.highCentred)k.stuck.supportSeconds=contacts>=3?k.stuck.supportSeconds+dt:0;
+    const highCentred=!!M.arenaVersion&&!tipped&&!k.flight&&k.spinT<=0&&k.frostT<=0&&Math.abs(k.input.throttle)>.2&&
+      (contacts<=2||k.stuck?.highCentred&&k.stuck.supportSeconds<.3);
+    if(simAt<k.recoverAfter || (!tipped&&!highCentred) || (!highCentred&&(length(p.linearVelocity)>RECOVERY.linear || length(p.angularVelocity)>RECOVERY.angular))) {k.stuck=null;return false;}
     const support=physics.supportAt(p.position,length(C.chassis.half)+0.15);
     if(!support || support.normal.y<=0.65) {k.stuck=null;return false;}
-    if(!k.stuck || distance(k.stuck.anchor,p.position)>RECOVERY.progress) k.stuck={anchor:p.position,seconds:0,retryAt:0};
+    if(!k.stuck || distance(k.stuck.anchor,p.position)>RECOVERY.progress) k.stuck={anchor:p.position,seconds:0,retryAt:0,highCentred,supportSeconds:0};
     k.stuck.seconds+=dt;
     if(k.stuck.seconds<RECOVERY.seconds-1e-8 || simAt<k.stuck.retryAt) return false;
     k.stuck.retryAt=simAt+RECOVERY.retryMs;
@@ -321,7 +330,7 @@ function createElevatedCombat(RAPIER,config,map,seats,options={}) {
     if(!safe.length) return false;
     clean(k);k.spawnSeq++;k.controlEpoch++;k.weapon=null;k.ammo=0;k.shield=0;k.recoverAfter=simAt+RECOVERY.cooldownMs;
     physics.resetKart(k.id,spawnPose(safe[0].s));
-    emit('recover',k.id,{reason:'stuck',spawnSeq:k.spawnSeq,controlEpoch:k.controlEpoch,from:p.position,position:physics.pose(k.id).position});
+    emit('recover',k.id,{reason:highCentred&&!tipped?'high-centred':'stuck',spawnSeq:k.spawnSeq,controlEpoch:k.controlEpoch,from:p.position,position:physics.pose(k.id).position});
     return true;
   }
   function spend(k,p) {
