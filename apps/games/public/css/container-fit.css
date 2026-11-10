@@ -11,6 +11,8 @@
 }
 #gbody > * { min-width: 0; max-width: 100%; }
 #gbody :is(input, textarea, select) { min-width: 0; max-width: 100%; }
+/* Fields often run edge to edge; keep their keyboard ring inside the game. */
+#gbody :is(input, textarea):focus-visible { outline-offset: -4px; }
 /* Paper keeps its logical dimensions. CSS resizing never clears pixels or
  * changes normalized pointer coordinates; the well may be square. */
 #gbody :is(.do-easel, .si-sketchbook) {

@@ -16,6 +16,10 @@ body.game-playing:has(#gbody > .word-party)
   left: auto;
   right: 0;
 }
+/* Word games lay out their own three slots: report, full screen, then the menu. */
+body.game-playing:has(#gbody > .word-party) .play-toolbar .game-screen-toggle {
+  translate: calc(-1 * (var(--control-h-sm) + var(--space-8))) 0;
+}
 body.game-playing:has(#gbody > .word-party)
   .play-toolbar:has(#bGameScreenToggle:not([hidden])) {
   padding-right: calc(

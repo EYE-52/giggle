@@ -207,7 +207,8 @@
   background: var(--input-bg, var(--card)); border: 2px solid var(--line-strong); border-radius: var(--gk-radius, var(--radius-md));
 }
 .gk-input-row > .gk-btn { flex: none; min-height: 48px; }
-.gk-input-row .gk-input:focus, input.gk-input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+/* The focus ring sits inside the field so the game edge never slices it. */
+.gk-input-row .gk-input:focus, input.gk-input:focus { outline: none; border-color: var(--accent); box-shadow: inset 0 0 0 3px var(--accent-soft); }
 
 /* ---- waiting line ---- */
 .gk-wait {

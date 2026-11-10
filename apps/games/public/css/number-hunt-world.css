@@ -180,7 +180,7 @@ body[data-game="number-hunt"].game-playing {
 .nh .nh-guess-picker{display:grid;grid-template-columns:var(--control-h) minmax(0,1fr) var(--control-h);gap:var(--space-8);flex:1 1 0%;min-width:0;padding:var(--space-8);border:var(--outline-w) solid var(--outline);border-radius:var(--radius-lg);background:var(--card);box-shadow:var(--shadow-sticker)}
 #gbody .nh.pl-fill .nh-guess-picker .gk-input,[data-theme="night"] #gbody .nh.pl-fill .nh-guess-picker .gk-input{min-width:0;width:100%;padding:var(--space-8) var(--space-4);text-align:center;font:var(--text-title);font-variant-numeric:tabular-nums;background:transparent;border:0;box-shadow:none}
 .nh .nh-guess-picker .picker-btn{width:var(--control-h);min-height:var(--control-h)}
-#gbody .nh.pl-fill .nh-guess-picker .gk-input:focus-visible{outline:var(--focus-ring);outline-offset:var(--focus-offset)}
+#gbody .nh.pl-fill .nh-guess-picker .gk-input:focus-visible{outline:var(--focus-ring);outline-offset:-4px}
 .nh .nh-guess-picker .gk-input::placeholder{font:var(--text-caption)}
 @container game (min-width:860px) {
   .nh #nForm{justify-content:center}

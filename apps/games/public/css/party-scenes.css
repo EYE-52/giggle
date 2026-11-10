@@ -70,7 +70,7 @@
   border: 1px solid var(--line-strong); border-radius: var(--party-radius);
   background: var(--input-bg, var(--card)); color: var(--ink); font: 600 17px/1.3 var(--font-body); font-size: 17px; box-shadow: none;
 }
-#gbody .party-scene .party-compose input[type="text"]:focus, #gbody .party-scene .party-field input[type="text"]:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+#gbody .party-scene .party-compose input[type="text"]:focus, #gbody .party-scene .party-field input[type="text"]:focus { outline: none; border-color: var(--accent); box-shadow: inset 0 0 0 3px var(--accent-soft); }
 .party-compose input::placeholder { color: var(--ink-dim); opacity: 1; }
 
 /* ---- buttons ---- */
@@ -499,8 +499,8 @@
   min-height: var(--control-h-lg); border: var(--outline-w) solid var(--outline); border-radius: var(--radius-lg);
   background: var(--input-bg, var(--card)); color: var(--ink);
 }
-#gbody .pl-fill :is(input.gk-input, input[type="text"], textarea):focus { outline: none; border-color: var(--outline); box-shadow: 0 0 0 3px var(--fam-soft), inset 0 0 0 1px var(--fam); }
-#gbody .pl-fill :is(input.gk-input, input[type="text"], textarea):focus-visible { outline: var(--focus-ring); outline-offset: var(--focus-offset); }
+#gbody .pl-fill :is(input.gk-input, input[type="text"], textarea):focus { outline: none; border-color: var(--outline); box-shadow: inset 0 0 0 3px var(--fam-soft), inset 0 0 0 1px var(--fam); }
+#gbody .pl-fill :is(input.gk-input, input[type="text"], textarea):focus-visible { outline: var(--focus-ring); outline-offset: -4px; }
 #gbody .pl-fill .gk-input-row > .gk-btn { min-height: var(--control-h-lg); }
 /* Rules disclosure: a chip, not a stray underlined link. */
 #gbody .pl-fill .party-more > summary, #gbody .pl-fill .wg-more > summary {

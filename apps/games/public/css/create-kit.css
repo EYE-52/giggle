@@ -85,7 +85,7 @@
 .ck[data-family] :is(.gk-input-row .gk-input, input.gk-input, textarea.gk-input) {
   border: var(--outline-w) solid var(--outline); border-radius: var(--radius-lg); background: var(--input-bg, var(--card));
 }
-.ck[data-family] :is(.gk-input-row .gk-input, input.gk-input):focus { border-color: var(--fam); box-shadow: 0 0 0 3px var(--fam-soft); }
+.ck[data-family] :is(.gk-input-row .gk-input, input.gk-input):focus { border-color: var(--fam); box-shadow: inset 0 0 0 3px var(--fam-soft); }
 .ck[data-family] :is(.gk-input-row .gk-input, input.gk-input):disabled { background: var(--well); border-color: var(--line-strong); }
 
 /* ---- choices ---- */
