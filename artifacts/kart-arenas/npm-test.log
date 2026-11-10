@@ -1,6 +1,6 @@
 
 > partygames@0.1.38 test
-> node test/same-room.js && node test/same-room-ui.js && node test/same-room-transport.js && node test/boot-loading.js && node test/howto-guide.js && node test/howto-layout.js && node test/home-card-layout.js && node test/controls-ui.js && node test/visual-pickers.js && node test/practice-support.mjs && node test/release-gate.js && node test/deploy-frontend-session.js && node test/compliment-roast-match-scores.js && node test/party-b-rules.js && node test/compliment-roast-finals.js && node test/smoke.js && node test/socket-boundaries.js && node test/framework.js && node test/scaffold.js && node test/bridge.js && node test/chess.js && node test/chess-view.js && node test/pocket-karts.js && node test/pocket-karts-smooth.js && node test/pocket-karts-release.js && node test/kart-garage-ui.mjs && node test/kart-view.js && node test/kart-mechanics.js && node test/kart-battle-loop.js && node test/kart-art.mjs && node test/kart-model.js && node test/kart-framework.js && node test/splithost.js && node test/customize-intent.js && node test/build-battle.js && node test/castle-clash.js && node test/media-toolkit.js && node test/game-pages.js && node test/race.js && node test/game-playability.js && node test/server-clock.js && node test/game-entry.js && node test/chain-reaction.js && node test/warm-words.js && node test/word-rules.js && node test/word-hints.js && node test/word-dictionary.js && node test/camera-party.js && node test/camera-scenes.js && node test/charades-input.js && node test/camera-results.js && node test/camera-acceptance.js && node test/game-kit.js && node test/game-host.js && node test/drawing-input.js && node test/castle-view.js && node test/game-layout.js && node test/layout-stability.js && node test/visual-qa-regressions.js && node test/board-panel-view.js && node test/build-battle-events.js && node test/castle-3d-view.js && node test/arena-controls.js && node test/castle-scene.js && node test/game-autonomy.js && node test/kart-audio.mjs && node test/kart-gearbox.mjs && node test/kart-combat-art.mjs && node test/kart-network-render.mjs && node test/kart-projectiles.js && node test/kart-shot-retirement.mjs && node test/kart-user-report-regressions.mjs && node test/kart-garage.js && node test/castle-gameplay.js && node test/chain-visual.mjs && node test/party-races.js && node test/skill-races.js && node test/skill-scenes.js && node test/typing-input.js && node test/castle-supplies-view.js && node test/party-scenes-hud.js && node test/chain-hud.js && node test/skill-scenes-hud.js && node test/skill-scenes-hud-muse.js && node test/game-screen.mjs && node test/game-screen-ui.mjs && node test/mobile-stick.mjs && node test/party-mobile.js && node test/skill-scenes-mobile.js && node test/kart-audio-samples.mjs && node test/contributor.mjs && node test/input-capabilities.mjs && node test/result-presentation.mjs && node test/chain-arena.mjs && node test/block-siege.js && node test/block-siege-scene.js && node test/block-siege-view.js && node test/doodle-guess.js && node test/doodle-guess-transport.js && node test/kart-curated-fx.mjs && node test/kart-weapon-playfeel.mjs && node test/kart-curated-arsenal.mjs && node test/kart-curated-aim.mjs && node test/kart-hearts-weapons.js && node test/kart-new-arsenal.js && node test/kart-hearts-hud.mjs && node test/kart-world-fx.mjs && node test/kart-backdrop.mjs && node test/kart-expanded-art.mjs && node test/kart-feedback.mjs && node test/kart-impact-fx.mjs && node test/kart-weapon-fx-budget.mjs && node test/kart-render-warmup.mjs && node test/kart-nitro.js && node test/kart-mines-sweep.js && node test/kart-mine-motion.js && node test/custom-mobile.js && node test/room-transitions.js && node test/socket-input-release.js && node test/game-mount-focus.js && node test/kart-visual-finish.mjs && node test/kart-instancing.mjs && node test/kart-elevated-lifetimes.mjs && node test/board-duels.js && node test/board-duels-view.js && node test/board-duels-transport.js && node test/checkers-kalah.js && node test/checkers-kalah-view.js && node test/checkers-kalah-rooms.js && node test/ludo-fleet.js && node test/ludo-fleet-transport.js && node test/ludo-fleet-view.js && node test/ludo-shared-pawns.js && node test/board-motion.js && node test/doodle-guess-view.js && node test/draw-phone-view.js && node test/draw-phone-transport.js && node test/kart-elevation-physics.mjs && node test/kart-elevated-maps.mjs && node test/kart-raised-features.mjs && node test/kart-elevated-drift.mjs && node test/kart-elevated-prediction.mjs && node test/kart-prod-probe.mjs && node test/kart-complex-maps.mjs && node test/kart-complex-details.mjs && node test/kart-raised-regressions.mjs && node test/kart-raised-quality.mjs && node test/kart-raised-spawns.mjs && node test/kart-complex-rooms.js && node test/kart-complex-transport.js && node test/kart-health.mjs && node test/kart-elevated-combat.mjs && node test/kart-elevated-world.mjs && node test/kart-elevated-pose.mjs && node test/kart-elevated-production.js && node test/kart-elevated-production-transport.js && node test/kart-elevated-view.mjs && node test/kart-projectile-alignment.mjs && node test/kart-terrain-assets.mjs && node test/kart-stylized-world.mjs && node test/kart-harbor-map.mjs && node test/kart-elevated-arsenal.mjs && node test/kart-elevated-new-arsenal.mjs && node test/kart-pulse-mounted.mjs && node test/kart-arsenal-mounted.mjs && node test/kart-arsenal-secondary.mjs && node test/kart-mounted-combat.mjs && node test/kart-ten-arsenal-transport.js && npm run test:readiness && npm run test:party-deadlines && npm run test:party-acceptance && node test/ui-audio.mjs && npm run test:kart-loading && node test/kart-preparation.mjs && node test/kart-render-warmup.mjs && node test/kart-setup.mjs && node test/kart-looks.mjs && node test/kart-driver-fit.mjs && node test/kart-camera-collision.mjs && node test/kart-match-rules.js && node test/kart-combat-mechanics.mjs && node test/kart-sustained-contact.mjs && node test/kart-arcade-handling.mjs && node test/configure-ack.js && node test/party-audit-edge-cases.js && node test/word-skill-input-audit.js && node test/camera-input-audit.js && node test/issue-reports.js && node test/modal-game-input.mjs && node test/party-quality-view.js && node test/word-camera-quality.js && node test/server-lifecycle.js && node test/board-readiness-settlement.js && node test/board-tabletop-transport.js && node test/drawing-readiness.js && node test/drawing-fixture-transport.js && node test/run-log.mjs && node test/customizer-save.mjs && node test/room-kick.js && node test/room-end-leave.js && node test/game-kit-ui.js && node test/game-zoom.js && node test/room-kick-ui.js && node test/home-catalog-loading.js && npm run test:kart-events && npm run test:memory-delimiters && npm run test:full-match-transport && npm run test:catalogue-room-removal && node test/kart-classic-rapier.mjs && node test/kart-collision-response.mjs && node test/kart-classic-prediction.mjs && node test/kart-arena-features.mjs && node test/kart-arena-layout.mjs && node test/kart-map-designs.mjs && node test/kart-arena-hazards.mjs && node test/kart-arena-art.mjs && node test/kart-festive-lights.mjs && node test/kart-classic-handling.mjs && node test/kart-driving-feel.mjs && node test/kart-physical-fire.mjs && node test/kart-weapon-thumbnails.mjs && npm run test:kart-road && node test/number-hunt-ties.js && node test/question-speed-auto-turns.js && node test/story-auto-turns.js && node test/party-auto-turns.js && npm run test:kart-payloads && node test/realtime-transport.mjs && node test/new-games-b1.js && node test/new-games-b5.js && node test/new-games-b2.js && node test/new-games-b4.js && node test/new-games-b3.js && node test/new-games-b6.js && node test/kart-performance-stability.mjs && node test/kart-weapon-system.mjs && node test/kart-arena-policy.mjs && node test/kart-rookie-ribbons.mjs && node test/kart-arena-economy.mjs && node test/kart-rookie-stress.mjs && node test/kart-launch-art.mjs && node test/kart-skyport-split.mjs && node test/kart-launch-transport.mjs && node test/kart-arena-travel.mjs && node test/kart-garden-crown.mjs && node test/kart-arena-polygons.mjs && node test/kart-frostbite-crescent.mjs && node test/kart-neon-switchyard.mjs && node test/kart-harbor-fork.mjs && node test/kart-foundry-wheel.mjs
+> node test/same-room.js && node test/same-room-ui.js && node test/same-room-transport.js && node test/boot-loading.js && node test/howto-guide.js && node test/howto-layout.js && node test/home-card-layout.js && node test/controls-ui.js && node test/visual-pickers.js && node test/practice-support.mjs && node test/release-gate.js && node test/deploy-frontend-session.js && node test/compliment-roast-match-scores.js && node test/party-b-rules.js && node test/compliment-roast-finals.js && node test/smoke.js && node test/socket-boundaries.js && node test/framework.js && node test/scaffold.js && node test/bridge.js && node test/chess.js && node test/chess-view.js && node test/pocket-karts.js && node test/pocket-karts-smooth.js && node test/pocket-karts-release.js && node test/kart-garage-ui.mjs && node test/kart-view.js && node test/kart-mechanics.js && node test/kart-battle-loop.js && node test/kart-art.mjs && node test/kart-model.js && node test/kart-framework.js && node test/splithost.js && node test/customize-intent.js && node test/build-battle.js && node test/castle-clash.js && node test/media-toolkit.js && node test/game-pages.js && node test/race.js && node test/game-playability.js && node test/server-clock.js && node test/game-entry.js && node test/chain-reaction.js && node test/warm-words.js && node test/word-rules.js && node test/word-hints.js && node test/word-dictionary.js && node test/camera-party.js && node test/camera-scenes.js && node test/charades-input.js && node test/camera-results.js && node test/camera-acceptance.js && node test/game-kit.js && node test/game-host.js && node test/drawing-input.js && node test/castle-view.js && node test/game-layout.js && node test/layout-stability.js && node test/visual-qa-regressions.js && node test/board-panel-view.js && node test/build-battle-events.js && node test/castle-3d-view.js && node test/arena-controls.js && node test/castle-scene.js && node test/game-autonomy.js && node test/kart-audio.mjs && node test/kart-gearbox.mjs && node test/kart-combat-art.mjs && node test/kart-network-render.mjs && node test/kart-projectiles.js && node test/kart-shot-retirement.mjs && node test/kart-user-report-regressions.mjs && node test/kart-garage.js && node test/castle-gameplay.js && node test/chain-visual.mjs && node test/party-races.js && node test/skill-races.js && node test/skill-scenes.js && node test/typing-input.js && node test/castle-supplies-view.js && node test/party-scenes-hud.js && node test/chain-hud.js && node test/skill-scenes-hud.js && node test/skill-scenes-hud-muse.js && node test/game-screen.mjs && node test/game-screen-ui.mjs && node test/mobile-stick.mjs && node test/party-mobile.js && node test/skill-scenes-mobile.js && node test/kart-audio-samples.mjs && node test/contributor.mjs && node test/input-capabilities.mjs && node test/result-presentation.mjs && node test/chain-arena.mjs && node test/block-siege.js && node test/block-siege-scene.js && node test/block-siege-view.js && node test/doodle-guess.js && node test/doodle-guess-transport.js && node test/kart-curated-fx.mjs && node test/kart-weapon-playfeel.mjs && node test/kart-curated-arsenal.mjs && node test/kart-curated-aim.mjs && node test/kart-hearts-weapons.js && node test/kart-new-arsenal.js && node test/kart-hearts-hud.mjs && node test/kart-world-fx.mjs && node test/kart-backdrop.mjs && node test/kart-expanded-art.mjs && node test/kart-feedback.mjs && node test/kart-impact-fx.mjs && node test/kart-weapon-fx-budget.mjs && node test/kart-render-warmup.mjs && node test/kart-nitro.js && node test/kart-mines-sweep.js && node test/kart-mine-motion.js && node test/custom-mobile.js && node test/room-transitions.js && node test/socket-input-release.js && node test/game-mount-focus.js && node test/kart-visual-finish.mjs && node test/kart-instancing.mjs && node test/kart-elevated-lifetimes.mjs && node test/board-duels.js && node test/board-duels-view.js && node test/board-duels-transport.js && node test/checkers-kalah.js && node test/checkers-kalah-view.js && node test/checkers-kalah-rooms.js && node test/ludo-fleet.js && node test/ludo-fleet-transport.js && node test/ludo-fleet-view.js && node test/ludo-shared-pawns.js && node test/board-motion.js && node test/doodle-guess-view.js && node test/draw-phone-view.js && node test/draw-phone-transport.js && node test/kart-elevation-physics.mjs && node test/kart-elevated-maps.mjs && node test/kart-raised-features.mjs && node test/kart-elevated-drift.mjs && node test/kart-elevated-prediction.mjs && node test/kart-prod-probe.mjs && node test/kart-complex-maps.mjs && node test/kart-complex-details.mjs && node test/kart-raised-regressions.mjs && node test/kart-raised-quality.mjs && node test/kart-raised-spawns.mjs && node test/kart-complex-rooms.js && node test/kart-complex-transport.js && node test/kart-health.mjs && node test/kart-elevated-combat.mjs && node test/kart-elevated-world.mjs && node test/kart-elevated-pose.mjs && node test/kart-elevated-production.js && node test/kart-elevated-production-transport.js && node test/kart-elevated-view.mjs && node test/kart-projectile-alignment.mjs && node test/kart-terrain-assets.mjs && node test/kart-stylized-world.mjs && node test/kart-harbor-map.mjs && node test/kart-elevated-arsenal.mjs && node test/kart-elevated-new-arsenal.mjs && node test/kart-pulse-mounted.mjs && node test/kart-arsenal-mounted.mjs && node test/kart-arsenal-secondary.mjs && node test/kart-mounted-combat.mjs && node test/kart-ten-arsenal-transport.js && npm run test:readiness && npm run test:party-deadlines && npm run test:party-acceptance && node test/ui-audio.mjs && npm run test:kart-loading && node test/kart-preparation.mjs && node test/kart-render-warmup.mjs && node test/kart-setup.mjs && node test/kart-looks.mjs && node test/kart-driver-fit.mjs && node test/kart-camera-collision.mjs && node test/kart-match-rules.js && node test/kart-combat-mechanics.mjs && node test/kart-sustained-contact.mjs && node test/kart-arcade-handling.mjs && node test/configure-ack.js && node test/party-audit-edge-cases.js && node test/word-skill-input-audit.js && node test/camera-input-audit.js && node test/issue-reports.js && node test/modal-game-input.mjs && node test/party-quality-view.js && node test/word-camera-quality.js && node test/server-lifecycle.js && node test/board-readiness-settlement.js && node test/board-tabletop-transport.js && node test/drawing-readiness.js && node test/drawing-fixture-transport.js && node test/run-log.mjs && node test/customizer-save.mjs && node test/room-kick.js && node test/room-end-leave.js && node test/game-kit-ui.js && node test/game-zoom.js && node test/room-kick-ui.js && node test/home-catalog-loading.js && npm run test:kart-events && npm run test:memory-delimiters && npm run test:full-match-transport && npm run test:catalogue-room-removal && node test/kart-classic-rapier.mjs && node test/kart-collision-response.mjs && node test/kart-classic-prediction.mjs && node test/kart-arena-features.mjs && node test/kart-arena-layout.mjs && node test/kart-map-designs.mjs && node test/kart-arena-hazards.mjs && node test/kart-arena-art.mjs && node test/kart-festive-lights.mjs && node test/kart-classic-handling.mjs && node test/kart-driving-feel.mjs && node test/kart-physical-fire.mjs && node test/kart-weapon-thumbnails.mjs && npm run test:kart-road && node test/number-hunt-ties.js && node test/question-speed-auto-turns.js && node test/story-auto-turns.js && node test/party-auto-turns.js && npm run test:kart-payloads && node test/realtime-transport.mjs && node test/new-games-b1.js && node test/new-games-b5.js && node test/new-games-b2.js && node test/new-games-b4.js && node test/new-games-b3.js && node test/new-games-b6.js && node test/kart-performance-stability.mjs && node test/kart-weapon-system.mjs && node test/kart-arena-policy.mjs && node test/kart-rookie-ribbons.mjs && node test/kart-arena-economy.mjs && node test/kart-arena-edge-recovery.mjs && node test/kart-rookie-stress.mjs && node test/kart-launch-art.mjs && node test/kart-skyport-split.mjs && node test/kart-launch-transport.mjs && node test/kart-arena-travel.mjs && node test/kart-garden-crown.mjs && node test/kart-arena-polygons.mjs && node test/kart-frostbite-crescent.mjs && node test/kart-neon-switchyard.mjs && node test/kart-harbor-fork.mjs && node test/kart-foundry-wheel.mjs
 
 SAME_ROOM_PASS: Truth or Dare 2/3/5 people and all styles; board win; five-seat vote; private projections; deadlines; resume; 21 manifest opt-ins
 SAME_ROOM_UI_PASS: real entry controller, catalog opt-ins, name chips, quick add, limits, settings, double-start, draft stability and private DOM removal
@@ -19,149 +19,149 @@ COMPLIMENT_ROAST_MATCH_SCORES_PASS
 PARTY_B_RULES_PASS: 58 checks
 COMPLIMENT_ROAST_FINALS_PASS
 SMOKE games: would-you-rather,doodle-guess,truth-dare,never-ever,most-likely,hot-takes,rank-it,two-truths,funny-answer,bluff,story-builder,emoji-story,trivia,scattergories,word-chain,countdown-word,lyric-fill,five-second,charades,twenty-questions,pick-one,memory-tray,rapid-polls,dare-roulette,compliment-battle,roast-toast,draw-phone,reaction-tap,typing-race,number-hunt,backronyms,ballpark,banned-words,block-stack,chain-reaction,checkers,chess,clue-grid,color-clash,dial-in,dice-fibs,dots-boxes,draw-off,echo-pads,emoji-spotter,five-row,fleet-duel,four-in-a-row,hot-potato,kalah,know-me,letter-lock,ludo,math-dash,mega-tic-tac-toe,moonlit-village,odd-one-out,penalty-kicks,pig-dice,pocket-karts,pose-party,read-my-lips,reversi,show-and-go,sketchy-impostor,snakes-ladders,think-alike,undercover,warm-words,whisper,who-wrote,word-grid
-SMOKE_START_STATE {"game":"would-you-rather","elapsedMs":19.78616599999998,"matched":true,"arrivals":[{"t":"room","afterStartMs":1.6327909999999974},{"t":"state","game":"would-you-rather","instanceId":"mw9xl1j4-1","phase":"vote","afterStartMs":2.1233330000000024}]}
+SMOKE_START_STATE {"game":"would-you-rather","elapsedMs":22.059082999999987,"matched":true,"arrivals":[{"t":"room","afterStartMs":0.7017920000000686},{"t":"state","game":"would-you-rather","instanceId":"mwa10gg7-1","phase":"vote","afterStartMs":0.9393330000000333}]}
 SMOKE ok: would-you-rather
-SMOKE_START_STATE {"game":"doodle-guess","elapsedMs":21.33958400000006,"matched":true,"arrivals":[{"t":"room","afterStartMs":1.1258339999999407},{"t":"state","game":"doodle-guess","instanceId":"mw9xl1uv-2","phase":"pick","afterStartMs":1.3405840000000353}]}
+SMOKE_START_STATE {"game":"doodle-guess","elapsedMs":22.596624999999904,"matched":true,"arrivals":[{"t":"room","afterStartMs":0.6420419999999467},{"t":"state","game":"doodle-guess","instanceId":"mwa10gs1-2","phase":"pick","afterStartMs":0.7373339999999189}]}
 SMOKE ok: doodle-guess
-SMOKE_START_STATE {"game":"truth-dare","elapsedMs":22.708958999999822,"matched":true,"arrivals":[{"t":"room","afterStartMs":1.1808750000000146},{"t":"state","game":"truth-dare","instanceId":"mw9xl26m-3","phase":"spin","afterStartMs":1.4504589999999098}]}
+SMOKE_START_STATE {"game":"truth-dare","elapsedMs":21.738374999999905,"matched":true,"arrivals":[{"t":"room","afterStartMs":0.4951249999999163},{"t":"state","game":"truth-dare","instanceId":"mwa10h3u-3","phase":"spin","afterStartMs":0.6220409999998537}]}
 SMOKE ok: truth-dare
-SMOKE_START_STATE {"game":"never-ever","elapsedMs":22.428707999999915,"matched":true,"arrivals":[{"t":"room","afterStartMs":0.8284159999998337},{"t":"state","game":"never-ever","instanceId":"mw9xl2if-4","phase":"vote","afterStartMs":1.126332999999704}]}
+SMOKE_START_STATE {"game":"never-ever","elapsedMs":21.61762499999986,"matched":true,"arrivals":[{"t":"room","afterStartMs":0.39408400000002075},{"t":"state","game":"never-ever","instanceId":"mwa10hfn-4","phase":"vote","afterStartMs":0.5151670000000195}]}
 SMOKE ok: never-ever
-SMOKE_START_STATE {"game":"most-likely","elapsedMs":20.16195800000014,"matched":true,"arrivals":[{"t":"room","afterStartMs":0.6507910000000265},{"t":"state","game":"most-likely","instanceId":"mw9xl2u9-5","phase":"vote","afterStartMs":0.9163750000002437}]}
+SMOKE_START_STATE {"game":"most-likely","elapsedMs":21.380083000000013,"matched":true,"arrivals":[{"t":"room","afterStartMs":0.3858749999999418},{"t":"state","game":"most-likely","instanceId":"mwa10hrh-5","phase":"vote","afterStartMs":0.4836249999998472}]}
 SMOKE ok: most-likely
-SMOKE_START_STATE {"game":"hot-takes","elapsedMs":21.756417000000056,"matched":true,"arrivals":[{"t":"room","afterStartMs":0.47450000000026193},{"t":"state","game":"hot-takes","instanceId":"mw9xl35z-6","phase":"submit","afterStartMs":0.6646249999998872}]}
+SMOKE_START_STATE {"game":"hot-takes","elapsedMs":21.666917000000012,"matched":true,"arrivals":[{"t":"room","afterStartMs":0.3777500000001055},{"t":"state","game":"hot-takes","instanceId":"mwa10i3b-6","phase":"submit","afterStartMs":0.49554200000011406}]}
 SMOKE ok: hot-takes
-SMOKE_START_STATE {"game":"rank-it","elapsedMs":22.356042000000343,"matched":true,"arrivals":[{"t":"room","afterStartMs":0.8957500000001346},{"t":"state","game":"rank-it","instanceId":"mw9xl3hu-7","phase":"rank","afterStartMs":1.1535420000000158}]}
+SMOKE_START_STATE {"game":"rank-it","elapsedMs":21.563500000000204,"matched":true,"arrivals":[{"t":"room","afterStartMs":0.38100000000031287},{"t":"state","game":"rank-it","instanceId":"mwa10if5-7","phase":"rank","afterStartMs":0.4620420000001104}]}
 SMOKE ok: rank-it
-SMOKE_START_STATE {"game":"two-truths","elapsedMs":22.225625000000036,"matched":true,"arrivals":[{"t":"room","afterStartMs":1.5427079999999478},{"t":"state","game":"two-truths","instanceId":"mw9xl3to-8","phase":"write","afterStartMs":1.9027080000000751}]}
+SMOKE_START_STATE {"game":"two-truths","elapsedMs":20.285667000000103,"matched":true,"arrivals":[{"t":"room","afterStartMs":0.4398750000000291},{"t":"state","game":"two-truths","instanceId":"mwa10iqx-8","phase":"write","afterStartMs":0.5543330000000424}]}
 SMOKE ok: two-truths
-SMOKE_START_STATE {"game":"funny-answer","elapsedMs":21.596792000000278,"matched":true,"arrivals":[{"t":"room","afterStartMs":2.03583400000025},{"t":"state","game":"funny-answer","instanceId":"mw9xl45h-9","phase":"answer","afterStartMs":2.1080840000004173}]}
+SMOKE_START_STATE {"game":"funny-answer","elapsedMs":20.63066699999945,"matched":true,"arrivals":[{"t":"room","afterStartMs":0.37212499999986903},{"t":"state","game":"funny-answer","instanceId":"mwa10j2q-9","phase":"answer","afterStartMs":0.49424999999973807}]}
 SMOKE ok: funny-answer
-SMOKE_START_STATE {"game":"bluff","elapsedMs":20.306417000000692,"matched":true,"arrivals":[{"t":"room","afterStartMs":1.3690420000002632},{"t":"state","game":"bluff","instanceId":"mw9xl4hb-10","phase":"bluff","afterStartMs":1.8563750000002983}]}
+SMOKE_START_STATE {"game":"bluff","elapsedMs":20.694375000000036,"matched":true,"arrivals":[{"t":"room","afterStartMs":0.40929099999993923},{"t":"state","game":"bluff","instanceId":"mwa10jej-10","phase":"bluff","afterStartMs":0.5252080000000205}]}
 SMOKE ok: bluff
-SMOKE_START_STATE {"game":"story-builder","elapsedMs":21.926500000000487,"matched":true,"arrivals":[{"t":"room","afterStartMs":0.8232080000007045},{"t":"state","game":"story-builder","instanceId":"mw9xl4t4-11","phase":"build","afterStartMs":1.184917000000496}]}
+SMOKE_START_STATE {"game":"story-builder","elapsedMs":22.621792000000823,"matched":true,"arrivals":[{"t":"room","afterStartMs":0.4171670000005179},{"t":"state","game":"story-builder","instanceId":"mwa10jqb-11","phase":"build","afterStartMs":0.5181250000005093}]}
 SMOKE ok: story-builder
-SMOKE_START_STATE {"game":"emoji-story","elapsedMs":22.5987499999992,"matched":true,"arrivals":[{"t":"room","afterStartMs":0.3742499999998472},{"t":"state","game":"emoji-story","instanceId":"mw9xl54x-12","phase":"emoji","afterStartMs":0.4913749999996071}]}
+SMOKE_START_STATE {"game":"emoji-story","elapsedMs":22.60199999999986,"matched":true,"arrivals":[{"t":"room","afterStartMs":0.42316699999992125},{"t":"state","game":"emoji-story","instanceId":"mwa10k23-12","phase":"emoji","afterStartMs":0.4956670000001395}]}
 SMOKE ok: emoji-story
-SMOKE_START_STATE {"game":"trivia","elapsedMs":21.68262500000037,"matched":true,"arrivals":[{"t":"room","afterStartMs":0.39175000000068394},{"t":"state","game":"trivia","instanceId":"mw9xl5gq-13","phase":"answer","afterStartMs":0.5747500000006767}]}
+SMOKE_START_STATE {"game":"trivia","elapsedMs":20.76433300000008,"matched":true,"arrivals":[{"t":"room","afterStartMs":0.38329199999952834},{"t":"state","game":"trivia","instanceId":"mwa10kdw-13","phase":"answer","afterStartMs":0.48966699999982666}]}
 SMOKE ok: trivia
-SMOKE_START_STATE {"game":"scattergories","elapsedMs":20.68987500000003,"matched":true,"arrivals":[{"t":"room","afterStartMs":0.33816699999988487},{"t":"state","game":"scattergories","instanceId":"mw9xl5sj-14","phase":"write","afterStartMs":0.5066249999999854}]}
+SMOKE_START_STATE {"game":"scattergories","elapsedMs":22.569750000000568,"matched":true,"arrivals":[{"t":"room","afterStartMs":0.33700000000044383},{"t":"state","game":"scattergories","instanceId":"mwa10kpq-14","phase":"write","afterStartMs":0.43479200000001583}]}
 SMOKE ok: scattergories
-SMOKE_START_STATE {"game":"word-chain","elapsedMs":20.831707999999708,"matched":true,"arrivals":[{"t":"room","afterStartMs":0.47454099999959},{"t":"state","game":"word-chain","instanceId":"mw9xl64d-15","phase":"play","afterStartMs":0.5637079999996786}]}
+SMOKE_START_STATE {"game":"word-chain","elapsedMs":20.79266700000062,"matched":true,"arrivals":[{"t":"room","afterStartMs":0.4987090000004173},{"t":"state","game":"word-chain","instanceId":"mwa10l1k-15","phase":"play","afterStartMs":0.5729590000000826}]}
 SMOKE ok: word-chain
-SMOKE_START_STATE {"game":"countdown-word","elapsedMs":22.048874999999498,"matched":true,"arrivals":[{"t":"room","afterStartMs":0.856790999999248},{"t":"state","game":"countdown-word","instanceId":"mw9xl6g7-16","phase":"make","afterStartMs":0.943040999999539}]}
+SMOKE_START_STATE {"game":"countdown-word","elapsedMs":21.866791999999805,"matched":true,"arrivals":[{"t":"room","afterStartMs":0.7089590000005046},{"t":"state","game":"countdown-word","instanceId":"mwa10ldd-16","phase":"make","afterStartMs":0.7799169999998412}]}
 SMOKE ok: countdown-word
-SMOKE_START_STATE {"game":"lyric-fill","elapsedMs":21.67554199999995,"matched":true,"arrivals":[{"t":"room","afterStartMs":0.35129199999937555},{"t":"state","game":"lyric-fill","instanceId":"mw9xl6s2-17","phase":"fill","afterStartMs":0.45058399999925314}]}
+SMOKE_START_STATE {"game":"lyric-fill","elapsedMs":21.507833000000574,"matched":true,"arrivals":[{"t":"room","afterStartMs":0.35304100000030303},{"t":"state","game":"lyric-fill","instanceId":"mwa10lp7-17","phase":"fill","afterStartMs":0.4170410000006086}]}
 SMOKE ok: lyric-fill
-SMOKE_START_STATE {"game":"five-second","elapsedMs":19.832875000000058,"matched":true,"arrivals":[{"t":"room","afterStartMs":0.39258300000074087},{"t":"state","game":"five-second","instanceId":"mw9xl73v-18","phase":"answer","afterStartMs":0.47762500000044383}]}
+SMOKE_START_STATE {"game":"five-second","elapsedMs":22.56079200000022,"matched":true,"arrivals":[{"t":"room","afterStartMs":0.3928750000004584},{"t":"state","game":"five-second","instanceId":"mwa10m11-18","phase":"answer","afterStartMs":0.46125000000029104}]}
 SMOKE ok: five-second
-SMOKE_START_STATE {"game":"charades","elapsedMs":21.657624999999825,"matched":true,"arrivals":[{"t":"room","afterStartMs":0.4820419999996375},{"t":"state","game":"charades","instanceId":"mw9xl7fm-19","phase":"act","afterStartMs":0.5708750000012515}]}
+SMOKE_START_STATE {"game":"charades","elapsedMs":21.627957999999126,"matched":true,"arrivals":[{"t":"room","afterStartMs":0.44162499999947613},{"t":"state","game":"charades","instanceId":"mwa10mcw-19","phase":"act","afterStartMs":0.5249169999988226}]}
 SMOKE ok: charades
-SMOKE_START_STATE {"game":"twenty-questions","elapsedMs":22.596874999999272,"matched":true,"arrivals":[{"t":"room","afterStartMs":0.3998329999994894},{"t":"state","game":"twenty-questions","instanceId":"mw9xl7rg-20","phase":"play","afterStartMs":0.5050830000000133}]}
+SMOKE_START_STATE {"game":"twenty-questions","elapsedMs":21.654582999999548,"matched":true,"arrivals":[{"t":"room","afterStartMs":0.4940420000002632},{"t":"state","game":"twenty-questions","instanceId":"mwa10mop-20","phase":"play","afterStartMs":0.5869999999995343}]}
 SMOKE ok: twenty-questions
-SMOKE_START_STATE {"game":"pick-one","elapsedMs":20.48687500000051,"matched":true,"arrivals":[{"t":"room","afterStartMs":0.3118330000015703},{"t":"state","game":"pick-one","instanceId":"mw9xl83b-21","phase":"vote","afterStartMs":0.3931670000001759}]}
+SMOKE_START_STATE {"game":"pick-one","elapsedMs":22.017041999999492,"matched":true,"arrivals":[{"t":"room","afterStartMs":0.3132919999989099},{"t":"state","game":"pick-one","instanceId":"mwa10n0j-21","phase":"vote","afterStartMs":0.40058399999907124}]}
 SMOKE ok: pick-one
-SMOKE_START_STATE {"game":"memory-tray","elapsedMs":21.201124999999593,"matched":true,"arrivals":[{"t":"room","afterStartMs":0.3610419999986334},{"t":"state","game":"memory-tray","instanceId":"mw9xl8f3-22","phase":"memorize","afterStartMs":0.4012079999993148}]}
+SMOKE_START_STATE {"game":"memory-tray","elapsedMs":22.534708999999566,"matched":true,"arrivals":[{"t":"room","afterStartMs":0.3777090000003227},{"t":"state","game":"memory-tray","instanceId":"mwa10nce-22","phase":"memorize","afterStartMs":0.4757499999996071}]}
 SMOKE ok: memory-tray
-SMOKE_START_STATE {"game":"rapid-polls","elapsedMs":21.77704100000119,"matched":true,"arrivals":[{"t":"room","afterStartMs":0.34408299999995506},{"t":"state","game":"rapid-polls","instanceId":"mw9xl8qx-23","phase":"pose","afterStartMs":0.3989160000000993}]}
+SMOKE_START_STATE {"game":"rapid-polls","elapsedMs":22.534874999999374,"matched":true,"arrivals":[{"t":"room","afterStartMs":0.37820800000008603},{"t":"state","game":"rapid-polls","instanceId":"mwa10no9-23","phase":"pose","afterStartMs":0.48583299999882}]}
 SMOKE ok: rapid-polls
-SMOKE_START_STATE {"game":"dare-roulette","elapsedMs":21.492541999999958,"matched":true,"arrivals":[{"t":"room","afterStartMs":0.4370419999995647},{"t":"state","game":"dare-roulette","instanceId":"mw9xl92q-24","phase":"spin","afterStartMs":0.5741670000006707}]}
+SMOKE_START_STATE {"game":"dare-roulette","elapsedMs":21.874417000000903,"matched":true,"arrivals":[{"t":"room","afterStartMs":0.35845900000094844},{"t":"state","game":"dare-roulette","instanceId":"mwa10o03-24","phase":"spin","afterStartMs":0.4137090000003809}]}
 SMOKE ok: dare-roulette
-SMOKE_START_STATE {"game":"compliment-battle","elapsedMs":20.650249999998778,"matched":true,"arrivals":[{"t":"room","afterStartMs":0.42091699999946286},{"t":"state","game":"compliment-battle","instanceId":"mw9xl9ek-25","phase":"write","afterStartMs":0.4880830000001879}]}
+SMOKE_START_STATE {"game":"compliment-battle","elapsedMs":20.664749999999913,"matched":true,"arrivals":[{"t":"room","afterStartMs":0.4018340000002354},{"t":"state","game":"compliment-battle","instanceId":"mwa10oby-25","phase":"write","afterStartMs":0.4721669999998994}]}
 SMOKE ok: compliment-battle
-SMOKE_START_STATE {"game":"roast-toast","elapsedMs":21.488208000000668,"matched":true,"arrivals":[{"t":"room","afterStartMs":0.34558300000026065},{"t":"state","game":"roast-toast","instanceId":"mw9xl9qb-26","phase":"write","afterStartMs":0.42608300000028976}]}
+SMOKE_START_STATE {"game":"roast-toast","elapsedMs":21.57062500000029,"matched":true,"arrivals":[{"t":"room","afterStartMs":0.4140000000006694},{"t":"state","game":"roast-toast","instanceId":"mwa10ons-26","phase":"write","afterStartMs":0.478000000000975}]}
 SMOKE ok: roast-toast
-SMOKE_START_STATE {"game":"draw-phone","elapsedMs":21.510166999998546,"matched":true,"arrivals":[{"t":"room","afterStartMs":0.3313339999986056},{"t":"state","game":"draw-phone","instanceId":"mw9xla25-27","phase":"write","afterStartMs":0.43333399999937683}]}
+SMOKE_START_STATE {"game":"draw-phone","elapsedMs":21.55091700000048,"matched":true,"arrivals":[{"t":"room","afterStartMs":0.3354170000002341},{"t":"state","game":"draw-phone","instanceId":"mwa10ozi-27","phase":"write","afterStartMs":0.4603750000005675}]}
 SMOKE ok: draw-phone
-SMOKE_START_STATE {"game":"reaction-tap","elapsedMs":22.002667000000656,"matched":true,"arrivals":[{"t":"room","afterStartMs":0.6965000000000146},{"t":"state","game":"reaction-tap","instanceId":"mw9xlae0-28","phase":"wait","afterStartMs":0.8505000000004657}]}
+SMOKE_START_STATE {"game":"reaction-tap","elapsedMs":22.500207999999475,"matched":true,"arrivals":[{"t":"room","afterStartMs":0.3474999999998545},{"t":"state","game":"reaction-tap","instanceId":"mwa10pba-28","phase":"wait","afterStartMs":0.3990410000005795}]}
 SMOKE ok: reaction-tap
-SMOKE_START_STATE {"game":"typing-race","elapsedMs":20.135792000000947,"matched":true,"arrivals":[{"t":"room","afterStartMs":1.2403340000000753},{"t":"state","game":"typing-race","instanceId":"mw9xlapu-29","phase":"race","afterStartMs":1.6457920000011654}]}
+SMOKE_START_STATE {"game":"typing-race","elapsedMs":21.539291999999477,"matched":true,"arrivals":[{"t":"room","afterStartMs":0.38533300000017334},{"t":"state","game":"typing-race","instanceId":"mwa10pn4-29","phase":"race","afterStartMs":0.41195800000059535}]}
 SMOKE ok: typing-race
-SMOKE_START_STATE {"game":"number-hunt","elapsedMs":20.44945800000096,"matched":true,"arrivals":[{"t":"room","afterStartMs":1.0512910000015836},{"t":"state","game":"number-hunt","instanceId":"mw9xlb1n-30","phase":"hunt","afterStartMs":1.5243330000012065}]}
+SMOKE_START_STATE {"game":"number-hunt","elapsedMs":21.902375000001484,"matched":true,"arrivals":[{"t":"room","afterStartMs":0.39054200000100536},{"t":"state","game":"number-hunt","instanceId":"mwa10pyy-30","phase":"hunt","afterStartMs":0.4677080000001297}]}
 SMOKE ok: number-hunt
-SMOKE_START_STATE {"game":"backronyms","elapsedMs":22.438458000000537,"matched":true,"arrivals":[{"t":"room","afterStartMs":1.8322079999998095},{"t":"state","game":"backronyms","instanceId":"mw9xlbdd-31","phase":"write","afterStartMs":2.179374999999709}]}
+SMOKE_START_STATE {"game":"backronyms","elapsedMs":21.20854099999997,"matched":true,"arrivals":[{"t":"room","afterStartMs":0.5076660000013362},{"t":"state","game":"backronyms","instanceId":"mwa10qas-31","phase":"write","afterStartMs":0.5872500000004948}]}
 SMOKE ok: backronyms
-SMOKE_START_STATE {"game":"ballpark","elapsedMs":22.09729200000038,"matched":true,"arrivals":[{"t":"room","afterStartMs":1.1945839999989403},{"t":"state","game":"ballpark","instanceId":"mw9xlbp7-32","phase":"answer","afterStartMs":1.6888749999998254}]}
+SMOKE_START_STATE {"game":"ballpark","elapsedMs":21.55004199999894,"matched":true,"arrivals":[{"t":"room","afterStartMs":0.3935829999991256},{"t":"state","game":"ballpark","instanceId":"mwa10qmk-32","phase":"answer","afterStartMs":0.46854199999870616}]}
 SMOKE ok: ballpark
-SMOKE_START_STATE {"game":"banned-words","elapsedMs":21.81116699999984,"matched":true,"arrivals":[{"t":"room","afterStartMs":3.6783329999998386},{"t":"state","game":"banned-words","instanceId":"mw9xlc12-33","phase":"describe","afterStartMs":3.8612080000002607}]}
+SMOKE_START_STATE {"game":"banned-words","elapsedMs":21.99445899999955,"matched":true,"arrivals":[{"t":"room","afterStartMs":0.7435839999998279},{"t":"state","game":"banned-words","instanceId":"mwa10qyd-33","phase":"describe","afterStartMs":0.8714589999999589}]}
 SMOKE ok: banned-words
-SMOKE_START_STATE {"game":"block-stack","elapsedMs":22.277333,"matched":true,"arrivals":[{"t":"room","afterStartMs":1.5415420000008453},{"t":"state","game":"block-stack","instanceId":"mw9xlccw-34","phase":"countdown","afterStartMs":1.9975830000003043}]}
+SMOKE_START_STATE {"game":"block-stack","elapsedMs":21.630291999999827,"matched":true,"arrivals":[{"t":"room","afterStartMs":0.5702500000006694},{"t":"state","game":"block-stack","instanceId":"mwa10ra7-34","phase":"countdown","afterStartMs":0.778667000000496}]}
 SMOKE ok: block-stack
-SMOKE_START_STATE {"game":"chain-reaction","elapsedMs":21.063250000001062,"matched":true,"arrivals":[{"t":"room","afterStartMs":1.7567500000004657},{"t":"state","game":"chain-reaction","instanceId":"mw9xlcos-35","phase":"play","afterStartMs":2.2698749999999563}]}
+SMOKE_START_STATE {"game":"chain-reaction","elapsedMs":21.68470900000102,"matched":true,"arrivals":[{"t":"room","afterStartMs":0.420708999999988},{"t":"state","game":"chain-reaction","instanceId":"mwa10rly-35","phase":"play","afterStartMs":0.5643340000005992}]}
 SMOKE ok: chain-reaction
-SMOKE_START_STATE {"game":"checkers","elapsedMs":20.665333000000828,"matched":true,"arrivals":[{"t":"room","afterStartMs":1.3881249999994907},{"t":"state","game":"checkers","instanceId":"mw9xld0m-36","phase":"play","afterStartMs":2.4084170000005543}]}
+SMOKE_START_STATE {"game":"checkers","elapsedMs":21.726999999998952,"matched":true,"arrivals":[{"t":"room","afterStartMs":0.3856660000001284},{"t":"state","game":"checkers","instanceId":"mwa10rxr-36","phase":"play","afterStartMs":0.6165000000000873}]}
 SMOKE ok: checkers
-SMOKE_START_STATE {"game":"chess","elapsedMs":21.096417000000656,"matched":true,"arrivals":[{"t":"room","afterStartMs":3.217459000001327},{"t":"state","game":"chess","instanceId":"mw9xldcd-37","phase":"play","afterStartMs":7.521167000000787}]}
+SMOKE_START_STATE {"game":"chess","elapsedMs":21.3978330000009,"matched":true,"arrivals":[{"t":"room","afterStartMs":0.8556250000001455},{"t":"state","game":"chess","instanceId":"mwa10s9l-37","phase":"play","afterStartMs":2.728833000001032}]}
 SMOKE ok: chess
-SMOKE_START_STATE {"game":"clue-grid","elapsedMs":20.29658399999971,"matched":true,"arrivals":[{"t":"room","afterStartMs":2.685124999999971},{"t":"state","game":"clue-grid","instanceId":"mw9xldo5-38","phase":"setup","afterStartMs":3.0566669999971054}]}
+SMOKE_START_STATE {"game":"clue-grid","elapsedMs":21.6630839999998,"matched":true,"arrivals":[{"t":"room","afterStartMs":0.6700419999979204},{"t":"state","game":"clue-grid","instanceId":"mwa10sld-38","phase":"setup","afterStartMs":0.7693749999998545}]}
 SMOKE ok: clue-grid
-SMOKE_START_STATE {"game":"color-clash","elapsedMs":20.613249999998516,"matched":true,"arrivals":[{"t":"room","afterStartMs":1.4536249999982829},{"t":"state","game":"color-clash","instanceId":"mw9xldzy-39","phase":"card","afterStartMs":2.11449999999968}]}
+SMOKE_START_STATE {"game":"color-clash","elapsedMs":21.590875000001688,"matched":true,"arrivals":[{"t":"room","afterStartMs":0.4087920000019949},{"t":"state","game":"color-clash","instanceId":"mwa10sx6-39","phase":"card","afterStartMs":0.5100840000013704}]}
 SMOKE ok: color-clash
-SMOKE_START_STATE {"game":"dial-in","elapsedMs":22.288667000000714,"matched":true,"arrivals":[{"t":"room","afterStartMs":1.7792499999995925},{"t":"state","game":"dial-in","instanceId":"mw9xlebq-40","phase":"clue","afterStartMs":2.4479580000006536}]}
+SMOKE_START_STATE {"game":"dial-in","elapsedMs":21.47612499999741,"matched":true,"arrivals":[{"t":"room","afterStartMs":0.42674999999871943},{"t":"state","game":"dial-in","instanceId":"mwa10t90-40","phase":"clue","afterStartMs":0.738707999997132}]}
 SMOKE ok: dial-in
-SMOKE_START_STATE {"game":"dice-fibs","elapsedMs":21.217791000002762,"matched":true,"arrivals":[{"t":"room","afterStartMs":1.6901660000003176},{"t":"state","game":"dice-fibs","instanceId":"mw9xlenk-41","phase":"bid","afterStartMs":1.980083000002196}]}
+SMOKE_START_STATE {"game":"dice-fibs","elapsedMs":21.57291599999735,"matched":true,"arrivals":[{"t":"room","afterStartMs":0.42033299999820883},{"t":"state","game":"dice-fibs","instanceId":"mwa10tku-41","phase":"bid","afterStartMs":0.49012499999662396}]}
 SMOKE ok: dice-fibs
-SMOKE_START_STATE {"game":"dots-boxes","elapsedMs":22.139083999998547,"matched":true,"arrivals":[{"t":"room","afterStartMs":1.3328339999970922},{"t":"state","game":"dots-boxes","instanceId":"mw9xlezf-42","phase":"play","afterStartMs":1.8215419999978621}]}
+SMOKE_START_STATE {"game":"dots-boxes","elapsedMs":21.94708300000275,"matched":true,"arrivals":[{"t":"room","afterStartMs":0.6752910000031989},{"t":"state","game":"dots-boxes","instanceId":"mwa10two-42","phase":"play","afterStartMs":0.8403750000034051}]}
 SMOKE ok: dots-boxes
-SMOKE_START_STATE {"game":"draw-off","elapsedMs":22.34491699999853,"matched":true,"arrivals":[{"t":"room","afterStartMs":1.4106670000001031},{"t":"state","game":"draw-off","instanceId":"mw9xlfb9-43","phase":"draw","afterStartMs":1.976875000000291}]}
+SMOKE_START_STATE {"game":"draw-off","elapsedMs":20.655666999999085,"matched":true,"arrivals":[{"t":"room","afterStartMs":0.39354200000161654},{"t":"state","game":"draw-off","instanceId":"mwa10u8i-43","phase":"draw","afterStartMs":0.4969170000003942}]}
 SMOKE ok: draw-off
-SMOKE_START_STATE {"game":"echo-pads","elapsedMs":20.41441599999962,"matched":true,"arrivals":[{"t":"room","afterStartMs":1.491083000000799},{"t":"state","game":"echo-pads","instanceId":"mw9xlfn0-44","phase":"show","afterStartMs":1.9643329999998969}]}
+SMOKE_START_STATE {"game":"echo-pads","elapsedMs":21.539333000000624,"matched":true,"arrivals":[{"t":"room","afterStartMs":0.3661659999997937},{"t":"state","game":"echo-pads","instanceId":"mwa10uka-44","phase":"show","afterStartMs":0.44412499999816646}]}
 SMOKE ok: echo-pads
-SMOKE_START_STATE {"game":"emoji-spotter","elapsedMs":22.16320800000176,"matched":true,"arrivals":[{"t":"room","afterStartMs":1.3960000000006403},{"t":"state","game":"emoji-spotter","instanceId":"mw9xlfyv-45","phase":"spot","afterStartMs":1.7858330000017304}]}
+SMOKE_START_STATE {"game":"emoji-spotter","elapsedMs":22.522375000000466,"matched":true,"arrivals":[{"t":"room","afterStartMs":0.3443330000009155},{"t":"state","game":"emoji-spotter","instanceId":"mwa10uw4-45","phase":"spot","afterStartMs":0.4178330000031565}]}
 SMOKE ok: emoji-spotter
-SMOKE_START_STATE {"game":"five-row","elapsedMs":21.68133300000045,"matched":true,"arrivals":[{"t":"room","afterStartMs":1.1245410000010452},{"t":"state","game":"five-row","instanceId":"mw9xlgar-46","phase":"play","afterStartMs":1.8731250000018917}]}
+SMOKE_START_STATE {"game":"five-row","elapsedMs":22.65508300000147,"matched":true,"arrivals":[{"t":"room","afterStartMs":0.33104200000161654},{"t":"state","game":"five-row","instanceId":"mwa10v80-46","phase":"play","afterStartMs":0.4748749999998836}]}
 SMOKE ok: five-row
-SMOKE_START_STATE {"game":"fleet-duel","elapsedMs":20.781167000001005,"matched":true,"arrivals":[{"t":"room","afterStartMs":1.1805830000012065},{"t":"state","game":"fleet-duel","instanceId":"mw9xlgml-47","phase":"place","afterStartMs":1.8927499999990687}]}
+SMOKE_START_STATE {"game":"fleet-duel","elapsedMs":22.575874999998632,"matched":true,"arrivals":[{"t":"room","afterStartMs":0.32583299999896553},{"t":"state","game":"fleet-duel","instanceId":"mwa10vjv-47","phase":"place","afterStartMs":0.4660829999993439}]}
 SMOKE ok: fleet-duel
-SMOKE_START_STATE {"game":"four-in-a-row","elapsedMs":20.60908399999971,"matched":true,"arrivals":[{"t":"room","afterStartMs":1.080459000000701},{"t":"state","game":"four-in-a-row","instanceId":"mw9xlgye-48","phase":"play","afterStartMs":1.6019589999996242}]}
+SMOKE_START_STATE {"game":"four-in-a-row","elapsedMs":21.489250000002357,"matched":true,"arrivals":[{"t":"room","afterStartMs":0.3102920000019367},{"t":"state","game":"four-in-a-row","instanceId":"mwa10vvq-48","phase":"play","afterStartMs":0.40141700000094716}]}
 SMOKE ok: four-in-a-row
-SMOKE_START_STATE {"game":"hot-potato","elapsedMs":22.28337499999907,"matched":true,"arrivals":[{"t":"room","afterStartMs":0.7487079999991693},{"t":"state","game":"hot-potato","instanceId":"mw9xlha7-49","phase":"pass","afterStartMs":0.9908329999998386}]}
+SMOKE_START_STATE {"game":"hot-potato","elapsedMs":22.587750000002416,"matched":true,"arrivals":[{"t":"room","afterStartMs":0.39441699999952107},{"t":"state","game":"hot-potato","instanceId":"mwa10w7j-49","phase":"pass","afterStartMs":0.49854200000118}]}
 SMOKE ok: hot-potato
-SMOKE_START_STATE {"game":"kalah","elapsedMs":20.964625000000524,"matched":true,"arrivals":[{"t":"room","afterStartMs":1.1239170000008016},{"t":"state","game":"kalah","instanceId":"mw9xlhm2-50","phase":"play","afterStartMs":1.7281250000014552}]}
+SMOKE_START_STATE {"game":"kalah","elapsedMs":22.5815419999999,"matched":true,"arrivals":[{"t":"room","afterStartMs":0.3461250000000291},{"t":"state","game":"kalah","instanceId":"mwa10wjc-50","phase":"play","afterStartMs":0.4760840000017197}]}
 SMOKE ok: kalah
-SMOKE_START_STATE {"game":"know-me","elapsedMs":21.06879199999821,"matched":true,"arrivals":[{"t":"room","afterStartMs":1.6241249999984575},{"t":"state","game":"know-me","instanceId":"mw9xlhxw-51","phase":"pick","afterStartMs":1.9530419999973674}]}
+SMOKE_START_STATE {"game":"know-me","elapsedMs":20.859874999998283,"matched":true,"arrivals":[{"t":"room","afterStartMs":0.41658299999835435},{"t":"state","game":"know-me","instanceId":"mwa10wv3-51","phase":"pick","afterStartMs":0.5722079999977723}]}
 SMOKE ok: know-me
-SMOKE_START_STATE {"game":"letter-lock","elapsedMs":22.53320900000108,"matched":true,"arrivals":[{"t":"room","afterStartMs":4.203084000000672},{"t":"state","game":"letter-lock","instanceId":"mw9xli9q-52","phase":"solve","afterStartMs":4.434000000001106}]}
+SMOKE_START_STATE {"game":"letter-lock","elapsedMs":21.510874999999942,"matched":true,"arrivals":[{"t":"room","afterStartMs":0.9650829999991402},{"t":"state","game":"letter-lock","instanceId":"mwa10x6w-52","phase":"solve","afterStartMs":1.0294170000015583}]}
 SMOKE ok: letter-lock
-SMOKE_START_STATE {"game":"ludo","elapsedMs":22.091166999998677,"matched":true,"arrivals":[{"t":"room","afterStartMs":1.158292000000074},{"t":"state","game":"ludo","instanceId":"mw9xlilm-53","phase":"roll","afterStartMs":1.741541999999754}]}
+SMOKE_START_STATE {"game":"ludo","elapsedMs":22.516500000001543,"matched":true,"arrivals":[{"t":"room","afterStartMs":0.3447500000002037},{"t":"state","game":"ludo","instanceId":"mwa10xio-53","phase":"roll","afterStartMs":0.4306670000005397}]}
 SMOKE ok: ludo
-SMOKE_START_STATE {"game":"math-dash","elapsedMs":22.09479199999987,"matched":true,"arrivals":[{"t":"room","afterStartMs":1.20166700000118},{"t":"state","game":"math-dash","instanceId":"mw9xlixi-54","phase":"sprint","afterStartMs":1.8416250000009313}]}
+SMOKE_START_STATE {"game":"math-dash","elapsedMs":21.78429099999994,"matched":true,"arrivals":[{"t":"room","afterStartMs":0.3828749999993306},{"t":"state","game":"math-dash","instanceId":"mwa10xuh-54","phase":"sprint","afterStartMs":0.508957999998529}]}
 SMOKE ok: math-dash
-SMOKE_START_STATE {"game":"mega-tic-tac-toe","elapsedMs":23.213999999999942,"matched":true,"arrivals":[{"t":"room","afterStartMs":1.1190830000014103},{"t":"state","game":"mega-tic-tac-toe","instanceId":"mw9xlj9c-55","phase":"play","afterStartMs":1.8148330000003625}]}
+SMOKE_START_STATE {"game":"mega-tic-tac-toe","elapsedMs":22.635333000001992,"matched":true,"arrivals":[{"t":"room","afterStartMs":0.2958749999997963},{"t":"state","game":"mega-tic-tac-toe","instanceId":"mwa10y69-55","phase":"play","afterStartMs":0.4524170000004233}]}
 SMOKE ok: mega-tic-tac-toe
-SMOKE_START_STATE {"game":"moonlit-village","elapsedMs":21.292124999999942,"matched":true,"arrivals":[{"t":"room","afterStartMs":1.618084000001545},{"t":"state","game":"moonlit-village","instanceId":"mw9xljl7-56","phase":"night","afterStartMs":1.9752919999991718}]}
+SMOKE_START_STATE {"game":"moonlit-village","elapsedMs":21.263999999999214,"matched":true,"arrivals":[{"t":"room","afterStartMs":0.45808300000135205},{"t":"state","game":"moonlit-village","instanceId":"mwa10yi3-56","phase":"night","afterStartMs":0.5415409999986878}]}
 SMOKE ok: moonlit-village
-SMOKE_START_STATE {"game":"odd-one-out","elapsedMs":22.242499999996653,"matched":true,"arrivals":[{"t":"room","afterStartMs":1.5044159999997646},{"t":"state","game":"odd-one-out","instanceId":"mw9xljx0-57","phase":"talk","afterStartMs":1.9028749999997672}]}
+SMOKE_START_STATE {"game":"odd-one-out","elapsedMs":22.557541999998648,"matched":true,"arrivals":[{"t":"room","afterStartMs":0.3953750000000582},{"t":"state","game":"odd-one-out","instanceId":"mwa10ytu-57","phase":"talk","afterStartMs":0.46612499999901047}]}
 SMOKE ok: odd-one-out
-SMOKE_START_STATE {"game":"penalty-kicks","elapsedMs":21.387833000000683,"matched":true,"arrivals":[{"t":"room","afterStartMs":1.4364170000008016},{"t":"state","game":"penalty-kicks","instanceId":"mw9xlk8u-58","phase":"pick","afterStartMs":2.006083000000217}]}
+SMOKE_START_STATE {"game":"penalty-kicks","elapsedMs":20.576375000000553,"matched":true,"arrivals":[{"t":"room","afterStartMs":0.3787080000001879},{"t":"state","game":"penalty-kicks","instanceId":"mwa10z5p-58","phase":"pick","afterStartMs":0.4446250000000873}]}
 SMOKE ok: penalty-kicks
-SMOKE_START_STATE {"game":"pig-dice","elapsedMs":22.560499999999593,"matched":true,"arrivals":[{"t":"room","afterStartMs":0.9199580000022252},{"t":"state","game":"pig-dice","instanceId":"mw9xlkko-59","phase":"play","afterStartMs":1.3073330000006536}]}
+SMOKE_START_STATE {"game":"pig-dice","elapsedMs":21.88050000000294,"matched":true,"arrivals":[{"t":"room","afterStartMs":0.3380830000023707},{"t":"state","game":"pig-dice","instanceId":"mwa10zhh-59","phase":"play","afterStartMs":0.45170800000050804}]}
 SMOKE ok: pig-dice
-SMOKE_START_STATE {"game":"pocket-karts","elapsedMs":83.83708299999853,"matched":true,"arrivals":[{"t":"room","afterStartMs":73.50249999999869},{"t":"state","game":"pocket-karts","instanceId":"mw9xlkwk-60","phase":"countdown","afterStartMs":73.74379199999748}]}
+SMOKE_START_STATE {"game":"pocket-karts","elapsedMs":62.822000000000116,"matched":true,"arrivals":[{"t":"room","afterStartMs":48.96541700000307},{"t":"state","game":"pocket-karts","instanceId":"mwa10zta-60","phase":"countdown","afterStartMs":49.2232920000024}]}
 SMOKE ok: pocket-karts
-SMOKE_START_STATE {"game":"pose-party","elapsedMs":22.295083000000886,"matched":true,"arrivals":[{"t":"room","afterStartMs":0.5857499999983702},{"t":"state","game":"pose-party","instanceId":"mw9xlla2-61","phase":"perform","afterStartMs":0.7305000000014843}]}
+SMOKE_START_STATE {"game":"pose-party","elapsedMs":20.189666999998735,"matched":true,"arrivals":[{"t":"room","afterStartMs":0.5309170000000449},{"t":"state","game":"pose-party","instanceId":"mwa1106a-61","phase":"perform","afterStartMs":0.647292000001471}]}
 SMOKE ok: pose-party
-SMOKE_START_STATE {"game":"read-my-lips","elapsedMs":21.88629199999923,"matched":true,"arrivals":[{"t":"room","afterStartMs":1.2668339999981981},{"t":"state","game":"read-my-lips","instanceId":"mw9xlllx-62","phase":"mouth","afterStartMs":1.4772499999999127}]}
+SMOKE_START_STATE {"game":"read-my-lips","elapsedMs":21.847750000000815,"matched":true,"arrivals":[{"t":"room","afterStartMs":0.7138750000012806},{"t":"state","game":"read-my-lips","instanceId":"mwa110i2-62","phase":"mouth","afterStartMs":0.772584000002098}]}
 SMOKE ok: read-my-lips
-SMOKE_START_STATE {"game":"reversi","elapsedMs":21.269208999998227,"matched":true,"arrivals":[{"t":"room","afterStartMs":1.069999999999709},{"t":"state","game":"reversi","instanceId":"mw9xllxs-63","phase":"play","afterStartMs":2.299749999998312}]}
+SMOKE_START_STATE {"game":"reversi","elapsedMs":20.801625000000058,"matched":true,"arrivals":[{"t":"room","afterStartMs":0.31479100000069593},{"t":"state","game":"reversi","instanceId":"mwa110tu-63","phase":"play","afterStartMs":0.502582999997685}]}
 SMOKE ok: reversi
-SMOKE_START_STATE {"game":"show-and-go","elapsedMs":22.857583000000886,"matched":true,"arrivals":[{"t":"room","afterStartMs":1.0197079999998095},{"t":"state","game":"show-and-go","instanceId":"mw9xlm9k-64","phase":"perform","afterStartMs":1.4520830000001297}]}
+SMOKE_START_STATE {"game":"show-and-go","elapsedMs":20.485916000001453,"matched":true,"arrivals":[{"t":"room","afterStartMs":0.2957910000004631},{"t":"state","game":"show-and-go","instanceId":"mwa1115o-64","phase":"perform","afterStartMs":0.3271249999997963}]}
 SMOKE ok: show-and-go
-SMOKE_START_STATE {"game":"sketchy-impostor","elapsedMs":22.42699999999968,"matched":true,"arrivals":[{"t":"room","afterStartMs":1.678250000000844},{"t":"state","game":"sketchy-impostor","instanceId":"mw9xlmle-65","phase":"draw","afterStartMs":2.0832919999993464}]}
+SMOKE_START_STATE {"game":"sketchy-impostor","elapsedMs":20.467749999999796,"matched":true,"arrivals":[{"t":"room","afterStartMs":0.47312500000043656},{"t":"state","game":"sketchy-impostor","instanceId":"mwa111hh-65","phase":"draw","afterStartMs":0.5774170000004233}]}
 SMOKE ok: sketchy-impostor
-SMOKE_START_STATE {"game":"snakes-ladders","elapsedMs":21.109333000000333,"matched":true,"arrivals":[{"t":"room","afterStartMs":1.0538330000017595},{"t":"state","game":"snakes-ladders","instanceId":"mw9xlmxa-66","phase":"play","afterStartMs":1.750833000001876}]}
+SMOKE_START_STATE {"game":"snakes-ladders","elapsedMs":20.60912499999904,"matched":true,"arrivals":[{"t":"room","afterStartMs":0.30812499999956344},{"t":"state","game":"snakes-ladders","instanceId":"mwa111t9-66","phase":"play","afterStartMs":0.440374999998312}]}
 SMOKE ok: snakes-ladders
-SMOKE_START_STATE {"game":"think-alike","elapsedMs":21.932416999999987,"matched":true,"arrivals":[{"t":"room","afterStartMs":0.65770799999882},{"t":"state","game":"think-alike","instanceId":"mw9xln92-67","phase":"answer","afterStartMs":0.7847079999992275}]}
+SMOKE_START_STATE {"game":"think-alike","elapsedMs":21.55633300000045,"matched":true,"arrivals":[{"t":"room","afterStartMs":0.37041600000156905},{"t":"state","game":"think-alike","instanceId":"mwa11252-67","phase":"answer","afterStartMs":0.4197910000002594}]}
 SMOKE ok: think-alike
-SMOKE_START_STATE {"game":"undercover","elapsedMs":21.5724999999984,"matched":true,"arrivals":[{"t":"room","afterStartMs":0.4001250000001164},{"t":"state","game":"undercover","instanceId":"mw9xlnkx-68","phase":"clue","afterStartMs":0.46987499999886495}]}
+SMOKE_START_STATE {"game":"undercover","elapsedMs":20.44683299999815,"matched":true,"arrivals":[{"t":"room","afterStartMs":0.5367919999989681},{"t":"state","game":"undercover","instanceId":"mwa112gw-68","phase":"clue","afterStartMs":0.6010829999977432}]}
 SMOKE ok: undercover
-SMOKE_START_STATE {"game":"warm-words","elapsedMs":21.70758299999943,"matched":true,"arrivals":[{"t":"room","afterStartMs":0.5035419999985606},{"t":"state","game":"warm-words","instanceId":"mw9xlnwr-69","phase":"guess","afterStartMs":0.5931249999994179}]}
+SMOKE_START_STATE {"game":"warm-words","elapsedMs":21.25433399999747,"matched":true,"arrivals":[{"t":"room","afterStartMs":0.5213750000002619},{"t":"state","game":"warm-words","instanceId":"mwa112so-69","phase":"guess","afterStartMs":0.5884999999980209}]}
 SMOKE ok: warm-words
-SMOKE_START_STATE {"game":"whisper","elapsedMs":20.54408400000102,"matched":true,"arrivals":[{"t":"room","afterStartMs":0.3382500000006985},{"t":"state","game":"whisper","instanceId":"mw9xlo8l-70","phase":"pick","afterStartMs":0.4041670000005979}]}
+SMOKE_START_STATE {"game":"whisper","elapsedMs":21.538916999998037,"matched":true,"arrivals":[{"t":"room","afterStartMs":0.3914999999979045},{"t":"state","game":"whisper","instanceId":"mwa1134g-70","phase":"pick","afterStartMs":0.45341699999698903}]}
 SMOKE ok: whisper
-SMOKE_START_STATE {"game":"who-wrote","elapsedMs":21.261875000000146,"matched":true,"arrivals":[{"t":"room","afterStartMs":0.3736669999998412},{"t":"state","game":"who-wrote","instanceId":"mw9xlokb-71","phase":"write","afterStartMs":0.4537500000005821}]}
+SMOKE_START_STATE {"game":"who-wrote","elapsedMs":20.784083000002283,"matched":true,"arrivals":[{"t":"room","afterStartMs":0.3685829999994894},{"t":"state","game":"who-wrote","instanceId":"mwa113ga-71","phase":"write","afterStartMs":0.4938750000001164}]}
 SMOKE ok: who-wrote
-SMOKE_START_STATE {"game":"word-grid","elapsedMs":43.33537500000239,"matched":true,"arrivals":[{"t":"room","afterStartMs":29.775541000002704},{"t":"state","game":"word-grid","instanceId":"mw9xlow4-72","phase":"find","afterStartMs":29.837208000000828}]}
+SMOKE_START_STATE {"game":"word-grid","elapsedMs":44.06475000000137,"matched":true,"arrivals":[{"t":"room","afterStartMs":27.234040999999706},{"t":"state","game":"word-grid","instanceId":"mwa113s3-72","phase":"find","afterStartMs":27.35870799999975}]}
 SMOKE ok: word-grid
 SMOKE_PASS
 {
@@ -655,10 +655,10 @@ RELEASE ok: 8+2 room, countdown freeze, release, stale drop, malformed safe
 RELEASE ok: immersive metadata (pocket immersive, default standard, catalog)
 RELEASE ok: view/CSS contract pins (board, immersive scope, palettes)
 RELEASE ok: rematch resets phase/scores/inputs/tallies/results
-RELEASE_START_STATE {"elapsedMs":62.023207999999954,"matched":true,"arrivals":[{"t":"room","afterStartMs":46.77945799999998},{"t":"state","game":"pocket-karts","instanceId":"mw9xmqab-1","phase":"countdown","afterStartMs":47.35812499999997}]}
-RELEASE_START_STATE {"elapsedMs":42.71891599999799,"matched":true,"arrivals":[{"t":"room","afterStartMs":20.8023749999993},{"t":"state","game":"pocket-karts","instanceId":"mw9xo3fs-2","phase":"countdown","afterStartMs":21.04108300000371}]}
-RELEASE ok: WS 2-driver lifecycle (countdown 3037 ms, 61 drive snapshots/2 s, timeout reason, exact-once, rematch)
-RELEASE_START_STATE {"elapsedMs":19.533582999996725,"matched":true,"arrivals":[{"t":"room","afterStartMs":17.36983300000429},{"t":"state","game":"pocket-karts","instanceId":"mw9xo4nb-1","phase":"countdown","afterStartMs":18.930916999990586}]}
+RELEASE_START_STATE {"elapsedMs":66.63979100000006,"matched":true,"arrivals":[{"t":"room","afterStartMs":51.15870800000005},{"t":"state","game":"pocket-karts","instanceId":"mwa12650-1","phase":"countdown","afterStartMs":52.42104100000006}]}
+RELEASE_START_STATE {"elapsedMs":22.18737500000134,"matched":true,"arrivals":[{"t":"room","afterStartMs":11.527000000001863},{"t":"state","game":"pocket-karts","instanceId":"mwa13jbr-2","phase":"countdown","afterStartMs":11.699000000000524}]}
+RELEASE ok: WS 2-driver lifecycle (countdown 3027 ms, 61 drive snapshots/2 s, timeout reason, exact-once, rematch)
+RELEASE_START_STATE {"elapsedMs":21.982749999995576,"matched":true,"arrivals":[{"t":"room","afterStartMs":8.600250000003143},{"t":"state","game":"pocket-karts","instanceId":"mwa13kiq-1","phase":"countdown","afterStartMs":9.818209000004572}]}
 RELEASE ok: WS 10 drivers + 1 watcher (battle on blocks, all moved)
 RELEASE ok: WS disconnect freezes, seat-token resume restores driving
 RELEASE_PASS
@@ -809,7 +809,7 @@ RACE sweep: math-dash done=true stalled=- reveals=[1,2,3] ends=[]
 RACE sweep: mega-tic-tac-toe done=false stalled=play reveals=[] ends=[]
 RACE sweep: moonlit-village done=false stalled=- reveals=[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63,64,65,66,67,68,69,70,71,72,73,74,75,76,77,78,79,80,81,82,83,84,85,86,87,88,89,90,91,92,93,94,95,96,97,98,99,100] ends=[]
 RACE sweep: odd-one-out done=true stalled=- reveals=[1,2,3,4] ends=[]
-RACE sweep: penalty-kicks done=true stalled=- reveals=[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22] ends=[]
+RACE sweep: penalty-kicks done=true stalled=- reveals=[1,2,3,4,5,6,7,8,9,10,11,12] ends=[]
 RACE sweep: pig-dice done=false stalled=play reveals=[] ends=[]
 RACE sweep: pocket-karts done=false stalled=countdown reveals=[] ends=[]
 RACE sweep: pose-party done=true stalled=- reveals=[1,2,3,4] ends=[]
@@ -1121,7 +1121,7 @@ HUD MUSE PASS: 18 checks across 15 games
 GAME_SCREEN_PASS: gesture order, failure fallback, system exit, foreign ownership, double tap, late request cleanup
 GAME_SCREEN_UI_PASS: actual shell controls, icons/labels, capability/iframe/iOS rules, resize, prompt gestures and saved/blocked-storage dismissal
 MOBILE_STICK_PASS: 117 assertions; vector, single-pointer capture, fallbacks, missed mouseup, release-once, legacy/modern screen stops and disposal
-PARTY_MOBILE_PASS: 1025 renders, 205 watcher views, 54 lock-in proofs, 12 composers (preserve/IME/Enter/clear), 6 tap actions, 12 IME guards, rank reorder, deck/kind selection, CSS contract
+PARTY_MOBILE_PASS: 1035 renders, 207 watcher views, 54 lock-in proofs, 12 composers (preserve/IME/Enter/clear), 6 tap actions, 12 IME guards, rank reorder, deck/kind selection, CSS contract
 SKILL_MOBILE_PASS: 127 assertions; legal tap selection, all four engine-acknowledged promotions, reveal/focus order, snapshot scroll stability, Cancel, watchers and ordinary moves
 KART_AUDIO_SAMPLES_PASS: 469 assertions (20 files, 1113KB audio)
 CONTRIBUTOR_PASS: real CLI setup/import/export, isolated local env, authenticated encryption/tamper rejection, scoped variables, private outputs, no overwrite or repo export.
@@ -1200,9 +1200,9 @@ BOARD_ROOMS ok: public kalah
 BOARD_ROOMS ok: private kalah
 CHECKERS_KALAH_ROOMS_PASS: 145 assertions; public/private rooms, roster/late watchers, duplicates, stale turns/windows/instances, reconnect, host migration, settled results and rematch
 LUDO_FLEET_PASS: 840 rule, privacy, race, conservation and full initial-position match assertions
-ludo real Room complete match: 623 legal actions
-fleet-duel real Room complete match: 110 legal actions
-LUDO_FLEET_TRANSPORT_PASS: 342 real WebSocket assertions, full wins, simultaneous ready, two watcher types, reconnect and rematch
+ludo real Room complete match: 604 legal actions
+fleet-duel real Room complete match: 189 legal actions
+LUDO_FLEET_TRANSPORT_PASS: 682 real WebSocket assertions, full wins, simultaneous ready, two watcher types, reconnect and rematch
 LUDO_FLEET_VIEW_PASS: 436 shipped-client assertions (4s recovery, duplicate snapshots, timer disposal, keyboard continuity, external focus, result settlement, reconnect and host migration)
 LUDO_SHARED_PAWNS_PASS: 341 portable renderer/authority assertions; browser geometry remains separately scoped
 BOARD_MOTION_PASS: 15560 assertions; 1200 server rolls, hop order, end state, bounce, interruption, heartbeat, reconnect, Ludo home lane, reduced motion and disposal
@@ -1281,13 +1281,13 @@ DRAW_PHONE_TRANSPORT_PASS: 23 real WebSocket privacy, gesture undo/revision, dea
     "airborneSteps": 55,
     "jumpMaxChassisY": 4.438712120056152,
     "eightKartStepMs": {
-      "p50": 0.03212500000000773,
-      "p95": 0.04537500000000705,
-      "max": 0.1454999999999984,
+      "p50": 0.03645900000000779,
+      "p95": 0.09420800000000895,
+      "max": 0.16679200000001515,
       "samples": 360
     }
   },
-  "elapsedMs": 139.85345900000002,
+  "elapsedMs": 191.094583,
   "physicsVersion": 2,
   "configVersion": 1,
   "rapierVersion": "0.21.0"
@@ -1326,17 +1326,17 @@ PASS probe: current/released source patches parse, raised hooks execute, ownKart
     {
       "id": "skyport",
       "players": 2,
-      "stepP95Ms": 0.10254099999997379
+      "stepP95Ms": 0.21291599999995015
     },
     {
       "id": "skyport",
       "players": 8,
-      "stepP95Ms": 0.23554200000012315
+      "stepP95Ms": 0.5160839999998643
     },
     {
       "id": "skyport",
       "players": 32,
-      "stepP95Ms": 0.8416670000001432
+      "stepP95Ms": 1.206250000000182
     },
     {
       "id": "foundry",
@@ -1357,17 +1357,17 @@ PASS probe: current/released source patches parse, raised hooks execute, ownKart
     {
       "id": "foundry",
       "players": 2,
-      "stepP95Ms": 0.08316700000068522
+      "stepP95Ms": 0.11837500000001455
     },
     {
       "id": "foundry",
       "players": 8,
-      "stepP95Ms": 0.21479100000033213
+      "stepP95Ms": 0.271125000000211
     },
     {
       "id": "foundry",
       "players": 32,
-      "stepP95Ms": 0.7320419999996375
+      "stepP95Ms": 0.8940000000002328
     }
   ]
 }
@@ -1553,45 +1553,45 @@ PASS raised-map reachability, alternate climbs, bot departures, deck CCD, balanc
   }
 ]
 PASS 96 authored starts: continuous 20m hull casts, no drop, 2.5s full-throttle drive
-Rookie Ribbons 2 real Room seats PASS; frame bytes=6029
-Rookie Ribbons 8 real Room seats PASS; frame bytes=11776
-Skyport Split 8 real Room seats PASS; frame bytes=12865
+Rookie Ribbons 2 real Room seats PASS; frame bytes=6268
+Rookie Ribbons 8 real Room seats PASS; frame bytes=12006
+Skyport Split 8 real Room seats PASS; frame bytes=14666
 Skyport Split 32 real Room seats PASS; frame bytes=35867
-Garden Crown 8 real Room seats PASS; frame bytes=11838
-Frostbite Crescent 8 real Room seats PASS; frame bytes=12338
-Neon Switchyard 8 real Room seats PASS; frame bytes=11853
-Harbor Fork 8 real Room seats PASS; frame bytes=13163
-Harbor Fork 32 real Room seats PASS; frame bytes=35877
-Foundry Wheel 8 real Room seats PASS; frame bytes=14102
-Foundry Wheel 32 real Room seats PASS; frame bytes=36295
-Skyport 2 real Room seats PASS; frame bytes=5121
-Skyport 8 real Room seats PASS; frame bytes=10376
+Garden Crown 8 real Room seats PASS; frame bytes=13004
+Frostbite Crescent 8 real Room seats PASS; frame bytes=13507
+Neon Switchyard 8 real Room seats PASS; frame bytes=13487
+Harbor Fork 8 real Room seats PASS; frame bytes=14454
+Harbor Fork 32 real Room seats PASS; frame bytes=35876
+Foundry Wheel 8 real Room seats PASS; frame bytes=15320
+Foundry Wheel 32 real Room seats PASS; frame bytes=36296
+Skyport 2 real Room seats PASS; frame bytes=5122
+Skyport 8 real Room seats PASS; frame bytes=10369
 Skyport 32 real Room seats PASS; frame bytes=31502
-Foundry 2 real Room seats PASS; frame bytes=5129
+Foundry 2 real Room seats PASS; frame bytes=5125
 Foundry 8 real Room seats PASS; frame bytes=10341
 Foundry 32 real Room seats PASS; frame bytes=31462
-Alpine Courtyard 2 real Room seats PASS; frame bytes=4879
-Alpine Courtyard 8 real Room seats PASS; frame bytes=10078
-Alpine Courtyard 32 real Room seats PASS; frame bytes=11321
-Frost Quarry 2 real Room seats PASS; frame bytes=4901
+Alpine Courtyard 2 real Room seats PASS; frame bytes=4876
+Alpine Courtyard 8 real Room seats PASS; frame bytes=10079
+Alpine Courtyard 32 real Room seats PASS; frame bytes=11325
+Frost Quarry 2 real Room seats PASS; frame bytes=4898
 Frost Quarry 8 real Room seats PASS; frame bytes=10087
-Frost Quarry 32 real Room seats PASS; frame bytes=11332
-Neon Harbor 2 real Room seats PASS; frame bytes=4896
-Neon Harbor 8 real Room seats PASS; frame bytes=10203
-Neon Harbor 32 real Room seats PASS; frame bytes=11310
-Harbor Heights 2 real Room seats PASS; frame bytes=4881
-Harbor Heights 8 real Room seats PASS; frame bytes=10068
-Harbor Heights 32 real Room seats PASS; frame bytes=11315
+Frost Quarry 32 real Room seats PASS; frame bytes=11333
+Neon Harbor 2 real Room seats PASS; frame bytes=4898
+Neon Harbor 8 real Room seats PASS; frame bytes=10065
+Neon Harbor 32 real Room seats PASS; frame bytes=11309
+Harbor Heights 2 real Room seats PASS; frame bytes=4882
+Harbor Heights 8 real Room seats PASS; frame bytes=10070
+Harbor Heights 32 real Room seats PASS; frame bytes=11313
 Complex Room routing, 2/8/32 seats and elevated-default practice regression PASS
-Skyport Split production WebSocket PASS: 32 drivers, 35664 byte frame, 12 live frames in ~600 ms
-Harbor Fork production WebSocket PASS: 32 drivers, 35684 byte frame, 12 live frames in ~600 ms
-Foundry Wheel production WebSocket PASS: 32 drivers, 36053 byte frame, 13 live frames in ~600 ms
-Skyport production WebSocket PASS: 32 drivers, 31542 byte frame, 12 live frames in ~600 ms
-Foundry production WebSocket PASS: 32 drivers, 31408 byte frame, 12 live frames in ~600 ms
-Alpine Courtyard production WebSocket PASS: 8 drivers, 11307 byte frame, 12 live frames in ~600 ms
+Skyport Split production WebSocket PASS: 32 drivers, 35698 byte frame, 12 live frames in ~600 ms
+Harbor Fork production WebSocket PASS: 32 drivers, 35721 byte frame, 12 live frames in ~600 ms
+Foundry Wheel production WebSocket PASS: 32 drivers, 36185 byte frame, 12 live frames in ~600 ms
+Skyport production WebSocket PASS: 32 drivers, 31536 byte frame, 12 live frames in ~600 ms
+Foundry production WebSocket PASS: 32 drivers, 31409 byte frame, 12 live frames in ~600 ms
+Alpine Courtyard production WebSocket PASS: 8 drivers, 11309 byte frame, 12 live frames in ~600 ms
 Frost Quarry production WebSocket PASS: 8 drivers, 11316 byte frame, 12 live frames in ~600 ms
-Neon Harbor production WebSocket PASS: 8 drivers, 11423 byte frame, 12 live frames in ~600 ms
-Harbor Heights production WebSocket PASS: 8 drivers, 11300 byte frame, 12 live frames in ~600 ms
+Neon Harbor production WebSocket PASS: 8 drivers, 11285 byte frame, 12 live frames in ~600 ms
+Harbor Heights production WebSocket PASS: 8 drivers, 11303 byte frame, 12 live frames in ~600 ms
 KART_HEALTH_PASS 22 actual classic/raised HP and collision contracts
 {
   "pass": true,
@@ -1950,66 +1950,66 @@ KART_HEALTH_PASS 22 actual classic/raised HP and collision contracts
     "skyport": {
       "fixedSteps": 600,
       "advanceProcessingMs": {
-        "median": 0.15395799999987503,
-        "p95": 0.21129199999995762,
-        "max": 0.37458299999980227
+        "median": 0.16370899999947142,
+        "p95": 0.24499999999989086,
+        "max": 0.4572909999997137
       },
-      "cpuLoopMs": 212.01,
+      "cpuLoopMs": 230.734,
       "snapshotBytes": 19865,
       "scope": "Node24 isolated one-instance authority advance includes projection; neutral200/drive200/Nitro200; initialization excluded; CPU loop includes legal input preparation, no network/phone measurement"
     },
     "foundry": {
       "fixedSteps": 600,
       "advanceProcessingMs": {
-        "median": 0.1741249999995489,
-        "p95": 0.23316699999941193,
-        "max": 0.5216250000003129
+        "median": 0.18666699999994307,
+        "p95": 0.2993749999995998,
+        "max": 0.5621249999994689
       },
-      "cpuLoopMs": 253,
+      "cpuLoopMs": 281.739,
       "snapshotBytes": 18990,
       "scope": "Node24 isolated one-instance authority advance includes projection; neutral200/drive200/Nitro200; initialization excluded; CPU loop includes legal input preparation, no network/phone measurement"
     },
     "garden": {
       "fixedSteps": 600,
       "advanceProcessingMs": {
-        "median": 0.17454199999974662,
-        "p95": 0.3017919999992955,
-        "max": 0.5107499999994616
+        "median": 0.18862499999977445,
+        "p95": 0.33708299999943847,
+        "max": 0.5972090000004755
       },
-      "cpuLoopMs": 232.916,
+      "cpuLoopMs": 253.248,
       "snapshotBytes": 17994,
       "scope": "Node24 isolated one-instance authority advance includes projection; neutral200/drive200/Nitro200; initialization excluded; CPU loop includes legal input preparation, no network/phone measurement"
     },
     "frost": {
       "fixedSteps": 600,
       "advanceProcessingMs": {
-        "median": 0.1639999999997599,
-        "p95": 0.213249999999789,
-        "max": 0.5835420000003069
+        "median": 0.17620799999986048,
+        "p95": 0.2420830000000933,
+        "max": 0.5709170000000086
       },
-      "cpuLoopMs": 216.456,
+      "cpuLoopMs": 235.149,
       "snapshotBytes": 20802,
       "scope": "Node24 isolated one-instance authority advance includes projection; neutral200/drive200/Nitro200; initialization excluded; CPU loop includes legal input preparation, no network/phone measurement"
     },
     "neon": {
       "fixedSteps": 600,
       "advanceProcessingMs": {
-        "median": 0.17712500000016007,
-        "p95": 0.3302079999994021,
-        "max": 0.8608749999993961
+        "median": 0.17654099999981554,
+        "p95": 0.24608299999999872,
+        "max": 0.5572910000000775
       },
-      "cpuLoopMs": 242.85,
+      "cpuLoopMs": 247.048,
       "snapshotBytes": 21359,
       "scope": "Node24 isolated one-instance authority advance includes projection; neutral200/drive200/Nitro200; initialization excluded; CPU loop includes legal input preparation, no network/phone measurement"
     },
     "harbor": {
       "fixedSteps": 600,
       "advanceProcessingMs": {
-        "median": 0.177375000000211,
-        "p95": 0.3105420000001686,
-        "max": 0.6351250000006985
+        "median": 0.1792910000003758,
+        "p95": 0.2216660000003685,
+        "max": 0.3871659999995245
       },
-      "cpuLoopMs": 257.434,
+      "cpuLoopMs": 252.014,
       "snapshotBytes": 18685,
       "scope": "Node24 isolated one-instance authority advance includes projection; neutral200/drive200/Nitro200; initialization excluded; CPU loop includes legal input preparation, no network/phone measurement"
     },
@@ -2021,11 +2021,11 @@ KART_HEALTH_PASS 22 actual classic/raised HP and collision contracts
       "maxShots": 38,
       "maxSnapshotBytes": 32185,
       "advanceProcessingMs": {
-        "median": 0.21495800000047893,
-        "p95": 0.3179579999996349,
-        "max": 0.5872909999998228
+        "median": 0.22079200000007404,
+        "p95": 0.31762499999967986,
+        "max": 0.6556250000003274
       },
-      "cpuLoopMs": 474.167,
+      "cpuLoopMs": 487.931,
       "scope": "Diagnostic eight-seat legal collect/use workload; same real authority and adapter, no grant/hit/teleport hooks; initialization excluded; no network/phone performance claim"
     }
   },
@@ -2496,44 +2496,44 @@ PASS 5179 elevated world geometry/resource checks
   "checks": 230,
   "node": "v24.21.0",
   "metrics": {
-    "initialActivePacketBytes": 10711,
-    "initialWatcherPacketBytes": 10652,
-    "packetBeforeHealthBytes": 8798,
+    "initialActivePacketBytes": 10712,
+    "initialWatcherPacketBytes": 10653,
+    "packetBeforeHealthBytes": 8799,
     "healthWireBytes": 1913,
     "cadence": {
-      "durationMs": 1101,
-      "elevatedFrames": 21,
+      "durationMs": 1102,
+      "elevatedFrames": 22,
       "legacyFrames": 34,
-      "elevatedHz": 19.07356948228883,
-      "legacyHz": 30.881017257039055
+      "elevatedHz": 19.96370235934664,
+      "legacyHz": 30.852994555353902
     },
     "reconnect": {
       "offlinePosition": {
-        "x": -44.046,
-        "y": 0.662,
-        "z": -38.939
+        "x": -44.042,
+        "y": 0.661,
+        "z": -39.064
       },
       "firstFrame": {
         "simTick": 214,
         "position": {
-          "x": -44.046,
-          "y": 0.662,
-          "z": -38.939
+          "x": -44.042,
+          "y": 0.661,
+          "z": -39.064
         },
         "controlEpoch": 2
       },
       "laterFrame": {
         "simTick": 220,
         "position": {
-          "x": -44.046,
-          "y": 0.644,
-          "z": -38.929
+          "x": -44.042,
+          "y": 0.642,
+          "z": -39.055
         },
         "controlEpoch": 2
       },
-      "laterPhysicalDelta": 0.02059126028197305
+      "laterPhysicalDelta": 0.0210237960416288
     },
-    "donePacketBytes": 11772,
+    "donePacketBytes": 11770,
     "scope": "Node 24 real production server/WebSocket, localhost 8 drivers plus 16 watchers and a separate classic room; complete 60s deadline, no simulated clock; not WAN/device performance."
   }
 }
@@ -4515,7 +4515,7 @@ KART_ELEVATED_NEW_ARSENAL_PASS
   "scope": "Actual loader/source/material/seat checks; native/art/fire acceptance separate."
 }
 {"pass":true,"checks":454,"scope":"Actual GLTFLoader and production factories; no native audio/visual or phone claim."}
-MISSILE_PREFIRE {"tick":481,"closest":"p5a345947","launchClear":true,"distance":35.03092505868256,"ownerSpeed":-0.1636636284707837}
+MISSILE_PREFIRE {"tick":489,"closest":"pc06ea735","launchClear":true,"distance":32.876111787352855,"ownerSpeed":-0.14088215106831345}
 {
   "pass": true,
   "checks": 64,
@@ -4526,38 +4526,38 @@ MISSILE_PREFIRE {"tick":481,"closest":"p5a345947","launchClear":true,"distance":
       "missile": 61
     },
     "seekerPrefire": {
-      "tick": 481,
-      "closest": "p5a345947",
-      "target": "p5a345947"
+      "tick": 489,
+      "closest": "pc06ea735",
+      "target": "pc06ea735"
     },
     "seeker": {
-      "instance": "mw9xuwwk-1",
-      "initialTick": 487,
-      "laterTick": 489,
-      "target": "p5a345947"
+      "instance": "mwa1afm7-1",
+      "initialTick": 492,
+      "laterTick": 495,
+      "target": "pc06ea735"
     },
     "contact": {
       "surfaceId": "floor",
-      "impulse": 492.63258463541666,
+      "impulse": 529.9784830729167,
       "type": "landing"
     },
     "mine": {
-      "instance": "mw9xw9sh-2",
-      "initialTick": 303,
+      "instance": "mwa1bsiy-2",
+      "initialTick": 304,
       "armedTick": 345,
       "expiredQuietly": true
     },
     "disposals": [
       {
-        "instance": "mw9xuwwk-1",
+        "instance": "mwa1afm7-1",
         "disposals": 1
       },
       {
-        "instance": "mw9xw9sh-2",
+        "instance": "mwa1bsiy-2",
         "disposals": 1
       },
       {
-        "instance": "mw9xxmjm-3",
+        "instance": "mwa1d5a0-3",
         "disposals": 1
       }
     ],
@@ -5200,7 +5200,7 @@ PARTY_NATIVE_CLOCK_PASS: shipping round2 performer sends with controlled gameNow
 QUESTION_MEMORY_FIXTURE_PASS: generated retain/reconnect/fullmatch/rematch dispatch, fresh-phase guards, actual newline, chosen night on fresh frame
 QUESTION_MEMORY_ROOM_PASS: 12 real WS roles; legal40-character custom packs,pending visible readiness,40 accepted answers,secret projection,hidden recall,spectator rejection,reveal+final settlement,finished token reconnect,ready rematch,stale rejection
 TWENTY_QUESTIONS_FILTERS_PASS: mounted updates retain icons/labels/count nodes, live counts, accessible selection, change-only scroll reset, filtering and reveal
-TABLETOP_FULLMATCH_TRANSPORT_PASS [{"game":"chess","actions":4,"final":{"outcome":"checkmate","detail":"Checkmate","winner":"b","winnerPid":"p1d25e924"},"readyRematch":true,"staleRejected":true},{"game":"four-in-a-row","actions":7,"final":{"winner":1,"winnerPid":"pfa3ec01c","reason":"four"},"readyRematch":true,"staleRejected":true},{"game":"reversi","actions":60,"final":{"winner":2,"winnerPid":"p5db6653d","reason":"complete","counts":[10,54]},"readyRematch":true,"staleRejected":true}]
+TABLETOP_FULLMATCH_TRANSPORT_PASS [{"game":"chess","actions":4,"final":{"outcome":"checkmate","detail":"Checkmate","winner":"b","winnerPid":"p4e99a8f1"},"readyRematch":true,"staleRejected":true},{"game":"four-in-a-row","actions":7,"final":{"winner":1,"winnerPid":"pc4249b89","reason":"four"},"readyRematch":true,"staleRejected":true},{"game":"reversi","actions":60,"final":{"winner":2,"winnerPid":"paa0037a4","reason":"complete","counts":[10,54]},"readyRematch":true,"staleRejected":true}]
 DRAWING_CURRENT_FULLMATCHES_TRANSPORT_PASS: 60 script/MIME, real WS/readiness/legal flow/natural deadline/rematch/stale assertions; no browser or visual acceptance.
 
 > partygames@0.1.38 test:catalogue-room-removal
@@ -5331,9 +5331,9 @@ CATALOGUE_ROOM_REMOVAL: {"games":72,"checks":7717,"failedScenarios":0,"legalDone
   ]
 }
 {"pass":true,"scope":"actual Rapier impulses, wheel suspension and hull distances; no native/browser verdict","metrics":[{"scenario":"wall","incoming":{"x":0,"y":-0.1306031197309494,"z":18.609615325927734},"outgoing":{"x":0.5347417593002319,"y":0.4494822323322296,"z":-3.058305263519287},"peakYaw":1.0184091329574585,"maxY":0.6551826596260071,"minGap":-0.003251529997214675,"eventCount":3,"restingEvents":0},{"scenario":"glance","incoming":{"x":2.4460906982421875,"y":-0.1346668154001236,"z":3.575458288192749},"outgoing":{"x":2.235356092453003,"y":-0.1951778531074524,"z":-0.6509681940078735},"peakYaw":0.2879689931869507,"maxY":0.6471698880195618,"minGap":-0.0000073625783443276305,"eventCount":1,"restingEvents":0},{"scenario":"transfer","incoming":{"x":0,"y":-0.13476422429084778,"z":7.133693218231201},"outgoing":{"x":-0.000017503112758276984,"y":-0.10142531245946884,"z":2.8146886825561523},"peerOutgoing":{"x":0.000017503112758276984,"y":0.06281118839979172,"z":4.182535648345947},"peakYaw":0.03416796028614044,"maxY":0.6538429260253906,"minGap":-0.004868923686444759,"eventCount":1,"restingEvents":0},{"scenario":"offcentre","incoming":{"x":0,"y":-0.13476422429084778,"z":7.133693218231201},"outgoing":{"x":-0.8805749416351318,"y":-0.1092873066663742,"z":3.428455352783203},"peerOutgoing":{"x":0.8805747032165527,"y":0.07067356258630753,"z":3.5687687397003174},"peakYaw":0.8682329058647156,"maxY":0.6547932028770447,"minGap":-0.00486904289573431,"eventCount":1,"restingEvents":0},{"scenario":"landing","landingPeak":0.6451523900032043,"finalY":0.6451523900032043,"inelasticFinalY":0.6451523900032043},{"scenario":"nitro-fence-pressure","garage":false,"contacts":1,"restingContacts":0,"nitroRestingSteps":90},{"scenario":"nitro-fence-pressure","garage":true,"contacts":1,"restingContacts":0,"nitroRestingSteps":90}]}
-{"pass":true,"scope":"pure shared-core correction fixture; CPU only, no native/perceived timing","maxYStep":0.008289102255294667,"maxLengthStep":0.018911302089691162,"minY":0.6361185312271118,"maxY":0.6714901924133301,"correctionCpuP95Ms":0.13087500000000318,"correctionCpuMaxMs":0.4280830000000009}
+{"pass":true,"scope":"pure shared-core correction fixture; CPU only, no native/perceived timing","maxYStep":0.008289102255294667,"maxLengthStep":0.018911302089691162,"minY":0.6361185312271118,"maxY":0.6714901924133301,"correctionCpuP95Ms":0.12062500000000398,"correctionCpuMaxMs":0.45616700000000776}
 {"delayedMetrics":[{"profile":"stationary","cadence":50,"maxError":0.0007939514378872688,"maxStep":0.00009229926094986816,"maxPhysicalError":0.0007416203152388334,"checks":240},{"profile":"stationary","cadence":100,"maxError":0.0007450804891237475,"maxStep":0.0002787264421810181,"maxPhysicalError":0.0007416203152388334,"checks":240},{"profile":"forward","cadence":50,"maxError":0.3167724609375,"maxStep":0.3167724609375,"maxPhysicalError":0.3167724609375,"checks":240},{"profile":"forward","cadence":100,"maxError":0.3167724609375,"maxStep":0.3167724609375,"maxPhysicalError":0.3167724609375,"checks":240},{"profile":"turn","cadence":50,"maxError":0.3126390764969212,"maxStep":0.3126390764969212,"maxPhysicalError":0.3126371385179009,"checks":240},{"profile":"turn","cadence":100,"maxError":0.3126390764969212,"maxStep":0.3126390764969212,"maxPhysicalError":0.31263669826885965,"checks":240},{"profile":"fresh","cadence":50,"maxError":0.33829182534698554,"maxStep":0.3282990934161745,"maxPhysicalError":0.32462353959735224,"checks":240},{"profile":"fresh","cadence":100,"maxError":0.35125688886591466,"maxStep":0.334894808074276,"maxPhysicalError":0.31985888162539666,"checks":240},{"profile":"wall","cadence":50,"maxError":0.0728402655134042,"maxStep":0.3145103454589844,"maxPhysicalError":0.06667556493718024,"checks":240},{"profile":"wall","cadence":100,"maxError":0.0728402655134042,"maxStep":0.3145103454589844,"maxPhysicalError":0.0728402655134042,"checks":240}],"scope":"actual Rapier deterministic FIFO timing fixtures; visual blend remains active; no native/network acceptance"}
-{"collisionMetrics":[{"profile":"head","delay":65,"cadence":50,"maxError":0.011372087652091578,"minRenderGap":-0.03022521547973156,"minAuthorityGap":-0.032085735350847244,"maxRemoteStep":0.33479632380437696,"contacts":3,"correctionCpuP95Ms":0.23395800000002964},{"profile":"head","delay":65,"cadence":100,"maxError":0.0008027222704187394,"minRenderGap":-0.01250004768371582,"minAuthorityGap":-0.032085735350847244,"maxRemoteStep":0.41036526681894614,"contacts":3,"correctionCpuP95Ms":0.10941700000000765},{"profile":"head","delay":130,"cadence":50,"maxError":0.0386619760410815,"minRenderGap":-0.013016343116760254,"minAuthorityGap":-0.032085735350847244,"maxRemoteStep":0.47551933072138297,"contacts":3,"correctionCpuP95Ms":0.2732499999999618},{"profile":"head","delay":130,"cadence":100,"maxError":0.000819431756169681,"minRenderGap":-0.012303352355957031,"minAuthorityGap":-0.032085735350847244,"maxRemoteStep":0.41190321806916064,"contacts":3,"correctionCpuP95Ms":0.29995900000005804},{"profile":"rear","delay":65,"cadence":50,"maxError":0.000977685827520024,"minRenderGap":0.13441011309623718,"minAuthorityGap":-0.000018373335478827357,"maxRemoteStep":0.24594003245485557,"contacts":3,"correctionCpuP95Ms":0.20125000000007276},{"profile":"rear","delay":65,"cadence":100,"maxError":0.002313795371526374,"minRenderGap":0.0003499691665638238,"minAuthorityGap":-0.000018373335478827357,"maxRemoteStep":0.2459400324564117,"contacts":3,"correctionCpuP95Ms":0.2420830000000933},{"profile":"rear","delay":130,"cadence":50,"maxError":0.002680734821549362,"minRenderGap":0.13437451422214508,"minAuthorityGap":-0.000018373335478827357,"maxRemoteStep":0.24594003245485557,"contacts":3,"correctionCpuP95Ms":0.20529199999998582},{"profile":"rear","delay":130,"cadence":100,"maxError":0.003926712787963862,"minRenderGap":-0.01638830453157425,"minAuthorityGap":-0.000018373335478827357,"maxRemoteStep":0.2459400324576622,"contacts":3,"correctionCpuP95Ms":0.2930419999999003},{"profile":"offcentre","delay":65,"cadence":50,"maxError":0.028655150609286667,"minRenderGap":0.1296650767326355,"minAuthorityGap":-0.0008582654991187155,"maxRemoteStep":0.24485117930065353,"contacts":3,"correctionCpuP95Ms":0.1113749999999527},{"profile":"offcentre","delay":65,"cadence":100,"maxError":0.028811171733494775,"minRenderGap":-0.00018332913168706,"minAuthorityGap":-0.0008582654991187155,"maxRemoteStep":0.24483452555546226,"contacts":3,"correctionCpuP95Ms":0.10729200000002947},{"profile":"offcentre","delay":130,"cadence":50,"maxError":0.03786418448193935,"minRenderGap":0.11403755843639374,"minAuthorityGap":-0.0008582654991187155,"maxRemoteStep":0.24485236066388485,"contacts":3,"correctionCpuP95Ms":0.24795899999992344},{"profile":"offcentre","delay":130,"cadence":100,"maxError":0.037249813446799805,"minRenderGap":-0.007903997786343098,"minAuthorityGap":-0.0008582654991187155,"maxRemoteStep":0.24485507813594212,"contacts":3,"correctionCpuP95Ms":0.2717920000000049},{"profile":"cross","delay":65,"cadence":50,"maxError":0.00377015168168902,"minRenderGap":-0.05151726305484772,"minAuthorityGap":-0.06528497487306595,"maxRemoteStep":0.3380494674533242,"contacts":3,"correctionCpuP95Ms":0.10445800000002237},{"profile":"cross","delay":65,"cadence":100,"maxError":0.006109486004193332,"minRenderGap":-0.009855679236352444,"minAuthorityGap":-0.06528497487306595,"maxRemoteStep":0.3455867712237585,"contacts":3,"correctionCpuP95Ms":0.1027089999998907},{"profile":"cross","delay":130,"cadence":50,"maxError":0.006886059369224576,"minRenderGap":-0.0011181229492649436,"minAuthorityGap":-0.06528497487306595,"maxRemoteStep":0.332171532791431,"contacts":3,"correctionCpuP95Ms":0.19200000000000728},{"profile":"cross","delay":130,"cadence":100,"maxError":0.009203021784949836,"minRenderGap":-0.015207132324576378,"minAuthorityGap":-0.06528497487306595,"maxRemoteStep":0.4966147365685405,"contacts":3,"correctionCpuP95Ms":0.23291699999992943}],"scope":"two actual Rapier worlds, four two-driver impact routes, 65/130ms FIFO delay and50/100ms snapshots; CPU and hull geometry only"}
+{"collisionMetrics":[{"profile":"head","delay":65,"cadence":50,"maxError":0.011372087652091578,"minRenderGap":-0.03022521547973156,"minAuthorityGap":-0.032085735350847244,"maxRemoteStep":0.33479632380437696,"contacts":3,"correctionCpuP95Ms":0.14279199999998582},{"profile":"head","delay":65,"cadence":100,"maxError":0.0008027222704187394,"minRenderGap":-0.01250004768371582,"minAuthorityGap":-0.032085735350847244,"maxRemoteStep":0.41036526681894614,"contacts":3,"correctionCpuP95Ms":0.27637500000003},{"profile":"head","delay":130,"cadence":50,"maxError":0.0386619760410815,"minRenderGap":-0.013016343116760254,"minAuthorityGap":-0.032085735350847244,"maxRemoteStep":0.47551933072138297,"contacts":3,"correctionCpuP95Ms":0.2703329999999369},{"profile":"head","delay":130,"cadence":100,"maxError":0.000819431756169681,"minRenderGap":-0.012303352355957031,"minAuthorityGap":-0.032085735350847244,"maxRemoteStep":0.41190321806916064,"contacts":3,"correctionCpuP95Ms":0.26062500000000455},{"profile":"rear","delay":65,"cadence":50,"maxError":0.000977685827520024,"minRenderGap":0.13441011309623718,"minAuthorityGap":-0.000018373335478827357,"maxRemoteStep":0.24594003245485557,"contacts":3,"correctionCpuP95Ms":0.11104199999999764},{"profile":"rear","delay":65,"cadence":100,"maxError":0.002313795371526374,"minRenderGap":0.0003499691665638238,"minAuthorityGap":-0.000018373335478827357,"maxRemoteStep":0.2459400324564117,"contacts":3,"correctionCpuP95Ms":0.11508400000002439},{"profile":"rear","delay":130,"cadence":50,"maxError":0.002680734821549362,"minRenderGap":0.13437451422214508,"minAuthorityGap":-0.000018373335478827357,"maxRemoteStep":0.24594003245485557,"contacts":3,"correctionCpuP95Ms":0.24370900000008078},{"profile":"rear","delay":130,"cadence":100,"maxError":0.003926712787963862,"minRenderGap":-0.01638830453157425,"minAuthorityGap":-0.000018373335478827357,"maxRemoteStep":0.2459400324576622,"contacts":3,"correctionCpuP95Ms":0.27995899999996254},{"profile":"offcentre","delay":65,"cadence":50,"maxError":0.028655150609286667,"minRenderGap":0.1296650767326355,"minAuthorityGap":-0.0008582654991187155,"maxRemoteStep":0.24485117930065353,"contacts":3,"correctionCpuP95Ms":0.13391699999999673},{"profile":"offcentre","delay":65,"cadence":100,"maxError":0.028811171733494775,"minRenderGap":-0.00018332913168706,"minAuthorityGap":-0.0008582654991187155,"maxRemoteStep":0.24483452555546226,"contacts":3,"correctionCpuP95Ms":0.13679100000001654},{"profile":"offcentre","delay":130,"cadence":50,"maxError":0.03786418448193935,"minRenderGap":0.11403755843639374,"minAuthorityGap":-0.0008582654991187155,"maxRemoteStep":0.24485236066388485,"contacts":3,"correctionCpuP95Ms":0.35529200000007677},{"profile":"offcentre","delay":130,"cadence":100,"maxError":0.037249813446799805,"minRenderGap":-0.007903997786343098,"minAuthorityGap":-0.0008582654991187155,"maxRemoteStep":0.24485507813594212,"contacts":3,"correctionCpuP95Ms":0.26787500000000364},{"profile":"cross","delay":65,"cadence":50,"maxError":0.00377015168168902,"minRenderGap":-0.05151726305484772,"minAuthorityGap":-0.06528497487306595,"maxRemoteStep":0.3380494674533242,"contacts":3,"correctionCpuP95Ms":0.10408300000005966},{"profile":"cross","delay":65,"cadence":100,"maxError":0.006109486004193332,"minRenderGap":-0.009855679236352444,"minAuthorityGap":-0.06528497487306595,"maxRemoteStep":0.3455867712237585,"contacts":3,"correctionCpuP95Ms":0.11741699999993216},{"profile":"cross","delay":130,"cadence":50,"maxError":0.006886059369224576,"minRenderGap":-0.0011181229492649436,"minAuthorityGap":-0.06528497487306595,"maxRemoteStep":0.332171532791431,"contacts":3,"correctionCpuP95Ms":0.20150000000001},{"profile":"cross","delay":130,"cadence":100,"maxError":0.009203021784949836,"minRenderGap":-0.015207132324576378,"minAuthorityGap":-0.06528497487306595,"maxRemoteStep":0.4966147365685405,"contacts":3,"correctionCpuP95Ms":0.19941700000003948}],"scope":"two actual Rapier worlds, four two-driver impact routes, 65/130ms FIFO delay and50/100ms snapshots; CPU and hull geometry only"}
 {"threeDriver":{"minRemoteGap":-0.00022162740060593933,"maxRemoteStep":0.30205429339945866},"scope":"three actual Rapier drivers,130ms FIFOdelay/100ms snapshots; CPU/hull geometry only"}
 KART_CANNON_PREDICTION_PASS: tube entry is visible before the next server snapshot
 {"burstHz":120,"maxStep":0.08674792820045181,"snapsBeforeRespawn":0}
@@ -5606,7 +5606,7 @@ Kart alpine world PASS: exact map contracts, full triangle clearance, instance b
       "maxParkedSpawnDrift": 0.14275579168021596,
       "vertices": 1681,
       "triangles": 3200,
-      "eightKartStepP95Ms": 0.246249999999975,
+      "eightKartStepP95Ms": 0.2104580000000169,
       "driving": [
         {
           "direction": 1,
@@ -5686,7 +5686,7 @@ Kart alpine world PASS: exact map contracts, full triangle clearance, instance b
       "maxParkedSpawnDrift": 0.07631587087769107,
       "vertices": 1681,
       "triangles": 3200,
-      "eightKartStepP95Ms": 0.16754200000002584,
+      "eightKartStepP95Ms": 0.171875,
       "driving": [
         {
           "direction": 1,
@@ -5766,7 +5766,7 @@ Kart alpine world PASS: exact map contracts, full triangle clearance, instance b
       "maxParkedSpawnDrift": 0.2726324199420311,
       "vertices": 6561,
       "triangles": 12800,
-      "eightKartStepP95Ms": 0.21129199999995762,
+      "eightKartStepP95Ms": 0.18095899999980247,
       "driving": [
         {
           "direction": 1,
@@ -5846,7 +5846,7 @@ Kart alpine world PASS: exact map contracts, full triangle clearance, instance b
       "maxParkedSpawnDrift": 0.025327682495117188,
       "vertices": 6561,
       "triangles": 12800,
-      "eightKartStepP95Ms": 0.08083299999998417,
+      "eightKartStepP95Ms": 0.08758300000044983,
       "driving": [
         {
           "direction": 1,
@@ -5926,7 +5926,7 @@ Kart alpine world PASS: exact map contracts, full triangle clearance, instance b
       "maxParkedSpawnDrift": 0.2479095945541491,
       "vertices": 6561,
       "triangles": 12800,
-      "eightKartStepP95Ms": 0.13791700000001583,
+      "eightKartStepP95Ms": 0.13908300000002782,
       "driving": [
         {
           "direction": 1,
@@ -7035,8 +7035,10 @@ KART_PERFORMANCE_STABILITY_PASS: nested buildings/layers/hooks, 9600 pickup resp
 KART_WEAPON_SYSTEM_PASS [{"kind":"machinegun","triangles":468,"meshes":3},{"kind":"trishot","triangles":912,"meshes":3},{"kind":"mine","triangles":276,"meshes":3},{"kind":"missile","triangles":648,"meshes":3},{"kind":"cannon","triangles":504,"meshes":4},{"kind":"blades","triangles":268,"meshes":3},{"kind":"frost","triangles":428,"meshes":4},{"kind":"ram","triangles":160,"meshes":3},{"kind":"supernova","triangles":752,"meshes":3},{"kind":"nuke","triangles":248,"meshes":3}]
 PASS arena policy, two/three-floor authority and reconnect
 PASS ordinary route support, alternate-climb exclusion, camera underside, 48-box/48-outline batch disposal
-PASS Rookie Ribbons {"report":[{"players":2,"variant":"duel","colliders":32,"boxes":12,"cameraSamples":2928},{"players":4,"variant":"full","colliders":42,"boxes":13,"cameraSamples":3552},{"players":8,"variant":"full","colliders":42,"boxes":18,"cameraSamples":3552}],"world":{"drawCalls":30,"triangles":12770,"textureBytes":808276,"textureCount":4,"colliders":42}}
-PASS fixed homes: real pickup, full clip, 3s return, stable ID/pose, parked denial, reconnect, leave/re-enter
+PASS Rookie Ribbons {"report":[{"players":2,"variant":"duel","colliders":32,"boxes":14,"cameraSamples":2928},{"players":4,"variant":"full","colliders":42,"boxes":20,"cameraSamples":3552},{"players":8,"variant":"full","colliders":42,"boxes":20,"cameraSamples":3552}],"world":{"drawCalls":30,"triangles":12770,"textureBytes":808276,"textureCount":4,"colliders":42}}
+PASS fixed homes: real pickup, full clip, 2s return, stable ID/pose, parked denial, reconnect, leave/re-enter
+PASS real Rookie joined-slab pickups on both sides; different tyre/home IDs
+PASS real upright deck-lip jam: normal inputs, bounded recovery, no awards/shield/HP grant, parked denial and drive-away
 PASS stress duel seeds 0 to 4
 PASS stress duel seeds 5 to 9
 PASS stress duel seeds 10 to 14
@@ -7048,10 +7050,11 @@ PASS stress full seeds 15 to 19
 PASS 40 three-minute route replays, both floors, both directions, 4–6m/s targets, no recovery/teleport/stuck
 PASS launch art: tiled roads/decks/ramps, finite camera envelopes, solid slope guards, bridge piers, budgets and disposal
 PASS skyport-split: variants, two-way real driving, alternate climbs, 20-seed supply, simultaneous starts, camera sweeps and art/feature budgets
-PASS launch transport {"label":"Rookie Ribbons","players":8,"variant":"full","comparisons":400,"binaryKiBs":30.851293103448274,"jsonKiBs":355.5564875587774,"updateP95":3.066874999999982,"updateP99":5.6034590000000435}
-PASS launch transport {"label":"Skyport Split","players":8,"variant":"compact","comparisons":400,"binaryKiBs":25.36007298197492,"jsonKiBs":369.51514743338555,"updateP95":3.58266599999979,"updateP99":4.252417000000037}
-PASS launch transport {"label":"Skyport Split","players":16,"variant":"medium","comparisons":400,"binaryKiBs":41.522580329153605,"jsonKiBs":509.7921972962382,"updateP95":6.928792000000158,"updateP99":8.120249999999942}
-PASS launch transport {"label":"Skyport Split","players":32,"variant":"full","comparisons":400,"binaryKiBs":77.93305495689654,"jsonKiBs":866.0748310148903,"updateP95":14.372875000000022,"updateP99":15.581416999999874}
+PASS compact Skyport home run-out: seven edge homes set back, eight directions, unchanged opening setback
+PASS launch transport {"label":"Rookie Ribbons","players":8,"variant":"full","comparisons":400,"binaryKiBs":25.51356778996865,"jsonKiBs":353.07081455721,"updateP95":3.043707999999981,"updateP99":3.769375000000025}
+PASS launch transport {"label":"Skyport Split","players":8,"variant":"compact","comparisons":400,"binaryKiBs":26.35028898902821,"jsonKiBs":404.021233346395,"updateP95":4.4116670000000795,"updateP99":5.29383299999995}
+PASS launch transport {"label":"Skyport Split","players":16,"variant":"medium","comparisons":400,"binaryKiBs":50.38505338949843,"jsonKiBs":582.3897923197492,"updateP95":10.577750000000378,"updateP99":11.274833999999828}
+PASS launch transport {"label":"Skyport Split","players":32,"variant":"full","comparisons":400,"binaryKiBs":62.257420650470216,"jsonKiBs":827.5000612264889,"updateP95":12.141333999999915,"updateP99":14.535917000000154}
 PASS offline road-distance atlases, supported enemy attachment, stacked-floor respawn distance and safe legacy fallback
 PASS garden-crown: variants, two-way real driving, alternate climbs, 20-seed supply, simultaneous starts, camera sweeps and art/feature budgets
 PASS bounded polygon slab: analytic/physics support, normals, tiled UVs, 90m seam drive, finite camera underside and no square fallback

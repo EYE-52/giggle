@@ -1,0 +1,392 @@
+[
+  {
+    "id": "rookie-ribbons",
+    "name": "Rookie Ribbons",
+    "variants": [
+      {
+        "id": "duel",
+        "range": [
+          2,
+          2
+        ],
+        "area": 2117,
+        "homes": 16,
+        "boxesAtMax": 12,
+        "floors": [
+          0,
+          6
+        ],
+        "candidates": 4,
+        "statics": 32
+      },
+      {
+        "id": "full",
+        "range": [
+          3,
+          8
+        ],
+        "area": 3160.5,
+        "homes": 20,
+        "boxesAtMax": 18,
+        "floors": [
+          0,
+          6
+        ],
+        "candidates": 16,
+        "statics": 42
+      }
+    ]
+  },
+  {
+    "id": "skyport-split",
+    "name": "Skyport Split",
+    "variants": [
+      {
+        "id": "compact",
+        "range": [
+          8,
+          8
+        ],
+        "area": 7795,
+        "homes": 40,
+        "boxesAtMax": 25,
+        "floors": [
+          0,
+          7.5,
+          15
+        ],
+        "candidates": 16,
+        "statics": 59
+      },
+      {
+        "id": "medium",
+        "range": [
+          9,
+          16
+        ],
+        "area": 9212.5,
+        "homes": 48,
+        "boxesAtMax": 29,
+        "floors": [
+          0,
+          8,
+          16
+        ],
+        "candidates": 32,
+        "statics": 59
+      },
+      {
+        "id": "wide",
+        "range": [
+          17,
+          24
+        ],
+        "area": 12704.25,
+        "homes": 64,
+        "boxesAtMax": 40,
+        "floors": [
+          0,
+          8.5,
+          17
+        ],
+        "candidates": 48,
+        "statics": 63
+      },
+      {
+        "id": "full",
+        "range": [
+          25,
+          32
+        ],
+        "area": 18189.25,
+        "homes": 72,
+        "boxesAtMax": 48,
+        "floors": [
+          0,
+          10,
+          20
+        ],
+        "candidates": 64,
+        "statics": 63
+      }
+    ]
+  },
+  {
+    "id": "garden-crown",
+    "name": "Garden Crown",
+    "variants": [
+      {
+        "id": "small",
+        "range": [
+          4,
+          8
+        ],
+        "area": 5253,
+        "homes": 28,
+        "boxesAtMax": 18,
+        "floors": [
+          0,
+          7
+        ],
+        "candidates": 16,
+        "statics": 21
+      },
+      {
+        "id": "full",
+        "range": [
+          9,
+          16
+        ],
+        "area": 8269,
+        "homes": 40,
+        "boxesAtMax": 28,
+        "floors": [
+          0,
+          7
+        ],
+        "candidates": 32,
+        "statics": 25
+      }
+    ]
+  },
+  {
+    "id": "frostbite-crescent",
+    "name": "Frostbite Crescent",
+    "variants": [
+      {
+        "id": "small",
+        "range": [
+          6,
+          8
+        ],
+        "area": 6736.5,
+        "homes": 32,
+        "boxesAtMax": 22,
+        "floors": [
+          0,
+          8
+        ],
+        "candidates": 16,
+        "statics": 25
+      },
+      {
+        "id": "full",
+        "range": [
+          9,
+          16
+        ],
+        "area": 7224.5,
+        "homes": 44,
+        "boxesAtMax": 28,
+        "floors": [
+          0,
+          8
+        ],
+        "candidates": 32,
+        "statics": 25
+      }
+    ]
+  },
+  {
+    "id": "neon-switchyard",
+    "name": "Neon Switchyard",
+    "variants": [
+      {
+        "id": "small",
+        "range": [
+          6,
+          8
+        ],
+        "area": 5404,
+        "homes": 32,
+        "boxesAtMax": 18,
+        "floors": [
+          0,
+          7
+        ],
+        "candidates": 16,
+        "statics": 21
+      },
+      {
+        "id": "medium",
+        "range": [
+          9,
+          16
+        ],
+        "area": 7714,
+        "homes": 48,
+        "boxesAtMax": 28,
+        "floors": [
+          0,
+          7
+        ],
+        "candidates": 32,
+        "statics": 21
+      },
+      {
+        "id": "full",
+        "range": [
+          17,
+          24
+        ],
+        "area": 9698.5,
+        "homes": 48,
+        "boxesAtMax": 38,
+        "floors": [
+          0,
+          7
+        ],
+        "candidates": 48,
+        "statics": 21
+      }
+    ]
+  },
+  {
+    "id": "harbor-fork",
+    "name": "Harbor Fork",
+    "variants": [
+      {
+        "id": "compact",
+        "range": [
+          8,
+          8
+        ],
+        "area": 9203.75,
+        "homes": 40,
+        "boxesAtMax": 29,
+        "floors": [
+          0,
+          7,
+          14
+        ],
+        "candidates": 16,
+        "statics": 34
+      },
+      {
+        "id": "medium",
+        "range": [
+          9,
+          16
+        ],
+        "area": 9203.75,
+        "homes": 48,
+        "boxesAtMax": 29,
+        "floors": [
+          0,
+          7,
+          14
+        ],
+        "candidates": 32,
+        "statics": 34
+      },
+      {
+        "id": "wide",
+        "range": [
+          17,
+          24
+        ],
+        "area": 12339.25,
+        "homes": 64,
+        "boxesAtMax": 39,
+        "floors": [
+          0,
+          7,
+          14
+        ],
+        "candidates": 48,
+        "statics": 34
+      },
+      {
+        "id": "full",
+        "range": [
+          25,
+          32
+        ],
+        "area": 17027,
+        "homes": 64,
+        "boxesAtMax": 48,
+        "floors": [
+          0,
+          7,
+          14
+        ],
+        "candidates": 64,
+        "statics": 34
+      }
+    ]
+  },
+  {
+    "id": "foundry-wheel",
+    "name": "Foundry Wheel",
+    "variants": [
+      {
+        "id": "compact",
+        "range": [
+          8,
+          8
+        ],
+        "area": 10588.5,
+        "homes": 44,
+        "boxesAtMax": 34,
+        "floors": [
+          0,
+          6.8,
+          13.6
+        ],
+        "candidates": 16,
+        "statics": 53
+      },
+      {
+        "id": "medium",
+        "range": [
+          9,
+          16
+        ],
+        "area": 12294.75,
+        "homes": 56,
+        "boxesAtMax": 39,
+        "floors": [
+          0,
+          7.2,
+          14.4
+        ],
+        "candidates": 32,
+        "statics": 53
+      },
+      {
+        "id": "wide",
+        "range": [
+          17,
+          24
+        ],
+        "area": 13659.25,
+        "homes": 64,
+        "boxesAtMax": 43,
+        "floors": [
+          0,
+          7.6,
+          15.2
+        ],
+        "candidates": 48,
+        "statics": 53
+      },
+      {
+        "id": "full",
+        "range": [
+          25,
+          32
+        ],
+        "area": 15433.25,
+        "homes": 64,
+        "boxesAtMax": 48,
+        "floors": [
+          0,
+          8,
+          16
+        ],
+        "candidates": 64,
+        "statics": 53
+      }
+    ]
+  }
+]

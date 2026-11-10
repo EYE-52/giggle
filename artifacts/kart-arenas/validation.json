@@ -4,12 +4,14 @@
   "branch": "claude/kart-arenas-nov10",
   "fullNpmTest": {
     "exitCode": 0,
-    "expandedCommands": 288,
-    "log": "npm-test.log"
+    "expandedCommands": 289,
+    "log": "npm-test.log",
+    "engineCommit": "80a8b52",
+    "scope": "Full suite after final pickup, supply, recovery and home-inset changes; includes both new physical regressions."
   },
   "kartFiles": {
-    "unique": 128,
-    "inExpandedNpmTest": 123,
+    "unique": 129,
+    "inExpandedNpmTest": 124,
     "extraBrowserFiles": [
       "kart-garage-browser.cjs",
       "kart-32-browser.cjs",
@@ -18,7 +20,8 @@
       "kart-launch-browser.cjs"
     ],
     "allPassed": true,
-    "log": "extra-browser.log"
+    "log": "extra-browser.log",
+    "followUpScope": "Full npm suite rerun. Five extra browser files and render captures are prior arena-build evidence, not rerun for this follow-up."
   },
   "renderReview": {
     "cases": 56,
@@ -47,5 +50,30 @@
   "ports": [
     8350,
     8370
-  ]
+  ],
+  "runtimeRebuild": {
+    "command": "node scripts/build-kart-runtime.js",
+    "bytes": 1159084,
+    "sha256": "b6f2d4b16478424b33e6a319a44ac521a862d4c0a29d43043d318d9e285b5ee9",
+    "generatedDiff": true
+  },
+  "releaseJsonAbsent": true,
+  "firingProbeFollowUp": {
+    "pass": true,
+    "rounds": 35,
+    "players": 8,
+    "seedsPerArena": 5,
+    "secondsPerRound": 180,
+    "summary": "battle-summary.json",
+    "worstMedianUnarmedMs": 2500,
+    "worstP95UnarmedMs": 6800,
+    "minimumMeanAvailability": 0.6580277777778061,
+    "maxFloorDryMs": 2050,
+    "fullOriginalVariantCoverageAccepted": false
+  },
+  "homeInsetAuthoringIdempotent": true,
+  "transportFollowUp": {
+    "file": "launch-transport-follow-up.json",
+    "scope": "Latest full-suite local transport figures with concurrent firing probes; not isolated hardware performance acceptance."
+  }
 }

@@ -10,10 +10,11 @@ import {elevatedMap} from '../public/js/engines/kart-elevated-maps.mjs';
 import combat from '../games/engines/kart-elevated-combat.js';
 import contract from '../games/engines/kart-combat-config.js';
 import {arenaBoxCount,arenaFloorQuotas,selectArenaHomes,selectArenaVariant,validateArenaContract,createArenaRewardPolicy,arenaRespawnMs} from '../public/js/engines/kart-arena-policy.mjs';
-assert.deepEqual([2,4,8,16,24,32].map(n=>arenaBoxCount(15000,n,72)),[47,47,47,47,47,48]);
+assert.deepEqual([2,4,8,16,24,32].map(n=>arenaBoxCount(15000,n,72)),[48,48,48,48,48,48]);
+assert.equal(arenaBoxCount(7795,8,40),40);assert.equal(arenaBoxCount(5404,8,32),32);
 assert.equal(arenaBoxCount(1800,2,16),12);assert.equal(arenaBoxCount(2800,8,20),18);
-assert.equal(arenaBoxCount(6300,16,44),28);assert.equal(arenaBoxCount(9600,24,48),38);
-assert.deepEqual(['safe','exposed','risk'].map(arenaRespawnMs),[3000,4000,6000]);
+assert.equal(arenaBoxCount(6300,16,44),40);assert.equal(arenaBoxCount(9600,24,48),48);
+assert.deepEqual(['safe','exposed','risk'].map(arenaRespawnMs),[2000,3000,4000]);
 for(const seats of [2,8,16,32]){
  let i=0;const reward=createArenaRewardPolicy(contract.config.weapons,seats,()=>i++%2?.99:.999),cap=seats<=8?1:seats<=16?2:3;
  for(let n=0;n<cap;n++)assert.equal(contract.config.weapons[reward.roll('risk',8000)].tier,'rare');
@@ -32,11 +33,11 @@ for(const id of ['garden','skyport']){
  base.spawnCandidates=structuredClone(base.spawns);base.variants=[{id:'test',minPlayers:2,maxPlayers:8,usableArea:3600,districts:['core'],startIds:base.spawns.slice(0,8).map(s=>s.id)}];
  const map=selectArenaVariant(base,8);assert(validateArenaContract(map));
  assert.throws(()=>selectArenaVariant(base,9),/unavailable/);assert.throws(()=>selectArenaVariant(base,8,'missing'),/unavailable/);
- const homes=selectArenaHomes(map,8,()=>.5);assert.equal(homes.length,18);assert.equal(new Set(homes.map(s=>s.id)).size,18);
- const quotas=arenaFloorQuotas(18,map.levels,map.sockets);for(let i=0;i<heights.length;i++)assert.equal(homes.filter(s=>s.level==='L'+i).length,quotas[i]);
+ const expectedCount=arenaBoxCount(map.usableArea,8,map.sockets.length),homes=selectArenaHomes(map,8,()=>.5);assert.equal(homes.length,expectedCount);assert.equal(new Set(homes.map(s=>s.id)).size,expectedCount);
+ const quotas=arenaFloorQuotas(expectedCount,map.levels,map.sockets);for(let i=0;i<heights.length;i++)assert.equal(homes.filter(s=>s.level==='L'+i).length,quotas[i]);
  const match=combat.createElevatedCombat(RAPIER,CONFIG,map,Array.from({length:8},(_,i)=>({id:'p'+i})),{instance:'test',seed:42,startAt:0,countdownMs:0,roundMs:10000});
  try{
-   const before=match.snapshot(),homes=before.crates.map(c=>[c.id,c.homeId,c.position]);assert.equal(before.variantId,'test');assert.equal(before.crates.length,18);
+   const before=match.snapshot(),homes=before.crates.map(c=>[c.id,c.homeId,c.position]);assert.equal(before.variantId,'test');assert.equal(before.crates.length,expectedCount);
    match.advance(50);match.setConnected('p0',false);match.setConnected('p0',true);
    assert.deepEqual(match.snapshot().crates.map(c=>[c.id,c.homeId,c.position]),homes,'reconnect preserves fixed homes');
  }finally{match.dispose();}

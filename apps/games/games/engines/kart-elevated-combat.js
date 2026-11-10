@@ -1,6 +1,7 @@
 'use strict';
 const {createArenaTravelScorer}=require('../../public/js/engines/kart-arena-travel.mjs');
 const {selectArenaVariant,validateArenaContract,selectArenaHomes,arenaRespawnMs,createArenaRewardPolicy}=require('../../public/js/engines/kart-arena-policy.mjs');
+const {raisedSurfaceHeight}=require('../../public/js/engines/kart-raised-support.mjs');
 const {elevatedFallZone}=require('../../public/js/engines/kart-elevated-surfaces.mjs');
 
 // Elevated combat authority used by the opt-in Room profile.
@@ -137,7 +138,15 @@ function createElevatedCombat(RAPIER,config,map,seats,options={}) {
     if(far.length) pool=far;
     return choose(pool);
   }
-  function crateAt(socket) { return {id:entity('c'),socketId:socket.id,surfaceId:socket.surface,position:{x:socket.x,y:socket.y+0.6,z:socket.z},availableAt:simAt,...(M.arenaVersion?{profile:socket.profile||'safe',blocked:new Set(),wasAvailable:true}: {})}; }
+  // Joined arena floors may overlap at the same height. Rapier may report
+  // either slab at a wheel; a ray-selected home ID is not a floor identity.
+  // Cache only driveable supports that actually contain this home at its
+  // authored height. Stacked decks and nearby ramps cannot qualify by ID.
+  function homeSupports(socket) {
+    return M.colliders.filter(d=>(d.shape==='deck'||d.shape==='wedge'||d.id.startsWith('floor')) &&
+      Math.abs(raisedSurfaceHeight(d,socket.x,socket.z)-socket.y)<.04).map(d=>d.id);
+  }
+  function crateAt(socket) { return {id:entity('c'),socketId:socket.id,surfaceId:socket.surface,position:{x:socket.x,y:socket.y+0.6,z:socket.z},availableAt:simAt,...(M.arenaVersion?{profile:socket.profile||'safe',supportIds:homeSupports(socket),blocked:new Set(),wasAvailable:true}: {})}; }
   function rollWeapon() { let edge=0; const r=rand()*100; for(const [id,weight] of Object.entries(ARSENAL.weights)) { edge+=weight; if(r<edge) return id; } return 'nuke'; }
   try {
     for(const d of elevatedStatics(M)) physics.addStatic(d);
@@ -299,10 +308,19 @@ function createElevatedCombat(RAPIER,config,map,seats,options={}) {
   function recoverStuck(k,p) {
     // A stopped kart on its side can have suspension rays touching a nearby
     // ramp. Contacts alone neither prove it is upright nor distinguish flight.
-    if(simAt<k.recoverAfter || rotate({x:0,y:1,z:0},p.rotation).y>=RECOVERY.up || length(p.linearVelocity)>RECOVERY.linear || length(p.angularVelocity)>RECOVERY.angular) {k.stuck=null;return false;}
+    if(k.stuck&&distance(k.stuck.anchor,p.position)>RECOVERY.progress)k.stuck=null;
+    const tipped=rotate({x:0,y:1,z:0},p.rotation).y<RECOVERY.up;
+    // An upright chassis can also catch a deck lip with its front tyres in
+    // the air. It cannot reverse up that lip, despite two grounded rear tyres.
+    // Require sustained failed driving, few tyre contacts and nearby support;
+    // ordinary parking, moving ramps and feature flights cannot trigger this.
+    const contacts=p.wheels.filter(w=>w.contact).length;
+    const highCentred=!!M.arenaVersion&&!tipped&&!k.flight&&k.spinT<=0&&k.frostT<=0&&Math.abs(k.input.throttle)>.2&&
+      (contacts<=2||k.stuck?.highCentred);
+    if(simAt<k.recoverAfter || (!tipped&&!highCentred) || (!highCentred&&(length(p.linearVelocity)>RECOVERY.linear || length(p.angularVelocity)>RECOVERY.angular))) {k.stuck=null;return false;}
     const support=physics.supportAt(p.position,length(C.chassis.half)+0.15);
     if(!support || support.normal.y<=0.65) {k.stuck=null;return false;}
-    if(!k.stuck || distance(k.stuck.anchor,p.position)>RECOVERY.progress) k.stuck={anchor:p.position,seconds:0,retryAt:0};
+    if(!k.stuck) k.stuck={anchor:p.position,seconds:0,retryAt:0,highCentred};
     k.stuck.seconds+=dt;
     if(k.stuck.seconds<RECOVERY.seconds-1e-8 || simAt<k.stuck.retryAt) return false;
     k.stuck.retryAt=simAt+RECOVERY.retryMs;
@@ -312,7 +330,7 @@ function createElevatedCombat(RAPIER,config,map,seats,options={}) {
     if(!safe.length) return false;
     clean(k);k.spawnSeq++;k.controlEpoch++;k.weapon=null;k.ammo=0;k.shield=0;k.recoverAfter=simAt+RECOVERY.cooldownMs;
     physics.resetKart(k.id,spawnPose(safe[0].s));
-    emit('recover',k.id,{reason:'stuck',spawnSeq:k.spawnSeq,controlEpoch:k.controlEpoch,from:p.position,position:physics.pose(k.id).position});
+    emit('recover',k.id,{reason:highCentred&&!tipped?'high-centred':'stuck',spawnSeq:k.spawnSeq,controlEpoch:k.controlEpoch,from:p.position,position:physics.pose(k.id).position});
     return true;
   }
   function spend(k,p) {
@@ -621,7 +639,7 @@ function createElevatedCombat(RAPIER,config,map,seats,options={}) {
       if(recoverStuck(k,p)) continue;
       if(k.weapon || k.sequence || !p.grounded) continue;
       for(const c of crates) {
-        if(at<c.availableAt || c.blocked?.has(k.id) || distance(p.position,c.position)>Math.sqrt(B.PICKUP_R2) || !p.wheels.some(w=>w.contact&&w.surfaceId===c.surfaceId) || !los(c.position,p.position)) continue;
+        if(at<c.availableAt || c.blocked?.has(k.id) || distance(p.position,c.position)>Math.sqrt(B.PICKUP_R2) || !p.wheels.some(w=>w.contact&&(w.surfaceId===c.surfaceId||c.supportIds?.includes(w.surfaceId))) || !los(c.position,p.position)) continue;
         k.itemSeq++;k.weapon=rewardPolicy?rewardPolicy.roll(c.profile,at-liveAt):rollWeapon();k.ammo=k.weapon==='machinegun'?ARSENAL.machinegun.ammo:(COMBAT.weapons[k.weapon]?.ammo||1);award(k,B.COIN_PICKUP,'pickup-'+c.id);emit('pickup',k.id,{weapon:k.weapon,crateId:c.id,position:c.position});
         if(M.arenaVersion){c.availableAt=at+arenaRespawnMs(c.profile);c.wasAvailable=false;c.blocked.add(k.id);}
         else {const s=pickSocket(c.socketId,(M.complex||M.balancedLoot)?c.position.y-.6:undefined);

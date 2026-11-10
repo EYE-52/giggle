@@ -14,9 +14,18 @@ export function measureArenaArea(physics,map,spacing=.5){
  }
  return {spacing,areas,total:Object.values(areas).reduce((a,b)=>a+b,0)};
 }
-export function arenaClearanceGraph(physics,map,spacing=1,{turnMargin=0}={}){
+export function arenaClearanceGraph(physics,map,spacing=1,{turnMargin=0,supportMargin=0}={}){
  const surfaces=map.colliders.filter(d=>d.shape==='deck'||d.shape==='wedge'||d.id.startsWith('floor'));
- const nodes=[],columns=new Map(),max=Math.max(...map.levels.map(l=>l.y)),clear=p=>!physics.overlapsStatic({...p,y:p.y+.9},rotation,{x:1.3+turnMargin,y:.3,z:1.6+turnMargin});
+ const nodes=[],columns=new Map(),max=Math.max(...map.levels.map(l=>l.y)),clear=p=>{
+  if(physics.overlapsStatic({...p,y:p.y+.9},rotation,{x:1.3+turnMargin,y:.3,z:1.6+turnMargin}))return false;
+  // Test-driver routes must support the whole turning vehicle at open drops,
+  // not just its centre ray. Ordinary topology audits retain their old mask.
+  if(supportMargin)for(let i=0;i<8;i++){
+   const a=i*Math.PI/4,s=physics.supportAt({x:p.x+Math.cos(a)*supportMargin,y:p.y+1,z:p.z+Math.sin(a)*supportMargin},1.8);
+   if(!s||s.normal.y<.65||Math.abs(s.point.y-p.y)>.8)return false;
+  }
+  return true;
+ };
  const extentX=Math.floor(map.playBounds.halfX/spacing)*spacing,extentZ=Math.floor(map.playBounds.halfZ/spacing)*spacing;
  for(let x=-extentX;x<=extentX;x+=spacing)for(let z=-extentZ;z<=extentZ;z+=spacing){const column=[];
   for(const y of new Set(surfaces.map(d=>raisedSurfaceHeight(d,x,z)).filter(Number.isFinite))){const s=physics.supportAt({x,y:y+.4,z},.9);if(!s||s.normal.y<.65||s.point.y<-.02||s.point.y>max+.1||column.some(p=>Math.abs(p.y-s.point.y)<.1)||!clear(s.point))continue;

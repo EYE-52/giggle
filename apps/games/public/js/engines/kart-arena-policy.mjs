@@ -3,7 +3,9 @@ export const ARENA_POLICY_VERSION = 1;
 export const ARENA_LIMITS = Object.freeze({homes:96, boxes:48, candidates:64, starts:32});
 export function arenaBoxCount(area, players, sockets) {
   if(!Number.isFinite(area)||area<=0||!Number.isInteger(players)||players<2||players>32||!Number.isInteger(sockets)||sockets<12||sockets>96)throw new RangeError('Invalid arena supply');
-  return Math.min(sockets,48,Math.max(12,Math.ceil(area/320),Math.ceil(1.25*players)+8));
+  // Active firing probes exposed long road gaps at 320m2 per box; 200 still missed seeds.
+  // Cycle more existing homes while retaining the 48-box and seat caps.
+  return Math.min(sockets,48,Math.max(12,Math.ceil(area/160),Math.ceil(1.25*players)+8));
 }
 export function selectArenaVariant(source, players, requested) {
   if(!source.arenaVersion)return structuredClone(source);
@@ -65,7 +67,10 @@ export function selectArenaHomes(map,players,random,starts=map.spawns.slice(0,pl
   }
   return chosen;
 }
-export const arenaRespawnMs=profile=>profile==='risk'?6000:profile==='exposed'?4000:3000;
+// Eight actively firing drivers can exhaust the old 3/4/6s cycle even
+// while homes are reachable. Keep fixed homes/counts; replenish ordinary
+// floors within the three-second dry limit and retain the risk delay.
+export const arenaRespawnMs=profile=>profile==='risk'?4000:profile==='exposed'?3000:2000;
 export function createArenaRewardPolicy(weapons,players,random) {
   const recent=[],tiers=['common','uncommon','rare'],byTier=Object.fromEntries(tiers.map(t=>[t,Object.keys(weapons).filter(id=>weapons[id].tier===t)]));
   const cap=players<=8?1:players<=16?2:3;
