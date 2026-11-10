@@ -8,7 +8,7 @@ export function skyportGeometry(compact=false,scale=1){
   [52,-48,66,40],[10,26,52,40],[10,-48,26,-34],[10,-48,24,26],[24,12,52,26],[-10,12,10,26]
  ]:[[-72,-56,-56,56],[-56,-56,-10,-40],[-56,40,-10,56],[-24,-40,-10,40],[-56,12,-24,28],
  [56,-56,72,56],[10,-56,56,-34],[10,40,56,56],[10,-34,24,40],[24,12,56,28],[-10,12,10,28]];
- const m={id:'skyport-split',name:'Skyport Split',revision:'skyport-split-1',arenaVersion:1,environment:'harbor',artId:'skyport',backdrop:'harbor',half:76,minPlayers:8,maxPlayers:32,levels:[{id:'L0',y:0,name:'Blue streets',color:0x7dabc8},{id:'L1',y:10,name:'Teal parking',color:0x64c6bd},{id:'L2',y:20,name:'Yellow rooftops',color:0xffd36c}],playBounds:{halfX:x,halfZ:z,outline:rects},colliders:[...arenaFloor(rects),...arenaBoundary(rects)],routes:[],sockets:[],spawns:[],spawnCandidates:[],fallZones:[],belts:[],drops:[],features:{cannons:[],portals:[],falls:[]}};
+ const m={id:'skyport-split',name:'Skyport Split',revision:'skyport-split-2',arenaVersion:1,environment:'harbor',artId:'skyport',backdrop:'harbor',half:76,minPlayers:8,maxPlayers:32,levels:[{id:'L0',y:0,name:'Blue streets',color:0x7dabc8},{id:'L1',y:10,name:'Teal parking',color:0x64c6bd},{id:'L2',y:20,name:'Yellow rooftops',color:0xffd36c}],playBounds:{halfX:x,halfZ:z,outline:rects},colliders:[...arenaFloor(rects),...arenaBoundary(rects)],routes:[],sockets:[],spawns:[],spawnCandidates:[],fallZones:[],belts:[],drops:[],features:{cannons:[],portals:[],falls:[]}};
  for(const side of[-1,1])for(const level of[1,2])m.colliders.push(deck((side<0?'west':'east')+'-'+level,side*40,level*10,20,16,18,'parking'));
  for(let storey=0;storey<2;storey++){
   const base=storey*10,points=[P(-58,base,-10),P(-58,base,-16),P(-58,base+2.5,-40)];
