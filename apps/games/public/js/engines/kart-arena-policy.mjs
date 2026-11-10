@@ -65,7 +65,10 @@ export function selectArenaHomes(map,players,random,starts=map.spawns.slice(0,pl
   }
   return chosen;
 }
-export const arenaRespawnMs=profile=>profile==='risk'?6000:profile==='exposed'?4000:3000;
+// Eight actively firing drivers can exhaust the old 3/4/6s cycle even
+// while homes are reachable. Keep fixed homes/counts; replenish ordinary
+// floors within the three-second dry limit and retain the risk delay.
+export const arenaRespawnMs=profile=>profile==='risk'?4000:profile==='exposed'?3000:2000;
 export function createArenaRewardPolicy(weapons,players,random) {
   const recent=[],tiers=['common','uncommon','rare'],byTier=Object.fromEntries(tiers.map(t=>[t,Object.keys(weapons).filter(id=>weapons[id].tier===t)]));
   const cap=players<=8?1:players<=16?2:3;
