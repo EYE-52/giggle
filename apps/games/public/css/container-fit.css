@@ -85,7 +85,8 @@
   #gbody .party-scene--rank .js-feedback { min-height: 0; padding: var(--space-8); margin: 0; font: var(--text-caption); }
   #gbody .sg.ck .sg-fields { max-height: max(var(--game-paper-min), calc(100cqh - (4 * var(--space-64) + var(--space-24)))); overflow: auto; overscroll-behavior: contain; }
   #gbody .b2-scene .b2-play { max-height: max(var(--game-paper-min), calc(100cqh - (4 * var(--space-64) + var(--control-h-sm)))); overflow: auto; overscroll-behavior: contain; }
-  /* Word games stay in normal flow: an inner scroll box sliced the Skip row in half. */
+  /* Keeps the main button on short screens. It can slice the Skip row: compact these cards per game. */
+  #gbody .word-party .wp-play { max-height: max(var(--game-paper-min), calc(100cqh - (4 * var(--space-64) + var(--control-h-sm)))); min-height: 0; overflow: auto; overscroll-behavior: contain; }
   #gbody .b4-stage .b4-field { max-height: max(var(--game-paper-min), calc(100cqh - (4 * var(--space-64) + var(--control-h-sm)))); min-height: 0; overflow: auto; overscroll-behavior: contain; }
   #gbody .b6-world .b6-scroll { flex-wrap: nowrap; overflow-x: auto; justify-content: start; }
   #gbody .b6-world .b6-tools { min-height: var(--control-h-sm); }
