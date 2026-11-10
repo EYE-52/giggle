@@ -1,3 +1,4 @@
+import { TYPES } from './toolkit/telemetry-schema.mjs';
 const $ = id => document.getElementById(id);
 const names = new Map([['platform', 'Platform / rooms']]);
 let key = '', before = null, revision = 0, busy = false;
@@ -24,13 +25,15 @@ function node(tag, text, className) {
   if (className) el.className = className; return el;
 }
 function report(item) {
+  const problem = !!item.fingerprint;
   const card = node('article', '', 'inbox-report');
-  card.append(node('h2', names.get(item.game) || item.game));
-  card.append(node('div', `${new Date(item.createdAt).toLocaleString()} · ${item.category} · ${item.impact} · v${item.version}`, 'inbox-meta'));
-  card.append(node('p', item.description));
+  card.append(node('h2', `${problem ? `${item.spike ? 'SPIKE · ' : ''}${item.count} · ` : ''}${names.get(item.game) || item.game}`));
+  card.append(node('div', problem ? `${item.type} · ${item.release} · ${item.previousCount} in previous period` : `${new Date(item.createdAt).toLocaleString()} · ${item.category} · ${item.impact} · v${item.version}`, 'inbox-meta'));
+  card.append(node('p', problem ? `${item.message}${item.selector ? ' · ' + item.selector : ''}` : item.description));
+  if (problem) card.append(node('div', `First ${new Date(item.firstSeen).toLocaleString()} · Last ${new Date(item.lastSeen).toLocaleString()}`, 'inbox-meta'));
   if (item.steps) { card.append(node('strong', 'Steps to repeat'), node('p', item.steps)); }
-  const details = node('details', '', 'report-diagnostics'); details.id = `report-context-${item.id}`; details.append(node('summary', 'Device and game performance'), node('pre', JSON.stringify(item.context, null, 2)));
-  card.append(details, node('div', `Report ${item.id}`, 'inbox-meta'));
+  const details = node('details', '', 'report-diagnostics'); details.append(node('summary', 'Device and game performance'), node('pre', JSON.stringify(item.context, null, 2)));
+  card.append(details, node('div', `${problem ? 'Fingerprint ' + item.fingerprint : 'Report ' + item.id}`, 'inbox-meta'));
   const states = node('div', '', 'inbox-state');
   for (const status of ['new', 'triaged', 'resolved']) {
     const button = node('button', status[0].toUpperCase() + status.slice(1));
@@ -42,7 +45,7 @@ function report(item) {
       for (const control of $('filters').elements) control.disabled = true;
       $('more').disabled = true;
       try {
-        await request(`/api/reports/${item.id}`, { method: 'PATCH', body: JSON.stringify({ status }) });
+        await request(problem ? `/api/telemetry/${item.fingerprint}` : `/api/reports/${item.id}`, { method: 'PATCH', body: JSON.stringify({ status, ...(problem ? { release: item.release } : {}) }) });
         if (ownRevision !== revision) return;
         item.status = status;
         for (const b of states.children) b.setAttribute('aria-pressed', String(b === button));
@@ -64,10 +67,12 @@ async function load(older = false) {
   const ownRevision = revision; busy = true; $('more').disabled = true;
   for (const control of $('filters').elements) control.disabled = true;
   notice('Loading reports…');
+  const problems = $('view').value === 'problems';
   const query = new URLSearchParams({ status: $('status').value, game: $('game').value, limit: '50' });
   if (older && before) query.set('before', before);
+  if (problems) { query.delete('limit'); query.delete('before'); query.set('type', $('type').value); query.set('release', $('release').value.trim() || 'all'); query.set('since', $('since').value); }
   try {
-    const data = await request(`/api/reports?${query}`);
+    const data = await request(`/api/${problems ? 'telemetry' : 'reports'}?${query}`);
     if (ownRevision !== revision) return;
     for (const game of data.games || []) {
       if (names.has(game.id)) continue;
@@ -75,8 +80,8 @@ async function load(older = false) {
     }
     if (!older) $('items').replaceChildren();
     $('items').append(...data.items.map(report)); before = data.before;
-    $('more').hidden = data.items.length < 50;
-    notice($('items').children.length ? `${$('items').children.length} reports loaded.` : 'No reports here.');
+    $('more').hidden = problems || data.items.length < 50;
+    notice($('items').children.length ? `${$('items').children.length} ${problems ? 'problem groups' : 'reports'} loaded.` : `No ${problems ? 'problems' : 'reports'} here.`);
     $('login').hidden = true; $('inbox').hidden = false; $('logout').hidden = false; $('access').value = '';
   } catch (error) { if (ownRevision === revision) notice(error.message, true); else if (!key) notice(error.message, true); }
   finally {
@@ -88,4 +93,12 @@ $('login').onsubmit = event => { event.preventDefault(); key = $('access').value
 $('logout').onclick = lock;
 $('filters').onsubmit = event => { event.preventDefault(); load(); };
 $('status').onchange = $('game').onchange = () => load();
+for (const type of TYPES) { const option = node('option', type); option.value = type; $('type').append(option); }
+$('view').onchange = () => {
+  before = null;
+  for (const field of document.querySelectorAll('.problem-filter')) field.hidden = $('view').value !== 'problems';
+  $('problemNote').hidden = $('view').value !== 'problems';
+  load();
+};
+$('type').onchange = $('since').onchange = () => load();
 $('more').onclick = () => load(true);

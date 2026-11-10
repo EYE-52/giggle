@@ -298,12 +298,14 @@ async function usableFrame(active, request, api) {
 
 async function drive(active) {
   const signal = active.controller.signal;
+  const startedAt = performance.now();
   // Skip optional kart GPU work after 24s. Required downloads and
   // the real first frame still hold readiness; the server keeps waiting.
   const kart = active.id === 'pocket-karts';
   // A first visit downloads code, styles and art with a cold cache; 10s failed on slower links.
   const limitMs = kart ? 24000 : active.latest?.meta?.renderer === '3d' ? 28000 : 20000;
   const timeout = setTimeout(() => {
+    active.latest.api.telemetry?.capture('load-timeout', 'timeout');
     if (kart) active.preparation.abort();
     else active.controller.abort(new Error('Game preparation timed out'));
   }, limitMs);
@@ -344,6 +346,7 @@ async function drive(active) {
           await usableFrame(active, request, api);
           if (cur !== active || active.painted !== active.version) continue;
           active.usable = true;
+          if (performance.now() - startedAt >= 5000) request.api.telemetry?.capture('load-slow', 'slow', { value: performance.now() - startedAt });
           if (request.S.preparing && active.readyWindow !== request.S.w) {
             active.readyWindow = request.S.w;
             request.api.ready?.({ instanceId: request.S.instanceId, window: request.S.w });

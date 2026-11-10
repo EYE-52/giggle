@@ -61,7 +61,7 @@ function main() {
     // Game-owned pages have their own topology, copy and scripts. Only
     // the optional generated fallback promises gp-* template structure.
     if (g.homepage) {
-      assert.equal(html, read(path.join(ROOT, 'games', g.id, 'home/index.html')), `${g.id}: authored document preserved byte-for-byte`);
+      assert.equal(html, bp.instrumentHtml(read(path.join(ROOT, 'games', g.id, 'home/index.html'))), `${g.id}: authored document preserved with telemetry hook`);
       assert(!html.includes('/css/style.css') && !html.includes('/css/game-page.css'), `${g.id}: independent style graph`);
       assert(html.includes(`name="game" value="${g.id}"`) && html.includes('action="/"'), `${g.id}: shared room entry`);
       continue;
@@ -83,8 +83,9 @@ function main() {
     assert.ok(html.includes(`<input type="hidden" name="game" value="${g.id}">`), `${g.id}: hidden game`);
     assert.ok(html.includes('name="name" required maxlength="16"'), `${g.id}: name field`);
     assert.ok(html.includes('>Create room</button>'), `${g.id}: create button`);
-    // Only theme and local panel behavior may run; no transport or room creation.
-    assert.strictEqual(html.split('<script').length - 1, 2, `${g.id}: theme and local panel behavior only`);
+    // Theme, local panels and the early monitoring hook; no room transport.
+    assert.strictEqual(html.split('<script').length - 1, 3, `${g.id}: theme, local panels and telemetry only`);
+    assert(html.includes('/js/telemetry.min.js'), `${g.id}: early monitoring hook`);
     assert(html.includes('/js/app-panels.js'), `${g.id}: rules use shared accessible floating panels`);
     for (const auto of ['fetch(', 'WebSocket', 'XMLHttpRequest', '.submit(']) {
       assert.ok(!html.includes(auto), `${g.id}: nothing auto-runs (${auto})`);

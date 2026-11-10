@@ -103,9 +103,16 @@ window.addEventListener('message', event => {
   timer = setTimeout(() => finish(false), 1500);
   send({ t: 'leave' });
 });
-const runLog = createRunLog(PRACTICE ? { storage: {
+const telemetry = window.GiggleTelemetry;
+const runLog = createRunLog({ onFrames: sample => telemetry?.frames(sample), ...(PRACTICE ? { storage: {
   getItem: key => store.get(key), setItem: (key, value) => store.set(key, value),
-} } : undefined);
+} } : {}) });
+function telemetryContext(state) {
+  telemetry?.context({ game: state?.game || room?.game || PRACTICE_GAME || 'platform',
+    screen: EMBED.enabled ? 'embed' : PRACTICE ? 'practice' : room?.game ? 'game' : room ? 'lobby' : 'home',
+    phase: state ? state.preparing ? 'loading' : state.phase === 'done' ? 'done' : 'playing' : room ? 'lobby' : 'home',
+    map: state?.map?.label || state?.map?.name || state?.map?.id || '' });
+}
 window.addEventListener('error', event => runLog.event(event.target === window ? 'runtime-error' : 'resource-error'), true);
 window.addEventListener('unhandledrejection', () => runLog.event('promise-error'));
 window.addEventListener('pagehide', () => runLog.save());
@@ -149,6 +156,7 @@ document.body.appendChild(liveEl);
 let ws = null;
 let retryMs = 500;
 let retryTimer = 0;
+let socketCloses = [];
 let connLost = false;
 let preparationFocus = null;
 document.addEventListener('pointerdown', () => { preparationFocus = null; }, true);
@@ -291,14 +299,15 @@ function loadPublicConfig() {
   if (!configFlight) {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 8000);
-    configFlight = fetch('/config.json', { cache: 'no-store', signal: controller.signal })
-      .then((res) => {
+    configFlight = (telemetry?.configPromise || Promise.resolve(null))
+      .then(cached => cached || fetch('/config.json', { cache: 'no-store', signal: controller.signal }).then(res => {
         if (!res.ok) throw new Error('config ' + res.status);
         return res.json();
-      })
+      }))
       .then((cfg) => {
         if (!cfg || typeof cfg !== 'object' || Array.isArray(cfg)) throw new Error('config shape');
         publicConfig = cfg;
+        telemetry?.configure(cfg);
         configFlight = null;
         return cfg;
       })
@@ -521,6 +530,7 @@ function openSocket() {
   ws.onopen = () => {
     if (ws !== openingSocket) return;
     clearTimeout(socketStartTimer);
+    if (socketCloses.length) telemetry?.capture('socket-open', 'reconnected');
     retryMs = 500;
     connLost = false;
     seatTaken = false;
@@ -570,6 +580,10 @@ function openSocket() {
   };
   ws.onclose = (ev) => {
     if (ws !== openingSocket) return;
+    socketCloses = socketCloses.filter(at => Date.now() - at < 60000);
+    socketCloses.push(Date.now());
+    telemetry?.capture('socket-close', 'disconnected');
+    if (socketCloses.length >= 3) telemetry?.capture('socket-loop', 'loop');
     runLog.event('socket-close');
     runLog.pause();
     sound.stop();
@@ -671,7 +685,11 @@ const playGameCue = createGameCuePlayer((name, options) => sound.cue(name, optio
   () => lastState, () => ({ game: gameId, connected: ws?.readyState === 1 && ws.hasGameState === true,
     hidden: document.hidden, pending: !!pendingRoomAction }));
 const api = {
-  diagnostics: runLog,
+  diagnostics: { ...runLog, event(kind) {
+    runLog.event(kind);
+    if (['render-error', 'webgl-lost'].includes(kind)) telemetry?.capture(kind, kind === 'webgl-lost' ? 'context-lost' : 'failed');
+  } },
+  telemetry,
   now: () => lastState?.preparing ? lastState.gameNow : serverClock.now() - (lastState?.clockOffset || 0),
   ready: ({ instanceId: id, window }) => {
     if (!lastState?.preparing || lastState.instanceId !== id || lastState.w !== window || ws?.readyState !== 1) return false;
@@ -821,6 +839,7 @@ function onMsg(msg) {
       break;
     }
     case 'state': {
+      telemetryContext(msg);
       const audioBaseline = !ws?.hasGameState;
       runLog.snapshot({ ...msg, audioBaseline });
       if (ws) ws.hasGameState = true;
@@ -1132,6 +1151,7 @@ document.addEventListener('game-screenchange', () => {
 });
 
 function render() {
+  telemetryContext(room?.game ? lastState : null);
   if (!room) { clearKickRequest(); lastKickRequestId = null; kickConfirmation = null; }
   if (seatRemoved) {
     if (gameScreen) { gameScreen.dispose(); gameScreen = null; }
@@ -2867,6 +2887,7 @@ function paintGameLoadError({ gameId: failedGame, instanceId: failedInstance, wi
   runLog.event('load-error');
   const el = document.getElementById('gbody');
   if (!el || failedGame !== gameId || failedInstance !== instanceId || (failedWindow !== undefined && failedWindow !== lastState?.w)) return;
+  telemetry?.capture('load-error', 'failed');
   el.inert = false;
   el.setAttribute('aria-busy', 'false');
   const status = document.getElementById('gamePreparation');
@@ -2877,6 +2898,7 @@ function paintGameLoadError({ gameId: failedGame, instanceId: failedInstance, wi
   if (!autoRetried.has(retryKey)) {
     autoRetried.add(retryKey);
     runLog.event('load-retry');
+    telemetry?.capture('load-retry', 'retry');
     resetView();
     paintGamePreparation();
     mountGameBody();
@@ -2885,6 +2907,7 @@ function paintGameLoadError({ gameId: failedGame, instanceId: failedInstance, wi
   const g = gameById(gameId);
   el.innerHTML = `<section class="game-load-error" role="alert">${g ? `<span class="load-error-art" aria-hidden="true">${artImg(g, 'load-error-img')}</span>` : ''}<h2>This game couldn’t load</h2><p>Your room is still here. Check your connection and try again, or use Room to go back to the lobby.</p><button type="button" class="btn big" id="retryGameView">Try again</button></section>`;
   el.querySelector('#retryGameView').onclick = () => {
+    telemetry?.capture('load-retry', 'retry');
     resetView();
     paintGamePreparation();
     mountGameBody();

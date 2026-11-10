@@ -14,7 +14,16 @@
     <form id="login" class="inbox-login"><label for="access">Inbox access key</label><input id="access" type="password" autocomplete="off" required minlength="32"><button>Open inbox</button><p>The key stays in this tab until you lock or reload it.</p></form>
     <p id="notice" role="status" aria-live="polite"></p>
     <section id="inbox" hidden>
-      <form id="filters" class="inbox-filters"><label>Status<select id="status"><option value="new">New</option><option value="triaged">Triaged</option><option value="resolved">Resolved</option><option value="all">All</option></select></label><label>Game<select id="game"><option value="all">All games and platform</option><option value="platform">Platform / rooms</option></select></label><button>Refresh</button></form>
+      <form id="filters" class="inbox-filters">
+        <label>View<select id="view"><option value="reports">Player reports</option><option value="problems">Problems</option></select></label>
+        <label>Status<select id="status"><option value="new">New</option><option value="triaged">Triaged</option><option value="resolved">Resolved</option><option value="all">All</option></select></label>
+        <label>Game<select id="game"><option value="all">All games and platform</option><option value="platform">Platform / rooms</option></select></label>
+        <label class="problem-filter" hidden>Type<select id="type"><option value="all">All types</option></select></label>
+        <label class="problem-filter" hidden>Release<input id="release" placeholder="All releases" maxlength="80"></label>
+        <label class="problem-filter" hidden>Since<select id="since"><option>24h</option><option>1h</option><option>7d</option><option>15d</option></select></label>
+        <button>Refresh</button>
+      </form>
+      <p id="problemNote" hidden>Top 100 groups, sorted by count. Counts are sampled observations, not people. SPIKE means at least 10 observations and twice the previous period. A new occurrence reopens a resolved problem. Choose frame-summary to see routine FPS samples.</p>
       <div id="items"></div><button id="more" hidden>Load older reports</button>
     </section>
   </main>

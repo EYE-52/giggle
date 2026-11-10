@@ -6,6 +6,7 @@ const crypto = require('node:crypto');
 const { isIP } = require('node:net');
 const { DatabaseSync } = require('node:sqlite');
 const { sanitizeRunLog } = require('../public/js/toolkit/run-log-schema.mjs');
+const { createTelemetry, createLimiter } = require('./telemetry');
 
 const CATEGORIES = ['controls', 'rules', 'layout', 'loading', 'performance', 'sound', 'other'];
 const IMPACTS = ['blocked', 'problem', 'appearance'];
@@ -43,7 +44,7 @@ function validateReport(body, gameIds) {
   };
 }
 
-function readJson(req) {
+function readJson(req, maxBytes = 24576) {
   return new Promise((resolve, reject) => {
     let bytes = 0, chunks = [], done = false;
     const finish = (error, data) => {
@@ -55,7 +56,7 @@ function readJson(req) {
     const timer = setTimeout(() => finish(Object.assign(new Error('Request timed out.'), { status: 408 })), 10000);
     req.on('data', chunk => {
       bytes += chunk.length;
-      if (bytes > 24576) finish(Object.assign(new Error('Report is too long.'), { status: 413 }));
+      if (bytes > maxBytes) finish(Object.assign(new Error('Request is too long.'), { status: 413 }));
       else if (!done) chunks.push(chunk);
     });
     req.on('end', () => {
@@ -68,9 +69,11 @@ function readJson(req) {
   });
 }
 
-function createReportApi({ file, token, gameIds, catalog = [], version, originAllowed, trustRailwayProxy = false, now = Date.now }) {
+function createReportApi({ file, token, gameIds, maps, catalog = [], version, originAllowed, trustRailwayProxy = false, now = Date.now }) {
   let db;
   const buckets = new Map();
+  const telemetry = createTelemetry({ database, gameIds, maps, now });
+  const telemetryLimit = createLimiter({ now, trustRailwayProxy });
   const json = (res, status, data, extra = {}) => {
     res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff', ...extra });
     res.end(JSON.stringify(data));
@@ -134,6 +137,20 @@ function createReportApi({ file, token, gameIds, catalog = [], version, originAl
         res.writeHead(204, { 'Cache-Control': 'no-store', 'Access-Control-Allow-Methods': 'POST, GET, PATCH', 'Access-Control-Allow-Headers': 'Content-Type, Authorization', 'Access-Control-Max-Age': '600' });
         res.end(); return;
       }
+      if (req.method === 'POST' && url.pathname === '/api/telemetry') {
+        if (!telemetryLimit(req)) return json(res, 429, { error: 'Telemetry limit reached.' }, { 'Retry-After': '60' });
+        if (!/^application\/json(?:;|$)/i.test(req.headers['content-type'] || '')) return json(res, 415, { error: 'Send JSON.' });
+        let body;
+        try {
+          body = await readJson(req, 16384);
+          if (!body || Object.keys(body).length !== 1 || !Array.isArray(body.events) || body.events.length < 1 || body.events.length > 20) throw new Error('Invalid telemetry batch.');
+          // Validate the complete batch before opening a transaction.
+          const { validateEvent } = require('../public/js/toolkit/telemetry-schema.mjs');
+          body.events.forEach(event => validateEvent(event, gameIds, maps));
+        } catch (error) { return json(res, error.status || 400, { error: 'Invalid telemetry batch.' }); }
+        telemetry.ingest(body.events);
+        return json(res, 202, { ok: true });
+      }
       if (req.method === 'POST' && url.pathname === '/api/reports') {
         if (!limit(req)) return json(res, 429, { error: 'Too many reports. Please try again in ten minutes.' }, { 'Retry-After': '600' });
         if (!/^application\/json(?:;|$)/i.test(req.headers['content-type'] || '')) return json(res, 415, { error: 'Send a JSON report.' });
@@ -154,6 +171,20 @@ function createReportApi({ file, token, gameIds, catalog = [], version, originAl
         return json(res, 201, { ok: true, id: report.id, createdAt: time });
       }
       if (!admin(req)) return json(res, 401, { error: 'Inbox access required.' });
+      if (req.method === 'GET' && url.pathname === '/api/telemetry') {
+        try { return json(res, 200, { ...telemetry.digest(Object.fromEntries(url.searchParams)), games: catalog }); }
+        catch (error) { if (/filters|Since/.test(error.message)) return json(res, 400, { error: error.message }); throw error; }
+      }
+      const problem = url.pathname.match(/^\/api\/telemetry\/([0-9a-f]{32})$/);
+      if (req.method === 'PATCH' && problem) {
+        let body;
+        try {
+          body = await readJson(req, 1024);
+          if (!body || Object.keys(body).sort().join(',') !== 'release,status') throw new Error('Invalid problem status.');
+          const found = telemetry.setStatus(problem[1], body.release, body.status);
+          return json(res, found ? 200 : 404, found ? { ok: true } : { error: 'Problem not found.' });
+        } catch (error) { if (/Invalid|too long/.test(error.message)) return json(res, error.status || 400, { error: 'Invalid problem status.' }); throw error; }
+      }
       if (req.method === 'GET' && url.pathname === '/api/reports') {
         const status = url.searchParams.get('status') || 'new', game = url.searchParams.get('game') || 'all';
         const limit = Number(url.searchParams.get('limit') || 50), before = Number(url.searchParams.get('before') || Number.MAX_SAFE_INTEGER);
@@ -174,7 +205,9 @@ function createReportApi({ file, token, gameIds, catalog = [], version, originAl
       return json(res, error.status || 503, { error: 'Reporting is unavailable. Your text has not been cleared; please try again.' });
     }
   }
-  return { handle, enabled: !!file, close() { db?.close(); db = null; } };
+  return { handle, enabled: !!file, telemetryCounts() {
+    try { return telemetry.counts(); } catch { return { available: false }; }
+  }, close() { db?.close(); db = null; } };
 }
 
 module.exports = { createReportApi, validateReport, CATEGORIES, IMPACTS, STATUSES };

@@ -1,0 +1,11 @@
+'use strict';
+const path = require('node:path');
+const fs = require('node:fs');
+const { gzipSync } = require('node:zlib');
+const { buildSync } = require('esbuild');
+const root = path.resolve(__dirname, '..');
+const outfile = path.join(root, 'public/js/telemetry.min.js');
+buildSync({ entryPoints: [path.join(root, 'public/js/telemetry.js')], outfile, minify: true, target: 'es2022', legalComments: 'none' });
+const size = gzipSync(fs.readFileSync(outfile)).length;
+if (size > 2048) throw new Error(`Telemetry core exceeds 2 KiB gzip: ${size}`);
+console.log(`Telemetry core: ${size} bytes gzip (observers load separately)`);

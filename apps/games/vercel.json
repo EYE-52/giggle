@@ -24,6 +24,18 @@
     {
       "source": "/r/:code",
       "destination": "/index.html"
+    },
+    {
+      "source": "/api/telemetry",
+      "destination": "https://giggle-play-production.up.railway.app/api/telemetry"
+    },
+    {
+      "source": "/api/telemetry/:id",
+      "destination": "https://giggle-play-production.up.railway.app/api/telemetry/:id"
+    },
+    {
+      "source": "/health",
+      "destination": "https://giggle-play-production.up.railway.app/health"
     }
   ],
   "headers": [
