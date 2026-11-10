@@ -31,3 +31,20 @@ try{
  assert(match.privateStatus('a').coins>coins,'leaving and re-entering permits a new real claim');
  console.log('PASS fixed homes: real pickup, full clip, 3s return, stable ID/pose, parked denial, reconnect, leave/re-enter');
 }finally{match.dispose();}
+
+// Replay the real overlapping road slabs that trapped the firing probe.
+for(const x of [-24,24]){
+ const joined=selectArenaVariant(elevatedMap('rookie-ribbons'),8);
+ const home=joined.sockets.find(h=>h.x===x&&h.z===-14&&h.y===0);
+ const start=joined.spawns[0];Object.assign(start,{x,y:0,z:-14,angle:Math.PI/2,surface:home.surface});
+ Object.assign(joined.spawnCandidates.find(p=>p.id===start.id),start);
+ const w=combat.createElevatedCombat(RAPIER,CONFIG,joined,Array.from({length:8},(_,i)=>({id:'seam'+i})),{instance:'seam',seed:0,startAt:0,countdownMs:0,roundMs:10000});
+ try{
+  const s=w.advance(50),kart=s.karts[0],crate=s.crates.find(c=>c.homeId===home.id);
+  assert(crate,'opening selector includes the diagnostic home');
+  assert(kart.pose.wheels.every(t=>t.contact&&t.surfaceId!==crate.surfaceId),'recorded overlap uses a different wheel support ID');
+  assert(kart.weapon&&w.privateStatus(kart.id).coins===1,'same-height joined floor permits a real pickup');
+  assert.equal(kart.maxHealth,100);
+ }finally{w.dispose();}
+}
+console.log('PASS real Rookie joined-slab pickups on both sides; different tyre/home IDs');
