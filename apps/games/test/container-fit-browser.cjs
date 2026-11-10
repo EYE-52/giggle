@@ -12,6 +12,7 @@ const sizes = [[360,640],[420,700],[560,760],[800,600],[1440,900],[1024,768],[76
 function cases() {
  return registry.list().map(meta => {
   const ctx = new Clock(meta.id, {rounds:3});
+  if(!ctx.instanceId)ctx.instanceId="fit-"+meta.id;
   ctx.roster = Array.from({length:Math.max(2,meta.minPlayers)},(_,i)=>({id:String.fromCharCode(97+i),name:['Ada','Morgan','Charlotte','Sam'][i]||'Robin'}));
   const def=registry.get(meta.id), state=def.create(ctx);
   let pid=state.turnPid||state.turn||state.drawer||'a'; if(!ctx.roster.some(p=>p.id===pid))pid='a';
