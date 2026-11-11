@@ -48,6 +48,7 @@ export function instanceRepeats(THREE, root, { skip = new Set(), minCount = 3 } 
         for(const child of [...mesh.children])parts.add(child);
       }
       mesh.visible = false;
+      mesh.matrixAutoUpdate = false; // The instance now owns its baked local transform.
     });
     inst.instanceMatrix.needsUpdate = true;
     inst.computeBoundingSphere();
@@ -102,7 +103,10 @@ export function mergeStaticMeshes(THREE, root, {skip = new Set()} = {}) {
     mesh.castShadow = first.castShadow; mesh.receiveShadow = first.receiveShadow;
     mesh.renderOrder = first.renderOrder; mesh.layers.mask = first.layers.mask;
     geometry.computeBoundingSphere();
-    for (const source of meshes) source.visible = false;
+    for (const source of meshes) {
+      source.visible = false;
+      source.matrixAutoUpdate = false;
+    }
     root.add(mesh); made.push({mesh, count: meshes.length});
   }
   return made;

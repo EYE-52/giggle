@@ -241,3 +241,20 @@ In the original picker, a 500 px wheel movement pushed the close button from y=3
 Browser checks covered 1440 × 900, 1024 × 768, 390 × 844 and 375 × 667 in Day and Night, using Chromium and WebKit. The checks included wheel, touch, Page Down, keyboard focus wrapping, Escape, and selecting Reversi at the bottom of the catalogue. The same changes retained pinned Chess history on desktop and the history sheet on phones. The report and how-to dialogs also kept their background page still.
 
 The one-device and online setup controls, report categories and kart picker use the rounded Phosphor duotone artwork already used by Giggle. The empty roster shows a seat. The 16 browser configurations passed, including full three-player one-device rounds, touch-sized controls, and theme changes.
+
+## Pocket Karts driving and combat
+
+The visual target was to identify a pickup from the chase camera, keep sight of the driver on a ramp and see what each press of Fire did. Tall Team’s published [Smash Karts screenshots](https://play.google.com/store/apps/details?id=com.tallteam.citychase) provided the side-mounted rocket reference. The [public game](https://smashkarts.io/) loads Unity WebGL. Pocket Karts keeps its existing Three.js renderer and shared driving simulation.
+
+- The twelve item portraits come from the mounted models. The rocket rack loses a visible round for each shot, rear gear sits outside the spoiler, and the spinner circles the wheels. The HUD shows the award immediately, including its name, action and remaining uses. Confirmed fire, hits and knockouts keep their own feedback.
+- A live Chrome drive collected a blaster from one pad. Its replacement appeared on a different pad. Three rockets flew up a 17° incline. After the rear-ground check was fixed, all three mines dropped on the same climb. A second rocket can knock out a full-health rival while the attacker still has a third round. The tracking blaster can turn toward a visible nearby rival beside or behind the kart.
+- The outer ground now carries a small repeating surface texture. Hills and grouped trees move at different speeds against the distant peaks as the kart turns. In a matched Rookie Ribbons bridge view the final terrain took 45 draw calls, down from 48 in the first hills pass. The 128px texture adds 2,901 bytes. A 120-frame moving camera test on the M5 Mac held a median 16.7 ms per frame.
+- The matched timing test used one rendered Chrome driver and three real WebSocket bot clients. At 1280×720, parked Rookie Ring HUD and room updates fell from 3,025 to 118 DOM changes per 3.2 seconds. While driving they fell from 2,634 to 33. The 95th-percentile frame interval stayed around 16.7–16.8 ms. This machine was already running close to 60 fps.
+- The twelve mounted shapes, ammo counts, touch steering and simultaneous firing were checked in Chrome at 390×844 and 1280×720. Playwright WebKit rendered four karts in a normal room and drove 27.6 units. The phone tests used touch emulation on macOS. The item gallery used controlled grants. Pickup and uphill firing also ran through normal steering and Fire inputs.
+- The declared GLB preload and decoder total 956,216 bytes. The two real-room loading checks on Rookie Ring and Rookie Ribbons fetched the gear during prefetch and made no additional GLB requests before driving.
+
+The [play and performance plan](../../docs/pocket-karts-play-and-performance.md) records the asset process, weapon decisions, measured lag and the next physical-device playtest.
+
+The 256 commands in the Games test chain passed across the main run and targeted reruns after fixes. The last full layout sweep covered 72 games and 1,224 viewport/state measurements, with zero failures or browser errors. A separate Dial In correction keeps both 56px turn buttons visible on short phones. Every one of its 56 spectrum pairs passed at 360×640 in both themes.
+
+The shipping loadout passed 432 layout combinations, including narrow keyboard windows and wide touch screens. The classic and raised galleries each captured 144 states with zero browser errors. A real pickup drive confirmed the HUD on desktop and phone-size screens.

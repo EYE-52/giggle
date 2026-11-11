@@ -8,6 +8,7 @@ import * as THREE from 'three';
 import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
 import {createKartCombatArt} from '../public/js/engines/kart-combat-art.mjs';
 import {createKartModel,disposeKartModel} from '../public/js/engines/kart-model.mjs';
+import {WEAPON_IDS,CURATED_MUZZLE} from '../public/js/engines/kart-weapon-contract.mjs';
 import CONFIG from '../public/js/engines/kart-physics-config.mjs';
 let checks=0;const check=(v,m)=>{assert.ok(v,m);checks++;};
 globalThis.self=globalThis;
@@ -16,10 +17,10 @@ globalThis.createImageBitmap=async blob=>{
   return{width:b.readUInt32BE(16),height:b.readUInt32BE(20),close(){}};
 };
 async function load(file){const b=await fs.readFile(new URL('../public/assets/karts/'+file+'.glb',import.meta.url));return(await new GLTFLoader().setMeshoptDecoder(MeshoptDecoder).parseAsync(b.buffer.slice(b.byteOffset,b.byteOffset+b.byteLength),'')).scene;}
-const [kart,pulse,arsenal,secondary,old]=await Promise.all(['giggle-kart.meshopt','combat/pulse-mounted.meshopt','combat/arsenal-mounted.meshopt','combat/arsenal-secondary.meshopt','combat/combat.meshopt'].map(load));
-const borrowed=new Set();for(const root of [kart,pulse,arsenal,secondary,old])root.traverse(o=>{if(o.geometry)borrowed.add(o.geometry);for(const m of Array.isArray(o.material)?o.material:[o.material])if(m){borrowed.add(m);for(const value of Object.values(m))if(value?.isTexture)borrowed.add(value);}});
+const [kart,pulse,arsenal,secondary,old,gear]=await Promise.all(['giggle-kart.meshopt','combat/pulse-mounted.meshopt','combat/arsenal-mounted.meshopt','combat/arsenal-secondary.meshopt','combat/combat.meshopt','combat/pickup-gear'].map(load));
+const borrowed=new Set();for(const root of [kart,pulse,arsenal,secondary,old,gear])root.traverse(o=>{if(o.geometry)borrowed.add(o.geometry);for(const m of Array.isArray(o.material)?o.material:[o.material])if(m){borrowed.add(m);for(const value of Object.values(m))if(value?.isTexture)borrowed.add(value);}});
 let borrowedDisposals=0;for(const resource of borrowed)resource.addEventListener('dispose',()=>borrowedDisposals++);
-const art=createKartCombatArt(THREE,{assets:{get:name=>pulse.getObjectByName(name)||arsenal.getObjectByName(name)||(name!=='ScatterShot'&&secondary.getObjectByName(name))||old.getObjectByName(name)}});
+const art=createKartCombatArt(THREE,{assets:{get:name=>gear.getObjectByName(name)||pulse.getObjectByName(name)||arsenal.getObjectByName(name)||(name!=='ScatterShot'&&secondary.getObjectByName(name))||old.getObjectByName(name)}});
 for (const [kind, library, name] of [['pulse', pulse, 'Pulse'], ['rocket', arsenal, 'Rocket'], ['seeker', arsenal, 'Seeker']]) {
   const source = library.getObjectByName(name);
   const first = art.weapon(kind), second = art.weapon(kind);
@@ -43,17 +44,46 @@ check(recoiling.getObjectByName('PulseHousing').position.z === 0, 'Reduced motio
 art.animate(recoiling, .1, 0, false);
 check(Math.abs(recoiling.getObjectByName('PulseHousing').position.z) < 1e-8, 'Recoil naturally returns to the authored muzzle');
 const model=createKartModel(THREE,{assets:{kart},color:0xf59539});model.userData.kart.inner.position.y=CONFIG.chassis.modelOriginY;
-for(const kind of ['pulse','scatter','rocket','seeker','proximity','nuke']){
+for(const kind of ['pulse','scatter','rocket','seeker','machinegun','trishot','missile','cannon','frost','nuke']){
   const weapon=art.weapon(kind),c=weapon.userData.combat;
   model.userData.kart.inner.add(weapon);weapon.position.set(...c.mount);
-  const local=kind==='nuke'?{x:0,y:1.6,z:1.9}:CONFIG.combat[kind+'Muzzle']||{x:0,y:.5,z:1.9};
+  const local=WEAPON_IDS.includes(kind)?CURATED_MUZZLE:CONFIG.combat[kind+'Muzzle']||{x:0,y:.5,z:1.9};
   for(const heading of [0,Math.PI/2,Math.PI,-Math.PI/2]){
     model.position.set(12,.64,-8);model.rotation.set(0,heading,0);model.updateMatrixWorld(true);
     const actual=weapon.localToWorld(new THREE.Vector3(...c.muzzle));
     const expected=model.localToWorld(new THREE.Vector3(local.x,local.y,local.z));
     check(actual.distanceTo(expected)<1e-5,kind+' production factory muzzle matches authority at heading '+heading);
   }
-  check(kind==='nuke'?c.curated:c.inner.children[0].name===({proximity:'Bomb',nuke:'Rocket'}[kind]||kind[0].toUpperCase()+kind.slice(1)),kind+' uses the sourced branch');weapon.removeFromParent();
+  check(WEAPON_IDS.includes(kind)?weapon.getObjectByName('Gear_'+kind):c.inner.children[0].name===kind[0].toUpperCase()+kind.slice(1),kind+' uses the sourced branch');weapon.removeFromParent();
+}
+// Real decoded artwork, including Meshopt transforms, must fit the kart.
+for(const kind of WEAPON_IDS){
+ const rig=art.weapon(kind),c=rig.userData.combat;
+ check(rig.getObjectByName('Gear_'+kind),kind+' uses its authored model');
+ art.placeWeapon(rig);
+ const bounds=new THREE.Box3().setFromObject(rig);
+ if(kind==='blades'){
+  check(bounds.max.y<.7&&bounds.max.x>=2.1&&bounds.min.x<=-2.1,'bumper reaches both sides at wheel height');
+ }else if(kind==='ram'){
+  check(bounds.min.z>.7&&bounds.max.y<1.1&&bounds.max.x>1.2,'ram mounts below the driver on the nose');
+ }else{
+  check(bounds.max.x<-.33||bounds.min.x>.35,kind+' leaves the center of the kart clear');
+ }
+ if(kind==='machinegun'){
+  const chassis=new THREE.Group();chassis.rotation.set(.25,1.1,0);chassis.add(rig);
+  c.firing=true;
+  for(const target of [[0,0,-1],[-1,0,0],[.3,.2,.8]]){
+   const direction=new THREE.Vector3(...target).normalize();
+   art.aim(rig,direction);art.animate(rig,1/60,0,true);
+   check(c.inner.getWorldDirection(new THREE.Vector3()).angleTo(direction)<1e-6,
+    'tracking pod faces the authoritative shot while the kart turns and climbs');
+  }
+  chassis.remove(rig);
+ }
+ if(kind==='cannon')for(const count of [3,2,1,0,3]){
+  c.ammo=count;art.animate(rig,.02,1,false);
+  check(c.rounds.filter(rocket=>rocket.visible).length===count,'side rack reflects '+count+' remaining rockets');
+ }
 }
 for(const kind of ['scatter','rocket','seeker','proximity','nuke']){
   const shot=art.projectile(kind);check(shot.userData.combat.kind===kind,kind+' is not silently coerced to Pulse');

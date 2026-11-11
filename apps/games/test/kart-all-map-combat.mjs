@@ -68,7 +68,7 @@ for(const id of maps.mapIds()){
         f.tick(0);check(f.b.health>0&&f.b.health<100,id+': consumed mine cannot repeat');
       }finally{f.dispose();}
     }
-    for(const [weapon,damage] of [['machinegun',5],['trishot',50],['missile',65],['cannon',70]]){
+    for(const [weapon,damage] of [['machinegun',5],['trishot',50],['missile',65],['cannon',50]]){
       const f=fixture(id);try{
         f.place(f.a,fightX,-4);f.place(f.b,fightX,0);f.fire(f.a,weapon);
         const volley=f.s.zaps.slice();

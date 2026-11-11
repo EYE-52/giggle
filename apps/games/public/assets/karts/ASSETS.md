@@ -31,3 +31,20 @@ Foundry uses `backdrops/quarry.webp`, shared from the arena art work. The quarry
 Clouds: `clouds/cloud-1.webp`, `cloud-2.webp` and `cloud-3.webp` are original GPT Image paintings made for this project, supplied as transparent WebP. Eight distant sprites share three materials and drift slowly. All three images must load before replacing the sphere clouds; missing images and headless builds keep the spheres.
 
 Drivers: `drivers/fox.glb`, `bunny.glb`, `panda.glb` and `raccoon.glb` are original animal racers generated for this project with Meshy text-to-3D (2026-11-07). Each was cut at the seat in Blender to remove the small kart Meshy added, cleaned of loose fragments, normalised to 1 m tall with feet at y=0, decimated to about 2,300 triangles and saved with a 512 px WebP texture and unquantized positions (159–208 KB) so it can join the kart's static batching. `seatKartDriver` replaces the helmet racer's arms, torso, helmet, visor and steering wheel; each driver gets its own batched kart variant and players get a stable driver from their id. If none load, the original helmet racer stays.
+
+## Equipped items and HUD portraits
+
+The side pod for Triple Rockets, Tracking Blaster housing and Spinning Bumper ring use original Meshy models. The editable GLBs are in `scripts/sources/kart-powerups`. Their task IDs are `01a1cb50-3ce2-7597-b979-609cb35f69e5`, `01a1cb50-4d6a-726b-88ec-c8249837b0f8` and `01a1cb50-2f48-7787-9520-ac38b753ea53`, respectively. The builder fits the props to the kart and uses the project's own crate and existing credited combat models for the other items. The three rockets share one mesh and disappear individually as the player fires them.
+
+Rebuild from `apps/games` with Python via uv and glTF Transform 4.5.0. Supply a temporary working directory for the intermediate GLBs.
+
+```sh
+gear_build=$(mktemp -d)
+uv run --script scripts/build-kart-pickup-art.py "$gear_build/gear.glb"
+npx --yes @gltf-transform/cli@4.5.0 weld "$gear_build/gear.glb" "$gear_build/weld.glb"
+npx --yes @gltf-transform/cli@4.5.0 simplify "$gear_build/weld.glb" "$gear_build/lod.glb" --ratio .40 --error .004
+npx --yes @gltf-transform/cli@4.5.0 meshopt "$gear_build/lod.glb" public/assets/karts/combat/pickup-gear.glb --level high
+npm run vendor
+```
+
+The Python step also renders the twelve transparent HUD images. The browser preloads them before the round. The compressed gear library shares materials and buffers across karts, including the small mesh used for a rocket in flight.

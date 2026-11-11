@@ -19,12 +19,12 @@ const oldSelf=globalThis.self,oldImageBitmap=globalThis.createImageBitmap;
 globalThis.self=globalThis;
 globalThis.createImageBitmap=async blob=>{const b=Buffer.from(await blob.arrayBuffer());return{width:b.readUInt32BE(16),height:b.readUInt32BE(20),close(){}};};
 let packs;
-try{packs={combat:await load('combat.meshopt'),pulse:await load('pulse-mounted.meshopt'),arsenal:await load('arsenal-mounted.meshopt')};}
+try{packs={gear:await load('pickup-gear'),combat:await load('combat.meshopt'),pulse:await load('pulse-mounted.meshopt'),arsenal:await load('arsenal-mounted.meshopt')};}
 finally{
  if(oldSelf===undefined)delete globalThis.self;else globalThis.self=oldSelf;
  if(oldImageBitmap===undefined)delete globalThis.createImageBitmap;else globalThis.createImageBitmap=oldImageBitmap;
 }
-const get=name=>packs.pulse.getObjectByName(name)||packs.arsenal.getObjectByName(name)||packs.combat.getObjectByName(name);
+const get=name=>packs.gear.getObjectByName(name)||packs.pulse.getObjectByName(name)||packs.arsenal.getObjectByName(name)||packs.combat.getObjectByName(name);
 for(const name of ['Bomb','BombMuzzleTip','BombShot','BombShotLamp','Seeker','SeekerShot'])assert(get(name),name+' authored node is present');
 const meshes=o=>{const out=[];o.traverse(m=>{if(m.isMesh)out.push(m);});return out;};
 for(const [label,assets]of [['GLB',{get}],['fallback',null]]){
@@ -37,14 +37,12 @@ for(const [label,assets]of [['GLB',{get}],['fallback',null]]){
  // Retired kinds are no longer special: they normalize like any unknown kind.
  for(const kind of RETIRED){assert.equal(art.weapon(kind).userData.combat.kind,'pulse',label+' retired weapon '+kind+' -> pulse');assert.equal(art.projectile(kind).userData.combat.kind,'pulse',label+' retired shot '+kind+' -> pulse');}
  const prox=art.weapon('proximity'),nuke=art.weapon('nuke');
- assert.equal(prox.name,'ProximityLayer');assert.equal(nuke.name,'NukeLauncher');
- for(const rig of [prox,nuke])assert(rig.userData.combat.muzzle[2]>0&&rig.userData.combat.barrels===1,label+' '+rig.name+' launches forward');
+ assert.equal(nuke.name,'NukeLauncher');
+ assert(prox.userData.combat.mount[2]<0&&prox.userData.combat.barrels===0,label+' proximity drops from the back');
+ assert(nuke.userData.combat.mount[0]>.8&&nuke.userData.combat.barrels===1,label+' nuke uses a side mount');
  if(assets){
-  assert(prox.getObjectByName('BombStowedDynamite'),'GLB proximity uses the dynamite launcher rig');
-  assert(!prox.getObjectByName('BombMuzzleTip'),'GLB proximity clone prunes its muzzle helper');
-  const tip=get('BombMuzzleTip');get('Bomb').updateWorldMatrix(true,true);const local=get('Bomb').worldToLocal(tip.getWorldPosition(new THREE.Vector3()));
-  assert(local.distanceTo(new THREE.Vector3(...prox.userData.combat.muzzle))<1e-5,'GLB proximity muzzle is calibrated from BombMuzzleTip');
-  assert(nuke.userData.combat.curated,'Nuke uses the new pooled toy rig');
+  assert(prox.getObjectByName('Gear_proximity'),'GLB proximity carries the red trap bundle');
+  assert(nuke.getObjectByName('Gear_nuke'),'nuke carries the gold canister');
  }
  // Proximity charge: dynamite bundle, lamp tail, settle + armed lamp.
  const charge=art.projectile('proximity'),c=charge.userData.combat;

@@ -1667,12 +1667,13 @@ export function createKartWorld(THREE, options) {
   }
   // Painted panorama of distant peaks (assets/karts/backdrops). It wraps the
   // arena on an inward cylinder (the painting tiles seamlessly), and
-  // replaces the procedural ridges once it has loaded. Headless builds
+  // replaces the distant summits once it has loaded. The near ridge stays
+  // in front of the painting for parallax from the chase camera. Headless builds
   // and load failures keep the ridges.
   // Quarry has its own dry painted horizon; retain ridges until it loads.
   let skyAlive=true;
   const skyIsAlive=()=>skyAlive&&!!root.parent;
-  const backdrop=createKartBackdrop(THREE,{parent:root,theme:quarry?'quarry':theme,radius:hillMin+150,ridges:farRidges,isAlive:skyIsAlive});
+  const backdrop=createKartBackdrop(THREE,{parent:root,theme:quarry?'quarry':theme,radius:hillMin+150,ridges:farRidges.slice(1),isAlive:skyIsAlive});
   const tintBackdrop=backdrop.tint;
   tintBackdrop(P.horizon,P.stars?1:0);
 

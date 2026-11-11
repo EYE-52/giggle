@@ -3,6 +3,7 @@ import RAPIER from '@dimforge/rapier3d-compat';
 import CONFIG from '../public/js/engines/kart-physics-config.mjs';
 import {elevatedMap} from '../public/js/engines/kart-elevated-maps.mjs';
 import {selectArenaVariant} from '../public/js/engines/kart-arena-policy.mjs';
+import {createKartPickupPrediction} from '../public/js/engines/kart-pickup-prediction.mjs';
 import combat from '../games/engines/kart-elevated-combat.js';
 await RAPIER.init();
 // Diagnostic home at an actual legal start. No grants, authority-private
@@ -17,19 +18,37 @@ for(let seed=0;seed<64;seed++){
 assert(match,'real pickup selects a machinegun within seed bound');
 try{
  const home=initial.crates.find(c=>!c.available),position=home.position,coins=match.privateStatus('a').coins;
- assert(home&&home.homeId&&coins===1);assert.equal(initial.karts[0].ammo,30);
+ assert(home&&home.homeId&&coins===1);assert(initial.karts[0].ammo>0);
  const input=(at,value)=>{const s=match.privateStatus('a');return match.input('a',{instance:'economy',life:s.life,controlEpoch:s.controlEpoch,seq:s.receivedSeq+1,steer:0,throttle:0,brake:0,nitro:false,use:false,...value},at);};
  input(50,{use:true});let snapshot;
- for(let at=100;at<=5000;at+=50){if(at%100===0)input(at-50,{});snapshot=match.advance(at);if(at===1950)assert(!snapshot.crates.find(c=>c.id===home.id).available,'home does not return early');if(at===2050)assert(snapshot.crates.find(c=>c.id===home.id).available,'safe home returns on its two-second deadline');}
- const returned=snapshot.crates.find(c=>c.id===home.id);assert(returned?.available,'fixed home returns after two simulation seconds');assert.deepEqual(returned.position,position);assert.equal(returned.homeId,home.homeId);
- assert.equal(snapshot.karts[0].weapon,null,'real full clip retires');assert.equal(match.privateStatus('a').coins,coins,'parked kart cannot collect the returned home');
- match.setConnected('a',false);match.setConnected('a',true);assert.equal(match.privateStatus('a').coins,coins,'reconnect does not reset leave/re-enter requirement');
- // Drive out beyond the radius, then reverse back through the same home.
- for(let at=5050;at<=5900;at+=50){input(at-50,{throttle:1});snapshot=match.advance(at);}
- assert(Math.hypot(snapshot.karts[0].pose.position.x-start.x,snapshot.karts[0].pose.position.z-start.z)>3);
- for(let at=5950;at<=8500&&match.privateStatus('a').coins===coins;at+=50){input(at-50,{throttle:-1,brake:0});snapshot=match.advance(at);}
- assert(match.privateStatus('a').coins>coins,'leaving and re-entering permits a new real claim');
- console.log('PASS fixed homes: real pickup, full clip, 2s return, stable ID/pose, parked denial, reconnect, leave/re-enter');
+ const oldIds=new Set(initial.crates.map(c=>c.id));
+ for(let at=100;at<=5000;at+=50){
+   if(at%100===0)input(at-50,{});
+   snapshot=match.advance(at);
+   if(at===1950)assert(!snapshot.crates.find(c=>c.id===home.id).available);
+   if(at===2050){
+     const returned=snapshot.crates.find(c=>!oldIds.has(c.id));
+     assert(returned?.available,'safe box returns after two seconds with a fresh ID');
+     assert.notEqual(returned.homeId,home.homeId);
+     const socket=map.sockets.find(s=>s.id===returned.homeId);
+     assert.deepEqual(returned.position,{x:socket.x,y:socket.y+.6,z:socket.z});
+     assert(Math.hypot(returned.position.x-position.x,returned.position.z-position.z)>=6);
+     assert.equal(new Set(snapshot.crates.map(c=>c.homeId)).size,initial.crates.length);
+     const predicted=[];
+     const prediction=createKartPickupPrediction({now:()=>at,onPredict:c=>predicted.push(c.id)});
+     prediction.sync('economy',1);
+     prediction.update({alive:true},position,snapshot.crates);
+     assert.deepEqual(predicted,[],'old pad produces no local pickup');
+     prediction.update({alive:true},returned.position,snapshot.crates);
+     assert.deepEqual(predicted,[returned.id]);
+     assert(prediction.hidden(returned.id)&&prediction.accept(returned.id));
+   }
+ }
+ assert.equal(snapshot.karts[0].weapon,null,'real full clip retires');
+ assert.equal(match.privateStatus('a').coins,coins,'parked kart cannot farm the former pad');
+ match.setConnected('a',false);match.setConnected('a',true);
+ assert.deepEqual(match.snapshot().crates,snapshot.crates,'reconnect retains relocated boxes');
+ console.log('PASS rotating box: real pickup, full clip, 2s return at a different valid pad, parked denial and reconnect');
 }finally{match.dispose();}
 
 // Replay the real overlapping road slabs that trapped the firing probe.

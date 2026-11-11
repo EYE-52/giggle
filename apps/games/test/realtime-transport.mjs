@@ -215,6 +215,25 @@ await pocket.initialize();
         compared++;
       }
     }
+    // Loot strings pass through the actual battle projection as well as rt1.
+    // Capture one deployed trap on a keyframe and replace it in the delta.
+    const game = room.game.state, driver = game.karts[0], spec = pocket.realtime(game);
+    const channel = createRealtimeChannel(spec), socket = {}, decoder = decodeFrame({ eventDeltas: true });
+    game.events = [];
+    for (const kind of ['fakecrate', 'proximity']) {
+      driver.weapon = kind;
+      game.mines = [{ id: 'trap', kind, owner: driver.pid, x: 1, z: 2, armed: true, ttl: 4 }];
+      const event = { id: 'trap-' + kind, type: 'mine', pid: driver.pid, weapon: kind };
+      game.events.push(event);
+      channel.prepare(game, null, {});
+      const view = decoder.apply(channel.frameFor(socket, driver.pid, {}));
+      eq(view.karts.find(k => k.pid === driver.pid).weapon, kind, 'held trap on rt1');
+      eq(view.mines[0].kind, kind, 'deployed trap on rt1');
+      eq(view.events.filter(e => e.id.startsWith('trap-')), [event], 'fresh trap event on rt1');
+    }
+    channel.resync(socket);
+    const replayed = decodeFrame().apply(channel.frameFor(socket, driver.pid, {}));
+    eq(replayed.events.filter(e => e.id.startsWith('trap-')), game.events, 'fresh decoder gets both trap types from history');
   } finally { Date.now = realNow; pocket.dispose(room.game.state); }
   ok(compared >= 15, 'compared many ticks: ' + compared);
   ok(bytesRt * 4 < bytesJson, `binary ${bytesRt} B vs JSON ${bytesJson} B for the same seats`);

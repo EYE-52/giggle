@@ -12,11 +12,11 @@ export function runArenaBattle(R,C,source,players,{seed=1,seconds=180,fire=true}
  const planner=createArenaBotPlanner(nav,query);
  let s=match.snapshot(),rng=seed,seen=new Set(),seq=0;const random=()=>((rng=(Math.imul(rng,1664525)+1013904223)>>>0)/4294967296);
  const nearestRoad=p=>nav.nearest(p)||nav.nodes.filter(n=>Math.abs(n.y-p.y)<3.5&&n.y<=p.y+.6).map(n=>({n,distance:Math.hypot(n.x-p.x,n.z-p.z)})).filter(n=>n.distance<12).sort((a,b)=>a.distance-b.distance)[0];
- const homes=s.crates.map(c=>{
-  const home=map.sockets.find(h=>h.id===c.homeId),near=nearestRoad(home);if(!near)throw new Error('Home lacks navigation node: '+home.id);
+ const homes=map.sockets.map(home=>{
+  const near=nearestRoad(home);if(!near)throw new Error('Home lacks navigation node: '+home.id);
   const field=nav.shortest(near.n.index,null,true),metres=new Float64Array(nav.nodes.length).fill(Infinity);metres[near.n.index]=0;
   for(const n of [...nav.nodes].sort((a,b)=>field.distance[a.index]-field.distance[b.index])){const parent=nav.nodes[field.parents[n.index]];if(parent)metres[n.index]=metres[parent.index]+Math.hypot(n.x-parent.x,n.y-parent.y,n.z-parent.z);}
-  return {...home,crateId:c.id,field,metres,visits:0};
+  return {...home,crateId:null,field,metres,visits:0};
  });
  const brains=new Map(seats.map(k=>[k.id,{goal:null,visits:new Set(),levels:new Set(),districts:new Set(),anchor:null,progress:0,unarmedAt:null,avoid:new Map(),seq:0,blocked:new Set()}]));
  const report={players,variant:map.variantId,seed,seconds,pickups:0,shots:0,kos:0,recoveries:[],navigationMisses:0,blockedManoeuvres:0,stuck:[],availability:[],dryMs:Object.fromEntries(map.levels.map(l=>[l.id,0])),maxDryMs:0,unarmedMs:[],unarmedIntervals:[],aliveUnarmedMs:[],visitedHomes:[],levelVisits:{},districtVisits:{},stepMs:[]};
@@ -35,6 +35,8 @@ export function runArenaBattle(R,C,source,players,{seed=1,seconds=180,fire=true}
   if(unarmed&&b.aliveUnarmedAt==null)b.aliveUnarmedAt=at;
  }};
  try{for(let at=0;at<seconds*1000;at+=50){seq++;observe(s,at);
+  const bySocket=new Map(s.crates.map(c=>[c.homeId,c]));
+  for(const home of homes)home.crateId=bySocket.get(home.id)?.id;
   const reserved=new Map();for(const b of brains.values())if(b.goal&&!b.wasArmed)reserved.set(b.goal.crateId,(reserved.get(b.goal.crateId)||0)+1);
   for(const k of s.karts){const b=brains.get(k.id),pose=k.pose,p=pose.position;if(!k.alive)continue;
    if(b.life!==k.spawnSeq){

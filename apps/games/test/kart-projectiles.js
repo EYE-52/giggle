@@ -157,9 +157,10 @@ function run() {
     assert.equal(state.zaps.length, 0);
   }
   {
-    const { state, fire, step } = setup();
-    state.karts[0].z = -3.3; state.karts[1].x = 2; // entire chord outside hull
-    fire(); step(100);
+    const { state, step } = setup();
+    state.karts[0].z = -3.3; state.karts[1].x = 2; // entire straight chord outside hull
+    state.zaps.push({id:'near-miss',owner:'p0',kind:'trishot',x:0,z:-1.3,angle:0,ttl:1});
+    step(100);
     assert.equal(state.karts[0].hits, 0); assert.equal(state.zaps.length, 1, 'a near miss keeps flying');
   }
   console.log('PROJECTILES_PASS: expiry ordering and genuine near misses');

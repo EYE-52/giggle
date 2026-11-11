@@ -551,7 +551,7 @@ diffuseColor.rgb+=vec3(.65,.90,.94)*glint;`);
   const readability=createRaisedReadability(THREE,{parent:soft,map:data,geometry:geo,material:mat,texture:t=>(textures.add(t),t)});
   const festive=createKartFestiveLights(THREE,{parent:soft,map:data,quality,reducedMotion});
   const skyResources={isAlive:()=>!disposed,geometry:geo,material:mat,texture:t=>(textures.add(t),t)};
-  const backdrop=createKartBackdrop(THREE,{parent:soft,theme:data.backdrop||data.id,radius:half+195,ridges:farRidges,...skyResources});
+  const backdrop=createKartBackdrop(THREE,{parent:soft,theme:data.backdrop||data.id,radius:half+195,ridges:farRidges.filter(r=>r.name!=='valley-foothills'),...skyResources});
   // The elevated chase lens sees less sky: move clouds farther out so their
   // lower edges stay in frame while remaining above the painted peaks.
   if(sphereClouds)paintedClouds=createKartClouds(THREE,{parent:soft,radius:backdrop.radius*2,peakHeight:backdrop.height-6,

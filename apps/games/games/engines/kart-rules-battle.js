@@ -1,14 +1,10 @@
 'use strict';
-/* Classic battle authority. 100 HP, one inventory slot and ten
+/* Classic battle authority. 100 HP, one inventory slot and twelve
  * curated pickups from kart-combat-config.js. The server owns every hit,
  * status timer, knockout, respawn and expiry; renderers only draw snapshots.
  *
- * Physical shots use the current body quaternion and inherit its velocity.
- * A Tri-Shot adds only its explicit -8/0/+8 degree fan. Missiles acquire a
- * rival at launch, coast straight briefly, then turn at a bounded rate.
- * Machine Gun and Tri-Shot commit their complete pickup on a fresh press.
- * Each rapid projectile counts once; contact weapons knock out on contact.
- * Mines are separate swept traps.
+ * Each shot uses the current mount. Tracking fire aims at a visible rival;
+ * burst fire and straight rockets follow the kart. Mines wait for movement.
  *
  * Sweeps stop at the earliest static surface, hull or expiry. Static cover
  * wins exact ties. Lifecycle caps are 64 shots, 16 traps and 12 canisters.
@@ -20,7 +16,7 @@
 const {config:COMBAT,damageAt,blastDamage,weaponForRoll,bladeContact,volleyHit} = require('./kart-combat-config');
 const {normalizeWeapon}=require('./kart-combat-config');
 const {weaponForward,launchVelocity,TRI_FAN,CURATED_MUZZLE,inWeaponCone,WEAPON_FEEL}=require('../../public/js/engines/kart-weapon-contract.mjs');
-const LEGACY={proximity:{bodyRadius:.6,splashRadius:5.5,triggerRadius:3},laser:{speed:190,ttl:.7},bouncer:{speed:48,ttl:3.5,bounces:4},cluster:{fuse:.75,bomblets:5,splashRadius:3}};
+const LEGACY={laser:{speed:190,ttl:.7},bouncer:{speed:48,ttl:3.5,bounces:4},cluster:{fuse:.75,bomblets:5,splashRadius:3}};
 const PHYSICS = require('../../public/js/engines/kart-physics-config.mjs').default;
 const PICKUP_R2 = 2.4 * 2.4;
 const ZAP_HIT_R2 = 1.7 * 1.7;
@@ -41,8 +37,8 @@ const SEEKER_RANGE = COMBAT.weapons.missile.range;
 const SEEKER_HALF_ANGLE = COMBAT.weapons.missile.halfAngle * Math.PI / 180;
 const SEEKER_TURN = COMBAT.weapons.missile.turnRate; // rad/s
 const SEEKER_SPLASH_R = COMBAT.weapons.missile.splashRadius;
-const PROXIMITY_R2 = LEGACY.proximity.triggerRadius ** 2;
-const PROXIMITY_SPLASH_R = LEGACY.proximity.splashRadius;
+const PROXIMITY_R2 = COMBAT.weapons.proximity.triggerRadius ** 2;
+const PROXIMITY_SPLASH_R = COMBAT.weapons.proximity.splashRadius;
 const MINE_ARM = COMBAT.weapons.mine.armTime;
 const MINE_TTL = COMBAT.weapons.mine.lifetime;
 const MINE_R2 = COMBAT.weapons.mine.triggerRadius ** 2;
@@ -185,11 +181,11 @@ function pickSocket(state, crates, exclude) {
     for (const k of bodies) dk = Math.min(dk, Math.hypot(k.x - x, k.z - z));
     pool.push({ x, z, dc, dk });
   }
-  if (!pool.length) return { x: 0, z: 0 };
+  if (!pool.length) return exclude || null;
   let tier = pool.filter((p) => p.dc >= spacing && p.dk >= CRATE_KART_KEEP);
-  if (!tier.length) tier = pool.filter((p) => p.dc >= spacing);
+  if (!tier.length) tier = pool.filter((p) => p.dk >= CRATE_KART_KEEP);
   if (!tier.length) {
-    tier = pool.slice().sort((a, b) => (b.dc - a.dc) || (b.dk - a.dk));
+    tier = pool.slice().sort((a, b) => (b.dk - a.dk) || (b.dc - a.dc));
     const top = tier.filter((p) => p.dc === tier[0].dc && p.dk === tier[0].dk);
     return top[randInt(state, top.length)];
   }
@@ -314,7 +310,15 @@ function updateCuratedStatus(state,connected,dt,econ,geometry){
    }
    if(k.bladesT===0){k.bladesVolley=null;k.bladesHits=null;}
   }
-  if(k.supernovaT>0){k.supernovaT=Math.max(0,k.supernovaT-dt);if(k.supernovaT===0){
+  if(k.supernovaT>0){
+   for(const rival of state.karts){
+    if(rival===k||!connected.has(rival.pid)||rival.respawn>0||rival.shield>0)continue;
+    const p=rival.physicalPose?physicalHullCenter(rival):{x:rival.x,y:0,z:rival.z};
+    if(Math.hypot(p.x-me.x,p.y-me.y,p.z-me.z)<W.supernova.contactRadius &&
+       !(geometry?.sweepStatic?.(me,p))&&!splashBlocked(me.x,me.z,p.x,p.z,state.blocks))
+      damage(state,rival,k.pid,'supernova',connected,econ,k.supernovaVolley,W.supernova.contactDamage);
+   }
+   k.supernovaT=Math.max(0,k.supernovaT-dt);if(k.supernovaT===0){
    detonateArea(state,me,k.pid,'supernova',connected,econ,k.supernovaVolley,geometry);
    k.supernovaVolley=null;
   }}
@@ -430,16 +434,17 @@ function launchZap(state, kart, start, angle, kind, volley=null, geometry=null, 
     const n = Math.hypot(geometry.direction.x, geometry.direction.z) || 1;
     geometry = {...geometry, direction: {x: geometry.direction.x / n, y: 0, z: geometry.direction.z / n}};
   }
+  const mountAngle=kind==='machinegun'?kart.angle:angle;
   state.zapSeq += 1;
   state.zaps.push({...extra,
     id: 'z' + state.zapSeq,
     owner: kart.pid,
     kind,
-    x: geometry ? geometry.muzzle.x : start.x + Math.sin(angle) * 2,
-    z: geometry ? geometry.muzzle.z : start.z + Math.cos(angle) * 2,
-    ...(!geometry?{vx:Math.sin(angle)*zapSpeed({kind})+Math.sin(kart.angle)*(kart.speed||0),vz:Math.cos(angle)*zapSpeed({kind})+Math.cos(kart.angle)*(kart.speed||0),vy:kind==='cannon'?W.cannon.launchY:0,y:1.2}:{}),
+    x: geometry ? geometry.muzzle.x : start.x + Math.sin(mountAngle) * 2,
+    z: geometry ? geometry.muzzle.z : start.z + Math.cos(mountAngle) * 2,
+    ...(!geometry?{vx:Math.sin(angle)*zapSpeed({kind})+Math.sin(kart.angle)*(kind==='cannon'?0:kart.speed||0),vz:Math.cos(angle)*zapSpeed({kind})+Math.cos(kart.angle)*(kind==='cannon'?0:kart.speed||0),vy:kind==='cannon'?W.cannon.launchY:0,y:1.2}:{}),
     ...(geometry?.physical ? {physical:true,radius:COMBAT.staticSweepRadii[kind]||0,y:geometry.muzzle.y,
-      ...(()=>{const v=launchVelocity(geometry.direction,zapSpeed({kind}),geometry.velocity,kind==='cannon'?W.cannon.launchY:0);return {vx:v.x,vy:v.y,vz:v.z};})()} : {}),
+      ...(()=>{const v=launchVelocity(geometry.direction,zapSpeed({kind}),kind==='cannon'?undefined:geometry.velocity,kind==='cannon'?W.cannon.launchY:0);return {vx:v.x,vy:v.y,vz:v.z};})()} : {}),
     angle:geometry?Math.atan2(geometry.direction.x,geometry.direction.z):angle,
     ...(kind==='missile'?{age:0}:{}),
     ...(payloads.get(kart)?.started?{stepDt:Math.max(0,-kart.fireCd)}:{}),
@@ -452,7 +457,7 @@ function launchZap(state, kart, start, angle, kind, volley=null, geometry=null, 
  * level (0..3) when the garage applies. Classic (state.garage !== true)
  * and fixtures without upgrades always get the flat base. */
 function fireCooldownFor(state, kart) {
-  const mine=(kart.weapon==='mine')&&!!kart.physicalPose;
+  const mine=kart.weapon==='mine'&&!!kart.physicalPose;
   const base=COMBAT.weapons[kart.weapon]?.cooldown??(mine?COMBAT.weapons[kart.weapon].dropInterval:FIRE_CD);
   if(mine)return base;
   if (!state || state.garage !== true) return base;
@@ -507,9 +512,8 @@ function mineSpot(state, kart, start, fireGeometry) {
   return null;
 }
 
-/* Seeker lock: the nearest live, connected, unprotected rival inside the
- * 60-degree cone within 60m with line of sight from the launch muzzle. */
-function seekerLock(state, kart, from, direction, connected, fireGeometry) {
+/* The tracking blaster scans all around. Homing missiles scan ahead. */
+function seekerLock(state, kart, from, direction, connected, fireGeometry, rule=W.missile) {
   let best=null,bestD=Infinity;
   const fx=direction?direction.x:Math.sin(kart.angle),fz=direction?direction.z:Math.cos(kart.angle);
   const physical=!!kart.physicalPose&&typeof fireGeometry?.sweepStatic==='function';
@@ -517,7 +521,7 @@ function seekerLock(state, kart, from, direction, connected, fireGeometry) {
     if(k.pid===kart.pid||!connected.has(k.pid)||(Number(k.respawn)||0)>0||(Number(k.shield)||0)>0)continue;
     const to=physical?physicalHullCenter(k):{x:k.x,z:k.z};
     const dx=to.x-from.x,dz=to.z-from.z,dy=physical?to.y-from.y:0,d=Math.hypot(dx,dy,dz);
-    if(!inWeaponCone(from,direction||{x:fx,y:0,z:fz},to,SEEKER_RANGE,W.missile.halfAngle))continue;
+    if(!inWeaponCone(from,direction||{x:fx,y:0,z:fz},to,rule.range,rule.halfAngle))continue;
     if(physical?fireGeometry.sweepStatic(from,to):splashBlocked(from.x,from.z,to.x,to.z,state.blocks))continue;
     if(d<bestD){bestD=d;best=k;}
   }
@@ -540,7 +544,7 @@ function econOf(state){return tickEcon.get(state)||null;}
 function tryFire(state, kart, start, connected, fireGeometry) {
   const weapon = kart.weapon = normalizeWeapon(kart.weapon);
   if (!W[weapon] || (Number(kart.ammo) || 0) <= 0 || kart.fireCd > 1e-8) return;
-  const geometry = SHOT_WEAPONS.includes(weapon)
+  let geometry = SHOT_WEAPONS.includes(weapon)
     ? fireMount(state,{...start,angle:start.angle??kart.angle},weapon,fireGeometry) : null;
   if (geometry?.blocked) return;
   const cd = fireCooldownFor(state, kart);
@@ -560,9 +564,24 @@ function tryFire(state, kart, start, connected, fireGeometry) {
     kart.shield = 0;
     // A Boomerang curves to the side it was not last thrown toward.
     const extra = weapon === 'bouncer' ? {bounces:0} : null;
-    launchZap(state, kart, start, kart.angle, weapon,volley,geometry,extra);
+    let angle=kart.angle;
+    if(weapon==='machinegun'){
+      const from=geometry?.muzzle||{x:start.x+2*Math.sin(angle),y:0,z:start.z+2*Math.cos(angle)};
+      const target=seekerLock(state,kart,from,geometry?.direction,connected,fireGeometry,W.machinegun);
+      if(target){
+        const at=geometry?physicalHullCenter(target):{x:target.x,y:0,z:target.z};
+        const x=at.x-from.x,y=at.y-from.y,z=at.z-from.z,n=Math.hypot(x,y,z);
+        if(geometry)geometry={...geometry,direction:{x:x/n,y:y/n,z:z/n}};
+        angle=Math.atan2(x,z);
+      }
+    }
+    launchZap(state,kart,start,angle,weapon,volley,geometry,extra);
     kart.ammo -= 1;
-    pushEvent(state, 'fire', kart.pid, undefined, weapon,geometry?{position:geometry.muzzle,direction:geometry.direction}:undefined);
+    const accepted=geometry?{position:geometry.muzzle,direction:geometry.direction}:weapon==='machinegun'?{
+      position:{x:start.x+2*Math.sin(kart.angle),y:1.2,z:start.z+2*Math.cos(kart.angle)},
+      direction:{x:Math.sin(angle),y:0,z:Math.cos(angle)}
+    }:undefined;
+    pushEvent(state,'fire',kart.pid,undefined,weapon,accepted);
   } else if (weapon === 'trishot') {
     if (state.zaps.length + SCATTER_FAN.length > MAX_ZAPS) return;
     kart.shield = 0;
@@ -584,27 +603,29 @@ function tryFire(state, kart, start, connected, fireGeometry) {
     kart.ramVolley = volley;
     kart.ammo -= 1;
     pushEvent(state, 'fire', kart.pid, undefined, 'ram');
-  } else if (weapon === 'mine' || weapon === 'proximity') {
+  } else if (weapon === 'mine' || weapon === 'proximity' || weapon === 'fakecrate') {
     if (state.mines.length >= MAX_MINES) return;
     const payload=payloads.get(kart);
     if(payload&&!payload.started){
       const reserved=state.karts.reduce((n,k)=>n+(payloads.get(k)?.weapon==='mine'?Math.max(0,k.ammo||0):0),0);
       if(state.mines.length+reserved>MAX_MINES)return;
     }
+    if(payload?.lastDrop && Math.hypot(start.x-payload.lastDrop.x,start.z-payload.lastDrop.z)<W.mine.spacing)return;
     const spot = mineSpot(state, kart, start, fireGeometry);
     if (!spot) return; // no legal ground: keep the item and the shield
     kart.shield = 0;
+    if(payload && weapon==='mine')payload.lastDrop={x:start.x,z:start.z};
     state.mineSeq += 1;
     state.mines.push({
       id: 'm' + state.mineSeq,
       owner: kart.pid,
-      ...(weapon === 'proximity' ? {kind:weapon} : {}),
+      ...(weapon === 'mine' ? {} : {kind:weapon}),
       x: spot.x,
       z: spot.z,
       ...(spot.physical ? {physical:true,y:spot.y} : {}),
-      armT: MINE_ARM,
+      armT: W[weapon].armTime,
       armed: false,
-      ttl: MINE_TTL,
+      ttl: W[weapon].lifetime,
     });
     kart.ammo -= 1;
     pushEvent(state, weapon === 'mine' ? 'mine' : 'fire', kart.pid, undefined, weapon,spot.physical?{position:{x:spot.x,y:spot.y,z:spot.z}}:undefined);
@@ -811,11 +832,11 @@ function minePathBlocked(bx, bz, px, pz, blocks) {
 /* Rockets and seekers: the direct victim and every nearby visible victim
  * take smooth radial HP damage. The splash respects 3D cover,
  * ownership, protection and active lives. */
-function detonateArea(state,origin,owner,weapon,connected,econ,volley=null,geometry=null,direct=null,directAmount=null) {
+function detonateArea(state,origin,owner,weapon,connected,econ,volley=null,geometry=null,direct=null,directAmount=null,shot=null) {
   const radius=W[weapon].splashRadius;
   pushEvent(state,'blast',owner,null,weapon,{x:origin.x,z:origin.z,position:origin,radius});
   for(const kart of state.karts){
-    if(kart===direct){damage(state,kart,owner,weapon,connected,econ,volley,directAmount);continue;}
+    if(kart===direct){damage(state,kart,owner,weapon,connected,econ,volley,directAmount,shot);continue;}
     const p=kart.physicalPose?physicalHullCenter(kart):{x:kart.x,y:0,z:kart.z};
     const d=Math.hypot(p.x-origin.x,p.y-origin.y,p.z-origin.z),amount=blastDamage(weapon,d,radius);
     if(!(amount>0))continue;
@@ -823,12 +844,12 @@ function detonateArea(state,origin,owner,weapon,connected,econ,volley=null,geome
       const n=d>1e-6?Math.min(.03,d*.5)/d:0;
       if(geometry.sweepStatic({x:origin.x+(p.x-origin.x)*n,y:origin.y+(p.y-origin.y)*n,z:origin.z+(p.z-origin.z)*n},p))continue;
     }else if(splashBlocked(origin.x,origin.z,p.x,p.z,state.blocks))continue;
-    damage(state,kart,owner,weapon,connected,econ,volley,amount);
+    damage(state,kart,owner,weapon,connected,econ,volley,amount,shot);
   }
 }
 function detonateRocket(state,zap,ix,iz,connected,econ,direct=null,position=null,fireGeometry=null){
  const weapon=zap.kind==='missile'?'missile':'cannon';
- detonateArea(state,position||{x:ix,y:0,z:iz},zap.owner,weapon,connected,econ,zap.volley,fireGeometry,direct);
+ detonateArea(state,position||{x:ix,y:0,z:iz},zap.owner,weapon,connected,econ,zap.volley,fireGeometry,direct,null,zap.id);
 }
 
 /* Turn a missile toward its locked rival by at most SEEKER_TURN*dt. A lock
@@ -882,26 +903,6 @@ function planarNormal(p, bound, blocks, vx, vz) {
   const wallGap = bound - Math.max(Math.abs(p.x), Math.abs(p.z));
   if (best && bestGap < wallGap) return grenadeFaceNormal(p.x, p.z, best, Number(best.hw) || 0, Number(best.hd) || 0, vx, vz);
   return Math.abs(p.x) >= Math.abs(p.z) ? {nx: p.x > 0 ? -1 : 1, nz: 0} : {nx: 0, nz: p.z > 0 ? -1 : 1};
-}
-
-/* Proximity charge: one blast at the charge, every vulnerable rival within
- * 5.5u with line of sight follows the legacy mine alias. */
-function detonateCharge(state, mine, connected, econ, fireGeometry) {
-  const position = mine.physical ? {x:mine.x,y:mine.y+.4,z:mine.z} : {x:mine.x,y:.4,z:mine.z};
-  pushEvent(state, 'blast', mine.owner, undefined, 'proximity', {x:+mine.x.toFixed(2),z:+mine.z.toFixed(2),position});
-  for (const kart of state.karts) {
-    if (!kart || kart.pid === mine.owner || !connected.has(kart.pid)) continue;
-    if ((Number(kart.respawn) || 0) > 0 || (Number(kart.shield) || 0) > 0) continue;
-    if (mine.physical && kart.physicalPose && fireGeometry?.sweepStatic) {
-      const target = physicalHullCenter(kart);
-      if (Math.hypot(target.x-position.x,target.y-position.y,target.z-position.z) >= PROXIMITY_SPLASH_R) continue;
-      if (fireGeometry.sweepStatic(position,target)) continue;
-    } else {
-      if (Math.hypot(kart.x-mine.x,kart.z-mine.z) >= PROXIMITY_SPLASH_R) continue;
-      if (splashBlocked(mine.x,mine.z,kart.x,kart.z,state.blocks)) continue;
-    }
-    damage(state,kart,mine.owner,'proximity',connected,econ);
-  }
 }
 
 function numOr(v, dflt) {
@@ -1149,6 +1150,7 @@ module.exports = {
     const count = clampNum(4 + state.karts.length, 6, 10);
     for (let i = 0; i < count; i++) {
       const spot = pickSocket(state, state.crates, null);
+      if (!spot) break;
       state.crateSeq += 1;
       state.crates.push({ id: 'c' + state.crateSeq, x: spot.x, z: spot.z });
     }
@@ -1383,7 +1385,7 @@ module.exports = {
       }
       let victim = null;
       let bestT = Infinity;
-      const triggerR2 = mine.kind === 'proximity' ? PROXIMITY_R2 : MINE_R2;
+      const triggerR2 = (W[mine.kind]?.triggerRadius||W.mine.triggerRadius)**2;
       if (live) {
         const maxTravel = 40 * Math.max(0, dt) + 3;
         for (const kart of state.karts) {
@@ -1423,12 +1425,13 @@ module.exports = {
           victim = kart;
         }
       }
-      if (victim && mine.kind === 'proximity') detonateCharge(state,mine,connected,econ,fireGeometry);
+      if(victim && mine.kind==='fakecrate')damage(state,victim,mine.owner,'fakecrate',connected,econ);
       else if (victim) {
         const before=previousKarts?.get(victim.pid)||victim,physical=mine.physical&&victim.physicalPose;
         const a=physical?physicalHullCenter(before):{x:before.x,y:0,z:before.z},b=physical?physicalHullCenter(victim):{x:victim.x,y:0,z:victim.z};
         const d=Math.hypot(a.x+(b.x-a.x)*bestT-mine.x,a.y+(b.y-a.y)*bestT-(physical?mine.y:0),a.z+(b.z-a.z)*bestT-mine.z);
-        detonateArea(state,{x:mine.x,y:physical?mine.y:0,z:mine.z},mine.owner,'mine',connected,econ,null,fireGeometry,victim,blastDamage('mine',d));
+        const kind=mine.kind||'mine';
+        detonateArea(state,{x:mine.x,y:physical?mine.y:0,z:mine.z},mine.owner,kind,connected,econ,null,fireGeometry,victim,blastDamage(kind,d));
       }
       else if (!expired) kept.push(mine);
     }

@@ -1,14 +1,15 @@
 /* Cosmetic flight only. Server sweeps/impacts remain authoritative. Render
  * at the calibrated server clock instead of easing after stale 10Hz points.
  * A short lead expires on missing packets, and stops at visible cover. */
+import {WEAPONS} from './kart-weapon-contract.mjs';
 const PHYSICAL_LEAD=.15;
 export function projectilePose(shot, snapshot, serverNow) {
-  const speed=Number(shot.speed)||({machinegun:140,trishot:95,missile:60,cannon:44,pulse:110,scatter:95,rocket:85,rail:160}[shot.kind]||110);
+  const speed=Number(shot.speed)||WEAPONS[shot.kind]?.speed||({pulse:110,scatter:95,rocket:85,rail:160}[shot.kind]||110);
   const age=Number.isFinite(snapshot.simAt) ? Math.max(0,(serverNow-snapshot.simAt)/1000) : 0;
   const lead=Math.min(age,.2,Math.max(0,Number(shot.ttl)||0));
   // Bridges/undersides are absent from the planar cover projection.
   if(shot.physical===true){
-    const t=Math.min(age,PHYSICAL_LEAD,Math.max(0,Number(shot.ttl)||0)),g=shot.kind==='cannon'?12:0;
+    const t=Math.min(age,PHYSICAL_LEAD,Math.max(0,Number(shot.ttl)||0)),g=WEAPONS[shot.kind]?.gravity||0;
     return {x:shot.x+(shot.vx||0)*t,y:shot.y+(shot.vy||0)*t-.5*g*t*t,z:shot.z+(shot.vz||0)*t,angle:shot.angle,
       direction:{x:shot.vx,y:(shot.vy||0)-g*t,z:shot.vz},visible:age<=PHYSICAL_LEAD&&age<(Number(shot.ttl)||0)};
   }
@@ -80,7 +81,7 @@ export function createProjectilePlayback(){
    a=b=r.list[0].shot;
    for(let i=r.list.length-1;i>0;i--)if(time>=r.list[i-1].at){const from=r.list[i-1],to=r.list[i];a=from.shot;b=to.shot;alpha=Math.max(0,Math.min(1,(time-from.at)/(to.at-from.at)));break;}
   }
-  const ahead=Math.max(0,(time-at)/1000)||0,lead=Math.min(ahead,PHYSICAL_LEAD),g=b.kind==='cannon'?12:0;
+  const ahead=Math.max(0,(time-at)/1000)||0,lead=Math.min(ahead,PHYSICAL_LEAD),g=WEAPONS[b.kind]?.gravity||0;
   out.x=a.x+(b.x-a.x)*alpha+(b.vx||0)*lead;out.y=a.y+(b.y-a.y)*alpha+(b.vy||0)*lead-.5*g*lead*lead;out.z=a.z+(b.z-a.z)*alpha+(b.vz||0)*lead;
   out.angle=b.angle;const v=out.direction;
   v.x=(a.vx||0)+((b.vx||0)-(a.vx||0))*alpha;v.y=(a.vy||0)+((b.vy||0)-(a.vy||0))*alpha-g*lead;v.z=(a.vz||0)+((b.vz||0)-(a.vz||0))*alpha;

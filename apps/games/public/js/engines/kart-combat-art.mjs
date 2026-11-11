@@ -434,7 +434,6 @@ function isLitName(name) {
 }
 
 export function createKartCombatArt(THREE, opts) {
-  const curated=createCuratedArt(THREE);
   if (!THREE || !THREE.Group) {
     throw new Error('createKartCombatArt: a THREE namespace is required');
   }
@@ -455,6 +454,7 @@ export function createKartCombatArt(THREE, opts) {
     }
   }
 
+  const curated=createCuratedArt(THREE,name=>libGet?.(name));
   const reg = { geometries: new Set(), materials: new Set() };
   let glowTex = null; const glowMats = new Map();
   let pool = null;
@@ -782,11 +782,42 @@ export function createKartCombatArt(THREE, opts) {
     return outer;
   }
 
-  function mine(own, kind) {
+  const trapSizes=new Map();
+  let trapBall=null;
+  function specialTrap(kind,isOwn){
+    const {outer,inner,c}=base('mine',kind,kind==='fakecrate'?'FakeCrateTrap':'ProximityTrap');
+    const source=libBranch('Gear_'+kind,null);
+    if(source){
+      const model=cloneLib(source);
+      model.position.set(0,0,0);
+      let fit=trapSizes.get(kind);
+      if(!fit){
+        const bounds=new THREE.Box3().setFromObject(model);
+        const scale=(kind==='fakecrate'?1.48:.95)/Math.max(.01,bounds.max.x-bounds.min.x,bounds.max.z-bounds.min.z);
+        fit={scale,y:-bounds.min.y*scale};trapSizes.set(kind,fit);
+      }
+      model.scale.multiplyScalar(fit.scale);model.position.y=fit.y;inner.add(model);
+    }else{
+      const {M,G}=ensurePool();
+      if(kind==='fakecrate'){
+        const body=solid(G.pickupBody,M.crate,'DecoyBox'),lid=solid(G.pickupLid,M.lid,'DecoyLid');
+        body.position.y=.55;lid.position.y=1.15;
+        inner.add(body,lid,lit(G.pickupGlyph,M.glyph,'DecoyMark'));
+      }else{
+        trapBall ||= poolGeo(reg,new THREE.SphereGeometry(.46,12,8),'ProximityBall');
+        const body=solid(trapBall,M.lampRed,'ProximityBall'),cap=solid(G.mineGlow,M.metal,'ProximityCap');
+        body.position.y=.46;cap.position.y=.93;inner.add(body,cap);
+      }
+    }
+    c.own=isOwn;c.armed=true;
+    return outer;
+  }
 
+  function mine(own, kind) {
     const isOwn = own !== false;
+    if(kind==='fakecrate')return specialTrap(kind,isOwn);
     const branch = libBranch('MineTrap', null)||libBranch('Mine', null);
-    const object=branch?mineFromLib(isOwn,branch):mineFallback(isOwn),c=object.userData.combat;
+    const object=kind==='proximity'?specialTrap(kind,isOwn):branch?mineFromLib(isOwn,branch):mineFallback(isOwn),c=object.userData.combat;
     if(!mineWarningGeometry){mineWarningGeometry=poolGeo(reg,new THREE.RingGeometry(.78,.94,32),'MineWarningRing');mineWarningGeometry.rotateX(-Math.PI/2);mineWarningMaterial=trackMat(reg,new THREE.MeshBasicMaterial({color:0xffcb55,transparent:true,opacity:.7,depthWrite:false,side:THREE.DoubleSide,toneMapped:false}));}
     const warning=new THREE.Mesh(mineWarningGeometry,mineWarningMaterial);warning.name='MineWarningRing';warning.position.y=.09;warning.userData.groundDecoration=true;object.add(warning);c.warning=warning;
     return object;
@@ -1028,7 +1059,7 @@ export function createKartCombatArt(THREE, opts) {
     reg.materials.clear();
     glowTex?.dispose(); glowTex = null; glowMats.clear();
     arsenal.dispose();curated.dispose();
-    mineWarningGeometry=mineWarningMaterial=null;
+    mineWarningGeometry=mineWarningMaterial=trapBall=null;trapSizes.clear();
     pool = null;
     ovr = null;
     readableHousing = new WeakMap();
@@ -1045,5 +1076,5 @@ export function createKartCombatArt(THREE, opts) {
     if (muzzle && c?.muzzle) object.position.set(muzzle.x-c.muzzle[0],muzzle.y-c.muzzle[1],muzzle.z-c.muzzle[2]);
     else object.position.fromArray(c.mount);
   }
-  return { pickup, projectile, mine, weapon, placeWeapon, recoil, animate, dispose };
+  return { pickup, projectile, mine, weapon, placeWeapon, aim:curated.aim, recoil, animate, dispose };
 }

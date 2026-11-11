@@ -81,16 +81,33 @@ export function createArsenalFX(THREE, scene, { reducedMotion = () => false, gro
     if(!model||kart?.alive===false||kart?.respawn>0||kart?.connected===false)return;
     lockMesh.position.copy(model.position);lockMesh.position.y+=2.1;lockMesh.quaternion.copy(camera.quaternion);lockMesh.scale.setScalar(1);lockMesh.visible=true;
   }
+  const muzzleDirection=new THREE.Vector3(),muzzleRotation=new THREE.Quaternion(),forward=new THREE.Vector3(0,0,1);
   function react(e,models,age=0){
     const type=e.type||e.kind;
-    if(type==='fire'||type==='mine'){const model=models.get(e.pid);if(model){const s=attach(model);s.fireAge=age;s.firePower=WEAPON_FEEL[e.weapon]?.recoil||.1;s.muzzlePower=e.weapon==='cannon'||e.weapon==='missile'?1.6:1;s.muzzleOn=['machinegun','trishot','missile','cannon'].includes(e.weapon);}}
+    if(type==='fire'||type==='mine'){
+      const model=models.get(e.pid);
+      if(!model)return;
+      const s=attach(model);
+      s.fireAge=age;s.firePower=WEAPON_FEEL[e.weapon]?.recoil||.1;
+      s.muzzlePower=e.weapon==='cannon'||e.weapon==='missile'?1.6:1;
+      s.muzzleOn=['machinegun','trishot','missile','cannon'].includes(e.weapon);
+      if(s.muzzleOn){
+        muzzleDirection.copy(forward);
+        if(e.direction){
+          model.getWorldQuaternion(muzzleRotation);
+          muzzleDirection.copy(e.direction).applyQuaternion(muzzleRotation.invert()).normalize();
+        }
+        s.muzzle.quaternion.setFromUnitVectors(forward,muzzleDirection);
+        s.muzzle.position.set(CURATED_MUZZLE.x,CURATED_MUZZLE.y,CURATED_MUZZLE.z).addScaledVector(muzzleDirection,.06);
+      }
+    }
     if(type==='hit'){const model=models.get(e.other);if(model){const s=attach(model);s.hitAge=0;s.hitPower=Math.min(1.3,.3+(WEAPON_FEEL[e.weapon]?.kick||1)/8);}}
   }
   // ---- kart status attachments ----
   const domeGeo = keepG(new THREE.SphereGeometry(1, 20, 10, 0, TAU, 0, Math.PI / 2)); domeGeo.rotateX(Math.PI / 2);
   const shellGeo = keepG(new THREE.IcosahedronGeometry(1, 1));
   const ramMat = additive(0xffb347, .5), frostMat = additive(0x9fe8ff, .32);
-  const bladeGeo=keepG(new THREE.BoxGeometry(1.2,.12,.32)),bladeMat=additive(0x6bffda,.95),novaMat=additive(0x73ffe0,.25);
+  const bladeGeo=keepG(new THREE.TorusGeometry(2.2,.021,4,12,.39)),bladeMat=additive(0x6bffda,.95),novaMat=additive(0x73ffe0,.25);
   const novaRimGeo=keepG(new THREE.TorusGeometry(1,.035,4,40));novaRimGeo.rotateX(Math.PI/2);
   const novaRimMat=additive(0x9affde,.9);
   const starShape=new THREE.Shape();for(let i=0;i<16;i++){const a=i*Math.PI/8,r=i%2?.24:.75;if(i)starShape.lineTo(Math.cos(a)*r,Math.sin(a)*r);else starShape.moveTo(r,0);}starShape.closePath();
@@ -129,7 +146,7 @@ export function createArsenalFX(THREE, scene, { reducedMotion = () => false, gro
     s.muzzle.visible=connected&&s.muzzleOn&&s.fireAge<(still?.07:.14);
     if(s.muzzle.visible)s.muzzle.scale.setScalar(s.muzzlePower*(still?.65:1.15-s.fireAge*3));
     s.nova.visible=connected&&kart?.supernovaT>elapsed;s.blades.visible=connected&&kart?.bladesT>elapsed;
-    if(s.blades.visible){s.blades.position.set(0,.35,0);s.blades.quaternion.copy(model.quaternion).invert();for(let i=0;i<3;i++){const b=s.blades.children[i],a=((kart.bladesAge||0)+elapsed)*7+i*TAU/3;b.position.set(Math.cos(a)*2.2,0,Math.sin(a)*2.2);b.rotation.y=-a;}}
+    if(s.blades.visible){s.blades.position.set(0,.35,0);s.blades.quaternion.copy(model.quaternion).invert();for(let i=0;i<3;i++){const b=s.blades.children[i],a=((kart.bladesAge||0)+elapsed)*7+i*TAU/3;b.rotation.set(Math.PI/2,0,a);}}
     s.nova.position.y=.35;
     if(s.nova.visible)s.nova.rotation.y=still?0:time*.6;
     s.ram.visible = !!ramOn; s.frost.visible = !!frostOn;

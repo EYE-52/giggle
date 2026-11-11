@@ -268,7 +268,7 @@ function checkSilhouettes(bundle, tag) {
     const s = sizeOf(rigs[kind]);
     assert.ok(Math.max(s.x, s.y, s.z) >= 0.8, `${tag} ${kind} rig reads at size`);
     assert.ok(c.muzzle[2] >= -1e-4, `${tag} ${kind} muzzle faces +Z`);
-    assert.deepEqual(c.mount, [0, 1.35, -1.2], `${tag} ${kind} above-rear mount`);
+    assert.deepEqual(c.mount,kind==='mine'?[-1.18,1.30,-1.17]:[0,1.35,-1.2],`${tag} ${kind} fits its rack`);
   }
 }
 
@@ -298,6 +298,7 @@ function checkAnimate(art, tag, bundle) {
       if (m.isMesh) { geoRefs.set(m, m.geometry); matRefs.set(m, m.material); }
     });
   }
+  const trimSizes=Object.fromEntries(Object.entries(bundle.rigs).map(([kind,rig])=>[kind,rig.userData.combat.trim.scale.toArray()]));
   const outerPos = cast[0].position.clone();
   const outerRot = cast[0].rotation.y;
   for (let i = 0; i < 500; i++) {
@@ -306,7 +307,7 @@ function checkAnimate(art, tag, bundle) {
     assert.equal(mine.inner.rotation.y, 0, `${tag} deployed mine stays planted`);
     assert.deepEqual(mine.cap.scale.toArray(), [1, 1, 1], `${tag} armed mine collar stays rigid`);
     for (const kind of ['pulse', 'scatter', 'mine', 'rocket']) {
-      assert.deepEqual(bundle.rigs[kind].userData.combat.trim.scale.toArray(), [1, 1, 1],
+      assert.deepEqual(bundle.rigs[kind].userData.combat.trim.scale.toArray(),trimSizes[kind],
         `${tag} ${kind} physical muzzle/collar stays rigid`);
     }
   }
@@ -369,6 +370,24 @@ function checkFullMatch(bundle, tag) {
 /* ---- GLB path: all three documented assets shapes ---- */
 const assetsMap = new Map(COMBAT_GLB_MODELS.map((m) => [m, library.getObjectByName(m)]));
 const assetsObj = Object.fromEntries(assetsMap);
+{
+  const assets=new Map(),geometry=new THREE.BoxGeometry(1,1.2,1),material=new THREE.MeshStandardMaterial();
+  for(const kind of ['proximity','fakecrate']){
+    const source=new THREE.Group();source.name='Gear_'+kind;
+    source.add(new THREE.Mesh(geometry,material));assets.set(source.name,source);
+  }
+  const art=createKartCombatArt(THREE,{assets});
+  for(const kind of ['proximity','fakecrate']){
+    const trap=art.mine(false,kind),copy=trap.getObjectByName('Gear_'+kind);
+    assert(copy&&copy!==assets.get(copy.name),'ground trap clones the matching gear model');
+    assert.equal(meshesOf(copy)[0].geometry,geometry,'trap pool shares source geometry');
+    assert.equal(meshesOf(copy)[0].material,material,'trap pool shares source material');
+    assert(Math.abs(new THREE.Box3().setFromObject(copy).min.y)<1e-5,'gear sits on its base');
+    assert.equal(trap.userData.combat.kind,kind);
+    assert.equal(!!trap.getObjectByName('MineWarningRing'),kind==='proximity');
+  }
+  art.dispose();geometry.dispose();material.dispose();
+}
 const artRoot = createKartCombatArt(THREE, { assets: library });
 const artMap = createKartCombatArt(THREE, { assets: assetsMap });
 const artObj = createKartCombatArt(THREE, { assets: assetsObj });
@@ -438,7 +457,7 @@ checkFullMatch(glb, 'glb');
   }
   // Muzzles calibrated from the GLB tips (float32 tolerance).
   const wantMuzzle = {
-    pulse: [0, 0.3, 1.1], scatter: [0, 0.42, 0.9], mine: [0, .35, 1.1],
+    pulse: [0, 0.3, 1.1], scatter: [0, 0.42, 0.9], mine: [0, 0, 0],
     shield: [0, 0.48, 0], rocket: [0, 0.65, 0.98],
   };
   for (const kind of RIG_KINDS) {

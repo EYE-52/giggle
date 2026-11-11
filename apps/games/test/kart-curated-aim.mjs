@@ -52,7 +52,7 @@ for(const yaw of [-Math.PI,-2.4,-.7,0,.65,1.8,Math.PI])for(const kind of kinds){
  assert.equal(s.zaps.length,kind==='trishot'?3:1);
  for(let i=0;i<s.zaps.length;i++){
   const p=s.zaps[i],offset=kind==='trishot'?TRI_FAN[i]:0,expected=weaponForward(q,offset),lift=kind==='cannon'?WEAPONS.cannon.launchY:0;
-  checkDirection({x:p.vx-velocity.x,y:p.vy-velocity.y-lift,z:p.vz-velocity.z},expected,kind+' classic current heading + velocity');
+  checkDirection({x:p.vx-(kind==='cannon'?0:velocity.x),y:p.vy-(kind==='cannon'?0:velocity.y)-lift,z:p.vz-(kind==='cannon'?0:velocity.z)},expected,kind+' classic current heading + velocity');
   const packet=battle.viewExtra(s).zaps[i];draw(kind,packet,'classic');
  }
  const point=(id,x,z,angle=0)=>({id,x,y:0,z,angle,surface:'floor'});
@@ -69,7 +69,7 @@ for(const yaw of [-Math.PI,-2.4,-.7,0,.65,1.8,Math.PI])for(const kind of kinds){
    const p=shots[i],offset=kind==='trishot'?TRI_FAN[i]:0,expected=weaponForward(own.pose.rotation,offset);
    // First update already applies one fixed step of cannon gravity.
    const lift=kind==='cannon'?WEAPONS.cannon.launchY-WEAPONS.cannon.gravity*CONFIG.fixedDt:0;
-   checkDirection({x:p.velocity.x-v.x,y:p.velocity.y-v.y-lift,z:p.velocity.z-v.z},expected,kind+' elevated current heading + velocity');
+   checkDirection({x:p.velocity.x-(kind==='cannon'?0:v.x),y:p.velocity.y-(kind==='cannon'?0:v.y)-lift,z:p.velocity.z-(kind==='cannon'?0:v.z)},expected,kind+' elevated current heading + velocity');
    draw(kind,p,'elevated');
   }
  }finally{w.dispose();}

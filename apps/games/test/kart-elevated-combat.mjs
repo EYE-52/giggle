@@ -92,7 +92,7 @@ for(const [id,surface,x,z,toZ,height]of [
   const w=armed('missile',map,{},[{id:'a'},{id:'b'},{id:'c'}]);
   try{
     fire(w);step(w,35);
-    check(id+' '+(upper?'upper':'underpass')+' direct Rocket clip takes two of a full rival\'s hearts once',kart(w,'b').health===35&&kart(w,'b').alive&&kart(w).hits===0&&w.snapshot().events.filter(e=>e.type==='hit'&&e.other==='b'&&e.damage===65).length===1&&w.snapshot().events.filter(e=>e.type==='hit'&&e.other==='b').length===1);
+    check(id+' '+(upper?'upper':'underpass')+' direct missile does 65 damage once',kart(w,'b').health===35&&kart(w,'b').alive&&kart(w).hits===0&&w.snapshot().events.filter(e=>e.type==='hit'&&e.other==='b'&&e.damage===65).length===1&&w.snapshot().events.filter(e=>e.type==='hit'&&e.other==='b').length===1);
     check(id+' finite shipped deck blocks cross-height Rocket damage',kart(w,'c').health===100&&kart(w,'c').alive&&!w.snapshot().events.some(e=>e.type==='hit'&&e.other==='c'));
   }finally{w.dispose();}
 }
@@ -123,7 +123,7 @@ for(const weapon of ['machinegun','trishot']){
   }finally{w.dispose();}
 }
 {
-  const wall={id:'pellet-wall',shape:'box',half:{x:6,y:2,z:.01},position:{x:0,y:2,z:3.5}},w=armed('trishot',fixture([wall]));
+  const wall={id:'pellet-wall',shape:'box',half:{x:6,y:2,z:.01},position:{x:0,y:2,z:3.2}},w=armed('trishot',fixture([wall]));
   try {
     fire(w);const impacts=w.snapshot().events.filter(e=>e.type==='impact'),accepted=w.snapshot().events.find(e=>e.type==='fire');
     check('three same-tick Scatter pellets carry independent exact surface endpoints',impacts.length===3&&new Set(impacts.map(e=>e.id)).size===3&&new Set(impacts.map(e=>e.position.x.toFixed(4))).size===3&&impacts.every(e=>e.surfaceId==='pellet-wall'&&gap(e.from,accepted.position)<=.201)&&w.snapshot().projectiles.length===0);
@@ -214,13 +214,13 @@ for(const weapon of ['machinegun','trishot']){
   }finally{free.dispose();}
 }
 
-for(const weapon of ['machinegun','trishot','missile','missile']) {
-  // Wounded constructor isolates single-impact sweep/KO cleanup. Default three
-  // hearts, volley caps and full-health scoring are in kart-health.
+for(const weapon of ['machinegun','trishot','missile','cannon']) {
+  // Wounded constructor isolates single-impact sweep/KO cleanup. Default health,
+  // volley limits and full-health scoring are in kart-health.
   const awards=[],w=armed(weapon,fixture(),{initialHealth:1,onAward:(...v)=>awards.push(v)});
   try {
     check(weapon+' is acquired from actual shared weighted crate pool',kart(w).weapon===weapon);
-    const life=w.snapshot('b').you;fire(w);step(w,8);
+    const life=w.snapshot('b').you;fire(w);step(w,12);
     check(weapon+' full 3D projectile flow KOs once',kart(w).hits===1&&!kart(w,'b').alive&&kart(w,'b').deaths===1);
     check(weapon+' KO awards once and disables dead hull',awards.filter(v=>v[1]===10).length===1&&!send(w,'b').ok);
     step(w,125);
@@ -233,10 +233,11 @@ for(const weapon of ['machinegun','trishot','missile','missile']) {
 {
   // At the actual Pulse speed each 60Hz step travels 2.33u. Both sampled
   // endpoints of this grazing chord miss the 1.7u combat hull; only the
-  // swept path can confirm the hit. Use a real collected Pulse and poses.
-  const w=armed('machinegun',fixture([],[point('a',0,0,0),point('b',1.05,0,5.6,Math.PI)]),{initialHealth:1});
+  // swept path can confirm the hit. The target is beyond the blaster's
+  // tracking cone range, so this real bullet travels along the barrel.
+  const w=armed('machinegun',fixture([],[point('a',0,0,0),point('b',2.58,0,40.1,Math.PI)]),{initialHealth:1});
   try {
-    fire(w);const before=w.snapshot(),shot=before.projectiles[0],target=kart(w,'b').pose;
+    fire(w);step(w,15);const before=w.snapshot(),shot=before.projectiles[0],target=kart(w,'b').pose;
     assert.ok(shot&&kart(w,'b').alive);
     const h={x:target.position.x,y:target.position.y+.35,z:target.position.z},end={x:shot.position.x+shot.velocity.x*CONFIG.fixedDt,y:shot.position.y+shot.velocity.y*CONFIG.fixedDt,z:shot.position.z+shot.velocity.z*CONFIG.fixedDt};
     check('fast Pulse grazing endpoints both lie outside the real combat hull',Math.hypot(shot.position.x-h.x,shot.position.y-h.y,shot.position.z-h.z)>1.7&&Math.hypot(end.x-h.x,end.y-h.y,end.z-h.z)>1.7);
@@ -269,12 +270,12 @@ for(const angle of [0,Math.PI/2,Math.PI,-Math.PI/2]) {
 {
   // Cover is in front of the side barrel while leaving the centre line clear.
   // A centre-mounted sweep would miss this and create a shot beyond the wall.
-  const cover={id:'barrel-cover',shape:'box',half:{x:.30,y:.35,z:.08},position:{x:0,y:.64+CURATED_MUZZLE.y,z:1.83}};
+  const cover={id:'barrel-cover',shape:'box',half:{x:.015,y:.15,z:.08},position:{x:1.25,y:.64+CURATED_MUZZLE.y,z:1.43}};
   const w=armed('machinegun',fixture([cover]));
   try {
     const before=kart(w).pose,offset=CURATED_MUZZLE;
     fire(w);
-    check('roll-bar Pulse checks the actual barrel corridor before launching',w.snapshot().projectiles.length===0&&w.snapshot().events.some(e=>e.type==='impact'&&e.surfaceId==='barrel-cover'));
+    check('side-mounted blaster checks the actual barrel corridor before launching',w.snapshot().projectiles.length===0&&w.snapshot().events.some(e=>e.type==='impact'&&e.surfaceId==='barrel-cover'));
     const impact=w.snapshot().events.find(e=>e.type==='impact');
     check('blocked barrel reports its actual sweep origin before the muzzle',gap(impact.from,transformed(before,{x:offset.x,y:offset.y,z:0}))<.002&&impact.position.z<before.position.z+offset.z);
     check('blocked side-mounted Pulse spends one shot without a KO',kart(w).ammo===29&&kart(w).hits===0&&kart(w,'b').alive);
@@ -317,7 +318,9 @@ for(const angle of [0,Math.PI/2,Math.PI,-Math.PI/2]) {
   const map=fixture([],[point('a',0,0,0),point('b',0,0,-10)]),w=armed('mine',map,{initialHealth:1});
   try {
     fire(w);check('Mine sequence starts on actual support with arm delay',w.snapshot().mines.length===1&&kart(w).ammo===2&&kart(w).firing&&!w.snapshot().mines[0].armed&&w.snapshot().mines[0].surfaceId==='floor');
-    step(w,45);check('Mine trail has three separated drops and first arms after 0.7 fixed seconds',w.snapshot().mines.length===3&&w.snapshot().mines[0]?.armed===true);
+    step(w,45);check('stationary layer arms its first mine without stacking more',w.snapshot().mines.length===1&&w.snapshot().mines[0].armed);
+    step(w,70,i=>{if(i%6===0)send(w,'a',{throttle:1});});
+    check('driving deploys the remaining two spaced mines',w.snapshot().mines.length===3);
     step(w,70,i=>{if(i%20===0)send(w,'b',{throttle:1});});
     check('moving rival crossing supported Mine KOs once',kart(w).hits===1&&!kart(w,'b').alive&&w.snapshot().mines.length===2);
     check('Mine owner is immune and its corpse cannot retrigger',kart(w).alive&&kart(w,'b').deaths===1);
@@ -327,7 +330,7 @@ for(const angle of [0,Math.PI/2,Math.PI,-Math.PI/2]) {
 
 {
   const wall={id:'cover',shape:'box',half:{x:6,y:2,z:0.5},position:{x:0,y:2,z:5}};
-  for(const weapon of ['machinegun','trishot','missile','missile']) {
+  for(const weapon of ['machinegun','trishot','missile','cannon']) {
     const w=armed(weapon,fixture([wall]));try {
       fire(w);step(w,150);
       check(weapon+' respects actual finite solid cover',kart(w,'b').alive&&kart(w,'b').health===100&&kart(w).hits===0);
@@ -335,14 +338,14 @@ for(const angle of [0,Math.PI/2,Math.PI,-Math.PI/2]) {
     }finally{w.dispose();}
   }
   const low={id:'low-cover',shape:'box',half:{x:6,y:0.2,z:0.5},position:{x:0,y:0.2,z:5}};
-  const over=armed('machinegun',fixture([low]));try{fire(over);step(over,8);check('finite low cover permits a genuine one-heart Pulse wound above it',kart(over,'b').health<100&&kart(over,'b').health>0&&kart(over).hits===0);step(over,160);check('continued Pulse hits above low cover take all three hearts',kart(over,'b').health===0&&kart(over).hits===1&&!kart(over).firing);}finally{over.dispose();}
+  const over=armed('machinegun',fixture([low]));try{fire(over);step(over,8);check('finite low cover permits blaster damage above it',kart(over,'b').health<100&&kart(over,'b').health>0&&kart(over).hits===0);step(over,160);check('continued blaster hits above low cover score a knockout',kart(over,'b').health===0&&kart(over).hits===1&&!kart(over).firing);}finally{over.dispose();}
 }
 
 {
   const roof={id:'upper-deck',shape:'deck',half:{x:8,y:0.3,z:15},position:{x:0,y:3.7,z:7}};
   const upper=[point('a',0,4,0,0,'upper-deck'),point('b',0,0,10)];
   const sockets=[point('s0',-0.7,4,0,0,'upper-deck'),point('s1',0.7,4,0,0,'upper-deck')];
-  for(const weapon of ['machinegun','trishot','missile','missile']) {
+  for(const weapon of ['machinegun','trishot','missile','cannon']) {
     const w=armed(weapon,fixture([roof],upper,sockets));try{fire(w);step(w,150);check(weapon+' cannot hit a separate underpass layer at shared x/z',kart(w,'b').alive&&kart(w,'b').health===100&&kart(w).hits===0);}finally{w.dispose();}
   }
   const lowerCrates=create(fixture([roof],upper,[point('s0',-0.7,0,0),point('s1',0.7,0,0)]));
@@ -425,8 +428,8 @@ for(const angle of [0,Math.PI/2,Math.PI,-Math.PI/2]) {
     check('Nuke ceiling sweep uses actual roof normal and bounds arc',peak<2.51&&!!blast);
     check('nearby roof blocks Nuke splash across layers',Math.hypot(victim.x-blast.position.x,victim.y+0.35-blast.position.y,victim.z-blast.position.z)<COMBAT.arsenal.nuke.splashRadius&&kart(w,'b').alive&&kart(w,'b').health===100&&kart(w).hits===0);
   }finally{w.dispose();}
-  const rmap=fixture([],[point('a',0,0,0),point('b',0,0,10),point('c',-2.6,0,8.5)]),rocket=armed('missile',rmap,{},[{id:'a'},{id:'b'},{id:'c'}]);
-  try{fire(rocket);step(rocket,8);const direct=rocket.snapshot().events.find(e=>e.type==='impact'&&e.weapon==='missile')?.other;check('Rocket takes two hearts from the first swept hull and the splashed rival exactly once',['b','c'].includes(direct)&&kart(rocket).hits===0&&kart(rocket,direct).health===35&&kart(rocket,direct==='b'?'c':'b').health>35&&kart(rocket,direct==='b'?'c':'b').health<100&&rocket.snapshot().events.filter(e=>e.type==='hit').length===2);}finally{rocket.dispose();}
+  const rmap=fixture([],[point('a',0,0,0),point('b',CURATED_MUZZLE.x,0,10),point('c',CURATED_MUZZLE.x+2.6,0,8.5)]),rocket=armed('missile',rmap,{},[{id:'a'},{id:'b'},{id:'c'}]);
+  try{fire(rocket);step(rocket,8);const direct=rocket.snapshot().events.find(e=>e.type==='impact'&&e.weapon==='missile')?.other;check('Missile deals 65 direct damage and reduced splash damage once each',['b','c'].includes(direct)&&kart(rocket).hits===0&&kart(rocket,direct).health===35&&kart(rocket,direct==='b'?'c':'b').health>35&&kart(rocket,direct==='b'?'c':'b').health<100&&rocket.snapshot().events.filter(e=>e.type==='hit').length===2);}finally{rocket.dispose();}
 }
 
 {
@@ -436,17 +439,17 @@ for(const angle of [0,Math.PI/2,Math.PI,-Math.PI/2]) {
   const distant=armed('missile',fixture([],[point('a',0,0,0),point('b',25,0,-25)]));
   try{fire(distant);step(distant,180);check('entire Rocket payload expires after its final missile TTL without an invented blast',distant.snapshot().projectiles.length===0&&!distant.snapshot().events.some(e=>e.type==='blast'));}finally{distant.dispose();}
   const mine=armed('mine',fixture([],[point('a',0,0,0),point('b',25,0,-25)]));
-  try{fire(mine);step(mine,45);step(mine,80,i=>{if(i%20===0)send(mine,'a',{throttle:-1});});check('Mine owner physically crosses its armed trap and remains immune',kart(mine).pose.position.z<-3&&kart(mine).alive&&mine.snapshot().mines.length===3);step(mine,640);check('every armed Mine expires at its own bounded lifetime without scoring',mine.snapshot().mines.length===0&&kart(mine).hits===0);}finally{mine.dispose();}
+  try{fire(mine);step(mine,45);step(mine,80,i=>{if(i%20===0)send(mine,'a',{throttle:-1});});check('Mine owner physically crosses its armed trap and remains immune',kart(mine).pose.position.z<-3&&kart(mine).alive&&mine.snapshot().mines.length===3);step(mine,12*60+1);check('every armed Mine expires at its own bounded lifetime without scoring',mine.snapshot().mines.length===0&&kart(mine).hits===0);}finally{mine.dispose();}
 }
 
 {
   const ramp={id:'aim-ramp',shape:'wedge',half:{x:5,y:2,z:8},position:{x:0,y:2,z:0}};
-  const map=fixture([ramp],[point('a',0,0,-20),point('b',20,0,-20)],[point('s0',-0.7,0,-20),point('s1',0.7,0,-20)]),w=armed('machinegun',map);
+  const map=fixture([ramp],[point('a',0,0,-20),point('b',20,0,-20)],[point('s0',-0.7,0,-20),point('s1',0.7,0,-20)]),w=armed('cannon',map);
   try{
     let onRamp=false;
     for(let i=0;i<180&&!onRamp;i++){if(i%20===0)send(w,'a',{throttle:1});step(w);const p=kart(w).pose;onRamp=p.position.z>-2&&p.position.z<5&&Math.abs(p.rotation.x)>0.1;}
     const before=kart(w).pose;fire(w);const event=w.snapshot().events.findLast(e=>e.type==='fire'),shot=w.snapshot().projectiles[0];
-    check('actual ramp pitch rotates 3D muzzle and projectile direction',onRamp&&event.direction.y>0.2&&event.position.y>before.position.y+0.7&&shot.velocity.y>20);
+    check('actual ramp pitch rotates 3D muzzle and projectile direction',onRamp&&event.direction.y>0.2&&event.position.y>before.position.y+0.7&&shot.velocity.y/Math.hypot(shot.velocity.x,shot.velocity.y,shot.velocity.z)>.2);
   }finally{w.dispose();}
 }
 

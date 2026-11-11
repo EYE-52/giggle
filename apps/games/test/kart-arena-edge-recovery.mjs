@@ -15,7 +15,7 @@ function fixture(){
 for(const parked of [false,true]){
  const w=fixture();let s=w.snapshot(),reverse=false,jammed=false,event,coins;
  try{
-  assert.equal(s.combat.maxHealth,100);assert.equal(s.combat.weaponOrder.length,10);
+  assert.equal(s.combat.maxHealth,100);assert.equal(s.combat.weaponOrder.length,12);
   for(let at=0;at<(parked?5500:8000);at+=50){
    const k=s.karts[0],p=k.pose,own=w.privateStatus(k.id);
    reverse||=p.position.z>27;

@@ -50,14 +50,14 @@ function armed(kind,m=map(),opts={}) {
 }
 {
  const w=armed('mine',map([point('a',0,0),point('b',0,-10)]));try {
-  fire(w);check('Mine activation starts with one drop and two committed remaining',w.snapshot().mines.length===1&&kart(w).ammo===2&&kart(w).firing);step(w,32);const mines=w.snapshot().mines;check('mine layer sequentially drops three supported traps per pickup',mines.length===3&&mines.every(m=>m.surfaceId==='floor'&&!m.armed)&&new Set(mines.map(m=>m.id)).size===3);
-  check('stationary Mine trail uses three separated rear positions',Math.max(...mines.map(m=>m.position.z))-Math.min(...mines.map(m=>m.position.z))>2.3&&mines.every(m=>m.position.z<kart(w).pose.position.z)&&Math.max(...mines.map(m=>m.position.x))-Math.min(...mines.map(m=>m.position.x))<.01);
+  fire(w);check('Mine activation starts with one drop and two committed remaining',w.snapshot().mines.length===1&&kart(w).ammo===2&&kart(w).firing);step(w,70,i=>{if(i%6===0)send(w,'a',{throttle:1});});const mines=w.snapshot().mines;check('mine layer sequentially drops three supported traps per pickup',mines.length===3&&mines.every(m=>m.surfaceId==='floor')&&new Set(mines.map(m=>m.id)).size===3);
+  check('moving Mine trail uses three separated rear positions',Math.max(...mines.map(m=>m.position.z))-Math.min(...mines.map(m=>m.position.z))>2.3&&mines.every(m=>m.position.z<kart(w).pose.position.z)&&Math.max(...mines.map(m=>m.position.x))-Math.min(...mines.map(m=>m.position.x))<.01);
   step(w,760);check('all untriggered mines expire within bounded lifetime',w.snapshot().mines.length===0);
  }finally{w.dispose();}
 }
 {
  const w=armed('nuke',map([point('a',0,0),point('b',-6,16),point('c',6,16)]));try {
-  fire(w);check('nuke has delayed larger physical warhead',w.snapshot().grenades[0].weapon==='nuke'&&w.snapshot().grenades[0].radius===.5&&w.snapshot().grenades[0].fuse>3.4);
+  fire(w);check('nuke has delayed larger physical warhead',w.snapshot().grenades[0].weapon==='nuke'&&w.snapshot().grenades[0].radius===.5&&w.snapshot().grenades[0].fuse>2.4);
   step(w,110);check('nuke cannot detonate early',kart(w).hits===0&&w.snapshot().grenades.length===1);
   step(w,105);check('nuke creates one large blast that takes every heart from each kart in range',kart(w).hits===0&&['b','c'].every(id=>kart(w,id).health>0&&kart(w,id).health<100&&kart(w,id).alive)&&w.snapshot().events.filter(e=>e.type==='hit'&&e.weapon==='nuke').every(e=>e.damage>0&&e.damage<100)&&w.snapshot().events.filter(e=>e.type==='blast'&&e.weapon==='nuke').length===1&&kart(w).alive);
  }finally{w.dispose();}

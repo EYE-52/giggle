@@ -20,12 +20,12 @@ const ZERO = Object.freeze({ x: 0, y: 0, z: 0 });
 const IDENTITY = Object.freeze({ x: 0, y: 0, z: 0, w: 1 });
 const LIMIT = Object.freeze({ queue: 32, seq: 0x7fffffff, seqJump: 4096, events: 32, steps: 15, activationMs:8000 });
 const RECOVERY = Object.freeze({ up: 0.35, linear: 0.5, angular: 0.5, progress: 0.3, seconds: 2, retryMs: 500, cooldownMs: 5000 });
-// Same ten weapons and ordinary tier odds as the flat arenas.
+// Same weapons and ordinary tier odds as the flat arenas.
 const W = COMBAT.weapons;
 const ARSENAL = Object.freeze({
   weights:Object.freeze(Object.fromEntries(COMBAT.weaponOrder.map(id=>[id,COMBAT.pickupWeights[id]*100]))),
   machinegun:Object.freeze({ammo:COMBAT.weapons.machinegun.ammo,cooldown:COMBAT.weapons.machinegun.cooldown,speed:W.machinegun.speed}),
-  nuke:Object.freeze({speed:16,launchY:5,fuse:3.5,radius:.5,friction:2,splashRadius:COMBAT.weapons.nuke.splashRadius,warning:1.2}),
+  nuke:Object.freeze({speed:16,launchY:5,fuse:2.5,radius:.5,friction:2,splashRadius:COMBAT.weapons.nuke.splashRadius,warning:1.2}),
   proximity:Object.freeze({speed:12,launchY:6,radius:LEGACY.proximity.bodyRadius,friction:4,splashRadius:LEGACY.proximity.splashRadius}),
   missile:Object.freeze({speed:60,ttl:2.4,range:W.missile.range,halfAngle:W.missile.halfAngle*Math.PI/180,turnRate:W.missile.turnRate,splashRadius:COMBAT.weapons.missile.splashRadius}),
   laser:Object.freeze({speed:LEGACY.laser.speed,ttl:LEGACY.laser.ttl}),
@@ -137,6 +137,27 @@ function createElevatedCombat(RAPIER,config,map,seats,options={}) {
     const far=pool.filter(s=>positions.every(p=>distance(p,{x:s.x,y:s.y+0.6,z:s.z})>=5));
     if(far.length) pool=far;
     return choose(pool);
+  }
+  // Choose on the return tick, using the karts' current positions. Only
+  // authority-validated, unoccupied sockets can enter this pool.
+  function nextArenaSocket(crate) {
+    const occupied=new Set(crates.map(c=>c.socketId));
+    const free=sockets.filter(s=>!occupied.has(s.id));
+    if(!free.length)return null;
+    const drivers=[...karts.values()].filter(k=>k.alive&&k.connected).map(k=>physics.pose(k.id).position);
+    const clearance=s=>Math.min(Infinity,...drivers.map(p=>Math.hypot(s.x-p.x,s.y+.6-p.y,s.z-p.z)));
+    const safe=free.filter(s=>clearance(s)>=6);
+    const farthest=safe.length?0:Math.max(...free.map(clearance));
+    const pool=safe.length?safe:free.filter(s=>clearance(s)===farthest);
+    // Prefer the same floor, or restore supply to a floor with fewer
+    // than four boxes when that floor gained a free pad on a prior turn.
+    const counts=new Map();
+    for(const c of crates)if(c!==crate)counts.set(c.position.y,(counts.get(c.position.y)||0)+1);
+    const shortage=s=>Math.max(0,4-(counts.get(s.y+.6)||0));
+    const needed=Math.max(...pool.map(shortage));
+    const eligible=pool.filter(s=>shortage(s)===needed);
+    const same=eligible.filter(s=>Math.abs(s.y+.6-crate.position.y)<.25);
+    return choose(same.length?same:eligible);
   }
   // Joined arena floors may overlap at the same height. Rapier may report
   // either slab at a wheel; a ray-selected home ID is not a floor identity.
@@ -250,11 +271,11 @@ function createElevatedCombat(RAPIER,config,map,seats,options={}) {
     if(k.alive&&source&&strength)bump(k,physics.pose(owner).position,strength);
     return true;
   }
-  function splash(origin,owner,radius,weapon,direct=null,volley=null,directAmount=null) {
+  function splash(origin,owner,radius,weapon,direct=null,volley=null,directAmount=null,shot=null) {
     for(const k of karts.values()){
-      if(k===direct){damage(k,owner,weapon,volley,directAmount);continue;}
+      if(k===direct){damage(k,owner,weapon,volley,directAmount,shot);continue;}
       const p=hull(physics.pose(k.id)),amount=blastDamage(weapon,distance(p,origin),radius);
-      if(amount>0&&los(origin,p))damage(k,owner,weapon,volley,amount);
+      if(amount>0&&los(origin,p))damage(k,owner,weapon,volley,amount,shot);
     }
   }
   function bump(k,origin,strength){
@@ -278,7 +299,14 @@ function createElevatedCombat(RAPIER,config,map,seats,options={}) {
         }
         if(k.bladesT===0){k.bladesVolley=null;k.bladesHits=null;}
       }
-      if(k.supernovaT>0){k.supernovaT=Math.max(0,k.supernovaT-dt);if(k.supernovaT<=1e-8){
+      if(k.supernovaT>0){
+        for(const rival of karts.values()){
+          if(rival===k||!vulnerable(rival))continue;
+          const other=hull(after.get(rival.id));
+          if(distance(me,other)<W.supernova.contactRadius&&los(me,other))
+            damage(rival,k.id,'supernova',k.supernovaVolley,W.supernova.contactDamage);
+        }
+        k.supernovaT=Math.max(0,k.supernovaT-dt);if(k.supernovaT<=1e-8){
         k.supernovaT=0;splash(me,k.id,W.supernova.splashRadius,'supernova',null,k.supernovaVolley);
         emit('blast',k.id,{weapon:'supernova',position:me});k.supernovaVolley=null;
       }}
@@ -338,36 +366,38 @@ function createElevatedCombat(RAPIER,config,map,seats,options={}) {
     const weapon=k.weapon=normalizeWeapon(k.weapon), offset=['machinegun','trishot','missile','cannon'].includes(muzzleOf(weapon))?CURATED_MUZZLE:C.combat[muzzleOf(weapon)+'Muzzle']||CURATED_MUZZLE;
     const origin=add(p.position,rotate({x:offset.x,y:offset.y,z:0},p.rotation)), muzzle=add(p.position,rotate(offset,p.rotation));
     const forward=weaponForward(p.rotation);
-    // One pickup is one volley; rapid-fire targets have a one-second hit cooldown.
+    let fireDirection=forward;
+    // Every bullet has its own hit inside the pickup volley.
     const volley=k.id+':'+k.itemSeq;
     let deployed=null,announced=false;
-    if(weapon==='mine') {
+    if(['mine','proximity','fakecrate'].includes(weapon)) {
+      if(k.sequence?.lastDrop&&distance(p.position,k.sequence.lastDrop)<W.mine.spacing)return;
       if(!p.grounded || mines.length>=B.MAX_MINES) return;
       const radius=COMBAT.weapons[weapon].bodyRadius;
-      // Moving karts leave a trail at their current pose; a stationary kart
-      // extends that trail backwards instead of stacking three identical discs.
+      // Try nearby supported points behind this kart.
       for(let slot=0;slot<8;slot++) {
         const behind=add(p.position,rotate({x:0,y:0,z:-2.8-slot*1.2},p.rotation));
         const s=physics.supportAt(add(behind,{x:0,y:0.4,z:0}),2);
-        if(!s || s.normal.y<0.65 || Math.abs(s.point.y-p.position.y)>1.3)continue;
+        if(!s || s.normal.y<0.65 || Math.abs(s.point.y-behind.y)>1.3)continue;
         const position=add(s.point,mul(s.normal,radius+.015));
         if(!los(add(p.position,{x:0,y:.3,z:0}),position) || sphereBlocked(position,radius) ||
           mines.some(m=>distance(m.position,position)<radius*2+.2))continue;
-        mines.push({id:entity('m'),owner:k.id,position,radius,surfaceId:s.surfaceId,normal:s.normal,arm:COMBAT.weapons[weapon].armTime,ttl:COMBAT.weapons[weapon].lifetime});
+        mines.push({id:entity('m'),owner:k.id,kind:weapon,position,radius,surfaceId:s.surfaceId,normal:s.normal,arm:COMBAT.weapons[weapon].armTime,ttl:COMBAT.weapons[weapon].lifetime});
         deployed=position;break;
       }
       if(!deployed)return;
+      if(weapon==='mine'&&k.sequence)k.sequence.lastDrop={...p.position};
     } else if(weapon==='supernova'){k.supernovaT=W.supernova.duration;k.supernovaVolley=volley;}
     else if(weapon==='blades'){k.bladesT=W.blades.duration;k.bladesAge=0;k.bladesVolley=volley;k.bladesHits=new Map();}
     else if(weapon==='ram') {k.rammingT=B.RAM_TIME;k.ramVolley=volley;}
 
-    else if(weapon==='proximity' || LOBBED.has(weapon)) {
+    else if(LOBBED.has(weapon)) {
       if(grenades.length+(weapon==='cluster'?1+LEGACY.cluster.bomblets:1)>B.MAX_GRENADES) return;
       const heavy=ARSENAL[weapon],radius=heavy.radius;
       if(sphereBlocked(origin,radius))return;
       const blocked=physics.sweepStatic(origin,muzzle,radius);
       grenades.push({id:entity('g'),owner:k.id,weapon,radius,position:blocked?add(blocked.point,mul(blocked.normal,0.02)):muzzle,velocity:add(mul(forward,heavy.speed),{x:0,y:heavy.launchY,z:0}),
-        ...(proximityCharge(weapon)?{ttl:COMBAT.weapons[weapon].lifetime,arm:COMBAT.weapons[weapon].armTime,landed:false}:{fuse:heavy.fuse}),bounces:0,...(weapon==='nuke'||proximityCharge(weapon)?{}:{volley})});
+        fuse:heavy.fuse,bounces:0,...(weapon==='nuke'?{}:{volley})});
     } else {
       const angles=weapon==='trishot'?B.SCATTER_FAN:[0];
       if(shots.length+angles.length>B.MAX_ZAPS) return;
@@ -380,25 +410,32 @@ function createElevatedCombat(RAPIER,config,map,seats,options={}) {
       for(const angle of angles) {
         const side=angle?rotate({x:Math.sign(angle)*.2,y:0,z:0},p.rotation):ZERO,launchMuzzle=add(muzzle,side),blocked=physics.sweepStatic(add(origin,side),launchMuzzle,radius);
         let heading=weaponForward(p.rotation,angle);
+        if(weapon==='machinegun'){
+          const target=missileLock(k.id,launchMuzzle,heading,W.machinegun);
+          if(target){
+            const aim=sub(hull(physics.pose(target.id)),launchMuzzle);
+            heading=mul(aim,1/length(aim));fireDirection=heading;
+          }
+        }
         if(level){const n=Math.hypot(heading.x,heading.z)||1;heading={x:heading.x/n,y:0,z:heading.z/n};}
-        const shot={id:entity('p'),owner:k.id,weapon,position:launchMuzzle,velocity:launchVelocity(heading,speed,p.linearVelocity,weapon==='cannon'?W.cannon.launchY:0),ttl,radius,volley};
+        const shot={id:entity('p'),owner:k.id,weapon,position:launchMuzzle,velocity:launchVelocity(heading,speed,weapon==='cannon'?ZERO:p.linearVelocity,weapon==='cannon'?W.cannon.launchY:0),ttl,radius,volley};
         if(weapon==='missile'){const target=missileLock(k.id,launchMuzzle,heading);shot.age=0;shot.acquired=true;shot.targetId=target?.id??null;shot.targetLife=target?.spawnSeq??null;}
         if(weapon==='bouncer') shot.bounces=0;
-        if(blocked) { if(weapon==='cannon'||weapon==='missile') splash(add(blocked.point,mul(blocked.normal,0.02)),k.id,weapon==='missile'?ARSENAL.missile.splashRadius:B.ROCKET_SPLASH_R,weapon,null,volley); emit('impact',k.id,{weapon,position:blocked.point,surfaceId:blocked.surfaceId,...(['machinegun','trishot'].includes(weapon)?{from:origin}:{})}); }
+        if(blocked) { if(weapon==='cannon'||weapon==='missile') splash(add(blocked.point,mul(blocked.normal,0.02)),k.id,weapon==='missile'?ARSENAL.missile.splashRadius:B.ROCKET_SPLASH_R,weapon,null,volley,null,shot.id); emit('impact',k.id,{weapon,position:blocked.point,surfaceId:blocked.surfaceId,...(['machinegun','trishot'].includes(weapon)?{from:origin}:{})}); }
         else shots.push(shot);
       }
     }
     if(weapon!=='supernova') k.shield=0;
     const cd=W[weapon]?.cooldown??(weapon==='mine'?W[weapon].dropInterval:B.FIRE_CD);k.fireCd=cd;
     k.ammo-=weapon==='trishot'?3:1; if(k.ammo<=0) { k.weapon=null; k.ammo=0; }
-    if(!announced)emit(weapon==='mine'?'mine':weapon==='shield'?'shield':'fire',k.id,{weapon,position:deployed||muzzle,direction:forward});
+    if(!announced)emit(weapon==='mine'?'mine':weapon==='shield'?'shield':'fire',k.id,{weapon,position:deployed||muzzle,direction:fireDirection});
     return true;
   }
-  function missileLock(owner,origin,forward){
+  function missileLock(owner,origin,forward,rule=W.missile){
     let best=null,bestD=Infinity;
     for(const k of karts.values()){
       if(k.id===owner||!vulnerable(k))continue;const p=hull(physics.pose(k.id));
-      if(!inWeaponCone(origin,forward,p,W.missile.range,W.missile.halfAngle)||!los(origin,p))continue;
+      if(!inWeaponCone(origin,forward,p,rule.range,rule.halfAngle)||!los(origin,p))continue;
       const d=distance(origin,p);if(d<bestD){best=k;bestD=d;}
     }return best;
   }
@@ -434,7 +471,7 @@ function createElevatedCombat(RAPIER,config,map,seats,options={}) {
       }
       if(t<=1) {
         const point=lerp(s.position,end,t), normal=hit?ZERO:solid.normal;
-        if(s.weapon==='cannon'||s.weapon==='missile') { splash(add(point,mul(normal,0.02)),s.owner,s.weapon==='missile'?ARSENAL.missile.splashRadius:B.ROCKET_SPLASH_R,s.weapon,hit,s.volley); emit('blast',s.owner,{weapon:s.weapon,position:point}); }
+        if(s.weapon==='cannon'||s.weapon==='missile') { splash(add(point,mul(normal,0.02)),s.owner,s.weapon==='missile'?ARSENAL.missile.splashRadius:B.ROCKET_SPLASH_R,s.weapon,hit,s.volley,null,s.id); emit('blast',s.owner,{weapon:s.weapon,position:point}); }
         else if(hit) damage(hit,s.owner,s.weapon,s.volley,null,s.id);
         emit('impact',s.owner,{weapon:s.weapon,position:point,...(!hit?{surfaceId:solid.surfaceId}:{other:hit.id}),...(['machinegun','trishot'].includes(s.weapon)?{from:s.position}:{})}); shots.splice(i,1);
       } else {
@@ -477,12 +514,17 @@ function createElevatedCombat(RAPIER,config,map,seats,options={}) {
           const a=before.get(k.id),b=after.get(k.id);
           if(a.epoch!==b.epoch) continue;
           const start=lerp(a.position,b.position,startFraction),end=lerp(a.position,b.position,endFraction);
-          const t=hullImpact(m.position,m.position,start,end,Math.sqrt(B.MINE_R2));
+          const t=hullImpact(m.position,m.position,start,end,W[m.kind||'mine'].triggerRadius);
           if(t!==null && t<bestT && los(m.position,lerp(start,end,t))) {bestT=t;best=k;}
         }
         if(best) {
           const a=before.get(best.id),b=after.get(best.id),contact=lerp(a.position,b.position,startFraction+(endFraction-startFraction)*bestT);
-          splash(m.position,m.owner,W.mine.splashRadius,'mine',best,null,blastDamage('mine',distance(contact,m.position)));emit('blast',m.owner,{weapon:'mine',position:m.position,radius:W.mine.splashRadius});
+          const kind=m.kind||'mine';
+          if(kind==='fakecrate')damage(best,m.owner,kind);
+          else {
+            splash(m.position,m.owner,W[kind].splashRadius,kind,best,null,blastDamage(kind,distance(contact,m.position)));
+            emit('blast',m.owner,{weapon:kind,position:m.position,radius:W[kind].splashRadius});
+          }
           mines.splice(i,1);continue;
         }
       }
@@ -625,10 +667,18 @@ function createElevatedCombat(RAPIER,config,map,seats,options={}) {
     if(targetReached) {finish('target');return;}
     if(M.arenaVersion)for(const c of crates){
       const available=at>=c.availableAt;
-      for(const k of karts.values()){
-        const near=k.alive&&distance(physics.pose(k.id).position,c.position)<=3;
-        if(!near)c.blocked.delete(k.id);
-        else if(available&&!c.wasAvailable)c.blocked.add(k.id);
+      if(available&&!c.wasAvailable){
+        const next=nextArenaSocket(c);
+        if(next){
+          const riskLimit=Math.floor(crates.length*.1);
+          const excessRisk=next.profile==='risk'&&crates.filter(other=>other!==c&&other.profile==='risk').length>=riskLimit;
+          Object.assign(c,crateAt(excessRisk?{...next,profile:'exposed'}:next),{availableAt:at,wasAvailable:false});
+        }else c.id=entity('c');
+      }
+      if(available&&!c.wasAvailable){
+        for(const k of karts.values())if(k.alive&&distance(physics.pose(k.id).position,c.position)<=3)c.blocked.add(k.id);
+      }else if(available){
+        for(const id of c.blocked)if(!karts.get(id)?.alive||distance(physics.pose(id).position,c.position)>3)c.blocked.delete(id);
       }
       c.wasAvailable=available;
     }
@@ -642,7 +692,7 @@ function createElevatedCombat(RAPIER,config,map,seats,options={}) {
         if(at<c.availableAt || c.blocked?.has(k.id) || distance(p.position,c.position)>Math.sqrt(B.PICKUP_R2) || !p.wheels.some(w=>w.contact&&(w.surfaceId===c.surfaceId||c.supportIds?.includes(w.surfaceId))) || !los(c.position,p.position)) continue;
         k.itemSeq++;k.weapon=rewardPolicy?rewardPolicy.roll(c.profile,at-liveAt):rollWeapon();k.ammo=k.weapon==='machinegun'?ARSENAL.machinegun.ammo:(COMBAT.weapons[k.weapon]?.ammo||1);award(k,B.COIN_PICKUP,'pickup-'+c.id);emit('pickup',k.id,{weapon:k.weapon,crateId:c.id,position:c.position});
         if(M.arenaVersion){c.availableAt=at+arenaRespawnMs(c.profile);c.wasAvailable=false;c.blocked.add(k.id);}
-        else {const s=pickSocket(c.socketId,(M.complex||M.balancedLoot)?c.position.y-.6:undefined);
+        else {const s=pickSocket(c.socketId,(M.complex||M.balancedLoot)?c.position.y-.6:undefined)||pickSocket(c.socketId);
         if(s) Object.assign(c,crateAt(s),{availableAt:at+2000});}
         break;
       }

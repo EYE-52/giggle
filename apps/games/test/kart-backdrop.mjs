@@ -118,7 +118,7 @@ try{
     const ridges=world.group.children.filter(o=>/^ridge-(near|far|summit)$/.test(o.name));
     assert(ridges.every(r=>r.visible),'Keep ridges while loading');
     for(const request of pending)succeed(request);
-    assert(world.group.getObjectByName('mountain-backdrop')&&ridges.every(r=>!r.visible),id+' painting replaces every procedural ridge');
+    assert(world.group.getObjectByName('mountain-backdrop')&&ridges.every(r=>r.visible===(r.name==='ridge-near')),id+' keeps its near ridge in front of the painting');
     if(id==='blocks'){
       const g=world.group.getObjectByName('mountain-backdrop').geometry.parameters;
       assert.equal(g.height,2*Math.PI*g.radiusTop/4*BACKDROP_THEMES.quarry.aspect*1.6);
@@ -134,7 +134,7 @@ try{
       assert.equal(backdropRequest.url,'/assets/karts/backdrops/'+BACKDROP_THEMES[elevatedMap(id).backdrop||id].file,'Elevated map id selects the painting, including both harbor variants');
       const resources=pending.map(succeed),disposals=new Map(resources.map(t=>[t,0]));
       for(const resource of resources)resource.addEventListener('dispose',()=>disposals.set(resource,disposals.get(resource)+1));
-      assert(mountains.every(m=>!m.visible),'Loaded elevated panorama hides both mountain styles');
+      assert(mountains.every(m=>m.visible===(m.name==='valley-foothills')),'Loaded elevated panorama keeps the near foothills');
       const panorama=world.group.getObjectByName('mountain-backdrop'),day=panorama.material.color.clone();
       world.animate(1/60,3,1);assert(!panorama.material.color.equals(day),'Elevated night cycle tints the shared panorama');
       if(stylized){

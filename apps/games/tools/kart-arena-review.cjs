@@ -14,7 +14,7 @@ import {loadKartAssets} from '/js/engines/kart-assets.mjs';
 import {selectArenaHomes,selectArenaVariant} from '/js/engines/kart-arena-policy.mjs';
 const q=new URLSearchParams(location.search),id=q.get('map')||'rookie-ribbons',palette=q.get('night')==='1'?'Starlight':'Daybreak',source=elevatedMap(id),variant=source.variants.find(v=>v.id===(q.get('variant')||'full')),map=selectArenaVariant(source,variant.maxPlayers,variant.id),scene=new THREE.Scene();
 const renderer=new THREE.WebGLRenderer({antialias:true,preserveDrawingBuffer:true});renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(1);renderer.shadowMap.enabled=false;renderer.toneMapping=THREE.ACESFilmicToneMapping;document.body.append(renderer.domElement);
-const world=createKartElevatedWorld(THREE,{scene,map,palette});scene.background=world.lighting.fogColor;scene.fog=new THREE.Fog(world.lighting.fogColor,180,400);
+const world=createKartElevatedWorld(THREE,{scene,map,palette});scene.background=world.lighting.fogColor;scene.fog=new THREE.Fog(world.lighting.fogColor,world.lighting.fogNear,world.lighting.fogFar);
 const features=createKartArenaFeatures(THREE,scene);features.sync(map);
 const assets=await loadKartAssets(THREE,scene),models=[];
 for(let i=0;i<(map.variantId==='duel'?2:8);i++){const p=map.spawns[i%map.spawns.length],model=createKartModel(THREE,{assets,color:[0xf27777,0x64bce1,0xffd06e,0x99cc8b][i%4]});model.position.set(p.x,p.y+.75,p.z);model.rotation.y=p.angle;scene.add(model);models.push(model);}

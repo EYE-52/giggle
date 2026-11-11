@@ -1,3 +1,5 @@
+import {galleryInventory} from './inventory.mjs';
+import {WEAPONS} from '/js/engines/kart-weapon-contract.mjs';
 import {paintKartWeapon} from '/js/engines/kart-weapon-hud.mjs';
 import {loadKartWeaponThumbnails,weaponThumbnailArt} from '/js/engines/kart-assets.mjs';
 import {readInputCapabilities,touchControlsFor} from '/js/toolkit/input-capabilities.mjs';
@@ -20,8 +22,14 @@ let current={kind:'proximity',state:'ready',preference:'keyboard'};
 function report(){
   const width=innerWidth,height=innerHeight,itemBounds=bounds(item),panelBounds=bounds(item.closest('.pk-readout,.pke-bottom')),shown=visible(touch),actionBounds=shown?bounds(action):null;
   const drivers=shown?[...root.querySelectorAll('.pk-stick,.pke-stick,.pk-tright button:not(#pk-tb),.pke-actions button:not([data-use])')]:[];
-  const checks={itemInBounds:itemBounds.left>=-.5&&itemBounds.top>=-.5&&itemBounds.right<=width+.5&&itemBounds.bottom<=height+.5,
-    itemBottomLeft:itemBounds.left<=32&&panelBounds.bottom>=height*.5,itemContentFits:item.scrollWidth<=item.clientWidth+1,
+  const range=document.createRange();
+  const textFits=[...item.querySelectorAll('strong, small, .kart-item-count')].filter(n=>n.textContent).every(n=>{
+    range.selectNodeContents(n);
+    const r=range.getBoundingClientRect();
+    return r.width>0&&r.height>0&&r.left>=itemBounds.left-1&&r.top>=itemBounds.top-1&&r.right<=itemBounds.right+1&&r.bottom<=itemBounds.bottom+1;
+  });
+  const checks={textFits,itemInBounds:itemBounds.left>=-.5&&itemBounds.top>=-.5&&itemBounds.right<=width+.5&&itemBounds.bottom<=height+.5,
+    itemAtLeftEdge:itemBounds.left<=32&&itemBounds.right<width*.5,itemContentFits:item.scrollWidth<=item.clientWidth+1,
     actionAtLeast44:!shown||(actionBounds.width>=44&&actionBounds.height>=44),
     noItemDrivingOverlap:drivers.every(driver=>!overlaps(itemBounds,bounds(driver))),
     noItemActionOverlap:!shown||!overlaps(itemBounds,actionBounds),
@@ -34,9 +42,11 @@ function report(){
 window.hudReview={ready,get touch(){return visible(touch);},async set(value){
   await ready;current={...current,...value};if(!Object.hasOwn(inventory,current.kind))throw Error('Unknown fixture weapon');
   const show=touchControlsFor(current.preference,readInputCapabilities());root.classList.toggle(renderer==='classic'?'pk-touch-enabled':'pke-touch-mode',show);touch.hidden=!show;
-  const ammo=current.state==='empty'?0:current.state==='firing'?Math.max(1,inventory[current.kind]-1):inventory[current.kind];
-  const snapshot={alive:true,weapon:current.state==='empty'?null:current.kind,ammo,firing:current.state==='firing'};
-  paintKartWeapon(item,snapshot,'',{hint:!show});icon.innerHTML=current.state==='empty'?crosshair:weaponThumbnailArt(current.kind);badge.textContent=ammo;badge.hidden=!ammo;action.disabled=current.state==='empty';
+  const snapshot=current.state==='empty'?{weapon:null,ammo:0}:galleryInventory(current.kind,WEAPONS[current.kind],current.state==='firing');
+  const equipped=paintKartWeapon(item,snapshot,{hint:!show});
+  icon.innerHTML=snapshot.weapon?weaponThumbnailArt(snapshot.weapon):crosshair;
+  badge.textContent=snapshot.ammo?equipped.count.slice(1):'';badge.hidden=!snapshot.ammo;
+  action.disabled=!snapshot.weapon||snapshot.firing;
   await new Promise(resolve=>requestAnimationFrame(resolve));return report();
 },report};
 await window.hudReview.set(current);

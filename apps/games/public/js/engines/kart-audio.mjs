@@ -1132,14 +1132,14 @@ export function createKartAudio(opts) {
  *   ramClang     heavy metallic clang on impact
  */
 
-export const SYNTH_CUE_NAMES = Object.freeze(['hitDing','machinegun','trishot','missile','cannon','blades','supernova','nuke','mine','cannonBoom','missileBlast','novaBlast','nukeBlast','laser', 'frost', 'frostShatter',
+export const SYNTH_CUE_NAMES = Object.freeze(['hitDing','machinegun','trishot','missile','cannon','blades','supernova','nuke','mine','fakecrate','cannonBoom','missileBlast','novaBlast','nukeBlast','laser', 'frost', 'frostShatter',
   'cluster', 'clusterPop', 'bouncer', 'boing', 'ram', 'ramClang']);
 
 // Peak level and length (seconds) per cue; the cue bus and master
 // compressor keep headroom exactly as for the sampled cues.
 export const SYNTH_CUE_SPEC = Object.freeze({
  hitDing:[.24,.19],machinegun:[.22,.08],trishot:[.26,.15],missile:[.25,.45],cannon:[.32,.5],blades:[.22,.8],supernova:[.22,.9],
- nuke:[.25,1.1],mine:[.2,.2],cannonBoom:[.35,.7],missileBlast:[.3,.6],novaBlast:[.3,.9],nukeBlast:[.4,1.8],
+ nuke:[.25,1.1],mine:[.2,.2],fakecrate:[.23,.24],cannonBoom:[.35,.7],missileBlast:[.3,.6],novaBlast:[.3,.9],nukeBlast:[.4,1.8],
   laser: [.26, .24],
   frost: [.24, .22], frostShatter: [.28, .6], cluster: [.32, .22], clusterPop: [.26, .1], bouncer: [.24, .22], boing: [.24, .38],
   ram: [.26, 1.05], ramClang: [.32, .7],
@@ -1201,6 +1201,7 @@ export function createSynthCues({ ctx, bus, track, stealIfFull }) {
     supernova(v){v.tone('sine',260,1100,v.t0,.85,.65);v.tone('triangle',390,1650,v.t0,.85,.3);},
     nuke(v){for(let i=0;i<3;i++)v.tone('square',580,680,v.t0+i*.3,.18,.45);v.tone('sine',75,42,v.t0,.95,.7);},
     mine(v){v.tone('square',600,180,v.t0,.055,.4);v.tone('sine',180,60,v.t0+.04,.12,.7);},
+    fakecrate(v){v.tone('triangle',560,850,v.t0,.075,.55);v.tone('square',280,135,v.t0+.08,.1,.25);},
     cannonBoom(v){v.tone('sine',110,30,v.t0,.65,1);v.hiss('lowpass',5000,160,.6,v.t0,.5,.9);},
     hitDing(v){v.tone('sine',1100,1100,v.t0,.17,.75);v.tone('sine',1650,1650,v.t0+.025,.14,.4);},
     missileBlast(v){v.hiss('lowpass',6400,280,.7,v.t0,.5,1);v.tone('triangle',170,40,v.t0,.45,.6);},

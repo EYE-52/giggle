@@ -30,6 +30,8 @@ const inst = made[0].mesh;
 assert.equal(inst.count, 4);
 assert.equal(inst.castShadow, true, 'shadow casting carries over');
 assert.ok(flags.every(f => !f.visible), 'originals hidden, still in the tree for lookups and disposal');
+assert.ok(flags.every(f => !f.matrixAutoUpdate), 'baked copies keep their cached local matrices');
+assert.ok(moving.children.every(m => m.matrixAutoUpdate), 'moving transforms stay live');
 assert.ok(moving.children.every(m => m.visible), 'skipped subtrees keep their own draws');
 root.updateMatrixWorld(true);
 const m = new THREE.Matrix4();

@@ -33,6 +33,18 @@ for(const file of files){
  await assert.rejects(new GLTFLoader().parseAsync(compressed.buffer.slice(compressed.byteOffset,compressed.byteOffset+compressed.byteLength),''),/MeshoptDecoder/);
  assert((await load(compressed)).scene.isObject3D,file+' can retry with a ready decoder after failed decode');
 }
+// The smaller production library must retain each unique branch from the
+// full authoring model, including named child pivots and triangle data.
+const loadScene=async name=>{
+ const bytes=await fs.readFile(new URL('../public/assets/karts/'+name+'.glb',import.meta.url));
+ return (await loader.parseAsync(bytes.buffer.slice(bytes.byteOffset,bytes.byteOffset+bytes.byteLength),'')).scene;
+};
+const originalLibrary=(await loadScene('combat/combat')).getObjectByName('CombatLibrary');
+const coreLibrary=(await loadScene(KART_ASSETS.combat)).getObjectByName('CombatLibrary');
+const overrides=await Promise.all(['pulse','arsenal','secondary'].map(key=>loadScene(KART_ASSETS[key])));
+const uniqueBranches=originalLibrary.children.filter(node=>!overrides.some(model=>model.getObjectByName(node.name)));
+assert.deepEqual(coreLibrary.children.map(node=>node.name).sort(),uniqueBranches.map(node=>node.name).sort());
+for(const node of uniqueBranches)assert.deepEqual(shape(coreLibrary.getObjectByName(node.name)),shape(node),'retains exact '+node.name+' art');
 let total=(await fs.stat(new URL('../public/vendor/three/libs/meshopt_decoder.mjs',import.meta.url))).size;
 for(const name of Object.values(KART_ASSETS))total+=(await fs.stat(new URL('../public/assets/karts/'+name+'.glb',import.meta.url))).size;
 assert(total<1_000_000,'all declared preload models plus decoder remain under 1MB');

@@ -1,12 +1,12 @@
 import assert from 'node:assert/strict';
 import vm from 'node:vm';
 import * as THREE from 'three';
-import {matchKartDrivers,loadKartDrivers,matchKartAssetEntries} from '../public/js/engines/kart-assets.mjs';
+import {matchKartDrivers,loadKartDrivers,matchKartAssetEntries,KART_ELEVATED_FILES} from '../public/js/engines/kart-assets.mjs';
 import {createKartModel,kartDriverIndex} from '../public/js/engines/kart-model.mjs';
 import {prefetchKartGLB,loadKartGLB} from '../public/js/engines/kart-prefetch.mjs';
 import {practiceKartCache} from '../public/js/engines/kart-practice-cache.mjs';
 import {fetchKartWasm} from '../public/js/engines/kart-physics-response.mjs';
-import {warmPickedKart} from '../public/js/kart-warmup.mjs';
+import {warmPickedKart,warmPracticeKart} from '../public/js/kart-warmup.mjs';
 const savedIdle=globalThis.requestIdleCallback;
 globalThis.requestIdleCallback=()=>assert.fail('other game warmed karts');
 warmPickedKart('chess');warmPickedKart('');globalThis.requestIdleCallback=savedIdle;
@@ -60,5 +60,22 @@ try{
  await prefetchKartGLB('/assets/karts/foreign.glb');
  await loadKartGLB({parseAsync:async data=>{assert(data instanceof ArrayBuffer);assert.deepEqual([...new Uint8Array(data)],[7,8,9]);},loadAsync:()=>assert.fail('foreign bytes caused a duplicate download')},'/assets/karts/foreign.glb');
 }finally{globalThis.fetch=savedFetch;}
+
+// A practice seat without explicit settings warms the actual default arena.
+const warmUrls=[];
+const latestIdle=globalThis.requestIdleCallback;
+try{
+ globalThis.location={href:'http://practice.test/'};
+ globalThis.requestIdleCallback=work=>queueMicrotask(work);
+ globalThis.fetch=async url=>{warmUrls.push(String(url));return new Response(new Uint8Array([1,2,3]));};
+ warmPracticeKart('pocket-karts');
+ const start=Date.now();
+ while(!warmUrls.some(url=>url.includes('combat-core'))&&Date.now()-start<3000)await new Promise(resolve=>setTimeout(resolve,10));
+ for(const [key,file,version] of KART_ELEVATED_FILES){
+   assert(warmUrls.includes(`/assets/karts/${file}.glb?v=${version}`),'default warmup uses the scene URL for '+key);
+ }
+}finally{
+ globalThis.fetch=savedFetch;globalThis.location=previousLocation;globalThis.requestIdleCallback=latestIdle;
+}
 
 console.log('KART_LOADING_PASS: scoped warmup, selected drivers, stable visuals, map assets, shared cross-realm bytes and retry');

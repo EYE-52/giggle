@@ -692,7 +692,7 @@ await withGlobals({ document: makeEmitter() }, async () => {
   ok((await audio.ready()) === true, 'synth: pack ready');
   audio.update({ speed: 6, active: true });
   const fetched = loader.calls.length;
-  ok(SYNTH_CUE_NAMES.length === 22 && new Set(SYNTH_CUE_NAMES).size === 22, 'synth: distinct weapon, blast and hit-ding cues');
+  ok(SYNTH_CUE_NAMES.length === 23 && new Set(SYNTH_CUE_NAMES).size === 23, 'synth: distinct weapon, blast and hit-ding cues');
   for (const weapon of ['laser', 'frost', 'cluster', 'bouncer', 'ram'])
     ok(SYNTH_CUE_NAMES.includes(weapon), `synth: ${weapon} has its own fire cue`);
   ok(['frostShatter', 'clusterPop', 'boing', 'ramClang'].every((n) => SYNTH_CUE_NAMES.includes(n)), 'synth: clap, skid, shatter, pop, boing and clang cues');

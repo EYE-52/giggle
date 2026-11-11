@@ -98,7 +98,7 @@ function project(raw, map, settings) {
     crates: raw.crates.map(c => ({ id: c.id, position: vector(c.position), available: c.available,...(c.homeId?{homeId:c.homeId,profile:c.profile,readyInMs:number(c.readyInMs)}:{}) })),
     projectiles: raw.projectiles.map(p => ({ id: p.id, owner: p.owner, weapon: p.weapon, ...(p.targetId ? { targetId: p.targetId } : {}),
       position: vector(p.position), velocity: vector(p.velocity), radius: number(p.radius), ttl: number(p.ttl) })),
-    mines: raw.mines.map(m => ({ id: m.id, owner: m.owner, ...(m.weapon ? { weapon: m.weapon } : {}), position: vector(m.position), normal: vector(m.normal),
+    mines: raw.mines.map(m => ({ id: m.id, owner: m.owner, ...(m.kind&&m.kind!=='mine'?{kind:m.kind}:{}), ...(m.weapon?{weapon:m.weapon}:{}), position: vector(m.position), normal: vector(m.normal),
       radius:number(m.radius), arm: number(m.arm), ttl: number(m.ttl), armed: m.armed })),
     grenades: raw.grenades.map(g => ({ id: g.id, owner: g.owner, position: vector(g.position), velocity: vector(g.velocity),
       weapon:g.weapon, radius:number(g.radius), arm:number(g.arm||0), fuse: number(g.fuse||0),

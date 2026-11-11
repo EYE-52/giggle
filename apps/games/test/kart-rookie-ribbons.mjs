@@ -32,10 +32,15 @@ for(const players of[2,4,8]){
   const camera=createKartCameraCollision(THREE,map.colliders);let samples=0;
   for(const e of map.routes)for(let i=1;i<e.points.length;i++){const a=e.points[i-1],b=e.points[i],run=Math.hypot(b.x-a.x,b.z-a.z),steps=Math.ceil(run/.5);for(let t=0;t<=steps;t++){const f=t/steps,focus=new THREE.Vector3(a.x+(b.x-a.x)*f,a.y+(b.y-a.y)*f+.85,a.z+(b.z-a.z)*f);for(let h=0;h<12;h++){const angle=h*Math.PI/6,eye=new THREE.Vector3(focus.x-Math.sin(angle)*8.8,focus.y+3.2,focus.z-Math.cos(angle)*8.8);camera.constrain(eye,focus,.32);assert(!physics.overlapsStatic(eye,yaw(0),{x:.14,y:.14,z:.14}),e.id+' camera outside solids');samples++;}}}camera.dispose();
   match=combat.createElevatedCombat(RAPIER,CONFIG,source,Array.from({length:players},(_,i)=>({id:'p'+i})),{instance:'rookie',seed:42,startAt:0,countdownMs:0});
-  const snapshot=match.snapshot();assert.equal(snapshot.variantId,players===2?'duel':'full');assert.equal(snapshot.crates.length,players===2?14:20);assert.equal(snapshot.crates.filter(c=>c.position.y>2).length,4);
+  const snapshot=match.snapshot();assert.equal(snapshot.variantId,players===2?'duel':'full');assert.equal(snapshot.crates.length,players===2?14:18);assert.equal(snapshot.crates.filter(c=>c.position.y>2).length,4);
   report.push({players,variant:map.variantId,colliders:map.colliders.length,boxes:snapshot.crates.length,cameraSamples:samples});
  }finally{match?.dispose();physics.dispose();}
 }
 for(const players of[2,8])for(const reverse of[false,true]){const map=selectArenaVariant(source,players),points=rookieCircuit(players);if(reverse)points.reverse();const driven=driveArenaRoute(RAPIER,CONFIG,map,points);assert(driven.complete,'full circuit '+players+'/'+reverse+' completes');assert.deepEqual(driven.events,[],'no route resets or recovery');assert(driven.stuck<3000);}
-const scene=new THREE.Scene(),world=createKartElevatedWorld(THREE,{scene,map:selectArenaVariant(source,8)});const stats=world.stats();assert(stats.drawCalls<=45&&stats.triangles<=28000);world.dispose();assert.equal(scene.children.length,0);
+const scene=new THREE.Scene(),world=createKartElevatedWorld(THREE,{scene,map:selectArenaVariant(source,8)});const hills=world.group.getObjectByName('outer-foothills');
+const position=hills.geometry.getAttribute('position'),uv=hills.geometry.getAttribute('uv');
+assert.equal(uv.count,position.count);
+assert(uv.array.every(Number.isFinite)&&Math.max(...uv.array)-Math.min(...uv.array)>20,'terrain repeats in world metres through the entire apron');
+world.animate(1/60,2,.5);assert.equal(world.group.getObjectByName('outer-foothills').geometry,hills.geometry,'sky changes reuse the static terrain');
+const stats=world.stats();assert(stats.drawCalls<=45&&stats.triangles<=28000);world.dispose();assert.equal(scene.children.length,0);
 console.log('PASS Rookie Ribbons',JSON.stringify({report,world:stats}));

@@ -2372,25 +2372,26 @@ function withKartGarage(game, footer) {
 /* Mid-game room snapshots (joins, host migration): patch the Change-game
  * button states without rebuilding the running view. */
 function renderHostStates() {
+  const hostSeat = isHost();
   for (const id of ['bLobby', 'bRematch', 'bChange', 'bEndConfirm']) {
     const b = document.getElementById(id);
     if (b) {
-      b.disabled = !isHost() || !!pendingRoomAction;
-      b.title = isHost() ? '' : 'Only the host can do this';
+      updateProperty(b, 'disabled', !hostSeat || !!pendingRoomAction);
+      updateProperty(b, 'title', hostSeat ? '' : 'Only the host can do this');
       if (id === 'bLobby') {
-        b.hidden = !isHost();
-        b.textContent = pendingRoomAction?.kind === 'lobby' ? 'Changing…' : pendingRoomAction?.kind === 'end' ? 'Ending…' : matchOver() ? 'Change game' : 'End game';
+        updateProperty(b, 'hidden', !hostSeat);
+        updateProperty(b, 'textContent', pendingRoomAction?.kind === 'lobby' ? 'Changing…' : pendingRoomAction?.kind === 'end' ? 'Ending…' : matchOver() ? 'Change game' : 'End game');
       }
-      if (id === 'bRematch') { b.hidden = !isHost(); b.textContent = pendingRoomAction?.kind === 'rematch' ? 'Starting…' : 'Rematch'; }
-      if (id === 'bChange') { b.hidden = !isHost(); b.textContent = pendingRoomAction?.kind === 'lobby' ? 'Changing…' : 'Change game'; }
+      if (id === 'bRematch') { updateProperty(b, 'hidden', !hostSeat); updateProperty(b, 'textContent', pendingRoomAction?.kind === 'rematch' ? 'Starting…' : 'Rematch'); }
+      if (id === 'bChange') { updateProperty(b, 'hidden', !hostSeat); updateProperty(b, 'textContent', pendingRoomAction?.kind === 'lobby' ? 'Changing…' : 'Change game'); }
     }
   }
   // A finished match needs no End game confirmation any more.
-  if (menuConfirm === 'end' && (matchOver() || !isHost())) { menuConfirm = null; paintMenuConfirm(); }
+  if (menuConfirm === 'end' && (matchOver() || !hostSeat)) { menuConfirm = null; paintMenuConfirm(); }
   const requestStatus = document.getElementById('roomRequestStatus');
   if (requestStatus) {
-    requestStatus.hidden = !pendingRoomAction;
-    requestStatus.textContent = pendingRoomAction?.kind === 'rematch' ? 'Starting rematch…' : pendingRoomAction?.kind === 'end' ? 'Ending the game…' : 'Going back to the game list…';
+    updateProperty(requestStatus, 'hidden', !pendingRoomAction);
+    updateProperty(requestStatus, 'textContent', pendingRoomAction?.kind === 'rematch' ? 'Starting rematch…' : pendingRoomAction?.kind === 'end' ? 'Ending the game…' : 'Going back to the game list…');
   }
   const context = document.getElementById('gContext');
   if (context && lastState) {
@@ -2398,16 +2399,21 @@ function renderHostStates() {
     const count = lastState.players?.length || 0;
     const watchers = lastState.spectators?.length || 0;
     const where = !EMBED.enabled ? `Room ${room?.code || ''}` : (lastState.spectator ? 'Watching' : 'Squad game');
-    context.textContent = `${where} · ${count} playing${watchers ? ` · ${watchers} watching` : ''} · Host ${host?.name || '—'}`;
+    updateProperty(context, 'textContent', `${where} · ${count} playing${watchers ? ` · ${watchers} watching` : ''} · Host ${host?.name || '—'}`);
   }
   const role = document.getElementById('playRole');
-  if (role && lastState) role.hidden = !lastState.spectator;
+  if (role && lastState) updateProperty(role, 'hidden', !lastState.spectator);
   const note = document.getElementById('hostWait');
   if (note) {
-    note.hidden = isHost();
+    updateProperty(note, 'hidden', hostSeat);
     const host = room && room.players.find((p) => p.id === room.hostId);
-    note.textContent = `Waiting for ${host ? host.name : 'the host'} to start a rematch or pick another game`;
+    updateProperty(note, 'textContent', `Waiting for ${host ? host.name : 'the host'} to start a rematch or pick another game`);
   }
+}
+
+// Realtime games can refresh the room shell thirty times a second.
+function updateProperty(element, key, value) {
+  if (element[key] !== value) element[key] = value;
 }
 
 let focusGame = null;
@@ -2497,7 +2503,7 @@ function gameRoomMenu(g, context, floating = false) {
       </div>
       <div id="roomConfirm" class="room-confirm" role="group" aria-labelledby="roomConfirmText" hidden></div>
       <p id="roomRequestStatus" role="status" hidden></p>
-      <div id="scores" class="scoreboard"></div>
+      <div id="scores" class="scoreboard" aria-label="Game night totals"></div>
       <div id="roomMembers" class="room-members"></div>
       ${!EMBED.enabled ? '<a class="room-meet" href="https://gigglemeet.com" target="_blank" rel="noopener">Hang out on Giggle Meet ↗</a>' : ''}
     </div>
@@ -2788,8 +2794,9 @@ function paintGamePreparation() {
   const preparing = !!lastState.preparing;
   // Framed games own their input locks. Keep local Help and animation
   // controls usable; api.send and the Room still reject early gameplay.
-  el.inert = preparing && gameById(gameId)?.runtime?.type !== 'frame';
-  el.setAttribute('aria-busy', String(preparing));
+  const lockInputs = preparing && gameById(gameId)?.runtime?.type !== 'frame';
+  if (el.inert !== lockInputs) el.inert = lockInputs;
+  if (el.getAttribute?.('aria-busy') !== String(preparing)) el.setAttribute('aria-busy', String(preparing));
   let status = document.getElementById('gamePreparation');
   if (!status && preparing) {
     status = document.createElement('div');
@@ -2843,7 +2850,7 @@ function paintGamePreparation() {
       }, 2400);
     }
   }
-  if (status) status.hidden = !preparing;
+  if (status && status.hidden !== !preparing) status.hidden = !preparing;
   if(status&&preparing&&gameId==='pocket-karts'&&!status.querySelector('.kart-load-progress')){
     const progress=document.createElement('small');progress.className='kart-load-progress';(status.querySelector('.preparation-text')||status).appendChild(progress);
     const update=()=>{
@@ -3017,12 +3024,15 @@ function renderScores() {
   const sorted = [...(lastState.players || [])].sort(
     (a, b) => (lastState.totals[b.id] || 0) - (lastState.totals[a.id] || 0));
   const top = sorted.length ? (lastState.totals[sorted[0].id] || 0) : 0;
-  el.setAttribute('aria-label', 'Game night totals');
-  el.innerHTML = '<span class="scorelabel">Night totals</span>' + sorted.map((p) => {
+  const html = '<span class="scorelabel">Night totals</span>' + sorted.map((p) => {
     const pts = lastState.totals[p.id] || 0;
     return `<span class="score ${pts === top && top > 0 ? 'leader' : ''}">${avatar(p.id, p.name)}${esc(p.name)} <b>${pts}</b></span>`;
   }).join('') + ((lastState.spectators && lastState.spectators.length)
     ? `<span class="watching-chip">Watching: ${lastState.spectators.map((s) => esc(s.name)).join(', ')}</span>` : '');
+  if (el._scoresHtml !== html) {
+    el.innerHTML = html;
+    el._scoresHtml = html;
+  }
   renderRoomMembers();
 }
 
@@ -3041,9 +3051,9 @@ function startTimer(endsAt, ownsTimer = false) {
   const clock = bar.closest?.('.game-clock');
   clock?.classList?.toggle('is-owned', !!ownsTimer);
   if (ownsTimer || lastState?.preparing || lastState?.matchEnded || !endsAt || /^(done|reveal|result|results|score|scores)$/.test(lastState?.phase || '')) {
-    bar.hidden = true;
-    if (text) text.hidden = true;
-    clock?.classList?.add('is-idle');
+    if (!bar.hidden) bar.hidden = true;
+    if (text && !text.hidden) text.hidden = true;
+    clock?.classList?.toggle('is-idle', true);
     return;
   }
   clock?.classList?.remove('is-idle');

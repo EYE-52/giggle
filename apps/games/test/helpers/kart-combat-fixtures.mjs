@@ -24,8 +24,9 @@ await RAPIER.init();
 export const DT=CONFIG.fixedDt;
 const zero={x:0,y:0,z:0},identity={x:0,y:0,z:0,w:1};
 let serial=0;
+const isTrap=weapon=>['mine','proximity','fakecrate','oil'].includes(weapon);
 const targetFor=weapon=>weapon==='blades'?{x:3.4,z:0}:weapon==='ram'?{x:0,z:3.2}:weapon==='trishot'?{x:0,z:8}:
-  ['mine','oil'].includes(weapon)?{x:0,z:-9}:weapon==='supernova'?{x:0,z:6}:
+  isTrap(weapon)?{x:0,z:-9}:weapon==='supernova'?{x:0,z:6}:
   weapon==='boomerang'?{x:-2.2,z:12}:{x:0,z:10};
 function move(physics,id,p){physics.restoreKart(id,{position:p,rotation:identity,linearVelocity:zero,angularVelocity:zero});}
 
@@ -45,8 +46,8 @@ export function classic(weapon,options={}){
  return {a,b,s,physics,connected,origin:pose(base.x,base.z),
   tick(i){const before=new Map(s.karts.map(k=>[k.pid,structuredClone(k)]));
    // Both drivers advance together slowly; trap victim instead drives forward.
-   const travel=['mine','oil'].includes(weapon)?Math.min(i*DT*5,12):i*DT*.2;
-   move(physics,'a',pose(base.x,base.z+(['mine','oil'].includes(weapon)?0:travel)));
+   const travel=isTrap(weapon)?Math.min(i*DT*5,12):i*DT*.2;
+   move(physics,'a',pose(base.x,base.z+(isTrap(weapon)?0:travel)));
    if(!b.respawn){const p=pose(base.x+target.x,base.z+target.z+travel);p.y+=this.heightOffset||0;move(physics,'b',p);}
    for(const k of s.karts)physics.applyIntent(k.pid,{throttle:.1,steer:0});physics.step();sync();
    s.lastTick+=DT*1000;battle.tick(s,connected,DT,before,null,new Map(),geometry);
@@ -55,7 +56,7 @@ export function classic(weapon,options={}){
 }
 
 export function raised(weapon,options={}){
- const map=elevatedMap('garden'),base={x:30,y:7,z:['mine','oil'].includes(weapon)?10:0},target=targetFor(weapon);
+ const map=elevatedMap('garden'),base={x:30,y:7,z:isTrap(weapon)?10:0},target=targetFor(weapon);
  const point=(id,x,z)=>({id,surface:'courtyard',x,y:7,z,angle:0});
  map.spawns=[point('a',base.x,base.z),point('b',base.x+target.x,base.z+target.z)];
  map.sockets=[point('s0',base.x-.7,base.z),point('s1',base.x+.7,base.z)];
@@ -70,8 +71,8 @@ export function raised(weapon,options={}){
  for(let i=0;i<(options.protected?0:160);i++)w.advance(w.snapshot().serverAt+DT*1000);
  send('a',true);send('a');
  return {w,physics,origin:{x:base.x,y:base.y+.64,z:base.z},
-  tick(i){const travel=['mine','oil'].includes(weapon)?Math.min(i*DT*5,12):i*DT*.2;
-   move(physics,'a',{x:base.x,y:base.y+.64,z:base.z+(['mine','oil'].includes(weapon)?0:travel)});
+  tick(i){const travel=isTrap(weapon)?Math.min(i*DT*5,12):i*DT*.2;
+   move(physics,'a',{x:base.x,y:base.y+.64,z:base.z+(isTrap(weapon)?0:travel)});
    if(w.snapshot().karts[1].alive)move(physics,'b',{x:base.x+target.x,y:base.y+.64+(this.heightOffset||0),z:base.z+target.z+travel});
    if(i%6===0){send('a');send('b');}w.advance(w.snapshot().serverAt+DT*1000);
    const s=w.snapshot();return {events:s.events,health:s.karts[1].health,dead:!s.karts[1].alive};},

@@ -12,7 +12,7 @@ import {surfaceProfile} from '../public/js/engines/kart-surface.mjs';
 import {driftTier,DRIFT_TIERS} from '../public/js/engines/kart-drift.mjs';
 import {cleanKartLook,kartPaintHex} from '../public/js/engines/kart-looks.mjs';
 import {WEAPON_IDS as combatWeaponIds,CURATED_MUZZLE,weaponForward} from '../public/js/engines/kart-weapon-contract.mjs';
-import {paintKartWeapon,createKartWeaponRoulette} from '../public/js/engines/kart-weapon-hud.mjs';
+import {paintKartWeapon,kartWeaponArt} from '../public/js/engines/kart-weapon-hud.mjs';
 import {kartResultView} from '../public/js/engines/kart-results.mjs';
 import {createKartImpactFX} from '../public/js/engines/kart-impact-fx.mjs';
 import {createArsenalFX} from '../public/js/engines/kart-arsenal-fx.mjs';
@@ -78,8 +78,8 @@ for(const mapId of elevatedMapIds)for(const room of [true,false])for(const touch
   r.render(s);check('equipped player uses an icon fallback while thumbnail preparation is pending',r.node('weapon').querySelector('.kart-item-art').innerHTML.includes('<svg')&&!r.node('weapon').querySelector('.kart-item-art').innerHTML.includes('<img'));
   await r.settle(0,true);r.node('loading').querySelector('button').dispatch('click');
   await loadKartWeaponThumbnails();r.thumbnails(true);await r.settle();
-  check('successful retry replaces unchanged equipped HUD fallback with decoded licensed thumbnail',r.node('weapon').querySelector('.kart-item-art').innerHTML.includes('data:image/svg+xml;base64,'));
-  check('successful retry updates unchanged touch action thumbnail too',r.node('use-icon').innerHTML.includes('data:image/svg+xml;base64,'));
+  check('successful retry replaces unchanged equipped HUD fallback with decoded licensed thumbnail',r.node('weapon').querySelector('.kart-item-art').innerHTML.includes('<img class="kart-weapon-thumbnail"'));
+  check('successful retry updates unchanged touch action thumbnail too',r.node('use-icon').innerHTML.includes('<img class="kart-weapon-thumbnail"'));
   r.view.dispose();
 }
 {
@@ -141,12 +141,12 @@ for(const mapId of elevatedMapIds)for(const room of [true,false])for(const touch
   r.node('brake').dispatch('pointercancel',{pointerId:9});check('pointer cancel retires touch brake',r.sent.at(-1).brake===0);
   r.node('nitro').dispatch('keydown',{code:'Enter',repeat:false});check('keyboard activation of focused touch Nitro sends held intent',r.sent.at(-1).nitro);
   r.node('nitro').dispatch('blur');check('button blur releases keyboard-held Nitro',!r.sent.at(-1).nitro);
-  const armed=structuredClone(epoch);armed.karts[0].weapon='missile';armed.karts[0].ammo=1;r.render(armed);check('Use touch icon and accessible label identify actual weapon',r.node('use').getAttribute('aria-label')==='Activate Homing Missile, full payload'&&r.node('use-icon').innerHTML===r.node('weapon').querySelector('.kart-item-art').innerHTML&&r.node('use-ammo').textContent==='1'&&!r.node('use').disabled);
+  const armed=structuredClone(epoch);armed.karts[0].weapon='missile';armed.karts[0].ammo=1;r.render(armed);check('Use touch icon and accessible label identify actual weapon',r.node('use').getAttribute('aria-label')==='Launch homing missile'&&r.node('use-icon').innerHTML===r.node('weapon').querySelector('.kart-item-art').innerHTML&&r.node('use-ammo').textContent==='1'&&!r.node('use').disabled);
   check('equipped HUD presents the authoritative remaining payload and full activation label',r.node('weapon').querySelector('.kart-item-count').textContent==='×1'&&r.node('weapon').getAttribute('aria-label')==='Homing Missile, Ready, ×1');
   armed.karts[0].firing=true;r.render(armed);
   check('accepted firing sequence remains visible and blocks a second activation',r.node('weapon').dataset.state==='firing'&&r.node('weapon').querySelector('.kart-item-count').textContent==='×1'&&r.node('weapon').getAttribute('aria-label')==='Homing Missile, Firing, ×1'&&r.node('use').disabled&&r.node('use').getAttribute('aria-label')==='Weapon firing');
   armed.karts[0].weapon='mine';armed.karts[0].ammo=2;r.render(armed);
-  check('sequential mine deployment announces its remaining trail',r.node('weapon').getAttribute('aria-label')==='Mine, Deploying, ×2'&&r.node('use-ammo').textContent==='2'&&r.node('use').disabled);
+  check('sequential mine deployment announces its remaining trail',r.node('weapon').getAttribute('aria-label')==='Trail Mines, Deploying, ×2'&&r.node('use-ammo').textContent==='2'&&r.node('use').disabled);
   const n=r.sent.length;r.sticks[0].opts.onChange({x:0,y:-1});for(let i=0;i<100;i++)r.sticks[0].opts.onChange({x:i/100,y:-1});check('continuous analog updates coalesce instead of emitting pointer-rate packets',r.sent.length-n===1);
   r.sticks[0].opts.onChange({x:0,y:0});check('stick release immediately sends zero axes',r.sent.at(-1).steer===0&&r.sent.at(-1).throttle===0);
   const retiring=r.sent.length;r.view.dispose();check('dispose emits no frame wrapped in another instance token',r.sent.length===retiring);
@@ -240,7 +240,7 @@ for(const mapId of elevatedMapIds)for(const room of [true,false])for(const touch
 {
   const r=rig();r.api.context=()=>({isHost:true,sound:true});r.render();await r.settle();
   const weapons=Object.keys(COMBAT.arsenal.weights);
-  check('cue coverage uses all sixteen actual authority weapons',weapons.length===10);
+  check('cue coverage matches the authority weapon list',weapons.length===combatWeaponIds.length&&combatWeaponIds.every(id=>weapons.includes(id)));
   for(const weapon of weapons){
     const name=weapon;
     r.render({...base(),events:[{id:'fire-'+weapon,type:weapon==='mine'?'mine':weapon==='shield'?'shield':'fire',weapon,pid:'a',position:{x:0,y:1,z:2}}]});
@@ -383,7 +383,7 @@ for(const missingDrivers of [['bunny'],['fox','bunny','panda','raccoon']]){
 {
  const r=rig();r.render();await r.settle();
  const s=base();s.simAt=100;s.simTick=2;s.karts[0].weapon='cannon';s.karts[0].ammo=1;s.events=[{id:'pickup-reveal',type:'pickup',pid:'a',weapon:'cannon',position:{x:0,y:1,z:0}}];r.render(s);
- check('accepted elevated pickup starts roulette',r.node('weapon').dataset.state==='roulette');
+ check('confirmed item is ready immediately',r.node('weapon').dataset.state==='ready'&&r.node('weapon').dataset.weapon==='cannon');
  r.key('Space');check('elevated fire skips roulette and sends real use intent immediately',r.node('weapon').dataset.state!=='roulette'&&r.sent.at(-1).use===true);
  check('elevated roulette never changes authority inventory',s.karts[0].weapon==='cannon'&&s.karts[0].ammo===1);r.view.dispose();
 }
@@ -399,7 +399,7 @@ for(const missingDrivers of [['bunny'],['fox','bunny','panda','raccoon']]){
     const floor={id:'floor',shape:'box',half:{x:40,y:1,z:40},position:{x:0,y:-1,z:0}};
     const solid=kind==='wedge'?{id:kind,shape:'wedge',half:{x:12,y:3,z:30},position:{x:0,y:3,z:0},rotation:{x:0,y:0,z:0,w:1}}:{id:kind,shape:'box',half:{x:12,y:.5,z:20},position:{x:0,y:y-.5,z:0}};
     const point=(id,x,z)=>({id,x,y:y+(kind==='wedge'?.1*z:0),z,angle:0,surface:kind});
-    const map={...elevatedMap(mapId),half:40,colliders:kind==='flat'?[solid]:[floor,solid],spawns:[point('a',0,0),point('b',8,10)],sockets:[point('s0',-.7,0),point('s1',.7,0)]};
+    const map={...elevatedMap(mapId),half:40,features:{},colliders:kind==='flat'?[solid]:[floor,solid],spawns:[point('a',0,0),point('b',8,10)],sockets:[point('s0',-.7,0),point('s1',.7,0)]};
     let match;
     for(let seed=0;seed<256;seed++){
       const candidate=COMBAT.createElevatedCombat(RAPIER,CONFIG,map,[{id:'a'},{id:'b'}],{instance:'mine-'+mapId+'-'+kind,seed,startAt:0,countdownMs:0,roundMs:20000,crates:1});
@@ -412,7 +412,11 @@ for(const missingDrivers of [['bunny'],['fox','bunny','panda','raccoon']]){
     try{
       for(let i=0;i<90;i++)match.advance(match.snapshot().serverAt+CONFIG.fixedDt*1000);
       for(const use of [true,false]){const raw=match.snapshot('a');assert.ok(match.input('a',{instance:raw.instance,life:raw.you.life,controlEpoch:raw.you.controlEpoch,seq:raw.you.receivedSeq+1,steer:0,throttle:0,brake:1,nitro:false,use},raw.serverAt).ok);}
-      for(let i=0;i<32;i++)match.advance(match.snapshot().serverAt+CONFIG.fixedDt*1000);
+      for(let i=0;i<120&&match.snapshot().mines.length<3;i++){
+        const packet=match.snapshot('a');
+        if(i%6===0)assert.ok(match.input('a',{instance:packet.instance,life:packet.you.life,controlEpoch:packet.you.controlEpoch,seq:packet.you.receivedSeq+1,steer:0,throttle:1,brake:0,nitro:false,use:false},packet.serverAt).ok);
+        match.advance(packet.serverAt+CONFIG.fixedDt*1000);
+      }
       const raw=match.snapshot();check(mapId+' '+kind+' grounded real Mine activation sequentially creates three supported traps',raw.mines.length===3&&raw.events.some(e=>e.type==='mine'&&e.pid==='a'));
       if(kind==='wedge')check(mapId+' wedge release has actual sloped support normals',raw.mines.every(m=>Math.abs(m.normal.z)>.09&&m.normal.y<.999));
       adapter=ELEVATED_ADAPTER.createElevatedKartAdapter({RAPIER,config:CONFIG,maps:Object.fromEntries(['skyport','foundry','garden','frost','neon','harbor'].map(id=>[id,id===mapId?map:elevatedMap(id)])),defaults:{mode:'Zap Battle',winRule:'Time limit',garage:false,map:elevatedMap(mapId).name,roundSeconds:20},createMatch:()=>match});
@@ -424,7 +428,7 @@ for(const missingDrivers of [['bunny'],['fox','bunny','panda','raccoon']]){
       check(mapId+' '+kind+' actual production sync displays every released loaded MineTrap',traps.length===3&&traps.every(t=>t.userData.combat.inner.children[0].name==='MineTrap'));
       for(const [i,m]of wire.mines.entries()){
         const source=raw.mines[i],basePoint=new THREE.Vector3().copy(source.position).addScaledVector(new THREE.Vector3().copy(source.normal),-(source.radius+.015)),support=probe.supportAt({...basePoint,y:basePoint.y+.4},2),normal=new THREE.Vector3().copy(support.normal).normalize();
-        check(mapId+' '+kind+' authority packet keeps its swept sphere above independently queried support',support.surfaceId===source.surfaceId&&new THREE.Vector3().copy(source.position).sub(new THREE.Vector3().copy(support.point)).distanceTo(normal.clone().multiplyScalar(source.radius+.015))<1e-5&&new THREE.Vector3().copy(source.normal).distanceTo(normal)<1e-5);
+        check(mapId+' '+kind+' authority packet keeps its swept sphere above independently queried support',support.surfaceId===source.surfaceId&&new THREE.Vector3().copy(source.position).sub(new THREE.Vector3().copy(support.point)).distanceTo(normal.clone().multiplyScalar(source.radius+.015))<1e-5&&new THREE.Vector3().copy(source.normal).distanceTo(normal)<.0001);
         const trap=traps.find(t=>t.position.distanceTo(new THREE.Vector3().copy(support.point).addScaledVector(normal,.02))<.0011);
         assert.ok(trap,mapId+' '+kind+' sync derives the rendered base from physical support along the surface normal');trap.updateMatrixWorld(true);
         const origin=new THREE.Vector3().copy(support.point),v=new THREE.Vector3();let min=Infinity,max=-Infinity;
@@ -873,5 +877,19 @@ for(const frameMs of [1000/60,1000/30]){
   const colliders=[{id:'left',shape:'box',half:{x:.3,y:5,z:3},position:{x:-2,y:5,z:0}},{id:'right',shape:'box',half:{x:.3,y:5,z:3},position:{x:2,y:5,z:0}},{id:'rear',shape:'box',half:{x:3,y:5,z:.3},position:{x:0,y:5,z:-2}},{id:'front',shape:'box',half:{x:3,y:5,z:.3},position:{x:0,y:5,z:2}},{id:'ceiling',shape:'deck',half:{x:3,y:.3,z:3},position:{x:0,y:4,z:0}}];
   const r=rig({graphics:true,colliders}),snapshot=base();r.render(snapshot);const gl=await r.settle();let safe=true;for(let i=0;i<90;i++){r.frame(frameMs/1000);const p=gl.built.camera.position;safe&&=p.toArray().every(Number.isFinite)&&Math.abs(p.x)<1.7&&Math.abs(p.z)<1.7&&p.y<3.7;r.advance(frameMs);}
   check(Math.round(1000/frameMs)+'fps failed side candidates retain clear eye beneath enclosed ceiling',safe);r.view.dispose();
+}
+{
+  const r=rig({graphics:true});r.render();await r.settle();r.frame();
+  const built=r.loads.at(-1).handle.built;
+  const trapSnapshot=base();
+  for(const [i,kind] of ['mine','proximity','fakecrate','proximity'].entries()){
+    trapSnapshot.simTick=100+i;trapSnapshot.simAt+=20;
+    trapSnapshot.mines=[{id:'trap-'+i,kind,owner:'a',armed:true,radius:.41,position:{x:0,y:.425,z:0},normal:{x:0,y:1,z:0}}];
+    r.render(trapSnapshot);r.frame();
+    const active=built.scene.children.filter(o=>o.visible&&o.userData.combat?.type==='mine');
+    check('live trap pool selects '+kind,active.length===1&&active[0].userData.combat.kind===kind);
+  }
+  trapSnapshot.mines=[];trapSnapshot.simTick++;r.render(trapSnapshot);r.frame();
+  r.view.dispose();
 }
 console.log(JSON.stringify({pass:true,checks:results.length,results,scope:'Actual production view/dispatcher and scene frames with real Three.js kart/combat assets and authored collider triangles; held-input Rapier ramp/bridge trajectories. World/renderer/audio/mobile-stick doubles; no physical-phone or GPU timing claim.'},null,2));

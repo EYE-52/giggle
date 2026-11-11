@@ -21,15 +21,18 @@ function restart(element, name) {
 
 // Authority HP only. Reuse the same track/fill/number for the whole life.
 export function paintKartHearts(element,kart){
- element.classList?.add('kart-hp');
  const max=Math.max(1,Number(kart?.maxHealth)||100),hp=Math.max(0,Math.min(max,Number(kart?.health??max)));
+ const life=String(kart?.spawnSeq??0),guard=String(kart?.guard===true);
+ if(element.children.length && element.dataset.life===life && element.dataset.hp===String(hp)
+    && element.dataset.guard===guard && element.getAttribute('aria-valuemax')===String(max))return {hp,max,lost:0};
+ element.classList?.add('kart-hp');
  if(!element.children.length)element.innerHTML='<i class="kart-hp-track"><i class="kart-hp-fill"></i></i><b class="kart-hp-value"></b>';
- const life=String(kart?.spawnSeq??0),before=Number(element.dataset.hp),lost=element.dataset.life===life&&Number.isFinite(before)?Math.max(0,before-hp):0;
+ const before=Number(element.dataset.hp),lost=element.dataset.life===life&&Number.isFinite(before)?Math.max(0,before-hp):0;
  const fill=element.querySelector?.('.kart-hp-fill')||element.children[0]?.children[0];
  if(fill)fill.style.transform=`scaleX(${hp/max})`;
  const number=element.querySelector?.('.kart-hp-value')||element.children[1];if(number)number.textContent=`${Math.ceil(hp)} HP`;
  if(lost)restart(element,'data-shake');
- element.dataset.hp=String(hp);element.dataset.life=life;element.dataset.low=String(hp<=max*.3);element.dataset.guard=String(kart?.guard===true);
+ element.dataset.hp=String(hp);element.dataset.life=life;element.dataset.low=String(hp<=max*.3);element.dataset.guard=guard;
  element.setAttribute('role','meter');element.setAttribute('aria-valuemin','0');element.setAttribute('aria-valuemax',String(max));element.setAttribute('aria-valuenow',String(Math.ceil(hp)));
  element.setAttribute('aria-label',`${Math.ceil(hp)} of ${max} HP${kart?.guard?', shield ready':''}`);
  return {hp,max,lost};
@@ -96,11 +99,12 @@ export function landedText(event) {
 }
 
 // Blast weapons each have their own synthesized cue.
-const BLAST_CUES = {cannon:'cannonBoom',missile:'missileBlast',supernova:'novaBlast', nuke: 'nukeBlast', proximity: 'bombBlast', frost: 'frostShatter', cluster: 'clusterPop' };
+const BLAST_CUES = {cannon:'cannonBoom',missile:'missileBlast',supernova:'novaBlast', nuke: 'nukeBlast', proximity: 'bombBlast', fakecrate: 'bombBlast', frost: 'frostShatter', cluster: 'clusterPop' };
 // One authoritative event to one audio cue (null when it has none).
 export function kartEventCue(event, you) {
   if (event.type === 'blast') return BLAST_CUES[event.weapon] || 'rocketBlast';
   if (event.type === 'fire') return event.weapon;
+  if (event.type === 'mine') return event.weapon || 'mine';
   // A Turbo Ram strike clangs for everyone nearby, rammer and victim alike.
   if (event.type === 'hit' && event.weapon === 'ram') return 'ramClang';
   if (event.type === 'hit') return event.other === you ? 'hurt' : event.pid === you ? 'hitDing' : null;

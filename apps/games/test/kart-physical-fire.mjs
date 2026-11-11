@@ -41,7 +41,7 @@ for (const euler of [[0,0,0],[.3,Math.PI*2+.7,-.2],[-.4,-Math.PI*2-.7,.25]]) {
 {
   const s=state([kart('a',{x:0,y:.7,z:0})]),physics=physicsModule.createKartPhysics(RAPIER,CONFIG);
   try {
-    physics.addStatic({id:'barrel-cover',shape:'box',position:{x:0,y:.7+CURATED_MUZZLE.y,z:1},half:{x:.2,y:.3,z:.1}});
+    physics.addStatic({id:'barrel-cover',shape:'box',position:{x:CURATED_MUZZLE.x,y:.7+CURATED_MUZZLE.y,z:1},half:{x:.2,y:.3,z:.1}});
     arm(s,'machinegun',3);tick(s,0,physics);
     check(s.zaps.length===0&&s.events.length===0,'Obstructed chassis-to-muzzle path never emits shot or fire');
     check(s.karts[0].ammo===3&&s.karts[0].fireCd===0,'Blocked barrel keeps ammo and cooldown');
@@ -49,19 +49,32 @@ for (const euler of [[0,0,0],[.3,Math.PI*2+.7,-.2],[-.4,-Math.PI*2-.7,.25]]) {
 }
 {
  const s=state([kart('a',{x:0,y:.7,z:0})]),physics=physicsModule.createKartPhysics(RAPIER,CONFIG);
- try{physics.addStatic({id:'origin-overlap',shape:'box',position:{x:0,y:.7+CURATED_MUZZLE.y,z:0},half:{x:.4,y:.2,z:.6}});arm(s,'machinegun',3);tick(s,0,physics);check(s.zaps.length===0&&s.karts[0].ammo===3,'initial barrel overlap cannot spawn a shot beyond cover');}finally{physics.dispose();}
+ try{physics.addStatic({id:'origin-overlap',shape:'box',position:{x:CURATED_MUZZLE.x,y:.7+CURATED_MUZZLE.y,z:0},half:{x:.4,y:.2,z:.6}});arm(s,'machinegun',3);tick(s,0,physics);check(s.zaps.length===0&&s.karts[0].ammo===3,'initial barrel overlap cannot spawn a shot beyond cover');}finally{physics.dispose();}
 }
 // Centreline clears this cover; the authored bullet envelope does not.
 {
   const s=state([kart('a',{x:0,y:.7,z:0})]),physics=physicsModule.createKartPhysics(RAPIER,CONFIG);
   try {
-    physics.addStatic({id:'grazing-barrel-cover',shape:'box',position:{x:.15,y:.7+CURATED_MUZZLE.y,z:1},half:{x:.05,y:.3,z:.1}});
-    const from={x:0,y:.7+CURATED_MUZZLE.y,z:0},to={x:0,y:.7+CURATED_MUZZLE.y,z:1.9};
+    physics.addStatic({id:'grazing-barrel-cover',shape:'box',position:{x:CURATED_MUZZLE.x+.15,y:.7+CURATED_MUZZLE.y,z:1},half:{x:.05,y:.3,z:.1}});
+    const from={x:CURATED_MUZZLE.x,y:.7+CURATED_MUZZLE.y,z:0},to={x:CURATED_MUZZLE.x,y:.7+CURATED_MUZZLE.y,z:CURATED_MUZZLE.z};
     check(physics.sweepStatic(from,to)===null,'Old barrel centreline accepts near-cover path');
     check(!!physics.sweepStatic(from,to,battle.viewExtra(s).combat.staticSweepRadii.machinegun),'Actual bullet sphere detects near-cover barrel path');
     arm(s,'machinegun',3);tick(s,0,physics);
     check(s.zaps.length===0&&s.events.length===0&&s.karts[0].ammo===3&&s.karts[0].fireCd===0,'Sphere-blocked mounted fire keeps ammo/cooldown and emits no shot');
   } finally {physics.dispose();}
+}
+// A real ramp supports both the side socket and the rocket sphere at launch.
+for (const pitch of [-.28,.28]){
+  const physics=physicsModule.createKartPhysics(RAPIER,CONFIG);
+  try{
+    const q=new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1,0,0),pitch);
+    physics.addStatic({id:'ramp',shape:'box',half:{x:12,y:.45,z:20},position:{x:0,y:-.45,z:0},rotation:{x:q.x,y:q.y,z:q.z,w:q.w}});
+    const s=state([kart('a',{x:0,y:.75,z:0},q)]);
+    arm(s,'cannon',3);tick(s,0,physics);tick(s,.1,physics);
+    const shot=s.zaps[0];check(!!shot,'side-mounted rocket clears the pitched road');
+    const forward=new THREE.Vector3(0,0,1).applyQuaternion(q);
+    check(new THREE.Vector3(shot.vx,shot.vy,shot.vz).normalize().distanceTo(forward)<1e-7,'rocket follows uphill and downhill pitch');
+  }finally{physics.dispose();}
 }
 for (const moving of [false,true]) {
   const shooter=kart('a',{x:0,y:.7,z:0}),target=kart('b',{x:moving?2:.95,y:.85,z:7});
@@ -103,13 +116,13 @@ for (const covered of [false,true]) {
   } finally {physics.dispose();}
 }
 for(const tire of [false,true]){
-  const s=state([kart('a',{x:0,y:.7,z:0}),kart('front',{x:-2.25,y:.7,z:3.4}),kart('behind',{x:-2.25,y:.7,z:4.4}),kart('above',{x:-2.25,y:5,z:3.4})]);
+  const s=state([kart('a',{x:0,y:.7,z:0}),kart('front',{x:CURATED_MUZZLE.x-2.25,y:.7,z:3.4}),kart('behind',{x:CURATED_MUZZLE.x-2.25,y:.7,z:4.4}),kart('above',{x:CURATED_MUZZLE.x-2.25,y:5,z:3.4})]);
   const physics=physicsModule.createKartPhysics(RAPIER,CONFIG);
   try{
     physics.addStatic({id:'wall',shape:'box',position:{x:0,y:1.5,z:4},half:{x:5,y:1.5,z:.2}});
-    if(tire)physics.addStatic({id:'tire-style-prop',shape:'box',position:{x:-1.1,y:1.5,z:3.6},half:{x:.4,y:1.5,z:.3}});
+    if(tire)physics.addStatic({id:'tire-style-prop',shape:'box',position:{x:CURATED_MUZZLE.x-1.1,y:1.5,z:3.6},half:{x:.4,y:1.5,z:.3}});
     arm(s,'missile');tick(s,0,physics);tick(s,.2,physics);
-    check(tire?s.karts[1].health===100:s.karts[1].health>35&&s.karts[1].health<100,'Physical splash '+(tire?'is blocked by real prop collider':'takes two hearts from a visible same-side target'));
+    check(tire?s.karts[1].health===100:s.karts[1].health>35&&s.karts[1].health<100,'Physical splash '+(tire?'is blocked by real prop collider':'damages a visible same-side target'));
     check(s.karts[2].health===100,'Impact-face nudge never leaks splash through wall');
     check(s.karts[3].health===100,'Planar-near target at another elevation is outside 3D splash radius');
     check(s.events.filter(e=>e.type==='blast').length===1,'Cover-vetoed splash still emits one explosion');

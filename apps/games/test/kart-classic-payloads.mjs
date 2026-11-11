@@ -5,6 +5,7 @@ import RAPIER from '@dimforge/rapier3d-compat';
 import config from '../public/js/engines/kart-physics-config.mjs';
 import {createKartPhysics} from '../public/js/engines/kart-physics-core.mjs';
 import battle from '../games/engines/kart-rules-battle.js';
+import {CURATED_MUZZLE} from '../public/js/engines/kart-weapon-contract.mjs';
 import combat from '../games/engines/kart-combat-config.js';
 import rooms from '../server/room.js';
 import pocket from '../games/pocket-karts/server.js';
@@ -30,7 +31,7 @@ function fixture(weapon='machinegun'){
   close(){battle.cancelPayloads(s);physics.dispose();},
  };
 }
-for(const weapon of ['machinegun','missile','trishot'])for(const pump of [50,100]){
+for(const weapon of ['machinegun','missile','trishot','cannon'])for(const pump of [50,100]){
  const f=fixture(weapon),rounds=combat.config.weapons[weapon].ammo/(weapon==='trishot'?3:1),events=new Map();
  try{
   f.tap();let previous=f.a.ammo;
@@ -42,7 +43,7 @@ for(const weapon of ['machinegun','missile','trishot'])for(const pump of [50,100
   }
   equal(events.size,rounds,weapon+' one released activation emits its entire configured payload');
   equal([f.a.weapon,f.a.ammo,f.firing()],[null,0,false],weapon+' leaves no reusable partial inventory');
-  const cadence=weapon==='machinegun'?1000/12:weapon==='trishot'?280:400,times=[...events.values()].map(e=>e.at);
+  const cadence=weapon==='machinegun'?1000/12:weapon==='trishot'?280:weapon==='cannon'?340:400,times=[...events.values()].map(e=>e.at);
   check(Math.abs(times.at(-1)-times[0]-(rounds-1)*cadence)<=pump,weapon+' retains existing bounded cadence');
   equal(f.s.zapSeq,rounds*(weapon==='trishot'?3:1),weapon+' pellets retain original fan size');
   const publicKart=battle.kartViewExtra(f.a);check(typeof publicKart.firing==='boolean'&&!JSON.stringify(publicKart).includes('deadline'),'public firing flag contains no private scheduler');
@@ -52,15 +53,70 @@ for(const weapon of ['machinegun','missile','trishot'])for(const pump of [50,100
 {
  const f=fixture('trishot');try{
   f.tap();f.tick(0);const first=f.s.events.find(e=>e.type==='fire');check(first.direction.z>.99,'first missile follows initial barrel');
-  f.pose(f.a,0,0,Math.PI/2);f.pose(f.b,7,.95);f.tick(400);
+  f.pose(f.a,0,0,Math.PI/2);f.pose(f.b,7,-CURATED_MUZZLE.x);f.tick(400);
   const fires=f.s.events.filter(e=>e.type==='fire');equal(fires.length,2,'second committed missile emitted without another press');
-  check(fires[1].direction.x>.99&&Math.abs(fires[1].position.x-1.9)<.1,'queued shot samples the current rotated mount');
+  check(fires[1].direction.x>.99&&Math.abs(fires[1].position.x-CURATED_MUZZLE.z)<.1,'queued shot samples the current rotated mount');
   check(f.b.health<100&&f.b.health>=50-1e-8&&f.s.events.some(e=>e.type==='impact'&&e.other===f.b.pid),'new aim hits (2 hearts) a target that moved away from the original line');
+ }finally{f.close();}
+}
+for(const kind of ['machinegun','trishot']){
+ const f=fixture(kind);try{
+  f.pose(f.b,6,15);f.tap();f.tick(0);
+  const fire=f.s.events.find(e=>e.type==='fire');
+  check(kind==='machinegun'?fire.direction.x>.3:Math.abs(fire.direction.x)<.01,kind+' uses its own aiming rule');
+  for(let i=0;i<5;i++)f.tick(50);
+  check(kind==='machinegun'?f.b.health<100:f.b.health===100,kind+' off-axis target result');
+ }finally{f.close();}
+}
+for(const blocked of [false,true]){
+ const f=fixture('machinegun');try{
+  f.pose(f.b,0,-10);const left=f.add('left',-15,2);
+  if(blocked)f.physics.addStatic({id:'rear-cover',shape:'box',position:{x:0,y:1,z:-4},half:{x:3,y:2,z:.4}});
+  f.tap();f.tick(0);
+  const first=f.s.events.find(e=>e.type==='fire');
+  check(blocked?first.direction.x<-.95:first.direction.z<-.95,'tracks the nearest visible rival beside or behind the kart');
+  f.tick(150);
+  check((blocked?left:f.b).health<100&&(blocked?f.b:left).health===100,'only the visible target receives tracking hits');
+ }finally{f.close();}
+}
+for(const kind of ['machinegun','missile']){
+ const f=fixture(kind);try{
+  f.pose(f.b,0,kind==='missile'?-12:-45);f.tap();f.tick(0);
+  const e=f.s.events.find(e=>e.type==='fire');
+  check(e.direction.z>.99&&!e.targetId,kind+' respects its range or forward lock cone');
+ }finally{f.close();}
+}
+{
+ const f=fixture('cannon');try{
+  f.pose(f.b,0,10);f.tap();f.tick(0);
+  for(let i=0;i<5;i++)f.tick(50);
+  equal(f.b.health,50,'first rocket takes half the rival HP');
+  for(let i=0;i<7;i++)f.tick(50);
+  equal(f.b.health,0,'second rocket scores a knockout');
+  equal([f.a.hits,f.a.ammo,f.firing()],[1,1,true],'knockout keeps the third rocket loaded');
+  for(let i=0;i<4;i++)f.tick(50);
+  equal(f.s.zapSeq,3,'third rocket still launches after scoring');
+ }finally{f.close();}
+}
+for(const kind of ['fakecrate','proximity']){
+ const f=fixture(kind);try{
+  f.tap();f.tick(0);const mine=f.s.mines[0];equal(mine.kind,kind,'trap publishes its own identity');
+  f.tick(750);f.pose(f.b,mine.x,mine.z);f.tick(0);
+  check(kind==='fakecrate'?f.b.health===0:(f.b.health>0&&f.b.health<100),'armed '+kind+' resolves its own contact effect');
+  equal(f.s.mines.length,0,'spent trap disappears');
+ }finally{f.close();}
+}
+for(const kind of ['blades','supernova']){
+ const f=fixture(kind);try{
+  f.pose(f.b,2.5,0);f.tap();f.tick(0);f.tick(50);
+  equal(f.a.hits,1,kind+' contact scores a knockout');
+  const timer=kind==='blades'?'bladesT':'supernovaT';check(f.a[timer]>0,kind+' remains active after scoring');
+  const c=f.add('c',-2.5,0);f.tick(150);equal(c.health,0,kind+' can then knock out another rival');
  }finally{f.close();}
 }
 for(const block of ['muzzle','cap']){
  const f=fixture();try{
-  if(block==='muzzle')f.physics.addStatic({id:'barrel-block',shape:'box',half:{x:2,y:2,z:.2},position:{x:0,y:2,z:1}});
+  if(block==='muzzle')f.physics.addStatic({id:'barrel-block',shape:'box',half:{x:2,y:2,z:.2},position:{x:CURATED_MUZZLE.x,y:.7+CURATED_MUZZLE.y,z:1}});
   else f.s.zaps=Array.from({length:64},(_,i)=>({id:'cap-'+i,owner:'a',kind:'machinegun',physical:true,x:70,y:20,z:70,vx:0,vy:0,vz:0,ttl:20,angle:0}));
   f.tap();f.tick(0);equal([f.a.weapon,f.a.ammo,f.firing()],['machinegun',30,false],block+' refusal keeps the untouched pickup');
   if(block==='muzzle')f.pose(f.a,10,0);else f.s.zaps=[];
@@ -85,12 +141,13 @@ for(const block of ['muzzle','cap']){
   f.tap();f.tick(0);equal(f.s.mines.length,1,'one activation starts with one mine, not simultaneous traps');
   check(f.firing()&&f.a.ammo===2,'mine HUD retains weapon and two committed remaining drops');
   f.tick(230);equal(f.s.mines.length,1,'next mine waits for .24s interval');
-  f.tick(10);equal(f.s.mines.length,2,'second mine releases at .24s');
-  f.tick(240);equal(f.s.mines.length,3,'third mine completes the one-press payload');
+  f.tick(10);equal(f.s.mines.length,1,'stationary kart waits for movement');
+  f.pose(f.a,0,3);f.tick(0);equal(f.s.mines.length,2,'second mine releases after driving');
+  f.pose(f.a,0,6);f.tick(240);equal(f.s.mines.length,3,'third mine completes the one-press payload');
   equal([f.a.weapon,f.a.ammo,f.firing()],[null,0,false],'all three mines consume the pickup');
   const mines=f.s.mines.map(m=>structuredClone(m));
-  for(let i=0;i<mines.length;i++)for(let j=i+1;j<mines.length;j++)check(Math.hypot(mines[i].x-mines[j].x,mines[i].z-mines[j].z)>=combat.config.weapons.mine.bodyRadius*2+.12,'stationary line fallback has nonoverlapping bodies');
-  check(mines.every(m=>m.z<0&&m.y===0&&!m.armed),'three supported traps stay behind and initially unarmed');
+  for(let i=0;i<mines.length;i++)for(let j=i+1;j<mines.length;j++)check(Math.hypot(mines[i].x-mines[j].x,mines[i].z-mines[j].z)>=combat.config.weapons.mine.bodyRadius*2+.12,'moving trail has nonoverlapping bodies');
+  check(mines.every((m,i)=>m.z<i*3&&m.y===0&&!m.armed),'three supported traps stay behind and initially unarmed');
   f.tick(220);check(f.s.mines[0].armed,'first mine arms after .7s');
   f.pose(f.a,mines[0].x,mines[0].z);f.tick(50);equal(f.a.health,100,'exact owner is immune to own armed traps');
   const eventCount=f.s.eventSeq;f.tick(13000);equal(f.s.mines.length,0,'untriggered three-mine payload quietly expires');
@@ -127,7 +184,7 @@ for(const block of ['muzzle','cap']){
   for(const k of owners)f.tap(k);f.tick(0);
   equal(f.s.mines.length,5,'five full three-mine payloads reserve15 of16 slots');
   equal([owners[5].ammo,battle.kartViewExtra(owners[5]).firing],[3,false],'sixth payload stays untouched when all three drops cannot fit');
-  f.tick(240);f.tick(240);equal(f.s.mines.length,15,'accepted mine reservations complete without exceeding cap16');
+  for(const z of [3,6]){for(const k of owners)f.pose(k,k.x,z);f.tick(240);}equal(f.s.mines.length,15,'accepted mine reservations complete without exceeding cap16');
   equal(owners.slice(0,5).map(k=>k.ammo),[0,0,0,0,0],'every accepted mine inventory releases all three traps');
  }finally{f.close();}
 }

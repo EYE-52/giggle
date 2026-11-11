@@ -8,8 +8,8 @@ import {createRaisedCameraQuery} from './kart-raised-camera.mjs';
 import {createRaisedShadows,disableRaisedStaticShadows} from './kart-raised-shadows.mjs';
 import {kartLightTier} from './kart-festive-lights.mjs';
 import {controlsPickerHtml,wirePickers,syncPickers} from '../pickers.js';
-import {WEAPON_IDS,CURATED_MUZZLE,weaponForward} from './kart-weapon-contract.mjs';
-import {paintKartWeapon,createKartWeaponRoulette} from './kart-weapon-hud.mjs';
+import {WEAPON_DISPLAY,WEAPON_IDS,CURATED_MUZZLE,weaponForward} from './kart-weapon-contract.mjs';
+import {paintKartWeapon,kartWeaponArt} from './kart-weapon-hud.mjs';
 import {paintKartHearts,createKartHitFeedback,landedText,kartEventCue} from './kart-hearts.mjs';
 import {createKartImpactFX} from './kart-impact-fx.mjs';
 import {createArsenalFX} from './kart-arsenal-fx.mjs';
@@ -35,7 +35,7 @@ import {createKartCombatArt,projectileContactInset} from './kart-combat-art.mjs'
 import {createKartHealthBars} from './kart-health-bars.mjs';
 import {createKartElevatedWorld} from './kart-elevated-world.mjs';
 import {loadKartGLB} from './kart-prefetch.mjs';
-import {MeshoptDecoder,closeKartAssetBitmaps,loadKartWeaponThumbnails,weaponThumbnailArt,loadKartDrivers,matchKartDrivers,KART_ELEVATED_FILES,buildKartDriverVariants} from './kart-assets.mjs';
+import {MeshoptDecoder,closeKartAssetBitmaps,loadKartWeaponThumbnails,loadKartDrivers,matchKartDrivers,KART_ELEVATED_FILES,buildKartDriverVariants} from './kart-assets.mjs';
 import {cleanKartLook,kartPaintHex} from './kart-looks.mjs';
 import {elevatedMap} from './kart-elevated-maps.mjs';
 import CONFIG from './kart-physics-config.mjs';
@@ -43,22 +43,7 @@ import {createKartAudio} from './kart-audio.mjs';
 import {createGearbox,paintGear} from './kart-gearbox.mjs';
 import {blendElevatedPose,nextElevatedInput,createElevatedTimeline} from './kart-elevated-pose.mjs';
 
-const ICONS={
-  nuke:'<path d="m16 2 6 8v15H10V10Z" fill="#e5d35b"/><circle cx="16" cy="17" r="5" fill="#393e41"/>',
-  proximity:'<ellipse cx="16" cy="21" rx="11" ry="6" fill="#829299"/><path d="M7 10c5-6 13-6 18 0m-15 4c3-3 8-3 11 0" stroke="#ff6154"/><circle cx="16" cy="21" r="3" fill="#ff6154"/>',
-  rocket:'<path d="M15 4C9 5 7 9 7 15l4 4c6 0 10-2 11-8l-7-7Z" fill="#ff7541"/><path d="m7 12-4 3v6l6-3m7 1-3 6h6l3-4" fill="#d6ecf3"/><circle cx="16" cy="10" r="2" fill="#e5f7ff"/><path d="m5 22-2 5 5-2" stroke="#ffcb44"/>',
-  pulse:'<path d="M7 9h9v12H7z" fill="#edb44d"/><path d="M7 9c0-7 9-7 9 0m-9 6h9M3 24h18" stroke="#e8f2f8"/><path d="m21 7 5-3m-4 9h6" stroke="#ffcc49"/>',
-  scatter:'<path d="M3 18h18v6H3zm2-9h19v5H5z" fill="#e0b769"/><path d="m24 10 5-4m-5 14 5 4m-5-8h5" stroke="#fff"/>',
-  mine:'<ellipse cx="15" cy="18" rx="11" ry="6" fill="#667a88"/><path d="M7 14v-4m8 2V7m8 7v-4" stroke="#e3edf4"/><circle cx="15" cy="17" r="3" fill="#fa564f"/>',
-  shield:'<path d="m15 3 11 4v10c0 7-11 12-11 12S4 24 4 17V7l11-4Z" fill="#45c6e8"/><path d="m10 16 4 4 7-9" stroke="#fff"/>',
-  seeker:'<path d="M16 3c-5 4-7 10-7 17h14c0-7-2-13-7-17Z" fill="#91d451"/><path d="m9 18-5 8 7-3m12-5 5 8-7-3" fill="#e5f0f5"/><circle cx="16" cy="11" r="3" fill="#1c3539"/>',
-  laser:'<rect x="3" y="12" width="13" height="8" rx="3.5" fill="#fff6e8"/><path d="M15 16h14" stroke="#8ff8ff" stroke-width="3.5"/><circle cx="8" cy="16" r="2" fill="#35d5ff"/>',
-  frost:'<circle cx="16" cy="16" r="8.5" fill="#a8ecff"/><path d="M16 3v26M5 9.5l22 13M5 22.5l22-13" stroke="#fff6e8"/>',
-  cluster:'<circle cx="16" cy="18" r="9" fill="#f2545b"/><circle cx="9.5" cy="12.5" r="3" fill="#ffcb44"/><circle cx="22.5" cy="12.5" r="3" fill="#ffcb44"/><circle cx="16" cy="24.5" r="3" fill="#ffcb44"/><rect x="14" y="3" width="4" height="5" rx="1.5" fill="#25354b"/>',
-  bouncer:'<circle cx="16" cy="13" r="9" fill="#ff6ad5"/><path d="M7.2 12c4.8 2.6 12.8 2.6 17.6 0" stroke="#ffcb44"/><path d="M9 28h14" stroke="#8e6cff"/>',
-  ram:'<path d="M4 9h12l9 7-9 7H4z" fill="#c3cdd8"/><path d="m25 16-9-7v14z" fill="#ffb347"/><path d="M2 13h4m-4 6h4" stroke="#ff8a3c"/>',
-};
-Object.assign(ICONS,{machinegun:ICONS.pulse,trishot:ICONS.scatter,missile:ICONS.seeker,cannon:ICONS.rocket,blades:ICONS.shield,supernova:ICONS.shield});
+const PROTECTION='<path d="m15 3 11 4v10c0 7-11 12-11 12S4 24 4 17V7l11-4Z" fill="#45c6e8"/><path d="m10 16 4 4 7-9" stroke="#fff"/>';
 const svg=(path)=>`<svg viewBox="0 0 32 32" aria-hidden="true" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${path}</svg>`;
 const NITRO=svg('<path d="m18 2-12 16h9l-2 12 12-18h-9l2-10Z" fill="#83ebff"/>');
 const DRIFT=svg('<path d="M22 4c4 1 7 4 9 8M25 2c3 1 5 3 7 6" stroke="#f5f8ff" stroke-width="2"/><circle cx="13" cy="20" r="9" fill="#141a26" stroke="#9fb2c8" stroke-width="2"/><circle cx="13" cy="20" r="3" fill="#9fb2c8"/>');
@@ -72,8 +57,7 @@ export function createElevatedKartView() {
   const gearbox=createGearbox(CONFIG.handling.maxForward);
   let sceneReady,shellAudioReady,rendererWarmup,startAudio,lastSnapshotArrival=null,snapshotOffset=null,prediction=null,predicted=null;
   const timeline=createElevatedTimeline();
-  const roulette=createKartWeaponRoulette({now:()=>performance.now(),reducedMotion:()=>globalThis.matchMedia?.('(prefers-reduced-motion: reduce)').matches===true});
-  const pickupPrediction=createKartPickupPrediction({onPredict:c=>{roulette.predict();audio?.cue('pickup');newEvents.push({event:{type:'pickup',pid:S.you,position:c.position},at:performance.now()});paint();},onReject:()=>{roulette.skip();paint();}});
+  const pickupPrediction=createKartPickupPrediction({onPredict:c=>{audio?.cue('pickup');newEvents.push({event:{type:'pickup',pid:S.you,position:c.position},at:performance.now()});paint();},onReject:()=>{paint();}});
   let localUseHeld=false;const localFires=[];
   const listeners=[],keys=new Set(),pointers=new Map(),seen=new Set(),newEvents=[],nodes=new Map();
   const on=(target,type,fn,opts)=>{target.addEventListener(type,fn,opts);listeners.push([target,type,fn,opts]);};
@@ -92,12 +76,15 @@ export function createElevatedKartView() {
   function send(force=false){
     if(!S||!api)return;
     const value=intent(),key=JSON.stringify(value),time=performance.now();
-    if(value.use&&roulette.skip())paint();
     if(value.use&&!localUseHeld&&self()?.weapon&&!self()?.firing&&!localFires.some(f=>f.weapon===self()?.weapon&&time-f.at<800)&&S.phase==='live'){
-      const k=self(),p=predicted?.pose||k.pose,q=p.rotation,v=CURATED_MUZZLE;
-      const t={x:2*(q.y*v.z-q.z*v.y),y:2*(q.z*v.x-q.x*v.z),z:2*(q.x*v.y-q.y*v.x)};
-      const position={x:p.position.x+v.x+q.w*t.x+q.y*t.z-q.z*t.y,y:p.position.y+v.y+q.w*t.y+q.z*t.x-q.x*t.z,z:p.position.z+v.z+q.w*t.z+q.x*t.y-q.y*t.x};
-      localFires.push({weapon:k.weapon,at:time});audio?.cue(k.weapon);newEvents.push({event:{type:'fire',pid:S.you,weapon:k.weapon,position,direction:weaponForward(q),local:true},at:time});
+      const k=self();localFires.push({weapon:k.weapon,at:time});audio?.cue(k.weapon);
+      // The first tracking shot uses its confirmed direction, including behind the kart.
+      if(k.weapon!=='machinegun'){
+        const p=predicted?.pose||k.pose,q=p.rotation,v=CURATED_MUZZLE;
+        const t={x:2*(q.y*v.z-q.z*v.y),y:2*(q.z*v.x-q.x*v.z),z:2*(q.x*v.y-q.y*v.x)};
+        const position={x:p.position.x+v.x+q.w*t.x+q.y*t.z-q.z*t.y,y:p.position.y+v.y+q.w*t.y+q.z*t.x-q.x*t.z,z:p.position.z+v.z+q.w*t.z+q.x*t.y-q.y*t.x};
+        newEvents.push({event:{type:'fire',pid:S.you,weapon:k.weapon,position,direction:weaponForward(q),local:true},at:time});
+      }
     }
     localUseHeld=value.use;
     if(!force&&time-lastSend<40){
@@ -118,7 +105,10 @@ export function createElevatedKartView() {
       active:gfxReady&&!S?.preparing&&S?.phase==='live'&&!document.hidden&&context?.connected!==false&&!context?.roomActionPending,
       engineActive:!!S?.youDrive&&!!k?.alive&&!!k?.connected&&!blocked()});
   }
-  function touch(){$('controls').value=preference;syncPickers($('controls').parentNode);const show=touchControlsFor(preference,readInputCapabilities())&&S?.youDrive&&S.phase!=='done';setKartFlag($('touch'),'hidden',!show);root.classList.toggle('pke-touch-mode',show);}
+  function touch(){
+    const controls=$('controls');
+    if(controls.value!==preference){controls.value=preference;syncPickers(controls.parentNode);}
+    const show=touchControlsFor(preference,readInputCapabilities())&&S?.youDrive&&S.phase!=='done';setKartFlag($('touch'),'hidden',!show);root.classList.toggle('pke-touch-mode',show);}
   function paint(){
     if(!S||!root)return;
     const me=self(),watch=!S.youDrive;
@@ -130,17 +120,17 @@ export function createElevatedKartView() {
     setKartText($('score'),watch?'Watching':`P${rank} · ${kos} KO${kos===1?'':'s'}`);
     setKartAttribute($('score'),'aria-label',watch?'Watching the battle':`Rank ${rank}, ${name}, ${me?.hits||0} knockouts`);
     const nextItem=me?.weapon||(me?.supernovaT>0?'supernova':'');
-    if(nextItem!==itemKey){const icon=weaponThumbnailArt(nextItem,ICONS[nextItem]?svg(ICONS[nextItem]):TARGET);$('use-icon').innerHTML=icon;itemKey=nextItem;}
-    const equipped=paintKartWeapon($('weapon'),me,ICONS[nextItem]?svg(ICONS[nextItem]):TARGET,{roulette});
+    if(nextItem!==itemKey){const icon=nextItem?kartWeaponArt(nextItem):TARGET;$('use-icon').innerHTML=icon;itemKey=nextItem;}
+    const equipped=paintKartWeapon($('weapon'),me,{hint:!touchControlsFor(preference,readInputCapabilities())});
     setKartFlag($('weapon'),'hidden',!me);
-    setKartText($('use-ammo'),me?.weapon?String(me.ammo):'');
+    setKartText($('use-ammo'),me?.weapon?equipped.count.slice(1):'');
+    setKartText($('use-label'),WEAPON_DISPLAY[me?.weapon]?.short || 'Fire');
     setKartFlag($('use-ammo'),'hidden',!me?.weapon);
-    setKartAttribute($('use'),'aria-label',me?.firing?'Weapon firing':me?.weapon?`Activate ${equipped.label}, full payload`:'Use weapon');
-    setKartFlag($('protection'),'hidden',!(me?.shield>0));$('protection').title='Spawn protection';
+    setKartAttribute($('use'),'aria-label',me?.firing?'Weapon firing':me?.weapon?WEAPON_DISPLAY[me.weapon]?.action||equipped.label:'Use weapon');
+    setKartFlag($('protection'),'hidden',!(me?.shield>0));
     setKartFlag($('health'),'hidden',!me);if(me)paintKartHearts($('health'),me);
     setKartFlag($('use'),'disabled',!me?.weapon||me?.firing||!active()||S.phase!=='live');
     setKartFlag($('nitro'),'disabled',!active()||me?.nitro<.15);
-    $('controls').value=preference;syncPickers($('controls').parentNode);
     setKartText($('notice'),me&&!me.connected?'Reconnecting…':me&&!me.alive?'Respawning…':watch?'Watching the battle':'');
     setKartFlag($('notice'),'hidden',!$('notice').textContent);
     setKartText($('arena'),S.map?.label||'Pocket Karts');
@@ -207,7 +197,7 @@ export function createElevatedKartView() {
       batchKartBody(THREE,assets.kart,mergeGeometries);
       // The source pack's foam dart is an inspection candidate. Combat keeps
       // the compact metal Scatter slug; mounted source rigs are independent.
-      const combatAssets={get:name=>assets.pulse.getObjectByName(name)||assets.arsenal.getObjectByName(name)||(name!=='ScatterShot'&&assets.secondary.getObjectByName(name))||assets.combat.getObjectByName(name)};
+      const combatAssets={get:name=>assets.pickupGear?.getObjectByName(name)||assets.pulse.getObjectByName(name)||assets.arsenal.getObjectByName(name)||(name!=='ScatterShot'&&assets.secondary.getObjectByName(name))||assets.combat.getObjectByName(name)};
       if(!assets.pulse.getObjectByName('Pulse')||['Rocket','RocketShot','Mine','MineTrap','Seeker','SeekerShot','Bomb','BombShot'].some(name=>!assets.arsenal.getObjectByName(name))||!assets.secondary.getObjectByName('Scatter'))throw Error('The mounted arsenal did not load');
       art=createKartCombatArt(THREE,{assets:combatAssets,pickupAsset:assets.crate});
       healthBars=createKartHealthBars(THREE,scene);impactFX=createKartImpactFX(THREE,scene,{reducedMotion:()=>helper.reducedMotion()});
@@ -245,7 +235,7 @@ export function createElevatedKartView() {
         return object;
       }
       const shotKinds=['machinegun','trishot','missile','cannon','nuke'];
-      const poolKey=(prefix,value)=>prefix==='mine:'?prefix+(value.weapon||'mine')+':'+(value.owner===S.you):prefix+value.weapon;
+      const poolKey=(prefix,value)=>prefix==='mine:'?prefix+(value.kind||value.weapon||'mine')+':'+(value.owner===S.you):prefix+value.weapon;
       for(const kind of shotKinds){const pool=[];for(let i=0;i<64;i++){const object=projectile(kind);object.visible=false;scene.add(object);pool.push(object);}pools.set('shot:'+kind,pool);if(kind==='nuke'){const grenades=[];for(let i=0;i<12;i++){const object=art.projectile(kind);object.visible=false;scene.add(object);grenades.push(object);}pools.set('grenade:'+kind,grenades);}warm.push(pool[0]);}
       // Confirmed final sweeps remain readable when the shot itself never
       // reaches a snapshot. Borrow only existing tracer art, prepared once.
@@ -263,8 +253,8 @@ export function createElevatedKartView() {
         confirmedPools.set(kind,pool);warm.push(pool[0].object);
       }
       for(const kind of ['frost']){const grenades=[];for(let i=0;i<12;i++){const object=art.projectile(kind);object.visible=false;scene.add(object);grenades.push(object);}pools.set('grenade:'+kind,grenades);warm.push(grenades[0]);}
-      for(const kind of ['mine'])for(const own of [false,true]){
-        const pool=[];for(let i=0;i<16;i++){const object=art.mine(own,undefined);object.visible=false;scene.add(object);pool.push(object);}pools.set('mine:'+kind+':'+own,pool);warm.push(pool[0]);
+      for(const kind of ['mine','proximity','fakecrate'])for(const own of [false,true]){
+        const pool=[];for(let i=0;i<16;i++){const object=art.mine(own,kind);object.visible=false;scene.add(object);pool.push(object);}pools.set('mine:'+kind+':'+own,pool);warm.push(pool[0]);
       }
       const warningGeometry=new THREE.RingGeometry(13.4,14,64);warningGeometry.rotateX(-Math.PI/2);
       const warningMaterial=new THREE.MeshBasicMaterial({color:0xff8c45,transparent:true,opacity:.65,depthWrite:false,side:THREE.DoubleSide});
@@ -319,7 +309,7 @@ export function createElevatedKartView() {
             cue.age=age;direction.multiplyScalar(1/length);const visibleLength=Math.min(length,1.25);cue.object.position.copy(e.position).addScaledVector(direction,-visibleLength*.5);cue.object.quaternion.setFromUnitVectors(forward,direction);cue.object.scale.set(1,1,visibleLength/cue.length);cue.object.visible=age<.09;
           }
         }
-        if(e.type==='fire'){const model=models.get(e.pid);if(model){model.userData.fireKind=e.weapon;model.userData.fireUntil=performance.now()+160;}art.recoil(rigs.get(e.pid)?.object);}
+        if(e.type==='fire'){if(e.weapon==='machinegun')art.aim(rigs.get(e.pid)?.object,e.direction);const model=models.get(e.pid);if(model){model.userData.fireKind=e.weapon;model.userData.fireUntil=performance.now()+160;}art.recoil(rigs.get(e.pid)?.object);}
         if(e.type==='fire'&&e.direction&&['machinegun','trishot','missile','cannon','nuke','frost'].includes(e.weapon)){
           const f=flashes.find(f=>!f.mesh.visible)||flashes[0];f.mesh.visible=age<.09;f.age=age;f.mesh.position.copy(e.position);f.mesh.quaternion.setFromUnitVectors(forward,direction.copy(e.direction).normalize());f.mesh.scale.setScalar(e.weapon==='cannon'||e.weapon==='missile'||e.weapon==='nuke'?1.6:1);return;
         }
@@ -371,6 +361,8 @@ export function createElevatedKartView() {
           const featureKart=model.userData.featureKart||(model.userData.featureKart={pid:k.id});featureKart.respawn=k.respawn;featureKart.out=k.out;featureKart.spawnSeq=k.spawnSeq;
           arena.dressKart(featureKart,model,moving.flight);
           const equipped=k.alive?(k.ammo>0?k.weapon:k.bladesT>0?'blades':k.supernovaT>0?'supernova':k.rammingT>0?'ram':performance.now()<(model.userData.fireUntil||0)?model.userData.fireKind:null):null;const rig=rigs.get(k.id);if(rig?.kind!==equipped){if(rig){rig.object.removeFromParent();rigPools.get(rig.kind)?.push(rig.object);}rigs.delete(k.id);if(equipped){const object=rigPools.get(equipped)?.pop();if(!object)continue;object.position.set(...object.userData.combat.mount);model.userData.kart.inner.add(object);rigs.set(k.id,{kind:equipped,object});}}
+          const equipment=rigs.get(k.id)?.object.userData.combat;
+          if(equipment){equipment.ammo=k.ammo;equipment.active=k.bladesT>0;equipment.firing=k.firing;}
         }
       }
       const syncIds=new Set();
@@ -515,7 +507,7 @@ export function createElevatedKartView() {
         // again; no motion, collision or gameplay lifetime is invented here.
         const itemsFresh=S.phase!=='done'&&performance.now()-(lastSnapshotArrival??-Infinity)<=120&&api?.context?.().connected!==false;
         const itemTick=itemSnapshot.simTick+':'+S.simTick+':'+itemsFresh;
-        if(objectTick!==itemTick){objectTick=itemTick;sync(itemsFresh?(itemSnapshot.projectiles||[]).filter(v=>S.projectiles?.some(latest=>latest.id===v.id)):[],'shot:',v=>projectile(v.weapon));sync(itemsFresh?S.mines:[],'mine:',v=>art.mine(v.owner===S.you,v.weapon));sync(itemsFresh?(itemSnapshot.grenades||[]).filter(v=>S.grenades?.some(latest=>latest.id===v.id)):[],'grenade:',v=>art.projectile(v.weapon));sync(itemsFresh?(itemSnapshot.grenades||[]).filter(v=>v.weapon==='nuke'&&S.grenades?.some(latest=>latest.id===v.id)):[],'warning:',()=>{throw Error('Nuke warning pool exhausted');});}
+        if(objectTick!==itemTick){objectTick=itemTick;sync(itemsFresh?(itemSnapshot.projectiles||[]).filter(v=>S.projectiles?.some(latest=>latest.id===v.id)):[],'shot:',v=>projectile(v.weapon));sync(itemsFresh?S.mines:[],'mine:',v=>art.mine(v.owner===S.you,v.kind||v.weapon));sync(itemsFresh?(itemSnapshot.grenades||[]).filter(v=>S.grenades?.some(latest=>latest.id===v.id)):[],'grenade:',v=>art.projectile(v.weapon));sync(itemsFresh?(itemSnapshot.grenades||[]).filter(v=>v.weapon==='nuke'&&S.grenades?.some(latest=>latest.id===v.id)):[],'warning:',()=>{throw Error('Nuke warning pool exhausted');});}
         const itemAlpha=playback?.alpha??1;movingItems(itemSnapshot.projectiles,'shot:',playback?.previous.snapshot.projectiles,playback?.current.snapshot.projectiles,itemAlpha);movingItems(itemSnapshot.grenades,'grenade:',playback?.previous.snapshot.grenades,playback?.current.snapshot.grenades,itemAlpha);
         for(const object of objects.values())art.animate(object,dt,time,helper.reducedMotion());
         for(const object of objects.values()){const d=object.userData.drop,to=object.userData.dropTo;if(!d||!to)continue;if(d.at===null)d.at=time;const t=helper.reducedMotion()?1:Math.min(1,(time-d.at)/.32);if(t>=1){object.position.copy(to);object.userData.drop=null;continue;}object.position.lerpVectors(d.from,to,t*(2-t));object.position.y+=Math.sin(t*Math.PI)*.45;}
@@ -526,7 +518,6 @@ export function createElevatedKartView() {
           if(id.startsWith('warning:')){const body=objects.get('grenade:'+id.slice(8));if(body){object.position.copy(body.position);object.position.y-=.46;}}
         }
         arsenalFX.target(itemsFresh?S:null,models,camera);
-        if(roulette.tick())paint();
         warningMaterial.opacity=helper.reducedMotion()?.65:.58+.1*Math.sin(time*5);
         const followed=self()||S.karts[0];
         // Keep the followed animal/paint in full detail; batch the crowd.
@@ -607,7 +598,8 @@ export function createElevatedKartView() {
           cramped=clearCamera(cameraPosition,cameraTarget)||cramped;
           cramped=clearCamera(cameraPosition,cameraAnchor)||cramped;
           cramped=cameraCollision.constrain(cameraPosition,model.position)||cramped;
-          if(launch&&sideMode&&cameraPosition.distanceToSquared(model.position)<36&&desired.distanceToSquared(model.position)>36){cameraPosition.copy(desired);cameraTarget.copy(target);}
+          const recoverySnap=!!launch&&sideMode&&cameraPosition.distanceToSquared(model.position)<36&&desired.distanceToSquared(model.position)>36;
+          if(recoverySnap){cameraPosition.copy(desired);cameraTarget.copy(target);}
           camera.position.copy(cameraPosition);
           const shake=hitFx?.shake();if(shake&&(shake.x||shake.y)){camera.position.x+=shake.x;camera.position.y+=shake.y;cramped=clearCamera(camera.position,cameraTarget)||cramped;}
           if(cameraKick>0&&!helper.reducedMotion()){
@@ -617,11 +609,17 @@ export function createElevatedKartView() {
           }
           // A ray protects only the eye's centre. Sweep the near-plane volume
           // too, after all easing, recovery or shake, from the clear chassis.
-          cramped=cameraCollision.constrain(camera.position,model.position)||cramped;
+          // The eased eye was already swept from all three anchors above.
+          // Only recovery, shake or an obstruction can change that result.
+          const recheckEye=cramped||recoverySnap||!camera.position.equals(cameraPosition);
+          if(recheckEye)cramped=cameraCollision.constrain(camera.position,model.position)||cramped;
           const finalRear=-direction.subVectors(camera.position,model.position).dot(nose);
           const lookAhead=cramped&&!sideMode?Math.max(0,Math.min(1,(finalRear-CONFIG.chassis.half.z)/(8.5-CONFIG.chassis.half.z))):1;
-          target.copy(cameraTarget).lerp(cameraAnchor,1-lookAhead);clearCamera(camera.position,target);clearCamera(camera.position,cameraAnchor);
-          cameraCollision.constrain(camera.position,model.position);
+          target.copy(cameraTarget).lerp(cameraAnchor,1-lookAhead);
+          if(recheckEye){
+            clearCamera(camera.position,target);clearCamera(camera.position,cameraAnchor);
+            cameraCollision.constrain(camera.position,model.position);
+          }
           camera.lookAt(target);healthBars.face(camera);
         }
         {const own=self(),ownModel=own?.alive&&S.youDrive?models.get(own.id):null;threats.update(itemsFresh&&S.phase==='live'?S:null,S.you,ownModel?.position,camera);}
@@ -651,10 +649,10 @@ export function createElevatedKartView() {
     dispose();root=document.createElement('section');root.className='pke';root.setAttribute('aria-label','Pocket Karts');el.append(root);api=platform;
     const style=document.createElement('link');style.rel='stylesheet';style.href='/css/kart-elevated.css';style.dataset.elevatedKart='';document.head.append(style);listeners.push([style,'owned-style',null]);
     root.innerHTML=`<div data-stage class="pke-stage"></div><div data-loading class="pke-loading" role="status">Loading arena…</div>
-      <div class="pke-top"><details data-menu class="pke-menu"><summary aria-label="Game menu">☰</summary><div class="pke-panel"><h2 data-arena></h2><p data-goal>Most knockouts wins.</p>${controlsPickerHtml('pke-controls',preference,'data-controls')}<p>WASD / arrows · drive<br>Space · weapon &nbsp; N · Nitro<br>Shift · hold in a turn to drift; release coloured sparks for turbo<br>Bright cannons climb; paired rings cross levels</p><button data-resume>Resume</button></div></details><span class="pke-score" data-score>0 KOs</span><time data-clock>Loading</time><span data-protection class="pke-protection" title="Spawn protection">${svg(ICONS.shield)}</span></div>
+      <div class="pke-top"><details data-menu class="pke-menu"><summary aria-label="Game menu">☰</summary><div class="pke-panel"><h2 data-arena></h2><p data-goal>Most knockouts wins.</p>${controlsPickerHtml('pke-controls',preference,'data-controls')}<p>WASD / arrows · drive<br>Space · weapon &nbsp; N · Nitro<br>Shift · hold in a turn to drift; release coloured sparks for turbo<br>Bright cannons climb; paired rings cross levels</p><button data-resume>Resume</button></div></details><span class="pke-score" data-score>0 KOs</span><time data-clock>Loading</time><span data-protection class="pke-protection" title="Spawn protection">${svg(PROTECTION)}</span></div>
       <div data-health class="pke-health kart-hp" role="img" aria-label="100 of 100 HP"></div>
       <p data-notice class="pke-notice" role="status" hidden></p><div class="pke-bottom"><div data-weapon class="kart-item" role="group" aria-label="Weapon"></div><div class="pke-instruments"><span class="pke-speed"><b data-speed>0</b><small>km/h</small><i data-gear class="kart-gear" role="img" aria-label="Gear 1">1</i></span><span data-charge class="pke-charge" role="img" aria-label="Nitro charge">${NITRO}</span></div><span data-drift class="pke-drift" role="status" hidden></span></div>
-      <div data-touch class="pke-touch" hidden><div data-stick class="pke-stick" role="group" aria-label="Drive stick"><span></span></div><div class="pke-actions"><button data-gas aria-label="Hold to accelerate">${svg('<path d="m10 21 6-11 6 11" stroke="#f3f9ff" stroke-width="3"/>')}</button><button data-reverse aria-label="Hold to reverse">${svg('<path d="m10 11 6 11 6-11" stroke="#f3f9ff" stroke-width="3"/>')}</button><button data-brake aria-label="Hold in a turn to drift; release for turbo">${DRIFT}</button><button data-nitro aria-label="Hold for Nitro">${NITRO}</button><button data-use aria-label="Use weapon"><span data-use-icon>${TARGET}</span><b data-use-ammo hidden></b><span class="kart-fire-label" aria-hidden="true">Fire</span></button></div></div>
+      <div data-touch class="pke-touch" hidden><div data-stick class="pke-stick" role="group" aria-label="Drive stick"><span></span></div><div class="pke-actions"><button data-gas aria-label="Hold to accelerate">${svg('<path d="m10 21 6-11 6 11" stroke="#f3f9ff" stroke-width="3"/>')}</button><button data-reverse aria-label="Hold to reverse">${svg('<path d="m10 11 6 11 6-11" stroke="#f3f9ff" stroke-width="3"/>')}</button><button data-brake aria-label="Hold in a turn to drift; release for turbo">${DRIFT}</button><button data-nitro aria-label="Hold for Nitro">${NITRO}</button><button data-use aria-label="Use weapon"><span data-use-icon>${TARGET}</span><b data-use-ammo hidden></b><span data-use-label class="kart-fire-label" aria-hidden="true">Fire</span></button></div></div>
       <aside data-result class="pke-result pk-final" role="status" hidden></aside>`;
     for(const node of root.querySelectorAll('*'))for(const attr of node.attributes)if(attr.name.startsWith('data-'))nodes.set(attr.name.slice(5),node);
     hitFx=createKartHitFeedback(root,{reducedMotion:()=>matchMedia?.('(prefers-reduced-motion: reduce)').matches===true});
@@ -701,7 +699,7 @@ export function createElevatedKartView() {
     }
     const key=`${snapshot.instanceId}:${snapshot.inputAck?.life}:${snapshot.inputAck?.controlEpoch}`;
     if(key!==epoch){localFires.length=0;localUseHeld=false;stop(false);feedbackEpoch++;newEvents.length=0;epoch=key;sequence=snapshot.inputAck?.receivedSeq||0;timeline.reset();}
-    S=snapshot;if(!S.preparing)startAudio?.();prediction?.ingest(S,arrival,now());roulette.sync(S.instanceId,S.inputAck?.life);pickupPrediction.sync(S.instanceId,S.inputAck?.life);if(S.audioBaseline||gap||S.phase==='done'){roulette.skip();localFires.length=0;localUseHeld=false;pickupPrediction.reset();}if(S.audioBaseline||gap){firstEvents=true;newEvents.length=0;timeline.reset();feedbackEpoch++;}timeline.ingest(S,arrival);sequence=Math.max(sequence,S.inputAck?.receivedSeq||0);updateAudio();
+    S=snapshot;if(!S.preparing)startAudio?.();prediction?.ingest(S,arrival,now());pickupPrediction.sync(S.instanceId,S.inputAck?.life);if(S.audioBaseline||gap||S.phase==='done'){localFires.length=0;localUseHeld=false;pickupPrediction.reset();}if(S.audioBaseline||gap){firstEvents=true;newEvents.length=0;timeline.reset();feedbackEpoch++;}timeline.ingest(S,arrival);sequence=Math.max(sequence,S.inputAck?.receivedSeq||0);updateAudio();
     if(was?.instanceId!==S.instanceId){seen.clear();newEvents.length=0;firstEvents=true;feedbackEpoch++;}
     for(const e of S.events||[]){
       if(seen.has(e.id))continue;
@@ -709,11 +707,12 @@ export function createElevatedKartView() {
       if(firstEvents||!gfxReady)continue;
       if(S.phase==='done'&&was?.phase==='done')continue;
       const predictedPickup=e.type==='pickup'&&e.pid===S.you&&pickupPrediction.accept(e.crateId);
-      if(e.type==='pickup'&&e.pid===S.you)roulette.begin(e.weapon);
       while(localFires.length&&arrival-localFires[0].at>800)localFires.shift();
-      if(e.type==='fire'&&e.pid===S.you){const i=localFires.findIndex(f=>f.weapon===e.weapon);if(i>=0){localFires.splice(i,1);continue;}}
+      const localIndex=e.type==='fire'&&e.pid===S.you?localFires.findIndex(f=>f.weapon===e.weapon):-1;
+      if(localIndex>=0){localFires.splice(localIndex,1);if(e.weapon!=='machinegun')continue;}
       const eventAge=Number.isFinite(e.tick)&&Number.isFinite(S.simTick)?Math.max(0,S.simTick-e.tick)*CONFIG.fixedDt*1000:0;
       newEvents.push({event:e,at:(lastSnapshotArrival??arrival)-eventAge});if(newEvents.length>32)newEvents.shift();
+      if(localIndex>=0)continue; // The press already played its sound.
       const pose=(self()||S.karts[0])?.pose;
       if(!e.position||!pose)continue;
       const dx=e.position.x-pose.position.x,dy=e.position.y-pose.position.y,dz=e.position.z-pose.position.z;

@@ -1,3 +1,4 @@
+import {launchTerrainGeometry} from './kart-launch-terrain.mjs';
 import {addLaunchDetails} from './kart-launch-details.mjs';
 import {complexSurfaceTexture} from './kart-complex-surfaces.mjs';
 import {mergeStaticMeshes} from './kart-instancing.mjs';
@@ -88,17 +89,21 @@ export function createKartLaunchWorld(THREE,{scene,map,palette='Daybreak',lighti
  addLaunchDetails(THREE,{map,soft,scenery,geo,add,M:{...M,own:mat},glow,unit});
  // A low ground apron is scenery only. The shaped driving slabs and guards
  // above it are the complete physical footprint; there is no square collider.
- const ground=material('backdrop-ground',map.artId==='foundry'?0x674c42:map.artId==='frost'?0x4686ad:map.artId==='neon'?0x304c68:['harbor','skyport'].includes(map.artId)?0x438fa7:0x82b59a);
- add(scenery,geo(new THREE.CylinderGeometry(map.half+140,map.half+145,3,12)),ground,[0,-3.1,0]);
+ const groundColor=map.artId==='foundry'?0x674c42:map.artId==='frost'?0x98b7cb:map.artId==='neon'?0x304c68:['harbor','skyport'].includes(map.artId)?0x618f96:0x82b59a;
+ const terrainMaterial=mat(new THREE.MeshLambertMaterial({vertexColors:true}));
+ if(globalThis.document?.createElementNS){
+   const tile=texture(new THREE.TextureLoader().load('/assets/karts/terrain/arena-ground-detail.jpg'));
+   tile.wrapS=tile.wrapT=THREE.RepeatWrapping;tile.colorSpace=THREE.SRGBColorSpace;tile.anisotropy=2;
+   terrainMaterial.map=tile;
+ }
+ const hills=add(scenery,geo(launchTerrainGeometry(THREE,map,groundColor)),terrainMaterial);
+ hills.name='outer-foothills';hills.receiveShadow=false;
  const sky=createKartSky(THREE,{parent:scenery,radius:330,geometry:geo,material:mat});
  const backdrop=createKartBackdrop(THREE,{parent:scenery,theme:map.backdrop||map.artId,radius:map.half+130,geometry:geo,material:mat,texture,isAlive:()=>!disposed});
- // Trees sit outside the guarded road and never hide a route decision.
- const trunk=material('trunk',0x89704e),leaf=material('leaf',map.artId==='frost'?0xd7edf2:0x4a9672),trunkG=geo(new THREE.CylinderGeometry(.4,.6,3,6)),leafG=geo(new THREE.IcosahedronGeometry(2.6,0));
- for(let i=0;i<(map.artId==='foundry'?0:12);i++){const angle=i*Math.PI/6,r=map.half+10,x=Math.cos(angle)*r,z=Math.sin(angle)*r;add(scenery,trunkG,trunk,[x,-.3,z]);add(scenery,leafG,leaf,[x,2.2,z]);}
  for(const parent of[solids,scenery,soft])for(const {mesh}of mergeStaticMeshes(THREE,parent))geo(mesh.geometry);
  const sun=new THREE.DirectionalLight(0xffedce,1.75),hemi=new THREE.HemisphereLight(0xe4eeff,0x819d87,1.25);sun.castShadow=true;sun.shadow.mapSize.set(1024,1024);sun.shadow.bias=-.0004;sun.shadow.normalBias=.06;Object.assign(sun.shadow.camera,{left:-map.half-10,right:map.half+10,top:map.half+10,bottom:-map.half-10,near:5,far:220});sun.position.set(-45,75,35);if(lighting)group.add(sun,hemi,sun.target);
  const fixed=palette==='Starlight'?1:palette==='Sunset'?.65:0;
- const lightingState={phase:fixed,sun,hemisphere:hemi,fogColor:new THREE.Color(),fogNear:180,fogFar:400,exposure:1.05};
+ const lightingState={phase:fixed,sun,hemisphere:hemi,fogColor:new THREE.Color(),fogNear:map.half+35,fogFar:map.half+230,exposure:1.05};
  function animate(dt,time,skyPhase){if(disposed)return;const p=Number.isFinite(skyPhase)?Math.max(0,Math.min(1,skyPhase)):fixed;sky.setPhase(p);backdrop.tint(sky.horizon,Math.max(0,(p-.65)/.35));applyRaisedLighting(sun,hemi,p,{neon:map.artId==='neon'});lightingState.phase=p;lightingState.fogColor.copy(sky.horizon);}
  function stats(){const out={drawCalls:0,triangles:0,textureBytes:0,textureCount:textures.size,colliders:map.colliders.length};group.traverseVisible(o=>{if(!o.isMesh||o.userData.cameraCollider)return;out.drawCalls+=Array.isArray(o.material)?o.geometry.groups.length:1;out.triangles+=(o.geometry.index?.count??o.geometry.attributes.position.count)/3*(o.isInstancedMesh?o.count:1);});for(const t of textures)out.textureBytes+=Math.round((t.image?.width||0)*(t.image?.height||0)*4*4/3);return out;}
  function dispose(){if(disposed)return;disposed=true;group.removeFromParent();readability.dispose();group.traverse(o=>{if(o.isInstancedMesh)o.dispose();});for(const r of[...geometries,...materials,...textures])r.dispose();sun.dispose();hemi.dispose();colliderMeshes.clear();group.clear();}

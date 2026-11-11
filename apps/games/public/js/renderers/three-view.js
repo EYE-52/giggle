@@ -66,9 +66,11 @@ export async function createThreeView(mountEl, hooks) {
     }
     tracked.length = 0;
   };
+  let motionPreference;
   const reducedMotion = () => {
     try {
-      return window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      motionPreference ??= window.matchMedia?.('(prefers-reduced-motion: reduce)');
+      return motionPreference?.matches === true;
     } catch {
       return false;
     }

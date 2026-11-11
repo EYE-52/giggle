@@ -191,6 +191,9 @@ for(const map of Object.values(MAPS)){improveRaisedLayout(map);applyRaisedStarts
 // Immutable saved-fixture set; launchArenaIds lists the new layouts.
 export const elevatedMapIds = Object.freeze(Object.keys(MAPS));
 export const allElevatedMapIds=Object.freeze([...elevatedMapIds,...Object.keys(launchArenas)]);
+export const elevatedEnvironmentByName=Object.freeze(Object.fromEntries(
+  [...Object.values(MAPS),...Object.values(launchArenas)].map(map=>[map.name,map.environment])
+));
 export function elevatedMap(id,variantId) {
   if(Object.hasOwn(launchArenas,id)){const map=launchArenas[id];return variantId?selectArenaVariant(map,map.variants.find(v=>v.id===variantId)?.maxPlayers,variantId):structuredClone(map);}
   if (!Object.hasOwn(MAPS,id)) throw new RangeError(`Unknown elevated combat map: ${id}`);

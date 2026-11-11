@@ -11,7 +11,7 @@ const server=http.createServer((request,response)=>{
     response.writeHead(200,{'Content-Type':'application/json','Cache-Control':'no-store'});
     response.end(JSON.stringify(Object.fromEntries(Object.entries(config.weapons).map(([kind,rule])=>[kind,rule.ammo||1]))));return;
   }
-  const local=pathname==='/'?'index.html':pathname==='/frame'?'frame.html':pathname==='/frame.mjs'?'frame.mjs':null;
+  const local=pathname==='/'?'index.html':pathname==='/frame'?'frame.html':pathname==='/frame.mjs'?'frame.mjs':pathname==='/inventory.mjs'?'inventory.mjs':null;
   const file=local?path.join(fixture,local):path.resolve(publicRoot,'.'+pathname);
   if((!local&&!file.startsWith(publicRoot+path.sep))||!fs.existsSync(file)||!fs.statSync(file).isFile()){
     response.writeHead(404).end();return;

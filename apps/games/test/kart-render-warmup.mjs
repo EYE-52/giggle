@@ -5,7 +5,7 @@ import fs from 'node:fs/promises';
 import * as THREE from 'three';
 import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
 import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
-import {MeshoptDecoder,buildKartDriverVariants,KART_DRIVERS} from '../public/js/engines/kart-assets.mjs';
+import {MeshoptDecoder,buildKartDriverVariants,KART_DRIVERS,KART_ASSETS} from '../public/js/engines/kart-assets.mjs';
 import {createKartCombatArt} from '../public/js/engines/kart-combat-art.mjs';
 import {WEAPON_IDS} from '../public/js/engines/kart-weapon-contract.mjs';
 import {createArsenalFX} from '../public/js/engines/kart-arsenal-fx.mjs';
@@ -19,9 +19,9 @@ let checks=0;const ok=(v,m)=>{assert.ok(v,m);checks++;};
 globalThis.self=globalThis;globalThis.createImageBitmap=async()=>({width:1,height:1,close(){}});await MeshoptDecoder.ready;
 const loader=new GLTFLoader().setMeshoptDecoder(MeshoptDecoder),assets={};
 async function load(file){const b=await fs.readFile(new URL('../public/assets/karts/'+file+'.glb',import.meta.url));return(await loader.parseAsync(b.buffer.slice(b.byteOffset,b.byteOffset+b.byteLength),'')).scene;}
-for(const [key,file]of Object.entries({kart:'giggle-kart.meshopt',star:'giggle-star',crate:'giggle-crate.meshopt',combat:'combat/combat.meshopt',pulse:'combat/pulse-mounted.meshopt',arsenal:'combat/arsenal-mounted.meshopt',secondary:'combat/arsenal-secondary.meshopt'}))assets[key]=await load(file);
+for(const key of ['kart','star','crate','combat','pulse','arsenal','secondary','pickupGear'])assets[key]=await load(KART_ASSETS[key]);
 assets.kartVariants=buildKartDriverVariants(THREE,assets.kart,await Promise.all(KART_DRIVERS.map(id=>load('drivers/'+id))),mergeGeometries);
-const get=name=>assets.pulse.getObjectByName(name)||assets.arsenal.getObjectByName(name)||(name!=='ScatterShot'&&assets.secondary.getObjectByName(name))||assets.combat.getObjectByName(name);
+const get=name=>assets.pickupGear.getObjectByName(name)||assets.pulse.getObjectByName(name)||assets.arsenal.getObjectByName(name)||(name!=='ScatterShot'&&assets.secondary.getObjectByName(name))||assets.combat.getObjectByName(name);
 const signature=(o,m)=>[m.type,m.customProgramCacheKey(),o.isInstancedMesh===true,!!o.instanceColor,o.isSprite===true,o.receiveShadow,!!o.geometry?.attributes.color].join('|');
 function stats(root){let draws=0,triangles=0;root.traverseVisible(o=>{if(!o.isMesh&&!o.isSprite)return;const g=o.geometry,n=o.isInstancedMesh?o.count:g?.isInstancedBufferGeometry?g.instanceCount:1;if(!n||g?.drawRange.count===0)return;draws++;triangles+=(g?(g.index?.count??g.attributes.position?.count??0)/3:2)*n;});return{draws,triangles};}
 for(const fallback of [false,true]){

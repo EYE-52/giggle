@@ -4,8 +4,8 @@ import {createKartPickupPool} from './kart-pickup-pool.mjs';
 import {waitKartPreparation} from './kart-warmup-scheduler.mjs';
 import {kartLightTier} from './kart-festive-lights.mjs';
 import {controlsPickerHtml,wirePickers,syncPickers} from '../pickers.js';
-import {WEAPON_IDS,CURATED_MUZZLE,weaponForward,normalizeWeapon} from './kart-weapon-contract.mjs';
-import {paintKartWeapon,createKartWeaponRoulette} from './kart-weapon-hud.mjs';
+import {WEAPON_IDS,WEAPON_DISPLAY,CURATED_MUZZLE,weaponForward,normalizeWeapon} from './kart-weapon-contract.mjs';
+import {paintKartWeapon,kartWeaponArt} from './kart-weapon-hud.mjs';
 import {paintKartHearts,createKartHitFeedback,landedText,kartEventCue} from './kart-hearts.mjs';
 import {kartResultView} from './kart-results.mjs';
 import {kartGarageHtml,createKartGarageUI,garagePreviewKey} from './kart-garage-ui.mjs';
@@ -37,7 +37,7 @@ import { createThreeView } from '../renderers/three-view.js';
 import { readInputCapabilities, touchControlsFor } from '../toolkit/input-capabilities.mjs';
 import { createMobileStick } from '../toolkit/mobile-stick.mjs';
 import { createKartLighting } from './kart-lighting.mjs';
-import { loadKartAssets, matchKartDrivers, weaponThumbnailArt } from './kart-assets.mjs';
+import { loadKartAssets, matchKartDrivers } from './kart-assets.mjs';
 import { createKartWorld } from './kart-world.mjs';
 import { createKartModel, animateKartModel, createStarModel } from './kart-model.mjs';
 import { createKartLod, crowdColor } from './kart-lod.mjs';
@@ -109,26 +109,6 @@ const ANALOG_SEND_MS = 1000 / 30;
  * warhead. Colors stay fixed so the slot reads identically across palettes and
  * night theme. The Fire button reuses these SVGs with an ammo badge; the
  * empty state is a crosshair, never a sentence. */
-const WEAPON_ART = {
-  pulse: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="10" width="9" height="5" rx="1.5" fill="#1b2433"/><rect x="11" y="11.2" width="11" height="2.6" rx="1" fill="#5a6b84"/><rect x="19.5" y="10.4" width="2.5" height="4.2" rx="1" fill="#5a6b84"/><rect x="4" y="6.3" width="3" height="3.7" rx="1" fill="#5a6b84"/><circle cx="7" cy="17.2" r="3.1" fill="#e8b73a"/><circle cx="7" cy="17.2" r="1.2" fill="#7a5b17"/></svg>',
-  scatter: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="7.5" r="3.6" fill="#5a6b84"/><circle cx="8" cy="14.2" r="3.6" fill="#5a6b84"/><circle cx="16" cy="14.2" r="3.6" fill="#5a6b84"/><circle cx="12" cy="7.5" r="1.6" fill="#05070a"/><circle cx="8" cy="14.2" r="1.6" fill="#05070a"/><circle cx="16" cy="14.2" r="1.6" fill="#05070a"/><rect x="10.4" y="17.2" width="3.2" height="4" rx="1" fill="#e8b73a"/></svg>',
-  mine: '<svg viewBox="0 0 24 24" aria-hidden="true"><g fill="#5a6b84"><rect x="11" y="2.6" width="2" height="3.4" rx="1"/><rect x="11" y="2.6" width="2" height="3.4" rx="1" transform="rotate(45 12 13)"/><rect x="11" y="2.6" width="2" height="3.4" rx="1" transform="rotate(90 12 13)"/><rect x="11" y="2.6" width="2" height="3.4" rx="1" transform="rotate(135 12 13)"/><rect x="11" y="2.6" width="2" height="3.4" rx="1" transform="rotate(180 12 13)"/><rect x="11" y="2.6" width="2" height="3.4" rx="1" transform="rotate(225 12 13)"/><rect x="11" y="2.6" width="2" height="3.4" rx="1" transform="rotate(270 12 13)"/><rect x="11" y="2.6" width="2" height="3.4" rx="1" transform="rotate(315 12 13)"/><circle cx="12" cy="13" r="6.2"/></g><circle cx="12" cy="13" r="4" fill="#1b2433"/><circle cx="12" cy="13" r="2.2" fill="#ff2a35"/></svg>',
-  shield: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5 19 6v6.2c0 4.4-3 7.4-7 9.3-4-1.9-7-4.9-7-9.3V6z" fill="none" stroke="#83e4cc" stroke-width="2.2" stroke-linejoin="round"/><path d="M12 6.5v9M8.5 9.5l7 4M15.5 9.5l-7 4" stroke="#83e4cc" stroke-width="1.4" stroke-linecap="round" opacity=".8"/></svg>',
-  rocket: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M13.5 2c3.4 2 4.6 5.6 3.6 9.4l2.6 3.2-3.3.4-1.4 3.1-2.5-2.2c-3.5-.6-6-3.3-6.6-6.9z" fill="#ffd458"/><circle cx="12.4" cy="8.6" r="1.6" fill="#25354b"/><path d="M6 14.5 3 21l2.4-.6L4.4 17zM9 17.5l-2 4.5 2.4-.6-.5-3.4z" fill="#ed526d"/></svg>',
-  seeker:'<svg viewBox="0 0 32 32" aria-hidden="true" fill="none" stroke-width="2"><path d="M16 3c-5 4-7 10-7 17h14c0-7-2-13-7-17Z" fill="#91d451"/><path d="m9 18-5 8 7-3m12-5 5 8-7-3" fill="#e5f0f5"/><circle cx="16" cy="11" r="3" fill="#1c3539"/></svg>',
-  proximity:'<svg viewBox="0 0 32 32" aria-hidden="true" fill="none" stroke-width="2"><ellipse cx="16" cy="21" rx="11" ry="6" fill="#829299"/><path d="M7 10c5-6 13-6 18 0m-15 4c3-3 8-3 11 0" stroke="#ff6154"/><circle cx="16" cy="21" r="3" fill="#ff6154"/></svg>',
-  nuke:'<svg viewBox="0 0 32 32" aria-hidden="true"><path d="m16 2 6 8v15H10V10Z" fill="#e5d35b"/><circle cx="16" cy="17" r="5" fill="#393e41"/></svg>',
-  laser:'<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="9" width="10" height="6" rx="2.5" fill="#fff6e8"/><rect x="11" y="10.6" width="11" height="2.8" rx="1.4" fill="#8ff8ff"/><circle cx="6" cy="12" r="1.6" fill="#35d5ff"/></svg>',
-  frost:'<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="6.5" fill="#a8ecff"/><path d="M12 2.5v19M3.8 7.2l16.4 9.6M3.8 16.8l16.4-9.6" stroke="#fff6e8" stroke-width="1.8" stroke-linecap="round"/></svg>',
-  cluster:'<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="13" r="7" fill="#f2545b"/><circle cx="7" cy="9" r="2.4" fill="#ffcb44"/><circle cx="17" cy="9" r="2.4" fill="#ffcb44"/><circle cx="12" cy="18" r="2.4" fill="#ffcb44"/><rect x="10.5" y="2.5" width="3" height="4" rx="1.2" fill="#25354b"/></svg>',
-  bouncer:'<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="10" r="7" fill="#ff6ad5"/><path d="M5.2 9.2c3.6 2 10 2 13.6 0" fill="none" stroke="#ffcb44" stroke-width="2"/><path d="M7 21h10" stroke="#8e6cff" stroke-width="2" stroke-linecap="round"/></svg>',
-  ram:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7h9l7 5-7 5H3z" fill="#c3cdd8"/><path d="M19 12 12 7v10z" fill="#ffb347"/><path d="M1.5 10h3M1 14h3" stroke="#ff8a3c" stroke-width="1.8" stroke-linecap="round"/></svg>',
-  crate: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="7" width="16" height="13" rx="2" fill="none" stroke="#9ad2d7" stroke-width="2"/><path d="M4 10.5h16M12 7v13" stroke="#9ad2d7" stroke-width="1.4" opacity=".7"/><circle cx="12" cy="13.5" r="2.4" fill="#9ad2d7"/></svg>',
-};
-Object.assign(WEAPON_ART,{machinegun:WEAPON_ART.pulse,trishot:WEAPON_ART.scatter,missile:WEAPON_ART.seeker,cannon:WEAPON_ART.rocket,blades:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 10 2-8 5 4-4 5 7 5-5 4-5-6-7 6-3-6 8-2Z" fill="#65edc3"/><circle cx="12" cy="12" r="3" fill="#25354b"/></svg>' ,supernova:WEAPON_ART.shield});
-function weaponArt(kind) {
-  return WEAPON_ART[kind] || WEAPON_ART.crate;
-}
 /* Touch-cluster artwork (DOM SVG, no dependency). Empty Fire is a crosshair;
  * Nitro pairs a bottle/lightning glyph with a charge ring updated in place;
  * Drift is a tyre with skid marks; race mode fires a plain boost bolt. */
@@ -142,14 +122,6 @@ const NITRO_RING = '<svg class="pk-nitro-ring" viewBox="0 0 24 24" aria-hidden="
 const NITRO_ARC_LEN = 62.8;
 // Ground blast ring size per weapon (the ring geometry is a 4u radius).
 const BLAST_SCALE = { missile:.75,cannon:.7,supernova:2.25,nuke:3.5 };
-const ITEMS = {
- machinegun:{label:'Machine Gun',action:'Fire machine gun',short:'FIRE'},trishot:{label:'Tri-Shot',action:'Fire tri-shot',short:'FIRE'},
- missile:{label:'Homing Missile',action:'Launch missile',short:'FIRE'},cannon:{label:'Cannon',action:'Fire cannon',short:'FIRE'},
- blades:{label:'Spinning Blades',action:'Spin blades',short:'SPIN'},supernova:{label:'Supernova',action:'Raise bubble',short:'COVER'},
- mine:{label:'Mine',action:'Drop mine',short:'DROP'},
- ram:{label:'Turbo Ram',action:'Activate ram',short:'RAM'},nuke:{label:'Nuke',action:'Launch nuke',short:'NUKE'},
- frost:{label:'Frost Bomb',action:'Lob frost bomb',short:'FIRE'},
-};
 /* Classic arenas for the game-owned Results chooser. Use the same captured
  * map overviews as setup; profile keys keep these distinct from elevated maps.
  * Labels match the engine manifest (configure accepts labels or ids). */
@@ -166,27 +138,6 @@ function arenaByMap(map) {
   const label = map.label || map;
   return ARENA_CHOOSER.find((a) => a.id === id || a.label === label) || null;
 }
-/* Shoot tutorial, shown once per browser (bounded single-key storage).
- * First pickup teaches Space/action; later pickups stay concise. */
-const TUTORIAL_KEY = 'pk-shoot-tutorial-v1';
-let tutorialSeenMem = false;
-function tutorialSeen() {
-  if (tutorialSeenMem) return true;
-  try {
-    if (typeof localStorage !== 'undefined' && localStorage.getItem(TUTORIAL_KEY)) {
-      tutorialSeenMem = true;
-      return true;
-    }
-  } catch { /* private mode: fall through to memory */ }
-  return false;
-}
-function markTutorialSeen() {
-  tutorialSeenMem = true;
-  try {
-    if (typeof localStorage !== 'undefined') localStorage.setItem(TUTORIAL_KEY, '1');
-  } catch { /* memory flag above still bounds repeats this session */ }
-}
-
 export function createKartView(viewConfig) {
   const cfg = viewConfig && typeof viewConfig === 'object' ? viewConfig : {};
   const title = cfg.title || 'Kart Arena';
@@ -198,11 +149,10 @@ export function createKartView(viewConfig) {
   let apiRef = null;
   let rootEl = null;
   let hitFx = null; // screen-edge flash, hit marker, toast and camera shake
-  const roulette=createKartWeaponRoulette({now:()=>nowMs(),reducedMotion:()=>reducedMotion()});
   const arsenalEvents = []; // accepted events for the second-eight weapon effects
   let predictedPickup=null;
   const echoedFireIds=new Set();
-  const pickupPrediction=createKartPickupPrediction({now:()=>nowMs(),onPredict:c=>{predictedPickup=c;roulette.predict();audio?.cue('pickup');paintHud();},onReject:()=>{roulette.skip();paintHud();}});
+  const pickupPrediction=createKartPickupPrediction({now:()=>nowMs(),onPredict:c=>{predictedPickup=c;audio?.cue('pickup');paintHud();},onReject:paintHud});
   let mountGen = 0;
   let gl = null; // three-view handle (null in fallback)
   let sceneState = null;
@@ -233,12 +183,15 @@ export function createKartView(viewConfig) {
   let localFires = [], localRecoil = false;
   function localFireCue() {
     const me = myKart();
-    if (!isBattle() || S?.phase !== 'drive' || !me || me.respawn || me.firing || localFires.some(f=>f.weapon===me.weapon&&nowMs()-f.at<800) || !(me.ammo > 0) || !ITEMS[me.weapon]) return;
+    if (!isBattle() || S?.phase !== 'drive' || !me || me.respawn || me.firing || localFires.some(f=>f.weapon===me.weapon&&nowMs()-f.at<800) || !(me.ammo > 0) || !WEAPON_DISPLAY[me.weapon]) return;
     audio?.cue(me.weapon);
     localFires.push({ weapon: me.weapon, at: nowMs() });
+    const kind=normalizeWeapon(me.weapon);
+    // Only the authority knows which rival the tracking blaster can see.
+    if(kind==='machinegun')return;
     localRecoil = true;
-    const kind=normalizeWeapon(me.weapon),pose=physicalLocalPose?.physicalPose||me.physicalPose;
-    if(['machinegun','trishot','missile','cannon','frost','nuke'].includes(kind)&&pose){
+    const pose=physicalLocalPose?.physicalPose||me.physicalPose;
+    if(['trishot','missile','cannon','frost','nuke'].includes(kind)&&pose){
       const q=pose.rotation,v={x:CURATED_MUZZLE.x,y:CURATED_MUZZLE.y,z:CURATED_MUZZLE.z},t={x:2*(q.y*v.z-q.z*v.y),y:2*(q.z*v.x-q.x*v.z),z:2*(q.x*v.y-q.y*v.x)};
       localFlash={kind,at:nowMs(),position:{x:pose.position.x+v.x+q.w*t.x+q.y*t.z-q.z*t.y,y:pose.position.y+v.y+q.w*t.y+q.z*t.x-q.x*t.z,z:pose.position.z+v.z+q.w*t.z+q.x*t.y-q.y*t.x},direction:weaponForward(q)};
     }
@@ -266,7 +219,6 @@ export function createKartView(viewConfig) {
   let arenaSeen = new Set(); // arena feature events (cannon/portal/fall) already voiced
   let cueUntil = 0;
   let cueText = '';
-  let keycapUntil=0;
   let firstEvents = true;
   let feedbackEpoch = 0;
   let bound = [];
@@ -322,9 +274,11 @@ export function createKartView(viewConfig) {
     bound.push([t, type, fn, opts]);
   }
 
+  let motionPreference;
   function reducedMotion() {
     try {
-      return window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      motionPreference ??= window.matchMedia?.('(prefers-reduced-motion: reduce)');
+      return motionPreference?.matches === true;
     } catch {
       return false;
     }
@@ -467,9 +421,9 @@ export function createKartView(viewConfig) {
   function paintAutoGas() {
     const b = rootEl?.querySelector('#pk-auto');
     if (!b) return;
-    b.hidden = !S?.youDrive || !['countdown','drive'].includes(S?.phase);
-    b.textContent = autoGas ? 'Auto gas · on' : 'Auto gas · off';
-    b.setAttribute('aria-pressed', String(autoGas));
+    setKartFlag(b, 'hidden', !S?.youDrive || !['countdown','drive'].includes(S?.phase));
+    setKartText(b, autoGas ? 'Auto gas · on' : 'Auto gas · off');
+    setKartAttribute(b, 'aria-pressed', autoGas);
   }
 
   /* Intent for visual self-prediction: live keys plus a locally queued
@@ -535,7 +489,6 @@ export function createKartView(viewConfig) {
     if (!S || !apiRef || !S.youDrive) return;
     if (S.phase !== 'drive' && S.phase !== 'countdown') return;
     const intent = myKart()?.respawn > 0 ? {steer:0,throttle:0,boost:false,drift:false,nitro:false} : intentFromState();
-    if(intent.boost&&roulette.skip())paintHud();
     const key = intent.steer + ',' + intent.throttle + ',' + (intent.boost ? '1' : '0') + ',' + (intent.drift ? '1' : '0') + ',' + (intent.nitro ? '1' : '0');
     boostEdge = false;
     if (!force && key === lastSent) return;
@@ -750,12 +703,10 @@ export function createKartView(viewConfig) {
     }
     rootEl.querySelector('.pk')?.classList.toggle('pk-battle', battle);
     if (battle) {
-      const item = ITEMS[me?.weapon];
-      const loaded = !!(item && me && me.ammo > 0);
       setKartText(mine, me ? `You · ${me.hits || 0} KO${me.hits === 1 ? '' : 's'}` : 'Watching');
       setKartFlag(boost,'hidden',!me);
-      const hint=loaded&&S.phase==='drive'&&nowMs()<keycapUntil&&!touchControlsFor(controlsPreference,readInputCapabilities());
-      paintKartWeapon(boost,me,weaponArt(me?.weapon||'crate'),{hint,roulette});
+      const hint=S.phase==='drive'&&!touchControlsFor(controlsPreference,readInputCapabilities());
+      paintKartWeapon(boost,me,{hint});
     } else {
       setKartText(mine, me ? `You ★ ${me.stars}` : (S.youDrive ? 'You ★ 0' : 'Watching'));
       setKartFlag(boost,'hidden',true);
@@ -860,19 +811,20 @@ export function createKartView(viewConfig) {
     // textContent write ever wipes the icon or the ammo badge.
     const tb = rootEl.querySelector('#pk-tb');
     if (tb) {
-      const item = battle ? ITEMS[me?.weapon] : null;
-      const loaded = !!(item && me && me.ammo > 0);
+      const item = battle ? WEAPON_DISPLAY[me?.weapon] : null;
+      const loaded=!!item && me.ammo>0;
       const fireKey = !battle ? 'race' : !me || me.respawn > 0 ? 'rejoin'
         : loaded ? `${me.weapon}|${me.ammo}` : 'empty';
       if (fireKey !== lastFireKey) {
         lastFireKey = fireKey;
-        const art = !battle ? BOOST_ART : loaded ? weaponThumbnailArt(me.weapon,weaponArt(me.weapon)) : CROSSHAIR_ART;
-        const ammo = loaded ? `<span class="pk-fire-ammo">${esc(String(me.ammo))}</span>`
+        const art = !battle ? BOOST_ART : loaded ? kartWeaponArt(me.weapon) : CROSSHAIR_ART;
+        const count=me?.weapon==='trishot'?Math.ceil(me.ammo/3):me?.ammo;
+        const ammo = loaded ? `<span class="pk-fire-ammo">${esc(String(count))}</span>`
           : '<span class="pk-fire-ammo" hidden></span>';
-        tb.innerHTML = `<span class="pk-fire-art">${art}</span>${ammo}<span class="kart-fire-label" aria-hidden="true">${battle?'Fire':'Boost'}</span>`;
+        tb.innerHTML = `<span class="pk-fire-art">${art}</span>${ammo}<span class="kart-fire-label" aria-hidden="true">${item?.short || (battle?'Fire':'Boost')}</span>`;
       }
       const label = !battle ? 'Boost'
-        : loaded ? me.firing ? 'Weapon firing' : `Activate ${item.label}, full payload`
+        : loaded ? me.firing ? 'Weapon firing' : item.action
         : !me || me.respawn > 0 ? 'Rejoining' : 'No item';
       if (tb.getAttribute('aria-label') !== label) setKartAttribute(tb,'aria-label', label);
       setKartFlag(tb,'disabled',S.phase !== 'drive' || !me || me.respawn > 0 || (battle && (!loaded || me.firing)));
@@ -975,7 +927,7 @@ export function createKartView(viewConfig) {
   function drawRadar() {
     const canvas = rootEl.querySelector('#pk-radar');
     if (!canvas?.getContext) return;
-    // The room can deliver 30 snapshots/s and roulette also paints the HUD.
+    // The room can deliver 30 snapshots/s.
     // Canvas work was a top CPU cost during weapon use. A 120px radar needs
     // only 10 updates/s; the main scene still draws every animation frame.
     const now=nowMs(),mapKey=S.instanceId+':'+S.map?.id;
@@ -1125,7 +1077,7 @@ export function createKartView(viewConfig) {
       const mines = new Map();
       const grenades = new Map(), combatEffects = new Map();
       const combat = createKartCombatArt(THREE,{assets:{get:name=>
-        assets.pulse?.getObjectByName(name)||assets.arsenal?.getObjectByName(name)||
+        assets.pickupGear?.getObjectByName(name)||assets.pulse?.getObjectByName(name)||assets.arsenal?.getObjectByName(name)||
         (name!=='ScatterShot'&&assets.secondary?.getObjectByName(name))||assets.combat?.getObjectByName(name)
       },pickupAsset:assets.crate});
       disposeCombat=combat.dispose;
@@ -1190,12 +1142,12 @@ export function createKartView(viewConfig) {
       {const dummy=new THREE.Group();arsenalFX.warmStatus(dummy);warm.add(dummy);}
       // Every deployed body is reserved before Ready, including both mine tints.
       const minePools=new Map(),grenadePools=new Map();
-      for(const kind of ['mine'])for(const own of [true,false]){
+      for(const kind of ['mine','proximity','fakecrate'])for(const own of [true,false]){
         const key=kind+':'+own,pool=[];
         // Prepare shared footprints and per-trap scratch vectors now. Spare
         // traps have no ground position yet; fitting all of them to (0,0)
         // repeats thousands of road-height queries with no visible result.
-        for(let i=0;i<16;i++){const group=new THREE.Group(),prop=combat.mine(own,undefined);group.add(prop);group.userData.prop=prop;group.userData.poolKey=key;prepareGroundProp(THREE,group);group.visible=false;scene.add(group);pool.push(group);}
+        for(let i=0;i<16;i++){const group=new THREE.Group(),prop=combat.mine(own,kind);group.add(prop);group.userData.prop=prop;group.userData.poolKey=key;prepareGroundProp(THREE,group);group.visible=false;scene.add(group);pool.push(group);}
         minePools.set(key,pool);warm.add(pool[0]);pool[0].visible=true;
       }
       for(const kind of ['nuke','frost']){
@@ -1284,7 +1236,6 @@ export function createKartView(viewConfig) {
             return garageThumbnail.draw(spec);
           });
         }
-        if(roulette.tick())paintHud();
         syncBlocks();
         if (world.animate) world.animate(rm ? 0 : dt,rm ? 0 : t,skyPhase());
         if (disposeLighting?.update) disposeLighting.update(world.palette);
@@ -1303,7 +1254,9 @@ export function createKartView(viewConfig) {
         }
         if(predictedPickup){popSites.push({x:predictedPickup.x,y:(predictedPickup.groundY||0)+1,z:predictedPickup.z,t,kind:'pickup'});predictedPickup=null;}
         impactFX.update(effectDt);skids.update(effectDt);drivingFX.update(effectDt,S.phase==='drive'&&S.youDrive?(physicalLocalPose?.speed??myKart()?.speed??0):0,S.phase==='drive'&&S.youDrive&&((physicalLocalPose?.turbo??myKart()?.turbo)>0||myKart()?.boost>0||myKart()?.nitroActive===true));arsenalFX.update(effectDt);
-        while(arsenalEvents.length){const queued=arsenalEvents.shift();const age=Math.max(0,(nowMs()-queued.at)/1000);if(age>=.14)continue;const e=queued.event;if(['fire','mine'].includes(e.type)&&e.pid===S.you&&echoedFireIds.has(e.id))continue;arsenalFX.event(e,age);arsenalFX.react(e,karts,age);}
+        while(arsenalEvents.length){const queued=arsenalEvents.shift();const age=Math.max(0,(nowMs()-queued.at)/1000);if(age>=.14)continue;const e=queued.event;
+          if(e.type==='fire'&&e.weapon==='machinegun')combat.aim(karts.get(e.pid)?.userData.rig,e.direction);
+          if(['fire','mine'].includes(e.type)&&e.pid===S.you&&echoedFireIds.has(e.id))continue;arsenalFX.event(e,age);arsenalFX.react(e,karts,age);}
         // Arena features: cannons, portals, fall zones (map.features + arenaEvents).
         structures.sync(S.map);structures.animate();
         arena.sync(S.map);arena.ingest(S.arenaEvents,S.karts);arena.animate(effectDt,t,S,poses);
@@ -1397,7 +1350,11 @@ export function createKartView(viewConfig) {
             mesh.userData.equipped=equipped;
             if(mesh.userData.rig) {const rig=mesh.userData.rig;combat.placeWeapon(rig);(mesh.userData.kart?.inner||mesh).add(rig);}
           }
-          if(mesh.userData.rig)combat.animate(mesh.userData.rig,dt,t,rm);
+          if(mesh.userData.rig){
+            const equipment=mesh.userData.rig.userData.combat;
+            equipment.ammo=k.ammo;equipment.active=k.bladesT>0;equipment.firing=k.firing;
+            combat.animate(mesh.userData.rig,dt,t,rm);
+          }
           if (mesh.userData.giggleKart && !lodProxied.has(mesh)) animateKartModel(mesh, {physicalPose: k.respawn>0 ? null : pose.physicalPose || k.physicalPose,
             speed:pose.speed ?? k.speed ?? 0, steer:k.pid === S.you ? intentFromState().steer : 0,driftHop:pose.driftHop??k.driftHop??0,drivingJuice:true,
             boost:Math.max(k.boost || 0,(pose.turbo??k.turbo) || 0,k.nitroActive===true?1:0),shield:k.shield>0||k.guard===true,invincible:false,dt,reducedMotion:rm});
@@ -1526,7 +1483,7 @@ export function createKartView(viewConfig) {
         for (const m of currentM) {
           liveM.add(m.id);
           let mesh = mines.get(m.id);
-          if(!mesh){const key='mine'+':'+(m.owner===S.you);mesh=minePools.get(key).pop();mesh.visible=true;scene.add(mesh);mines.set(m.id,mesh);}
+          if(!mesh){const key=(m.kind||'mine')+':'+(m.owner===S.you);mesh=minePools.get(key).pop();mesh.visible=true;scene.add(mesh);mines.set(m.id,mesh);}
           mesh.userData.prop.userData.combat.armed=m.armed;
           placeGroundProp(THREE,mesh,m.x,m.y??groundAt(m.x,m.z),m.z,groundAt,world.propGroundAt||groundAt);
           combat.animate(mesh.userData.prop,dt,t,rm);
@@ -1780,7 +1737,13 @@ export function createKartView(viewConfig) {
       if(nowMs()-localFlash.at<100){ctx.fillStyle='#fff3a0';ctx.beginPath();ctx.arc(px(localFlash.position.x),pz(localFlash.position.z),Math.max(3,scale*.6),0,Math.PI*2);ctx.fill();}else localFlash=null;
     }
     for (const m of (ordnanceFresh()?S.mines:[]) || []) {
-      ctx.fillStyle = m.armed ? '#ff83b8' : '#91627a'; ctx.beginPath();
+      if(m.kind==='fakecrate'){
+        const size=Math.max(6,1.8*scale);
+        ctx.fillStyle='#80ffe0';ctx.fillRect(px(m.x)-size/2,pz(m.z)-size/2,size,size);
+        ctx.fillStyle='#172639';ctx.font=`bold ${Math.max(8,1.2*scale)}px sans-serif`;ctx.textAlign='center';ctx.fillText('?',px(m.x),pz(m.z)+Math.max(3,.5*scale));
+        continue;
+      }
+      ctx.fillStyle = m.kind==='proximity'?'#fa534c':m.armed ? '#ff83b8' : '#91627a'; ctx.beginPath();
       ctx.arc(px(m.x),pz(m.z),Math.max(3,(m.kind==='proximity'?1.3:.9)*scale),0,Math.PI*2); ctx.fill();
       ctx.fillStyle=m.armed&&Math.sin(now/150)>0?'#ffeaa0':'#402835';ctx.fillRect(px(m.x)-1,pz(m.z)-1,2,2);
     }
@@ -1904,7 +1867,7 @@ export function createKartView(viewConfig) {
     lastStandKey = '';
     lastResultKey = '';
     lastFireKey = '';
-    seenEvents = new Set(); arenaSeen = new Set(); firstEvents = true; cueUntil = 0; cueText = ''; keycapUntil=0;
+    seenEvents = new Set(); arenaSeen = new Set(); firstEvents = true; cueUntil = 0; cueText = '';
     sceneState = null;
     resetPoseStore(poseStore);
   }
@@ -2247,7 +2210,7 @@ export function createKartView(viewConfig) {
     releaseFirstSnapshot?.();releaseFirstSnapshot=null;
     // Defer optional recordings until all seats finish loading.
     if(!S.preparing)startAudio?.();
-    roulette.sync(S.instanceId,S.inputAck?.life??myKart()?.spawnSeq);pickupPrediction.sync(S.instanceId,S.inputAck?.life??myKart()?.spawnSeq);if(S.audioBaseline||S.phase==='done')roulette.skip();
+    pickupPrediction.sync(S.instanceId,S.inputAck?.life??myKart()?.spawnSeq);
     if(advanced||Snew.audioBaseline){
       const arrival=nowMs();
       // Arrival alone would give a delayed packet a brand-new visual lease.
@@ -2268,7 +2231,7 @@ export function createKartView(viewConfig) {
     predictBoost = false;
     if(pulseHoldLife!==null&&pulseHoldLife!==pulseLife())pulseHoldLife=null;
     if(firstEvents){const me=myKart();wasTurbo=me?.boost>0||me?.turbo>0||me?.nitroActive===true;}
-    if(S.audioBaseline){cueUntil=0;cueText='';keycapUntil=0;}
+    if(S.audioBaseline){cueUntil=0;cueText='';}
     updateAudio();
     feedback.ingest(S,lastSnapshotArrival??nowMs());
     if (S.phase !== 'done') garagePending=null;
@@ -2287,7 +2250,7 @@ export function createKartView(viewConfig) {
       const nearby=!S.youDrive||event.pid===S.you||event.other===S.you||
         (me&&source&&Math.hypot(me.x-source.x,me.z-source.z)<24);
       const echoed=event.pid===S.you&&(['fire','mine'].includes(event.type)&&claimLocalFire(event)||event.type==='pickup'&&pickupPrediction.accept(event.crateId));
-      if(echoed&&['fire','mine'].includes(event.type)){echoedFireIds.add(event.id);if(echoedFireIds.size>64)echoedFireIds.delete(echoedFireIds.values().next().value);}
+      if(echoed&&event.weapon!=='machinegun'&&['fire','mine'].includes(event.type)){echoedFireIds.add(event.id);if(echoedFireIds.size>64)echoedFireIds.delete(echoedFireIds.values().next().value);}
       if(event.type==='hit'&&event.pid===S.you&&event.weapon==='ram')audio?.cue('hitDing');
       if(nearby&&!echoed&&!(event.type==='ko'&&event.weapon==='nuke')){const cue=kartEventCue(event,S.you);if(cue)audio?.cue(cue);}
       if (event.pid !== S.you && event.other !== S.you) continue;
@@ -2297,15 +2260,9 @@ export function createKartView(viewConfig) {
       if(mineEvent&&event.other&&event.other!==S.you&&['hit','ko','block'].includes(event.type))hitFx?.landed(landedText(event));
       if(mineEvent&&event.type==='ko'&&event.other&&event.other!==S.you)hitFx?.knockout(nameOf(event.other));
       if (event.type === 'pickup' && mineEvent) {
-        pickupPrediction.accept(event.crateId);roulette.begin(event.weapon);
-        const label = ITEMS[event.weapon]?.label || 'Item';
-        if (!tutorialSeen()) {
-          cueText = `${label} ready`;
-          if(!touchControlsFor(controlsPreference,readInputCapabilities()))keycapUntil=nowMs()+4000;
-          markTutorialSeen();
-        } else {
-          cueText = `${label} ready`;
-        }
+        pickupPrediction.accept(event.crateId);
+        const label = WEAPON_DISPLAY[event.weapon]?.label || 'Item';
+        cueText = `${label} ready`;
       } else cueText = event.type === 'ko' ? (mineEvent ? `Knockout! ${nameOf(event.other)}` : `${nameOf(event.pid)} got you · back in a moment`)
         : event.type === 'hit' && !mineEvent ? `${nameOf(event.pid)} hit you · −${event.damage||1} HP`
         : event.type === 'block' && !mineEvent ? 'Shield blocked a hit'

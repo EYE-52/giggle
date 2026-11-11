@@ -1,18 +1,18 @@
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
-import {WEAPON_IDS,WEAPONS,TRI_FAN,CURATED_MUZZLE,weaponForward,WEAPON_ALIASES} from '../public/js/engines/kart-weapon-contract.mjs';
+import {WEAPON_IDS,WEAPON_DISPLAY,WEAPONS,TRI_FAN,CURATED_MUZZLE,weaponForward,WEAPON_ALIASES} from '../public/js/engines/kart-weapon-contract.mjs';
 import {createKartCombatArt} from '../public/js/engines/kart-combat-art.mjs';
 import {createArsenalFX} from '../public/js/engines/kart-arsenal-fx.mjs';
 import {createKartImpactFX} from '../public/js/engines/kart-impact-fx.mjs';
 import {createProjectilePlayback,projectilePose} from '../public/js/engines/kart-flight.mjs';
-import {SYNTH_CUE_NAMES} from '../public/js/engines/kart-audio.mjs';
-import {KART_WEAPON_INFO,kartWeaponDisplay} from '../public/js/engines/kart-weapon-hud.mjs';
+import {SYNTH_CUE_NAMES,ASSET_MAP} from '../public/js/engines/kart-audio.mjs';
+import {kartWeaponDisplay} from '../public/js/engines/kart-weapon-hud.mjs';
 import {WEAPON_THUMBNAILS} from '../public/js/engines/kart-assets.mjs';
 let checks=0;const check=(ok,label)=>{assert.ok(ok,label);checks++;};
-assert.deepEqual(Object.keys(KART_WEAPON_INFO).sort(),[...WEAPON_IDS].sort());
+assert.deepEqual(Object.keys(WEAPON_DISPLAY).sort(),[...WEAPON_IDS].sort());
 assert.deepEqual([...WEAPON_THUMBNAILS].sort(),[...WEAPON_IDS].sort());
 for(const [old,id]of Object.entries(WEAPON_ALIASES))check(kartWeaponDisplay({weapon:old,ammo:1}).kind===id,old+' saved inventory has the current HUD name/icon');
-for(const id of WEAPON_IDS)check(SYNTH_CUE_NAMES.includes(id),id+' distinct synth cue');
+for(const id of WEAPON_IDS)check(SYNTH_CUE_NAMES.includes(id)||ASSET_MAP[id],id+' has a deployment cue');
 const art=createKartCombatArt(THREE),scene=new THREE.Scene(),fx=createArsenalFX(THREE,scene),impact=createKartImpactFX(THREE,scene);
 for(const kind of ['machinegun','trishot','missile','cannon','blades','supernova']){
  const a=art.weapon(kind),b=art.weapon(kind),first=[],second=[];
@@ -27,16 +27,35 @@ for(const yaw of [-2.5,0,.8,2.1]){
  model.position.set(4,3,-2);model.rotation.y=yaw;model.updateMatrixWorld(true);
  for(let i=0;i<3;i++){
   const barrel=rig.getObjectByName('TriBarrel'+i),tip=barrel.localToWorld(new THREE.Vector3(0,0,.5));
-  const expected=new THREE.Vector3((i-1)*.2,CURATED_MUZZLE.y,1.9).applyQuaternion(model.quaternion).add(model.position);
+  const expected=new THREE.Vector3(CURATED_MUZZLE.x+(i-1)*.2,CURATED_MUZZLE.y,CURATED_MUZZLE.z).applyQuaternion(model.quaternion).add(model.position);
   check(tip.distanceTo(expected)<1e-7,'actual tri barrel muzzle agrees with authority');
   check(barrel.getWorldDirection(new THREE.Vector3()).angleTo(new THREE.Vector3().copy(weaponForward(model.quaternion,TRI_FAN[i])))<1e-7,'actual tri barrel fan agrees with authority');
+ }
+}
+// The first shot after a turn must line up in that frame, including shots
+// behind or on either side of a kart on a slope. The bore stays fixed.
+{
+ const model=new THREE.Group(),body=new THREE.Group(),rig=art.weapon('machinegun');
+ model.rotation.set(.18,.6,-.12);model.position.set(-4,2,9);scene.add(model);
+ body.position.y=-.7;model.add(body);body.add(rig);art.placeWeapon(rig);
+ const c=rig.userData.combat;c.firing=true;
+ for(const local of [new THREE.Vector3(0,0,-1),new THREE.Vector3(-1,.1,0).normalize(),new THREE.Vector3(1,0,0)]){
+  const direction=local.clone().applyQuaternion(model.quaternion);
+  art.aim(rig,direction);art.recoil(rig);art.animate(rig,1/60,0,false);
+  fx.react({type:'fire',pid:'a',weapon:'machinegun',direction},new Map([['a',model]]));fx.status(model,{});
+  const tip=c.inner.localToWorld(new THREE.Vector3(...c.muzzle)),origin=model.localToWorld(new THREE.Vector3().copy(CURATED_MUZZLE));
+  const star=model.getObjectByName('KartWeaponMuzzleFlash');
+  check(tip.distanceTo(origin)<1e-7,'turned barrel ends at the fixed shot origin');
+  check(c.inner.getWorldDirection(new THREE.Vector3()).dot(direction)>1-1e-7,'first round faces its accepted direction');
+  check(star.getWorldPosition(new THREE.Vector3()).distanceTo(origin.addScaledVector(direction,.06))<1e-7,'flash sits just outside the turned barrel');
+  check(star.getWorldDirection(new THREE.Vector3()).dot(direction)>1-1e-7,'flash faces the accepted shot');
  }
 }
 const model=new THREE.Group();model.position.set(5,3,-2);model.rotation.set(.3,.7,-.2);scene.add(model);fx.warmStatus(model);
 for(const reduced of [false,true])for(let i=0;i<360;i++){
  const age=i/60,k={bladesT:6-age,bladesAge:age,supernovaT:age<3?3-age:0};fx.status(model,k,{time:age});model.updateMatrixWorld(true);
  const center=model.localToWorld(new THREE.Vector3(0,.35,0));
- for(const blade of model.userData.arsenalStatus.blades.children){const p=blade.getWorldPosition(new THREE.Vector3());check(Math.abs(p.y-center.y)<1e-7&&Math.abs(Math.hypot(p.x-center.x,p.z-center.z)-2.2)<1e-7,'pitched kart orbit follows the authority world plane');}
+ for(const blade of model.userData.arsenalStatus.blades.children){const p=blade.localToWorld(new THREE.Vector3(2.2,0,0));check(Math.abs(p.y-center.y)<1e-7&&Math.abs(Math.hypot(p.x-center.x,p.z-center.z)-2.2)<1e-7,'pitched kart orbit follows the authority world plane');}
 }
 fx.status(model,{bladesT:1,bladesAge:5,supernovaT:1},{elapsed:1.1});check(!model.userData.arsenalStatus.blades.visible&&!model.userData.arsenalStatus.nova.visible,'stale status packet cannot leave protection or blades behind');
 fx.status(model,null);check(!model.userData.arsenalStatus.blades.visible&&!model.userData.arsenalStatus.nova.visible,'expired attachments hide immediately');

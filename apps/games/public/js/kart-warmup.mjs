@@ -48,17 +48,19 @@ async function warmAssets(players,settings){
       import('./engines/kart-prefetch.mjs'),import('./engines/kart-assets.mjs')]);
     loadKartWeaponThumbnails().catch(()=>{});
     // Exact URLs match the scene loaders; never download another map's art.
-    const classic=['Rookie Ring','Bumper Blocks','Garden Circuit','Frosty Pass','Neon Yard'];
-    const raised={'Skyport':'skyport','Foundry':'foundry','Alpine Courtyard':'garden','Frost Quarry':'frost','Neon Harbor':'neon','Harbor Heights':'harbor'};
-    if(settings.map&&!classic.includes(settings.map)&&!raised[settings.map])return;
-    const id=({'Bumper Blocks':'blocks','Garden Circuit':'garden','Frosty Pass':'frost','Neon Yard':'neon'})[settings.map||'Garden Circuit']||'ring';
+    const classic={'Rookie Ring':'ring','Bumper Blocks':'blocks','Garden Circuit':'garden','Frosty Pass':'frost','Neon Yard':'neon'};
+    const name=settings.map||'Rookie Ribbons';
     let urls;
-    if(raised[settings.map]){
-      const {elevatedMap}=await import('./engines/kart-elevated-maps.mjs');
+    if(Object.hasOwn(classic,name)){
+      urls=matchKartAssetEntries({id:classic[name]}).map(([key,file])=>`/assets/karts/${file}.glb${key==='crate'?'?v=question-20261007':''}`);
+    }else{
+      const {elevatedEnvironmentByName}=await import('./engines/kart-elevated-maps.mjs');
+      // Saved legacy arenas and current layouts use their real game labels.
+      if(!Object.hasOwn(elevatedEnvironmentByName,name))return;
       const files=[...KART_ELEVATED_FILES];
-      if(elevatedMap(raised[settings.map]).environment==='alpine')files.push(['stylized','environment/stylized-alpine','9426a0ed'],['fountain','environment/alpine-fountain','7a687cd3']);
+      if(elevatedEnvironmentByName[name]==='alpine')files.push(['stylized','environment/stylized-alpine','9426a0ed'],['fountain','environment/alpine-fountain','7a687cd3']);
       urls=files.map(([,file,version])=>`/assets/karts/${file}.glb?v=${version}`);
-    }else urls=matchKartAssetEntries({id}).map(([key,file])=>`/assets/karts/${file}.glb${key==='crate'?'?v=question-20261007':''}`);
+    }
     const looks=Object.fromEntries(players.map(p=>[p.id,p.kart]));
     for(const driver of matchKartDrivers(players,looks))urls.push(`/assets/karts/drivers/${driver}.glb`);
     await Promise.allSettled(urls.map(prefetchKartGLB));

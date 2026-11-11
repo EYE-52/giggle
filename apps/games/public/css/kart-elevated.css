@@ -1,3 +1,4 @@
+@import url("./kart-loadout.css");
 /* Elevated arenas HUD, soft arcade: the same bare HUD as the classic arenas
  * (white display type on a game-colour lip, no cards over the track), cards
  * only for menus and results (soft rim + straight-down lip), candy buttons
@@ -122,7 +123,6 @@ body.game-immersive:has(.pke) #gbody>#rematch{bottom:18px;background:var(--card)
 .kart-gear[data-gear="R"] { background:#3d6fd8cc; }
 .pke-speed .kart-gear { align-self:center; width:26px; height:26px; font-size:14px; margin-left:4px; }
 
-:is(.pk,.pke) [data-state="roulette"] .kart-item-art{outline:3px solid #ffd34a;outline-offset:2px;filter:drop-shadow(0 0 7px #ffe066);}
 .kart-hp[data-shake]{animation:kart-hp-shake .28s ease-out;}
 @keyframes kart-hp-shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-5px) rotate(-4deg)}65%{transform:translateX(4px) rotate(3deg)}}
 @media(prefers-reduced-motion:reduce){.kart-hp[data-shake]{animation:none}}
@@ -135,51 +135,12 @@ body.game-immersive:has(.pke) #gbody>#rematch{bottom:18px;background:var(--card)
 .kart-hp-fill{display:block;width:100%;height:100%;background:var(--success);transform-origin:left center}
 .kart-hp[data-low="true"] .kart-hp-fill{background:var(--danger)}
 .kart-hp-value{min-width:var(--space-48);font:var(--text-caption);font-variant-numeric:tabular-nums}
-:is(.pk,.pke) .kart-item.kart-item{display:grid;grid-template-columns:var(--space-64) 1fr auto;grid-template-rows:1fr var(--space-8);gap:var(--space-4) var(--space-8);width:calc(var(--space-64)*4);height:calc(var(--space-48)*2);padding:var(--space-8);border:2px solid var(--outline);border-radius:var(--radius-lg);background:var(--card);color:var(--ink);box-shadow:var(--shadow-sticker);text-shadow:none}
-:is(.pk,.pke) .kart-item.kart-item .kart-item-art{grid-row:1/3;width:var(--space-64);height:var(--space-64);border:2px solid var(--outline);border-radius:var(--radius-md);background:var(--well);box-shadow:none}
-:is(.pk,.pke) .kart-item.kart-item .kart-item-art :is(img,svg){width:var(--space-64);height:var(--space-64)}
-:is(.pk,.pke) .kart-item.kart-item .kart-item-copy{position:static;width:auto;height:auto;clip-path:none;white-space:normal;overflow:hidden;align-self:center;gap:var(--space-4)}
-:is(.pk,.pke) .kart-item.kart-item .kart-item-copy strong{font:var(--text-button-sm);white-space:normal;overflow:visible}
-:is(.pk,.pke) .kart-item.kart-item .kart-item-copy small{display:block;font:var(--text-caption);color:var(--ink-dim)}
-:is(.pk,.pke) .kart-item.kart-item .kart-item-count{position:static;align-self:center;min-width:0;padding:0;border:0;border-radius:0;background:none;color:var(--ink);box-shadow:none;font:var(--text-title)}
-:is(.pk,.pke) .kart-item.kart-item .kart-item-key{right:var(--space-8);top:var(--space-8);bottom:auto;font:var(--text-caption)}
-.kart-ammo-pips{display:flex;grid-column:2/4;gap:var(--space-4);height:var(--space-8)}
-.kart-ammo-pips i{display:block;flex:1;background:var(--well);border:1px solid var(--line-strong);border-radius:var(--radius-sm)}
-.kart-ammo-pips i[data-full="true"]{background:var(--fam);border-color:var(--fam-lip)}
-:is(.pk,.pke) .kart-item.kart-item[data-state="roulette"] .kart-item-art{outline:2px solid var(--fam);filter:none}
-:is(.pk,.pke) .kart-item.kart-item[data-state="active"] .kart-item-copy small{color:var(--fam-deep)}
-.pk .pk-readout,.pk.pk-touch-enabled .pk-readout{width:auto;max-width:none;left:50%;bottom:var(--space-16);transform:translateX(-50%);padding:0}
-.pk.pk-touch-enabled .pk-readout .pk-instruments{display:none}
-.pke .pke-bottom,.pke.pke-touch-mode .pke-bottom{left:50%;bottom:var(--space-16);transform:translateX(-50%)}
-@container game (max-width:650px) {
- :is(.pk,.pke) .kart-item.kart-item{width:calc(var(--space-64)*4);height:calc(var(--space-48)*2)}
- .pk.pk-touch-enabled .pk-readout,.pke.pke-touch-mode .pke-bottom{bottom:calc(var(--space-48)*3 + var(--space-16) + env(safe-area-inset-bottom,0px))}
- .pke.pke-touch-mode .pke-speed{display:none}
- :is(.pk,.pke) .kart-item.kart-item .kart-item-key{display:none}
- :is(.pk,.pke) .kart-hp{width:calc(var(--space-64)*2 + var(--space-32))}
-}
-@container game (max-height:450px) {.pk.pk-touch-enabled .pk-readout,.pke.pke-touch-mode .pke-bottom{bottom:var(--space-16)}:is(.pk,.pke) .kart-item.kart-item{width:calc(var(--space-64)*3);height:calc(var(--space-48) + var(--space-32));grid-template-columns:var(--space-48) 1fr auto}:is(.pk,.pke) .kart-item.kart-item .kart-item-art,:is(.pk,.pke) .kart-item.kart-item .kart-item-art :is(img,svg){width:var(--space-48);height:var(--space-48)}}
-
+@container game (max-width:650px) { :is(.pk,.pke) .kart-hp { width:calc(var(--space-64)*2 + var(--space-32)); } }
 @container game (max-width:650px) {.pk.pk-touch-enabled .pk-radar{width:var(--space-64);height:var(--space-64);bottom:calc(var(--space-48)*6);right:var(--space-8)}.pk:not(.pk-touch-enabled) .pk-radar{bottom:calc(var(--space-48)*3);width:var(--space-64);height:var(--space-64)}}
 
 :is(.pk,.pke) .kart-fire-label{position:absolute;left:0;right:0;bottom:var(--space-4);font:var(--text-caption);text-align:center;pointer-events:none}
 .pk #pk-tb .pk-fire-art,.pke [data-use-icon]{transform:translateY(calc(var(--space-4) * -1))}
 .pk #pk-tb .pk-fire-art :is(svg,img),.pke [data-use-icon] :is(svg,img){width:var(--space-32);height:var(--space-32)}
-
-/* Phone weapon dock: outside the centre driving line, beside Fire. */
-@container game (max-width:650px) {
- :is(.pk.pk-touch-enabled,.pke.pke-touch-mode) :is(.pk-readout,.pke-bottom){left:auto;right:calc(var(--space-48)*2 + env(safe-area-inset-right,0px));bottom:calc(var(--space-16) + env(safe-area-inset-bottom,0px));transform:none;max-width:none;width:calc(var(--space-64) + var(--space-8));padding:0;gap:0;z-index:4;pointer-events:none}
- :is(.pk.pk-touch-enabled,.pke.pke-touch-mode) .kart-item.kart-item{display:block;position:relative;width:calc(var(--space-64) + var(--space-8));height:calc(var(--space-64) + var(--space-16));min-height:0;padding:0;border:0;background:none;box-shadow:none}
- :is(.pk.pk-touch-enabled,.pke.pke-touch-mode) .kart-item.kart-item .kart-item-art{width:var(--space-64);height:var(--space-64);margin:0 auto;border:var(--space-4) solid var(--outline);border-radius:50%;background:var(--card);box-shadow:var(--shadow-sticker)}
- :is(.pk.pk-touch-enabled,.pke.pke-touch-mode) .kart-item.kart-item .kart-item-art :is(img,svg){width:var(--space-48);height:var(--space-48)}
- :is(.pk.pk-touch-enabled,.pke.pke-touch-mode) .kart-item.kart-item .kart-item-copy{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
- :is(.pk.pk-touch-enabled,.pke.pke-touch-mode) .kart-item.kart-item .kart-item-count{position:absolute;right:0;top:0;left:auto;padding:0 var(--space-4);min-width:var(--space-24);height:var(--space-24);border:2px solid var(--outline);border-radius:var(--radius-pill);background:var(--card);color:var(--ink);font:var(--text-caption);text-align:center}
- :is(.pk.pk-touch-enabled,.pke.pke-touch-mode) .kart-ammo-pips{position:absolute;bottom:0;left:var(--space-4);right:var(--space-4);height:var(--space-8)}
- :is(.pk.pk-touch-enabled,.pke.pke-touch-mode) .kart-item.kart-item[data-state="ready"] .kart-item-art{border-color:var(--fam)}
- :is(.pk.pk-touch-enabled,.pke.pke-touch-mode) .kart-item.kart-item[data-state="active"] .kart-item-art{border-color:var(--success)}
- :is(.pk.pk-touch-enabled,.pke.pke-touch-mode) .kart-item.kart-item[data-state="roulette"] .kart-item-art{border-color:var(--fam);border-style:dashed;outline:none}
- :is(.pk.pk-touch-enabled,.pke.pke-touch-mode) :is(.pk-instruments,.pke-instruments){display:none}
-}
 
 @container game (max-width:650px) {
  .pke.pke-touch-mode .pke-touch{bottom:calc(var(--space-16) + env(safe-area-inset-bottom,0px));height:calc(var(--space-48)*4 + var(--space-16))}

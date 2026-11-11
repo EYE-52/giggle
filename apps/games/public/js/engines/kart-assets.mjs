@@ -10,12 +10,13 @@ import {kartDriverIndex} from './kart-model.mjs';
 import {batchKartBody} from './kart-batching.mjs';
 
 export const KART_ASSETS = {
+  pickupGear: 'combat/pickup-gear',
   kart: 'giggle-kart.meshopt', star: 'giggle-star', crate: 'giggle-crate.meshopt',
   tree_detailed: 'tree_detailed', tree_pineTallA: 'tree_pineTallA',
   rock_largeA: 'rock_largeA', plant_bush: 'plant_bush', flower_purpleA: 'flower_purpleA',
   grandStandCoveredRound: 'grandStandCoveredRound.meshopt', pitsGarage: 'pitsGarage',
   barrierRed: 'barrierRed', barrierWhite: 'barrierWhite', flagCheckers: 'flagCheckers', tentRoof: 'tentRoof',
-  combat: 'combat/combat.meshopt',
+  combat: 'combat/combat-core.meshopt',
   pulse: 'combat/pulse-mounted.meshopt', arsenal: 'combat/arsenal-mounted.meshopt',
   secondary: 'combat/arsenal-secondary.meshopt',
 };
@@ -27,8 +28,9 @@ export const KART_ASSETS = {
 // batched kart variant; the view picks one per player.
 // Shared raised-arena library; environment files remain selected by map.
 export const KART_ELEVATED_FILES = Object.freeze([
+  ['pickupGear','combat/pickup-gear','arcade-1'],
   ['kart','giggle-kart.meshopt','kart-20261007'],['crate','giggle-crate.meshopt','question-20261007'],
-  ['combat','combat/combat.meshopt','combat-20261007'],['pulse','combat/pulse-mounted.meshopt','bfaaaf39'],
+  ['combat','combat/combat-core.meshopt','953c38c2'],['pulse','combat/pulse-mounted.meshopt','bfaaaf39'],
   ['arsenal','combat/arsenal-mounted.meshopt','8bd555ac'],['secondary','combat/arsenal-secondary.meshopt','31eec689'],
 ]);
 export const KART_DRIVERS = Object.freeze(['fox', 'bunny', 'panda', 'raccoon']);
@@ -77,7 +79,7 @@ export function seatKartDriver(kart, driver) {
   return true;
 }
 
-export const WEAPON_THUMBNAILS=['machinegun','trishot','missile','cannon','blades','supernova','mine','frost','ram','nuke'];
+export const WEAPON_THUMBNAILS=Object.keys(weaponImages);
 const loadedThumbnails=new Set();
 let thumbnailLoad;
 export function loadKartWeaponThumbnails(){

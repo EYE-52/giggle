@@ -206,7 +206,7 @@ async function main() {
     tick(ctx, st);
     assert.strictEqual(st.zaps.length, 3, 'one press launches the fan');
     const angles = st.zaps.map((z) => z.angle).sort((x, y) => x - y);
-    for (const [i, off] of [-8*Math.PI/180,0,8*Math.PI/180].entries()) {
+    for (const [i, off] of [-2.5*Math.PI/180,0,2.5*Math.PI/180].entries()) {
       assert(Math.abs(angles[i] - (0.5 + off)) < 1e-9, `pellet ${i} spreads ${off}`);
     }
     assert(st.zaps.every((z) => z.kind === 'trishot'), 'pellets carry scatter kind');

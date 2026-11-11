@@ -11,7 +11,7 @@ import {WEAPONS,WEAPON_IDS,inWeaponCone} from '../public/js/engines/kart-weapon-
 import {createKartImpactFX,BLAST_FX_BUDGETS,blastSize} from '../public/js/engines/kart-impact-fx.mjs';
 import {createArsenalFX} from '../public/js/engines/kart-arsenal-fx.mjs';
 import {createKartModel,animateKartModel} from '../public/js/engines/kart-model.mjs';
-import {createKartWeaponRoulette,PICKUP_ROULETTE_MS} from '../public/js/engines/kart-weapon-hud.mjs';
+import {kartWeaponDisplay} from '../public/js/engines/kart-weapon-hud.mjs';
 import {createKartFeedback} from '../public/js/engines/kart-feedback.mjs';
 await RAPIER.init();let checks=0;
 globalThis.self=globalThis;globalThis.createImageBitmap=async()=>({width:1,height:1,close(){}});
@@ -89,12 +89,10 @@ check(blastSize('nuke')>5*blastSize('cannon'),'nuke fireball is much bigger than
  fx.dispose();arsenal.dispose();
 }
 {
- let now=0,reduced=false;const roulette=createKartWeaponRoulette({now:()=>now,reducedMotion:()=>reduced}),kart={weapon:'cannon',ammo:1};roulette.sync('one',0);roulette.begin('cannon');
- const seen=new Set();for(now=0;now<PICKUP_ROULETTE_MS;now+=80){roulette.tick();seen.add(roulette.display(kart).kind);check(kart.weapon==='cannon'&&kart.ammo===1,'roulette never changes authoritative inventory');}
- check(seen.size>=4,'roulette cycles readable weapon icons');roulette.tick();check(!roulette.display(kart)&&!roulette.active(),'roulette settles in half a second');
- roulette.begin('cannon');check(roulette.skip()&&!roulette.display(kart),'fire immediately skips the roulette');
- roulette.begin('cannon');roulette.sync('one',1);check(!roulette.active(),'respawn clears roulette');roulette.begin('cannon');roulette.sync('two',1);check(!roulette.active(),'new round clears roulette');
- reduced=true;roulette.begin('cannon');check(roulette.display(kart)?.kind==='crate','reduced motion uses a steady reveal');
- const feedback=createKartFeedback(),s={instanceId:'one',phase:'drive',simAt:0,karts:[],events:[]};feedback.ingest(s,0);s.simAt=50;s.events=[{id:'blast',type:'blast',weapon:'nuke',x:0,z:0,position:{x:0,y:0,z:0}}];feedback.ingest(s,50);check(feedback.current(50).length===1,'new blast accepted once');feedback.current(1500);feedback.ingest(s,1500);check(feedback.current(1500).length===0,'old snapshot cannot bring back an explosion');
+ for(const kind of ['cannon','fakecrate','proximity']){
+   const slot=kartWeaponDisplay({weapon:kind,ammo:1});
+   check(slot.kind===kind&&slot.state==='ready','confirmed '+kind+' is ready immediately');
+ }
+ check(kartWeaponDisplay({weapon:null,ammo:0}).kind==='crate','no item is shown before award');
 }
-console.log(JSON.stringify({pass:true,checks,scope:'launch targeting and misses in both authorities; every blast particle budget; real pooled recoil/lock/flash; roulette and replay safety; no GPU or subjective fun claim'}));
+console.log(JSON.stringify({pass:true,checks,scope:'launch targeting and misses in both authorities; every blast particle budget; real pooled recoil/lock/flash; immediate equipment reveal and replay safety; no GPU or subjective fun claim'}));

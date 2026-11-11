@@ -4,6 +4,7 @@
  * Simulation stays in the engines, with one private World per instance. */
 
 const { createKartGame } = require('../engines/kart-engine');
+const { WEAPON_DISPLAY } = require('../../public/js/engines/kart-weapon-contract.mjs');
 const { defaultSettings } = require('../_validate');
 const { MAP_LABELS, LAUNCH_ARENA_CAPS, preflightElevated, loadElevatedDependencies, createElevatedKartAdapter } = require('../engines/kart-elevated-adapter');
 
@@ -15,7 +16,7 @@ const legacy = createKartGame({
   id: 'pocket-karts',
   name: 'Pocket Karts',
   tagline: 'Kart battles with weapons and nitro',
-  howto: 'Grab a box. Your weapon appears on the kart and in the bottom slot. Press Space or Fire to use the full pickup. Drive with WASD, arrows or the stick; N boosts and Shift drifts. Every kart has 100 HP. Take a rival to 0 HP to score a knockout. You return with full HP and brief protection. Machine Gun has 30 bullets at 5 damage each. Tri-Shot has nine pellets at about 17 damage each. Missile and Cannon deal 65 and 70 on direct hits. All blasts lose damage toward the edge of their ring. Mines explode behind you. Frost Bomb slows nearby rivals. Blades and Turbo Ram knock out on real contact. Supernova protects for 3 seconds then bursts. Nuke has a large warning ring: drive away before it explodes. Most knockouts wins. Pick classic or raised arenas in Maps & settings.',
+  howto: `Drive with WASD, arrows or the stick. N boosts and Shift drifts. Grab a box, then press Space or Fire to use it. Two direct rocket hits or six ${WEAPON_DISPLAY.trishot.label} hits knock out a full-health rival. Keep driving to lay all three trail mines. Most knockouts wins.`,
   guide: {
     goal: 'Take a rival from 100 HP to 0 to score a knockout. Most knockouts wins.',
     controls: [
@@ -25,10 +26,10 @@ const legacy = createKartGame({
       { keys: ['Shift'], touch: 'Tyre', does: 'Hold to drift; release sparks for turbo' },
     ],
     tips: [
-      'Grab a box; fire skips the reveal. Each pickup hurts each rival once.',
-      'Lock missiles ahead. Cannon shells bounce and burst on impact.',
-      'Blades stay close for 6s. Supernova guards 3s, then bursts within 9m.',
-      'Dodge Nuke rings. Mines guard routes; Frost slows; Turbo Ram boosts.',
+      'Fire uses the whole pickup. Steer between shots. Drive to lay all three mines.',
+      `${WEAPON_DISPLAY.cannon.label} fly straight. ${WEAPON_DISPLAY.missile.label} turns toward a rival ahead.`,
+      `${WEAPON_DISPLAY.blades.label} and ${WEAPON_DISPLAY.supernova.label} knock out on contact. Supernova shields for 3s.`,
+      'Avoid nuke rings. A fake crate knocks out the first rival who touches it.',
       'Raised: cannons climb; portals cross levels. Release drift sparks for turbo.',
     ],
   },
