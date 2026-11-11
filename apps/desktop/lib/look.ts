@@ -172,7 +172,8 @@ export function applyLook(look: Look): ResolvedMode {
     root.setAttribute("data-mode", resolved);
     // Legacy bridge: existing dark/light CSS keys off data-theme.
     root.setAttribute("data-theme", resolved);
-    document.querySelector('meta[name="theme-color"]')?.setAttribute("content", resolved === "dark" ? "#0c0c0e" : "#ffffff");
+    const chrome = window.getComputedStyle(root).getPropertyValue("--bg").trim();
+    document.querySelector('meta[name="theme-color"]')?.setAttribute("content", chrome || (resolved === "dark" ? "#0c0c0e" : "#ffffff"));
   }
   watchSystemMode();
   emitChange();

@@ -35,7 +35,7 @@ export function TopNav() {
   const discovery = useDiscoveryEnabled() === true;
   const path = usePathname();
   return <>
-    <header className="gg-header nav"><div className="gg-header-inner">
+    <header className="gg-header"><div className="gg-header-inner">
       <Link href="/home" aria-label="Giggle home" className="brand"><Wordmark/></Link>
       <nav data-testid="desktop-navigation" className="gg-main-nav tabs" aria-label="Primary navigation">{navLinks(path, 'tab', discovery)}</nav>
       <div className="gg-header-actions nav-end"><NotificationBell/><Link href="/profile" className="gg-profile-link" aria-label="Your profile"><PersonAvatar isMe userId={session.user?.id} name={session.user?.name ?? "You"} size={40} className="me"/></Link></div>

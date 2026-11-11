@@ -1,12 +1,11 @@
-/* The frame around Meet follows the resolved mode. Palettes still supply
-   illustrations, brand accents, presence signals and Appearance previews. */
+/* Quiet surfaces for sign-in and video. The app shell uses the active skin and palette. */
 html[data-mode="light"] {
   color-scheme:light; --meet-scheme:light; --meet-on-danger:#fff;
   --meet-bg:#fff; --meet-panel:#fff; --meet-raised:#f4f4f5;
   --meet-ink:#19191b; --meet-secondary:#404046; --meet-muted:#616169;
   --meet-line:#d7d7dc; --meet-line-strong:#85858d;
   --meet-action:#242427; --meet-action-hover:#3b3b40; --meet-on-action:#fff;
-  --meet-wash:#faedf2; --meet-good:#116743; --meet-good-bg:#e2f2ea;
+  --meet-wash:color-mix(in srgb, var(--brand) 11%, var(--meet-bg)); --meet-good:#116743; --meet-good-bg:#e2f2ea;
   --meet-danger:#9f2745; --meet-danger-bg:#fae6eb;
 }
 html[data-mode="dark"] {
@@ -15,36 +14,35 @@ html[data-mode="dark"] {
   --meet-ink:#f7f7f8; --meet-secondary:#d2d2d7; --meet-muted:#b4b4bc;
   --meet-line:#404045; --meet-line-strong:#81818b;
   --meet-action:#f4f4f5; --meet-action-hover:#dcdce0; --meet-on-action:#151517;
-  --meet-wash:#24161f; --meet-good:#83dfae; --meet-good-bg:#173629;
+  --meet-wash:color-mix(in srgb, var(--brand) 13%, var(--meet-bg)); --meet-good:#83dfae; --meet-good-bg:#173629;
   --meet-danger:#ffa8ba; --meet-danger-bg:#392127;
 }
-html[data-skin][data-palette][data-mode] {
-  --bg:var(--meet-bg); --bg-2:var(--meet-raised);
-  --surface:var(--meet-panel); --surface-2:var(--meet-raised);
-  --panel:var(--meet-panel); --text:var(--meet-ink); --ink:var(--meet-ink);
-  --muted:var(--meet-muted); --text-muted:var(--meet-muted); --text-body:var(--meet-secondary);
-  --line:var(--meet-line); --border:var(--meet-line);
+
+html[data-mode] {
   --meet-page:radial-gradient(ellipse at 100% 0,var(--meet-wash),transparent 49%) top right / 100% min(100vh,850px) no-repeat,var(--meet-bg);
 }
-/* Generated skin selectors include preview-specific specificity even on the live shell. */
-html[data-skin][data-palette][data-mode] :is(body,.gg-landing,.gg-app-root) { background:var(--meet-page) !important; }
-html[data-skin][data-palette][data-mode] .gg-app-root { color:var(--meet-ink); }
-html[data-skin][data-palette][data-mode] :is(.gg-header,.gg-mobile-nav,.gg-landing .nav) {
-  background:var(--meet-panel); color:var(--meet-ink); border-color:var(--meet-line); box-shadow:none;
+
+/* Only main content scrolls. The header can share the page underneath it,
+   including Soft Depth's light, Doodle's paper and Scrapbook's ruled lines. */
+.gg-header {
+  position:relative;
+  z-index:60;
+  background:transparent;
+  border:0;
 }
-html[data-skin][data-palette][data-mode] .gg-landing .btn.btn-primary {
-  background:var(--meet-action); color:var(--meet-on-action); border-color:var(--meet-action); box-shadow:none;
+.gg-header-inner { justify-content:flex-start; }
+.gg-header-actions { margin-inline-start:auto; }
+.gg-header-inner::after {
+  content:"";
+  position:absolute;
+  inset-inline:0;
+  bottom:0;
+  height:1px;
+  background:linear-gradient(90deg,transparent,color-mix(in srgb,var(--brand) 22%,transparent),transparent);
+  pointer-events:none;
 }
-html[data-skin][data-palette][data-mode] .gg-landing .btn.btn-primary:hover {
-  background:var(--meet-action-hover);
-}
-html[data-skin][data-palette][data-mode] .gg-landing .btn.btn-secondary {
-  background:var(--meet-panel); color:var(--meet-ink); border-color:var(--meet-line);
-}
-/* Keep Clay's raised rims and pressed shapes while neutralising large fills. */
-html[data-skin="clay"][data-palette][data-mode] {
-  --clay-page:var(--meet-bg); --clay-fill:var(--meet-panel);
-  --clay-fill-2:var(--meet-raised); --clay-well:var(--meet-raised);
-  --clay-shade:color-mix(in srgb,var(--meet-ink) 16%,transparent);
-  --clay-shade-soft:color-mix(in srgb,var(--meet-ink) 9%,transparent);
+@media (min-width:721px) and (max-width:800px) {
+  .gg-header-inner { padding-inline:18px; gap:12px; }
+  .gg-header .gg-main-nav { gap:2px; }
+  .gg-header .gg-main-nav .tab { padding-inline:8px; }
 }

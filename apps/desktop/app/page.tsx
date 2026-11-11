@@ -19,7 +19,7 @@ export default function LandingPage() {
 
   return (
     <div className={`gg-landing ${styles.page}`}>
-      <header className={`nav ${styles.nav}`}>
+      <header className={styles.nav}>
         <Link href="/" aria-label="Giggle home" className="brand"><Wordmark size={30} /></Link>
         <Link href={signInHref} className={`gg-btn gg-btn--sm gg-press btn btn-secondary small ${styles.signin}`}>Sign in <Icon.enter size={17} color="currentColor" /></Link>
       </header>

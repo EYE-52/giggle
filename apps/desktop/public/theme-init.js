@@ -57,10 +57,13 @@
       meta.name = "theme-color";
       document.head.appendChild(meta);
     }
-    meta.content = resolved === "dark" ? "#0c0c0e" : "#ffffff";
+    var chrome = window.getComputedStyle(root).getPropertyValue("--bg").trim();
+    meta.content = chrome || (resolved === "dark" ? "#0c0c0e" : "#ffffff");
   }
 
   apply();
+  // CSS may still be loading when the early script sets the look attributes.
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", apply, { once: true });
   /* Auto mode stays live even before hydration. */
   try {
     var query = window.matchMedia("(prefers-color-scheme: dark)");

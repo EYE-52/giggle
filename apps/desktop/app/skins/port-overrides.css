@@ -6,19 +6,9 @@
  * small and commented; everything else belongs in the generated skin files.
  */
 
-/* Skin `.nav` rules replace the header's padding wholesale (mock navs have no
- * notch); re-assert the safe-area inset the app shell relies on. */
-html[data-skin] .gg-header.nav {
-  padding-top: env(safe-area-inset-top);
-  /* Keep notification actions above content that creates a glass/transform layer. */
-  position: relative;
-  z-index: 60;
-}
-
 /* The phone tab bar's items stack icon-over-label — and the DESKTOP tab strip
-   stays hidden on phones (revamp hides .gg-main-nav at 600px, but skin `.tabs`
-   rules re-flex it). */
-@media (max-width: 600px) {
+   uses the same 720px breakpoint as the phone navigation below. */
+@media (max-width: 720px) {
   html[data-skin] .gg-main-nav.tabs {
     display: none;
   }
@@ -535,23 +525,6 @@ html[data-skin="play"][data-palette="honey"][data-mode="light"] :is(.page-head .
   color: var(--on-brand);
 }
 
-/* Landing header: the app top bar's panel (background, radius, shadow) sits
- * inside the page margins here and reads as a stray box. Keep it a plain
- * header with the divider line, in every skin. */
-html[data-skin] .gg-landing > .nav {
-  background: none;
-  box-shadow: none;
-  backdrop-filter: none;
-  -webkit-backdrop-filter: none;
-  border: 0;
-  border-bottom: 1px solid var(--line);
-  border-radius: 0;
-  --sketch: none;
-  /* skins reset the app bar's margin to 0; the landing header is centered
-   * on the same 1220px column as the hero and footer */
-  margin-inline: auto;
-}
-
 /* Sign-in card: skins stretch .card to its grid row (for Home's columns).
  * Here that made the card full-height and spread its rows apart. */
 html[data-skin] main.gg-landing > .card {
@@ -600,24 +573,6 @@ html[data-skin][data-skin][data-skin] .gg-app-root {
   min-height: 0;
   height: 100dvh;
 }
-
-/* The fixed navigation owns the edge where scrolling content passes beneath.
- * Clay/Soft blend the cut into their light; paper skins show a page edge and
- * Bold Play uses a graphic rule. The overlay never catches pointer input. */
-html[data-skin] .gg-header.nav {
-  --nav-edge-height:20px;
-  --nav-edge-fill:linear-gradient(to bottom, var(--bg), transparent);
-  --nav-edge-shadow:none;
-}
-html[data-skin] .gg-header.nav::after {
-  content:""; position:absolute; top:100%; left:0; right:0; height:var(--nav-edge-height);
-  background:var(--nav-edge-fill); box-shadow:var(--nav-edge-shadow); pointer-events:none;
-}
-html[data-skin] .gg-app-main:not(.gg-app-main--calling) { scroll-padding-top:32px; }
-html[data-skin="clay"] .gg-header.nav { --nav-edge-height:28px; --nav-edge-fill:linear-gradient(to bottom, var(--clay-page), color-mix(in srgb, var(--clay-page) 85%, transparent) 25%, transparent); }
-html[data-skin="play"] .gg-header.nav { --nav-edge-height:2px; --nav-edge-fill:var(--pl-ink); --nav-edge-shadow:0 3px 0 color-mix(in srgb, var(--pl-ink) 10%, transparent); }
-html[data-skin="paper"] .gg-header.nav { --nav-edge-height:1px; --nav-edge-fill:color-mix(in srgb, var(--text) 35%, var(--bg)); --nav-edge-shadow:0 2px 3px color-mix(in srgb, var(--text) 8%, transparent); }
-html[data-skin="scrap"] .gg-header.nav { --nav-edge-height:6px; --nav-edge-fill:linear-gradient(to bottom, var(--sb-page) 0 5px, var(--sb-rule) 5px); --nav-edge-shadow:0 3px 5px rgb(0 0 0 / .08); }
 
 /* Soft Depth caps card titles at 16ch, which breaks ordinary headings
  * ("Bring your first friend over") into two short lines beside empty space.
