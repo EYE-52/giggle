@@ -1,9 +1,9 @@
 'use strict';
 /* Number Hunt: the server hides a number from 1 to 100 and everyone races
  * to find it. Every guess earns a public hotter/colder hint plus a
- * higher/lower nudge. First to hit it starts a short overtime; fewest
- * tries wins the round. The hunt itself has a clock too: when it runs out
- * with nobody on the number, the round ends without a winner. */
+ * higher/lower nudge. The first finder wins and starts a short overtime.
+ * Finders can still submit other numbers while everyone else plays. When
+ * the hunt clock runs out without a correct guess, there is no winner. */
 
 const { roundsSetting, paceSetting, paced } = require('../_sdk');
 
@@ -17,8 +17,8 @@ const manifest = {
     tips: [
       'Each guess tells you to go higher or lower.',
       'From your second guess on, you also hear warmer or colder.',
-      'Everyone sees guesses and hints; a found number stays hidden until round end.',
-      'The first correct guess starts a short overtime for the rest.',
+      'Wrong guesses get public hints. Correct guesses stay private until the reveal.',
+      'The first solve starts overtime. You can keep guessing after you find it.',
       'First to find it ranks first: 100, 70, 50, 30, then 20 points.',
     ],
   },
@@ -93,8 +93,7 @@ function endRound(state, ctx) {
   // Finding it first decides the rank (state.finished is in arrival order), so
   // nobody can wait, copy the found number and win on tries.
   const ranked = [...state.finished];
-  ranked.forEach((f) => {
-    const rank = ranked.indexOf(f);
+  ranked.forEach((f, rank) => {
     f.rank = rank + 1;
     const pts = RANK_PTS[Math.min(rank, RANK_PTS.length - 1)];
     f.pts = pts;
@@ -136,8 +135,12 @@ function onAction(state, ctx, pid, a) {
   if (state.endsAt > 0 && ctx.now() >= state.endsAt) { endRound(state, ctx); return; }
   const g = a.guess;
   if (!Number.isInteger(g) || g < 1 || g > 100) return;
-  if (state.finished.some((f) => f.pid === pid)) return;
+  // Only the first hit counts. Later wrong guesses stay in the public feed.
+  if (g === state.secret && state.finished.some(f => f.pid === pid)) return;
   const mine = state.guesses[pid] || [];
+  // Compare against the last public guess. A private hit must not change
+  // the warmer/colder clue that everyone else can see.
+  const previous = mine.at(-1) === state.secret ? mine.at(-2) : mine.at(-1);
   mine.push(g);
   state.guesses[pid] = mine;
   const h = state.hints;
@@ -161,10 +164,10 @@ function onAction(state, ctx, pid, a) {
   }
   const d = Math.abs(state.secret - g);
   let result;
-  if (mine.length < 2) {
+  if (previous === undefined) {
     result = 'first';
   } else {
-    const prev = Math.abs(state.secret - mine[mine.length - 2]);
+    const prev = Math.abs(state.secret - previous);
     result = d < prev ? 'hotter' : d > prev ? 'colder' : 'same';
   }
   const dir = g < state.secret ? 'higher' : 'lower';
@@ -188,12 +191,13 @@ function view(state, pid, ctx) {
   const { secret, hints, ...rest } = state;
   void secret;
   void hints;
-  // While the hunt is on, other players' correct guesses are hidden (the try still
-  // counts), so the found number cannot simply be copied during overtime.
   if (state.phase === 'hunt' || state.phase === 'overtime') {
-    rest.history = state.history.map((h) => (h.result === 'correct' && h.pid !== pid ? { ...h, guess: null } : h));
-    rest.guesses = Object.fromEntries(Object.entries(state.guesses).map(([p, list]) => [p,
-      p !== pid && state.finished.some((f) => f.pid === p) ? [...list.slice(0, -1), null] : list]));
+    rest.foundCount = state.finished.length;
+    rest.finished = state.finished.filter(f => f.pid === pid);
+    rest.history = state.history.filter(h => h.result !== 'correct' || h.pid === pid);
+    rest.guesses = Object.fromEntries(Object.entries(state.guesses).map(([player, guesses]) =>
+      [player, player === pid ? guesses : guesses.filter(g => g !== secret)]
+    ).filter(([, guesses]) => guesses.length));
   }
   return { ...rest, hostId: ctx && ctx.hostId ? ctx.hostId() : state.hostId };
 }

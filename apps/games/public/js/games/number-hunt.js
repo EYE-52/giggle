@@ -50,7 +50,7 @@ function huntPhase(S) {
   return S.phase === 'overtime' ? 'Overtime' : 'Hunt';
 }
 function foundCount(S) {
-  const n = (S.finished || []).length;
+  const n = S.foundCount ?? (S.finished || []).length;
   return `${n} found it`;
 }
 
@@ -129,8 +129,8 @@ const view = {
         + `<p class="nh-reading"><span id="nLastLabel">No guess yet</span> <b id="nCurrent"></b> <strong id="nDirection" data-dir="none">Try a number</strong> <small id="nHeat"></small></p>`
         + `</div>`
         + `<form class="gk-input-row" id="nForm" autocomplete="off"><div class="picker-step nh-guess-picker"><button type="button" class="picker-btn" id="nDown" aria-label="Decrease your guess">−</button><input class="gk-input picker-value" id="nGuess" aria-label="Your number guess, from 1 to 100" type="number" min="1" max="100" inputmode="numeric" enterkeyhint="go" autocomplete="off"`
-        + ` placeholder="1–100" ${found || S.spectator ? 'disabled' : ''}>`
-        + `<button type="button" class="picker-btn" id="nUp" aria-label="Increase your guess">+</button></div><button class="gk-btn gk-primary" id="nSend" type="submit" ${found || S.spectator ? 'disabled' : ''}>${esc(t.guess_button || 'Guess')}</button></form>`
+        + ` placeholder="1–100" ${S.spectator ? 'disabled' : ''}>`
+        + `<button type="button" class="picker-btn" id="nUp" aria-label="Increase your guess">+</button></div><button class="gk-btn gk-primary" id="nSend" type="submit" ${S.spectator ? 'disabled' : ''}>${esc(t.guess_button || 'Guess')}</button></form>`
         + `<p class="wg-status" id="nMine" role="status"></p>`
         + `<h3 class="nh-feed-title">${esc(t.feed_title || 'Public hints')}</h3>`
         + `<div class="wg-feed" id="nFeed" role="log" aria-label="Public guess hints" tabindex="0"></div>`
@@ -160,6 +160,12 @@ const view = {
           || (live.S.endsAt > 0 && typeof live.api.now === 'function' && live.api.now() >= live.S.endsAt)) return;
         const v = Number(inp.value);
         if (Number.isInteger(v) && v >= 1 && v <= 100) {
+          const solve = live.S.finished?.find(f => f.pid === live.S.me);
+          if (solve && live.S.guesses?.[live.S.me]?.[solve.tries - 1] === v) {
+            const status = el.querySelector('#nMine');
+            if (status) status.textContent = 'That’s the answer. Pick another number to bluff.';
+            return;
+          }
           if (live.api.send({ guess: v }) === false) return;
           inp.value = '';
           syncSteps();
@@ -237,14 +243,14 @@ const view = {
         : 'Find the number from 1 to 100';
     }
     const lock = el.querySelector('#nGuess');
-    if (lock) { lock.disabled = !!(found || S.spectator || S.preparing); if (found) lock.value = ''; }
+    if (lock) lock.disabled = !!(S.spectator || S.preparing);
     el._syncGuessSteps?.();
     const sendBtn = el.querySelector('#nSend');
-    if (sendBtn) sendBtn.disabled = !!(found || S.spectator || S.preparing);
+    if (sendBtn) sendBtn.disabled = !!(S.spectator || S.preparing);
     const mineEl = el.querySelector('#nMine');
     if (mineEl) {
       mineEl.textContent = S.spectator ? 'You are watching.' : found
-        ? (t.found || 'Found it! Waiting for the round to end.')
+        ? (t.found || 'Found it! Keep guessing to bluff until the reveal.')
         : mine.length ? `${t.your_tries || 'Your tries'} (${mine.length}): ${mine.join(', ')}` : 'First to find it wins the round.';
       mineEl.classList?.toggle('is-good', found);
     }

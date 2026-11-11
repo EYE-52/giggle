@@ -39,7 +39,7 @@ const LEGACY = [
   ['draw-phone', 'Draw Phone', 'Telephone meets drawing', 'draw', 'Write, draw, guess in rotation. Watch masterpieces melt down the chain.', true],
   ['reaction-tap', 'Reaction Tap', 'Tap on green. Not before', 'speed', 'Wait for green, then tap! Early taps foul. Fastest of 5 rounds wins.', true],
   ['typing-race', 'Typing Race', 'Same sentence, fastest fingers', 'speed', 'Type the sentence perfectly. Fastest finisher wins.', true],
-  ['number-hunt', 'Number Hunt', 'Hot or cold to 1–100', 'word', 'Guess 1–100 using hotter/colder hints. Fewest tries wins.', true],
+  ['number-hunt', 'Number Hunt', 'Hot or cold to 1–100', 'word', 'Guess 1–100 using hotter/colder hints. The first finder wins. Keep guessing in overtime to bluff.', true],
 ];
 
 const LEGACY_BY_ID = {};
