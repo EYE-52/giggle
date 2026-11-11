@@ -1,5 +1,25 @@
 # Giggle Games UI polish — 11 November 2026
 
+## White and black themes
+
+| Surface | Previous Day / Night | Current Day / Night |
+| --- | --- | --- |
+| Home background | Apricot paper `#fcf6e9` / forest green `#18241e` | White `#ffffff` / black `#080808`, with rose light near the edges |
+| Main panels | White / forest green `#24332a` | White / charcoal `#181818` |
+| Main action | Raspberry / marigold | Rose `#a72550` / light rose `#f6a3bb` |
+
+The home, catalogue, game guides, room menus and one-device table share the same palette. Game art, chess squares, dice, player markers and vote results carry their own colours. All 72 guides use the shared theme loader. The browser toolbar updates for the selected theme.
+
+- Chrome checked 1440×900, 1024×768, 390×844 and 375×667 in Day and Night. The home, one-device setup and Chess guide had zero horizontal overflow before and after. The Chess clipping check reported zero findings across eight captures after the change.
+- Real room creation, joining, catalogue search and draft preservation passed at all four sizes in both themes. The additional 320×568 home check also passed.
+- One-device tests completed 16 three-person Truth or Dare rounds across both prompt styles, both themes and all four sizes. Each result led back to setup for a legal Four in a Row move. All 21 one-device games also mounted on a phone-sized viewport.
+- At 375×667, the timer and spin card originally began at the same vertical position. The timer now ends at 222 px and the card begins at 230 px. Ballots and prompts remain readable through private handoffs.
+- The main button label has 6.95:1 contrast in Day and 8.86:1 in Night. Chess coordinates on the Night board rim have 8.22:1 contrast.
+
+The full Games test suite passed on Node 24.21.0. The browser fit sweep measured all 72 games 1,224 times, with zero failures and zero browser errors.
+
+The remaining sections record earlier layout work.
+
 ## Scope and approach
 
 Small layout and contrast fixes, retaining the current artwork, colours, fonts,

@@ -33,6 +33,9 @@ async function visit(viewport,night,before=false){
   await page.screenshot({path:path.join(artifacts,label+'-home.png')});
   await page.screenshot({path:path.join(artifacts,label+'-full.png'),fullPage:true});
   if(!before){
+   const ground=night?'rgb(8, 8, 8)':'rgb(255, 255, 255)';
+   assert.equal(await page.locator('body').evaluate(el=>getComputedStyle(el).backgroundColor),ground);
+   assert.match(await page.locator('body').evaluate(el=>getComputedStyle(el).backgroundImage),/radial-gradient/);
    assert.equal(await page.locator('.hero-art').count(),0,'decorative collage is removed');
    assert.equal(await page.locator('.home-welcome #bCreate').textContent(),'Create room');
    assert.equal(await page.locator('.home-welcome #bJoin').textContent(),'Join room');
@@ -77,9 +80,10 @@ async function visit(viewport,night,before=false){
  const net=require('node:net'),probe=net.createServer();await new Promise(r=>probe.listen(0,'127.0.0.1',r));port=probe.address().port;await new Promise(r=>probe.close(r));output='';
  server=spawn(process.execPath,['server/server.js'],{cwd:root,env:{PATH:process.env.PATH,HOME:process.env.HOME,TMPDIR:os.tmpdir(),NODE_ENV:'test',HOST:'127.0.0.1',PORT:String(port),GAME_REPORT_DB:path.join(scratch,'reports.sqlite')},stdio:['ignore','pipe','pipe']});server.stdout.on('data',d=>output+=d);server.stderr.on('data',d=>output+=d);
  for(let n=0;n<200&&!output.includes('PartyBox on');n++){if(server.exitCode!==null)throw Error('local home fixture exited');await sleep(50)}assert(output.includes('PartyBox on'));
- browser=await chromium.launch({headless:true});
+ browser=await chromium.launch({headless:true,executablePath:process.env.CHROMIUM_EXECUTABLE});
  await visit({width:1280,height:800},true,true);
  await visit({width:375,height:667},true,true);
- for(const [viewport,night]of [[{width:1280,height:800},false],[{width:1280,height:800},true],[{width:375,height:667},true],[{width:320,height:568},false]])await visit(viewport,night);
- console.log('HOME_POLISH_BROWSER_PASS:2 Night baselines,4 after cases,drafts,search,header,pick framing,actual create/join');
+ for(const [width,height] of [[1440,900],[1024,768],[390,844],[375,667]])for(const night of [false,true])await visit({width,height},night);
+ await visit({width:320,height:568},false);
+ console.log('HOME_POLISH_BROWSER_PASS:2 Night baselines,9 after cases,drafts,search,header,pick framing,actual create/join');
 })().catch(e=>{console.error(e.stack);process.exitCode=1}).finally(async()=>{if(browser)await browser.close();if(server&&server.exitCode===null){server.kill('SIGTERM');await Promise.race([new Promise(r=>server.once('exit',r)),sleep(3000)])}fs.writeFileSync(path.join(artifacts,'results.json'),JSON.stringify({at:new Date().toISOString(),results,realMedia:false,production:false},null,2)+'\n')});

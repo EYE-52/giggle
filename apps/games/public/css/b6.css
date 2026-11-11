@@ -39,7 +39,7 @@
   min-height: 96px;
   margin: 0;
   padding: var(--space-12) var(--space-16);
-  background: var(--fam-soft);
+  background: var(--card);
   border: var(--outline-w-lg) solid var(--outline);
   border-radius: var(--radius-xl);
   box-shadow: var(--shadow-sticker);

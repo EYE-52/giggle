@@ -44,7 +44,7 @@
   border: var(--outline-w-lg) solid var(--outline);
   border-radius: var(--radius-xl);
   box-shadow: var(--shadow-sticker);
-  background: var(--fam-soft);
+  background: var(--card);
   color: var(--ink);
   font: var(--text-heading);
   text-align: center;
@@ -184,7 +184,7 @@
 .b2-scene:not(.b2-has-options):not(.b2-has-input) .b2-message {
   padding: var(--space-16);
   border: var(--outline-w) solid var(--outline);
-  background: var(--fam-soft);
+  background: var(--card);
   border-radius: var(--radius-lg);
 }
 #gbody .b2-scene.b2-has-options .b2-options {
@@ -202,7 +202,7 @@
   padding: var(--space-12);
   border: var(--outline-w) solid var(--outline);
   border-radius: var(--radius-lg);
-  background: var(--fam-soft);
+  background: var(--card);
   animation: b2-pop var(--dur-slow) var(--ease) both;
   min-height: 112px;
   align-content: center;

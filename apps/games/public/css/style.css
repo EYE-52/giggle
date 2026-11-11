@@ -1,8 +1,8 @@
 /* Game Night by Giggle — sticker-party arcade.
- * Raspberry primary, sunshine supporting blocks, ink outlines, small hard
- * offset shadows, fresh white / pale blush ground. Chunky Baloo 2 display
+ * Rose actions, neutral surfaces, game-coloured art and small
+ * offset shadows, white or black ground with rose light at the edges. Chunky Baloo 2 display
  * type + readable Nunito body. Two coherent looks: Day (default) and Night
- * (forest green and marigold). Old stored ids (dark/light/
+ * (charcoal and rose). Old stored ids (dark/light/
  * arcade/lounge) migrate to day/night in app.js.
  * Baloo 2 + Nunito are self-hosted variable woff2 (latin + latin-ext,
  * SIL OFL — see public/fonts/README.md), so the party look never falls
@@ -28,21 +28,23 @@
   unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
 }
 :root {
-  --bg: #fcf6e9;
-  --page-glow: #ffe1ac;
-  --page-wash: #f0dcc8;
+  color-scheme: light;
+  --bg: #ffffff;
+  --page-glow: #fbeaf0;
+  --page-wash: #fff6f8;
   --card: #ffffff;
-  --well: #f4ead7;
+  --well: #f5f5f6;
   --chip: #ffffff;
-  --ink: #302c23;
-  --ink-dim: #685e4d;
-  --edge: #d7cbb7;
+  --ink: #211f21;
+  --ink-dim: #615b60;
+  --edge: #d5ced1;
   --hard: #321829;
-  --line: #e6dbca;
-  --line-strong: #cbbda7;
-  --accent: #b42e54;
-  --accent-deep: #892442;
-  --accent-soft: #f8e2df;
+  --line: #e5e2e4;
+  --line-strong: #c3bdc1;
+  --shell-action:#a72550; --shell-on-action:#ffffff;
+  --accent: var(--shell-action);
+  --accent-deep: #811a3e;
+  --accent-soft: #f9e9ef;
   --accent-ink: #ffffff;
   --sun: #ffbe35;
   --sun-soft: #ffe9be;
@@ -58,7 +60,7 @@
   --signal-deep: #b92a35;
   --signal-soft: #ffe3e4;
   --input-bg: #ffffff;
-  --topbar-bg: #fcf6e9;
+  --topbar-bg: #ffffff;
   --shadow-card: 0 6px 22px #3028480b;
   --shadow-btn: 0 3px 8px #30284812;
   --shadow-sm: 0 2px 6px #3028480b;
@@ -109,25 +111,27 @@
 }
 
 [data-theme="night"] {
-  --night-ground: #18241e;
-  --night-panel: #24332a;
-  --night-raised: #304036;
+  color-scheme: dark;
+  --night-ground: #080808;
+  --night-panel: #181818;
+  --night-raised: #232323;
   --bg: var(--night-ground);
-  --page-glow: #384b35;
-  --page-wash: #3e3828;
+  --page-glow: #26171c;
+  --page-wash: #151012;
   --card: var(--night-panel);
   --well: var(--night-raised);
-  --chip: #304036;
-  --ink: #f7f0df;
-  --ink-dim: #c7cbb8;
-  --edge: #4b604d;
+  --chip: #232323;
+  --ink: #faf8f9;
+  --ink-dim: #c5bfc2;
+  --edge: #484247;
   --hard: #000000;
-  --line: #f7f0df22;
-  --line-strong: #f7f0df55;
-  --accent: #ffcf73;
-  --accent-deep: #ffe5a1;
-  --accent-soft: #453c27;
-  --accent-ink: #2d2516;
+  --line: #faf8f922;
+  --line-strong: #faf8f955;
+  --shell-action:#f6a3bb; --shell-on-action:#32101d;
+  --accent: var(--shell-action);
+  --accent-deep: #ffd5e2;
+  --accent-soft: #332229;
+  --accent-ink: #32101d;
   --sun: #ffc24d;
   --sun-soft: #453b29;
   --sun-ink: #1e1400;
@@ -141,8 +145,8 @@
   --signal: #ff7a80;
   --signal-deep: #ffb3b6;
   --signal-soft: #3a1518;
-  --input-bg: #18241e;
-  --topbar-bg: #18241e;
+  --input-bg: #080808;
+  --topbar-bg: #080808;
   --outline: #000000;
   --success: #4ade80; --success-soft: #12301f; --on-success: #08170e;
   --danger: #ff7a80; --danger-soft: #3a1518; --on-danger: #1b0a0c;
@@ -177,12 +181,12 @@ body { --fam: var(--fam-party); --fam-deep: var(--fam-party-deep); --on-fam: var
  * meaning. Coloured controls sit on a darker lip of their own colour
  * (--fam-lip), like a pressable candy button. Day and Night both define it;
  * games add their own skin on top in skins.css. */
-:root { --outline: #e4dfec; --hard: #e4dfec; --outline-w-lg: 2px; }
+:root { --outline: #dfdadd; --hard: #dfdadd; --outline-w-lg: 2px; }
 [data-theme="night"] { --outline: #07050a; --hard: #07050a; }
 /* Night rims and lips are a darker tint of the surface they sit on, never
  * black ink. Declared on body (and any [data-family] root) so each game's
  * skin, which sets --card on body[data-game], tints its own rims. */
-[data-theme="night"] body, [data-theme="night"] [data-family] { --outline: color-mix(in srgb, var(--card) 45%, #000); --hard: var(--outline); }
+[data-theme="night"] body, [data-theme="night"] [data-family] { --outline: var(--edge); --hard: var(--outline); }
 body, [data-family] { --fam-lip: color-mix(in srgb, var(--fam) 74%, #000); }
 .tb-primary { --tb-rim: var(--fam-lip); }
 .tb-danger { --tb-rim: color-mix(in srgb, var(--danger) 74%, #000); }
@@ -211,6 +215,19 @@ body {
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
 }
+/* The page light is independent of each game's board and player colours. */
+body {
+  --page-light:radial-gradient(ellipse at 100% 0,var(--page-glow),transparent 55%),
+    radial-gradient(ellipse at 0 24%,var(--page-wash),transparent 43%);
+}
+body:not(.is-embed) {
+  background-color:var(--bg);
+  background-image:var(--page-light);
+  background-size:100% max(100dvh,760px);
+  background-repeat:no-repeat;
+}
+/* Static game scenery is painted above the shell colour; the game canvas owns its board. */
+html body.game-playing[data-game]:not(.is-embed):not(.game-immersive) { background-color:var(--bg); }
 ::selection { background: var(--accent-soft); }
 
 .app { position:relative; z-index:1; max-width: 1120px; margin: 0 auto; padding: 0 20px 64px; }
@@ -2101,13 +2118,13 @@ body:has(#gamePreparation.is-first:not([hidden])) .game-loading.game-loading-slo
 
 /* ---- Room panel: the code is a bright ticket, actions are compact pills -- */
 .partystrip:not(:has(.embedctx)) { background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 6%, var(--card)), var(--card) 55%); }
-.partystrip .ps-codeblock { position: relative; padding: 10px 18px 12px; border-radius: 16px; color: #fff;
-  background: linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 60%, #f59e0b));
+.partystrip .ps-codeblock { position: relative; padding: 10px 18px 12px; border-radius: 16px; color: var(--shell-on-action);
+  background: linear-gradient(135deg, var(--shell-action), color-mix(in srgb, var(--shell-action) 93%, var(--ink)));
   box-shadow: 0 10px 24px color-mix(in srgb, var(--accent) 28%, transparent); }
 .partystrip .ps-codeblock::before, .partystrip .ps-codeblock::after { content: ""; position: absolute; top: 50%; width: 14px; height: 14px; margin-top: -7px; border-radius: 50%; background: var(--bg); }
 .partystrip .ps-codeblock::before { left: -7px; } .partystrip .ps-codeblock::after { right: -7px; }
-.partystrip .ps-codeblock .roommeta { color: color-mix(in srgb, #fff 82%, transparent); }
-.partystrip .ps-codeblock .roomcode { color: #fff; text-shadow: 0 2px 0 color-mix(in srgb, #000 18%, transparent); }
+.partystrip .ps-codeblock .roommeta { color: var(--shell-on-action); }
+.partystrip .ps-codeblock .roomcode { color: var(--shell-on-action); text-shadow: none; }
 .partystrip .ps-actions .btn, .partystrip .ps-actions summary { min-height: 44px; border-radius: 999px; padding-inline: 16px; font-size: 15px; }
 .partystrip .player { border-radius: 999px; box-shadow: 0 2px 0 color-mix(in srgb, var(--ink) 8%, transparent); }
 .partystrip .player .avatar { width: 34px; height: 34px; }

@@ -16,7 +16,7 @@
   letter-spacing: -.025em;
 }
 .home-welcome h1 .pop { position: relative; color: var(--accent); white-space: nowrap; }
-.home-welcome h1 .pop::after { content: ""; position: absolute; left: 2%; right: 4%; bottom: -.12em; height: .22em; background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 14' preserveAspectRatio='none'%3E%3Cpath d='M3 9c30-7 58-7 88-2s64 6 106-4' fill='none' stroke='%23f5b82e' stroke-width='5' stroke-linecap='round'/%3E%3C/svg%3E") center / 100% 100% no-repeat; }
+.home-welcome h1 .pop::after { content: ""; position: absolute; left: 2%; right: 4%; bottom: -.12em; height: .22em; background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 14' preserveAspectRatio='none'%3E%3Cpath d='M3 9c30-7 58-7 88-2s64 6 106-4' fill='none' stroke='%23eab5c6' stroke-width='5' stroke-linecap='round'/%3E%3C/svg%3E") center / 100% 100% no-repeat; }
 /* Fanned hand of game cards: tilted, overlapping, gently bobbing. */
 .hero-hand { display: flex; align-items: flex-end; margin: 34px 0 6px 6px; height: 118px; }
 .hand-card { --size: 96px; flex: none; width: var(--size); height: var(--size); margin-right: -20px; border-radius: 22px; overflow: hidden; background: var(--bg); border: 3px solid var(--bg); box-shadow: 0 10px 24px color-mix(in srgb, var(--ink) 16%, transparent); transform: translateY(calc(var(--d) * 7px)) rotate(calc(var(--i) * 8deg)); animation: hand-bob 3.6s ease-in-out infinite; animation-delay: calc(var(--i) * .35s); transition: transform .2s ease; }
@@ -140,7 +140,7 @@
 @keyframes hand-twinkle { 0%, 100% { opacity: .35; transform: scale(.6) rotate(0deg); } 50% { opacity: 1; transform: scale(1) rotate(20deg); } }
 
 /* Create a room is the page's one big action: a sticker card, a fat button. */
-.home-welcome .hero-form { border: var(--outline-w-lg) solid var(--stk); border-radius: 24px; box-shadow: 0 8px 0 var(--stk); background: var(--card); }
+.home-welcome .hero-form { border: var(--outline-w-lg) solid var(--stk); border-radius: 24px; box-shadow: var(--shadow-card); background: var(--card); }
 .home-welcome .hero-create-row { grid-template-columns: minmax(0, 1fr); gap: 12px; }
 .home-welcome .hero-cta .hero-create {
   position: relative; width: 100%; min-height: 56px; border: var(--outline-w-lg) solid var(--stk); border-radius: 16px;
@@ -175,14 +175,14 @@
 .partystrip .ps-ticket .roomcode { font-size: 40px; letter-spacing: 6px; }
 .partystrip .ps-ticket .bCopy {
   position: relative; min-height: 0; padding: 8px 20px; border: 0; border-radius: 0 18px 18px 0;
-  box-shadow: 0 5px 0 color-mix(in srgb, var(--sun) 70%, #000);
-  background: var(--sun); color: var(--sun-ink); font: 800 16px/1.2 var(--font-body); max-width: 128px; white-space: normal;
+  box-shadow: 0 5px 0 var(--outline);
+  background: var(--well); color: var(--ink); font: 800 16px/1.2 var(--font-body); max-width: 128px; white-space: normal;
   transition: transform var(--dur-quick) var(--ease);
 }
 /* The tear line is ticket art: a row of punched dots, not a border. */
 .partystrip .ps-ticket .bCopy::before { content: ""; position: absolute; left: -1px; top: 8px; bottom: 8px; width: 3px;
-  background: radial-gradient(circle, color-mix(in srgb, var(--sun) 55%, #000) 1.5px, transparent 2px) 0 0 / 3px 9px repeat-y; }
-@media (hover: hover) { .partystrip .ps-ticket .bCopy:hover { background: color-mix(in srgb, var(--sun) 88%, #fff); } }
+  background: radial-gradient(circle, color-mix(in srgb, var(--ink-dim) 55%, var(--well)) 1.5px, transparent 2px) 0 0 / 3px 9px repeat-y; }
+@media (hover: hover) { .partystrip .ps-ticket .bCopy:hover { background: var(--accent-soft); } }
 .partystrip .ps-ticket .bCopy:active { transform: translateY(5px); box-shadow: none; }
 .partystrip .ps-actions .btn, .partystrip .ps-actions summary { min-height: 44px; }
 .partystrip .ps-actions #bLobbyLeave { border-color: var(--line); background: transparent; color: var(--ink-dim); }
@@ -266,7 +266,7 @@
   width: 100%; min-width: 0; min-height: 0; height: auto;
   margin: 0; padding: var(--space-16); text-align: left; text-decoration: none;
   border: var(--outline-w) solid var(--outline); border-radius: var(--radius-xl);
-  background: var(--card); color: var(--ink); box-shadow: var(--shadow-sticker);
+  background: var(--card); color: var(--ink); box-shadow: var(--shadow-sm);
   transition: transform var(--dur-quick) var(--ease);
 }
 .home-game-card .home-card-art { position: relative; display: block; min-width: 0; width: 100%; aspect-ratio: 1; align-self: center; border: var(--outline-w) solid var(--outline); border-radius: var(--radius-sm); background: var(--fam-soft); box-shadow: var(--shadow-sticker-sm); }
@@ -278,7 +278,7 @@
 .home-game-card .home-card-copy .t { font: var(--text-title); text-wrap: balance; }
 .home-game-card .home-card-copy .d { color: var(--ink-dim); font: var(--text-button-sm); }
 .home-game-card .home-card-copy .p { color: var(--ink-dim); font: var(--text-caption); }
-.home-game-card .home-card-copy .play-pill { display: inline-flex; align-items: center; justify-content: center; width: auto; min-width: 0; min-height: var(--control-h-sm); margin: 0; padding: var(--space-8) var(--space-16); border: var(--outline-w) solid var(--fam-lip); border-radius: var(--radius-sm); background: var(--fam); color: var(--on-fam); box-shadow: 0 var(--lift-sm) 0 var(--fam-lip); font: var(--text-button-sm); white-space: normal; }
+.home-game-card .home-card-copy .play-pill { display: inline-flex; align-items: center; justify-content: center; width: auto; min-width: 0; min-height: var(--control-h-sm); margin: 0; padding: var(--space-8) var(--space-16); border: var(--outline-w) solid var(--outline); border-radius: var(--radius-sm); background: var(--well); color: var(--ink); box-shadow: 0 var(--lift-sm) 0 var(--outline); font: var(--text-button-sm); white-space: normal; }
 .home-picks .pick-practice .play-pill { border-color: var(--outline); background: var(--well); color: var(--ink); box-shadow: var(--shadow-sticker-sm); }
 .home-game-card:focus-visible { outline: var(--focus-ring); outline-offset: var(--focus-offset); }
 .home-game-card:active { transform: translateY(var(--lift)); box-shadow: none; }
@@ -293,7 +293,7 @@
 [data-theme="night"] .home-welcome .hero-form {
   border:1px solid var(--edge);
   border-radius:16px;
-  box-shadow:0 8px 20px #15190e38;
+  box-shadow:0 8px 20px #0003;
 }
 [data-theme="night"] .home-welcome h1 .pop::after,
 .hand-spark { display:none; }
@@ -311,7 +311,7 @@
   translate:none;
   transform:rotate(calc(var(--i) * 3deg));
   border:1px solid var(--edge);
-  box-shadow:0 2px 6px #14160b30;
+  box-shadow:0 2px 6px #0002;
 }
 @media (hover:hover) and (prefers-reduced-motion:no-preference) {
   .hero-hand .hand-card:is(:hover,:focus-visible) { transform:translateY(-4px); }

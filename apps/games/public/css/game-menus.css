@@ -3,6 +3,13 @@
  * Soft arcade rules from .claude/skills/giggle-design: tokens only, one
  * primary per panel, transform/opacity motion on --ease, Day and Night. */
 
+/* The frame and setup controls use the shared action. Game artwork and kart paint remain independent. */
+.dlg.gm-setup, .howto-dlg[data-family] {
+  --fam:var(--shell-action); --on-fam:var(--shell-on-action);
+  --fam-deep:var(--shell-action); --fam-lip:color-mix(in srgb,var(--shell-action) 72%,black);
+  --fam-soft:color-mix(in srgb,var(--shell-action) 9%,var(--card));
+}
+
 /* ---- Setup sheet ---- */
 .dlg.gm-setup {
   width: min(720px, 100%); padding: var(--space-24) var(--space-24) 0;

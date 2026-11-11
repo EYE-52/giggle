@@ -1,8 +1,12 @@
 /* A party table, built from Giggle's soft-arcade tokens. */
 body.same-room-page {
-  --sr-paper: color-mix(in srgb, var(--card) 94%, var(--fam));
-  --sr-tint: color-mix(in srgb, var(--card) 80%, var(--fam));
+  --sr-paper: var(--card);
+  --sr-tint: var(--well);
   margin: 0; min-height: 100dvh; color: var(--ink); background-color: var(--bg);
+}
+.sr-setup, .sr-bar {
+  --fam:var(--shell-action); --on-fam:var(--shell-on-action);
+  --fam-deep:var(--shell-action); --fam-lip:color-mix(in srgb,var(--shell-action) 72%,black);
 }
 .sr-bar { display: flex; align-items: center; gap: var(--space-12); padding: var(--space-8) var(--space-24); background: var(--sr-paper); border-bottom: var(--outline-w) solid var(--outline); }
 .sr-bar > span { flex: 1; font: var(--text-caption); color: var(--ink-dim); }
@@ -12,8 +16,8 @@ body.same-room-page {
 .sr-main :focus-visible { outline: var(--focus-ring); outline-offset: var(--focus-offset); }
 .same-room-page .tb-btn { text-decoration: none; }
 .sr-setup { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; gap: var(--space-24); }
-/* Game art on a solid, game-coloured party placemat. */
-.sr-feature.tb-card { grid-column: 1 / -1; display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: var(--space-32); padding: var(--space-32); border-color: color-mix(in srgb, var(--fam) 48%, var(--outline)); background: var(--sr-tint); box-shadow: 0 var(--lift-lg) 0 color-mix(in srgb, var(--fam) 48%, var(--outline)); }
+/* Artwork and player markers carry their own colours on a neutral table. */
+.sr-feature.tb-card { grid-column: 1 / -1; display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: var(--space-32); padding: var(--space-32); border-color: var(--outline); background: var(--sr-tint); box-shadow: 0 var(--lift-lg) 0 var(--outline); }
 .sr-hero-art { display: grid; place-items: center; isolation: isolate; }
 .sr-hero-art > * { grid-area: 1 / 1; }
 .sr-cover { display: block; width: calc(var(--home-card-art) + var(--space-64)); height: calc(var(--home-card-art) + var(--space-64)); object-fit: cover; padding: var(--space-8); background: var(--card); border: var(--outline-w) solid var(--outline); border-radius: var(--radius-xl); box-shadow: var(--shadow-sticker-lg); transform: rotate(-2deg); }
@@ -25,7 +29,7 @@ body.same-room-page {
 .sr-steps { display: flex; flex-wrap: wrap; gap: var(--space-8) var(--space-16); margin: var(--space-4) 0 0; padding: 0; list-style: none; font: var(--text-caption); color: var(--ink); }
 .sr-steps li { display: flex; align-items: center; gap: var(--space-8); }
 .sr-steps li > span { display: grid; place-items: center; width: var(--space-24); height: var(--space-24); border-radius: var(--radius-pill); background: var(--card); font: var(--text-button-sm); }
-/* Whole rows, page scrolling, separate art/name/count tracks. */
+/* The catalogue scrolls as one dialog. Art, names and counts have separate rows. */
 .sr-game-picker { grid-column: 1 / -1; min-width: 0; }
 .sr-game-picker > summary { width: 100%; justify-content: space-between; list-style: none; background: var(--sr-paper); }
 .sr-game-picker > summary::-webkit-details-marker { display: none; }
@@ -69,7 +73,7 @@ body.same-room-page {
 .sr-person > span:not(.sr-avatar) { min-width: 0; }
 .sr-person button { flex: none; width: var(--control-h-sm); height: var(--control-h-sm); border: 0; color: var(--ink-dim); background: transparent; border-radius: var(--radius-md); cursor: pointer; font: var(--text-title); }
 .sr-avatar { display: grid; place-items: center; flex: none; min-width: var(--control-h); width: var(--control-h); height: var(--control-h); font: var(--text-heading); background: color-mix(in srgb, var(--sr-player, var(--fam)) 32%, var(--card)); border: var(--outline-w) solid color-mix(in srgb, var(--sr-player, var(--fam)) 60%, var(--outline)); border-radius: var(--radius-lg); box-shadow: 0 var(--lift-sm) 0 color-mix(in srgb, var(--sr-player, var(--fam)) 60%, var(--outline)); }
-.sr-empty { display: grid; justify-items: center; align-content: center; gap: var(--space-12); width: 100%; padding: var(--space-24) var(--space-8); text-align: center; border: var(--outline-w) dashed var(--line-strong); border-radius: var(--radius-lg); background: var(--fam-soft); }
+.sr-empty { display: grid; justify-items: center; align-content: center; gap: var(--space-12); width: 100%; padding: var(--space-24) var(--space-8); text-align: center; border: var(--outline-w) dashed var(--line-strong); border-radius: var(--radius-lg); background: var(--well); }
 .sr-empty-friends { font: var(--text-heading); font-size: var(--space-40); letter-spacing: var(--space-4); }
 .sr-error { min-height: var(--space-24); color: var(--danger); font: var(--text-caption); }
 /* Illustrated radio cards still use the shared picker event/value contract. */
@@ -109,7 +113,7 @@ body.same-room-page {
 .sr-start-icon { display: grid; place-items: center; flex: none; width: var(--space-32); height: var(--space-32); border: var(--outline-w) solid currentColor; border-radius: var(--radius-pill); font: var(--text-button); }
 .sr-reason { color: var(--ink-dim); font: var(--text-caption); min-height: var(--space-24); }
 /* A fixed set of banner tracks keeps long names and private badges steady. */
-.sr-play-head.tb-card { display: grid; grid-template-columns: auto minmax(0, 1fr) var(--space-64); align-items: center; gap: var(--space-16); min-height: calc(var(--space-64) + var(--space-40)); margin-bottom: var(--space-16); padding: var(--space-12) var(--space-16); border-color: color-mix(in srgb, var(--sr-player) 60%, var(--outline)); background: color-mix(in srgb, var(--sr-player) 22%, var(--card)); box-shadow: 0 var(--lift) 0 color-mix(in srgb, var(--sr-player) 60%, var(--outline)); }
+.sr-play-head.tb-card { display: grid; grid-template-columns: auto minmax(0, 1fr) var(--space-64); align-items: center; gap: var(--space-16); min-height: calc(var(--space-64) + var(--space-40)); margin-bottom: var(--space-16); padding: var(--space-12) var(--space-16); border-color: color-mix(in srgb, var(--sr-player) 60%, var(--outline)); background: color-mix(in srgb, var(--sr-player) 4%, var(--card)); box-shadow: 0 var(--lift) 0 color-mix(in srgb, var(--sr-player) 60%, var(--outline)); }
 .sr-head-avatar .sr-avatar { width: var(--space-64); height: var(--space-64); font-size: var(--space-48); }
 .sr-turn-copy { display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: var(--space-24) var(--space-48); gap: var(--space-4); min-width: 0; }
 .sr-turn-copy .t-caption { max-width: 100%; color: var(--ink); line-height: var(--space-24); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -129,7 +133,7 @@ body.same-room-page {
 .sr-playfield .gk-hud { margin-top: 0; }
 /* Full-height private covers: only public avatar/name data is mounted. */
 body.same-room-page:is([data-stage="pass"], [data-stage="return"]) .sr-main { padding-block: var(--space-16); }
-.sr-hand.tb-card { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: var(--space-16); min-height: calc(100dvh - var(--control-h) - var(--space-64) - var(--space-24)); padding: var(--space-32); border-color: color-mix(in srgb, var(--sr-player, var(--fam)) 55%, var(--outline)); background: color-mix(in srgb, var(--sr-player, var(--fam)) 12%, var(--card)); box-shadow: 0 var(--lift-lg) 0 color-mix(in srgb, var(--sr-player, var(--fam)) 55%, var(--outline)); }
+.sr-hand.tb-card { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: var(--space-16); min-height: calc(100dvh - var(--control-h) - var(--space-64) - var(--space-24)); padding: var(--space-32); border-color: color-mix(in srgb, var(--sr-player, var(--fam)) 55%, var(--outline)); background: var(--card); box-shadow: 0 var(--lift-lg) 0 color-mix(in srgb, var(--sr-player, var(--fam)) 55%, var(--outline)); }
 .sr-hand-avatar .sr-avatar { width: var(--home-card-art); height: var(--home-card-art); border-radius: var(--radius-xl); font-size: var(--space-64); }
 .sr-hand h1 { max-width: 100%; font: var(--text-heading); font-family: var(--font-ui, var(--font-display)); overflow-wrap: anywhere; }
 .sr-hand-note { max-width: var(--howto-controls-w); font: var(--text-body); color: var(--ink); text-wrap: pretty; }
@@ -234,6 +238,7 @@ body.same-room-page #gbody .bk-final { background: var(--sr-paper); border-color
   .sr-hand-avatar .sr-avatar { width: var(--space-64); height: var(--space-64); font-size: var(--space-40); }
   .sr-phone-art { width: calc(var(--space-64) * 2); height: var(--home-card-art); }
   body.same-room-page #gbody[data-phase] .party-scene--truth.pl-fill { gap: var(--space-8); padding-block: var(--space-8); }
+  body.same-room-page #gbody[data-phase] > .party-scene--truth.pl-fill > .party-hud { position:relative; top:auto; }
   body.same-room-page #gbody[data-phase="choose"] .party-scene--truth > .gk-prompt { font: var(--text-title); padding: var(--space-12); }
   body.same-room-page #gbody .party-scene--truth .td-decks .gk-choice { min-height: var(--control-h); padding: var(--space-8); gap: var(--space-8); }
   body.same-room-page #gbody .party-scene--truth .td-decks .gk-mark { width: var(--space-32); height: var(--space-32); }

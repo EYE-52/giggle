@@ -15,6 +15,7 @@
   height:var(--game-viewport-height,100dvh); min-height:0; width:100%; min-width:0;
   padding:var(--space-8) var(--space-16); margin:0; font:var(--text-body);
 }
+body:not(.is-embed) #gbody .bk-game[data-family="board"] { background:var(--page-light),var(--bg); }
 #gbody .bk-game[data-family="board"] :is(.bk-panel,.bk-players) { display:contents; overflow:visible; }
 #gbody .bk-game[data-family="board"] .bk-head { grid-area:head; order:initial; display:flex; flex-direction:row; align-items:center; justify-content:center; min-height:0; height:var(--space-48); padding:0; margin:0; overflow:hidden; }
 #gbody .bk-game[data-family="board"] .bk-title { max-width:calc(100cqw - 176px); margin:0; font:var(--text-title); line-height:1.4; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; text-wrap:nowrap; }

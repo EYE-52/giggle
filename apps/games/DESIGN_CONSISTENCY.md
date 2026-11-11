@@ -1,8 +1,9 @@
 # UI polish plan
 
-This is a refinement of the current app, not a new visual theme. The owner's
-11 November direction retires the Giggle design skill. Keep the working
-colours, fonts, game art and existing shared components.
+Day starts with white and Night starts with neutral black. A soft rose gradient
+lights the page edges. Cards, fields and menus use neutral surfaces. Rose marks
+the main action. Game art, board squares, player markers and result colours
+keep their meaning. Use the shared components and existing fonts.
 
 ## One workspace pattern
 

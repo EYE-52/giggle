@@ -174,7 +174,7 @@ function renderPage(g, publicDir) {
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#FFF6F8">
+<meta name="theme-color" content="#ffffff">
 <title>${esc(g.name)} — Game Night by Giggle</title>
 <meta name="description" content="${esc(desc)}">
 <link rel="canonical" href="${esc(canonical)}">
@@ -198,7 +198,7 @@ function renderPage(g, publicDir) {
 <link rel="stylesheet" href="/css/app-panels.css">
 <script defer src="/js/app-panels.js"></script>
 <link rel="stylesheet" href="/css/game-page.css">
-<script>try{var t=localStorage.getItem('pb_theme');if(t==='night'||t==='dark'||t==='arcade')document.documentElement.dataset.theme='night';}catch(e){}</script>
+<script src="/js/boot-theme.js"></script>
 </head>
 <body>
 <div class="gp-wrap">

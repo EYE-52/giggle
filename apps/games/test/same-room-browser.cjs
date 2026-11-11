@@ -32,8 +32,8 @@ async function run() {
   await freshPage.goto(`${base}/same-room/?game=truth-dare`);
   assert.equal(await freshPage.locator('html').getAttribute('data-theme'), 'day', 'new groups start in Day even on a dark device');
   await fresh.close();
-  for (const width of [390, 800, 1280]) for (const theme of ['day', 'night']) for (const promptStyle of ['Random card', 'Ask your own']) {
-    const context = await browser.newContext({ viewport: { width, height: width === 390 ? 844 : width === 800 ? 600 : 800 }, hasTouch: width === 390, reducedMotion: 'reduce' });
+  for (const [width,height] of [[375,667],[390,844],[1024,768],[1440,900]]) for (const theme of ['day', 'night']) for (const promptStyle of ['Random card', 'Ask your own']) {
+    const context = await browser.newContext({ viewport: { width, height }, hasTouch: width < 768, reducedMotion: 'reduce' });
     await context.addInitScript(theme => {
       localStorage.setItem('pb_theme', theme);
       const Native = WebSocket;
@@ -87,6 +87,9 @@ async function run() {
     await page.locator('.same-room-link').click();
     await page.locator('#srSetup').waitFor();
     assert.equal(await page.locator('html').getAttribute('data-theme'), theme, 'saved theme is respected');
+    const ground = theme === 'night' ? 'rgb(8, 8, 8)' : 'rgb(255, 255, 255)';
+    assert.equal(await page.locator('body').evaluate(el => getComputedStyle(el).backgroundColor), ground);
+    assert.match(await page.locator('body').evaluate(el => getComputedStyle(el).backgroundImage), /radial-gradient/);
     assert.equal(await page.locator('.sr-prompt-art').count(), 4);
     assert.equal(await page.locator('.sr-pace-art').count(), 3);
     assert.equal(await page.locator('.sr-empty-friends').count(), 1);
@@ -100,13 +103,14 @@ async function run() {
     await shelf(true);
     await page.locator('#srGameGrid img').evaluateAll(images => Promise.all(images.map(img => { img.loading = 'eager'; return img.decode(); })));
     await shot('game-picker-all');
-    await page.locator('.sr-game-card').first().scrollIntoViewIfNeeded();
-    const beforeScroll = await page.evaluate(() => scrollY);
+    await page.locator('.sr-game-card').first().evaluate(el => el.scrollIntoView({ block:'center', behavior:'instant' }));
+    const scrollOwner = page.locator('#srGamePicker dialog[open]');
+    const beforeScroll = await scrollOwner.evaluate(el => el.scrollTop);
     const firstCard = await page.locator('.sr-game-card').first().boundingBox();
     await page.mouse.move(firstCard.x + firstCard.width / 2, firstCard.y + firstCard.height / 2);
     await page.mouse.wheel(0, 300);
-    await page.waitForFunction(before => scrollY > before, beforeScroll);
-    assert.equal(await page.locator('#srGameGrid').evaluate(el => el.scrollTop), 0, 'wheel over cards scrolls the page');
+    await page.waitForFunction(before => document.querySelector('#srGamePicker dialog[open]').scrollTop > before, beforeScroll);
+    assert.equal(await page.locator('#srGameGrid').evaluate(el => el.scrollTop), 0, 'wheel over cards scrolls the catalogue dialog');
     await page.locator('#srShowGames').click();
     await shelf(false);
     await page.locator('[data-game-choice="truth-dare"]').click();
@@ -121,6 +125,9 @@ async function run() {
     await page.locator('#srStart').click();
     const spinner = await actor('spin');
     assert.equal(await page.locator('#tSpin').textContent(), spinner.name, 'wheel lands on the same actor as the banner');
+    const clockRow = await page.locator('.party-hud').boundingBox();
+    const spinCard = await page.locator('.td-spin').boundingBox();
+    if (width <= 390) assert(spinCard.y >= clockRow.y + clockRow.height - 1, 'turn prompt clears the timer row');
     await shot('spin');
     await page.locator('[data-kind="truth"]').waitFor({ timeout: 15000 });
     const chooser = await actor('choose');
@@ -209,6 +216,6 @@ async function run() {
     assert.deepEqual(errors, [], g.id);
     await context.close();
   }
-  console.log(`SAME_ROOM_BROWSER_PASS: tile rows and page scrolling; full three-person Random card/Ask your own rounds with actor banners and real scenes; 21 game mounts; 390/800/1280 day/night screenshots in ${artifacts}`);
+  console.log(`SAME_ROOM_BROWSER_PASS: tile rows and catalogue scrolling; full three-person Random card/Ask your own rounds with actor banners and real scenes; 21 game mounts; 375/390/1024/1440 Day/Night screenshots in ${artifacts}`);
 }
 run().catch(error => { console.error(error); process.exitCode = 1; }).finally(async () => { await browser?.close(); server?.kill('SIGTERM'); });

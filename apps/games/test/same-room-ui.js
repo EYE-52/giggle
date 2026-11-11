@@ -35,7 +35,9 @@ const registry = require('../games/registry');
     constructor() { this.readyState = 1; sockets.push(this); }
     send(raw) { sent.push(JSON.parse(raw)); }
   }
-  const ctx = { document, window, location: { protocol: 'http:', host: 'localhost', search: '?game=truth-dare' },
+  const ctx = { document, window,
+    getComputedStyle: () => ({ getPropertyValue: () => document.documentElement.dataset.theme === 'night' ? '#080808' : '#ffffff' }),
+    location: { protocol: 'http:', host: 'localhost', search: '?game=truth-dare' },
     history: { replaceState() {} }, sessionStorage: storage, localStorage: storage, URLSearchParams,
     performance, WebSocket: FakeSocket, fetch: async () => ({ ok: true, json: async () => ({}) }),
     setTimeout, clearTimeout, setInterval: () => 0, console, sameRoomSupport, LOCAL_AVATARS,
@@ -60,6 +62,7 @@ const registry = require('../games/registry');
   assert.equal(document.querySelectorAll('.sr-pace-art').length, 3);
   $('srTheme').click(); assert.equal(document.documentElement.dataset.theme, 'night');
   assert.equal($('srTheme').getAttribute('aria-label'), 'Switch to day theme');
+  assert.equal(document.querySelector('meta[name="theme-color"]').content, '#080808');
   $('srTheme').click(); assert.equal(document.documentElement.dataset.theme, 'day');
   assert.equal(document.querySelectorAll('[data-game-choice]').length, 21);
   assert.equal(document.querySelector('[data-game-choice="pose-party"]'), null);

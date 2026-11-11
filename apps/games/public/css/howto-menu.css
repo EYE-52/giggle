@@ -64,7 +64,7 @@ dialog.howto-start {
 .howto-dlg .howto-all summary::after { width: var(--space-8); height: var(--space-8); transition: transform var(--dur-quick) var(--ease); }
 .howto-dlg .howto-all p { margin: 0 0 var(--space-12); font: var(--text-body) !important; }
 /* A seat card on its own lip. The action bar never shrinks or scrolls. */
-.howto-dlg .howto-foot { display: flex; flex-direction: column; flex-wrap: nowrap; align-items: stretch; gap: 0; min-width: 0; min-height: 0; margin: 0 0 var(--lift); padding: 0; border: var(--outline-w) solid var(--outline); border-radius: var(--radius-xl); background: var(--fam-soft); box-shadow: 0 var(--lift) 0 var(--fam-lip); }
+.howto-dlg .howto-foot { display: flex; flex-direction: column; flex-wrap: nowrap; align-items: stretch; gap: 0; min-width: 0; min-height: 0; margin: 0 0 var(--lift); padding: 0; border: var(--outline-w) solid var(--outline); border-radius: var(--radius-xl); background: var(--well); box-shadow: 0 var(--lift) 0 var(--outline); }
 .howto-seat-scroll { flex: 1; min-width: 0; min-height: 0; padding: var(--space-16); overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; }
 .howto-seat-title { margin: 0 0 var(--space-16); color: var(--fam-deep); font: var(--text-title); }
 .howto-seat-fields { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-12) var(--space-8); min-width: 0; }
@@ -74,7 +74,7 @@ dialog.howto-start {
 .howto-dlg .howto-seat-fields .garage-card { order: -1; margin: 0; padding: var(--space-12); border-radius: var(--radius-sm); }
 .howto-dlg .howto-seat-fields .garage-card-face { width: var(--space-48); height: var(--space-48); }
 .howto-dlg :is(.howto-seat-fields, .howto-actions) :is(.btn, .howto-btn) { display: inline-flex; align-items: center; justify-content: center; gap: var(--space-8); flex: 1 1 auto; min-height: var(--control-h-sm); max-width: 100%; margin: 0; padding: var(--space-8); border: var(--outline-w) solid var(--outline); border-radius: var(--radius-sm); background: var(--card); color: var(--ink-dim); box-shadow: var(--shadow-sticker-sm); font: var(--text-button-sm); text-align: center; text-decoration: none; white-space: normal; cursor: pointer; transition: transform var(--dur-quick) var(--ease); }
-.howto-dlg .howto-actions { position: sticky; bottom: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-8); flex: none; min-width: 0; padding: var(--space-16); border-radius: 0 0 var(--radius-xl) var(--radius-xl); background: var(--fam-soft); }
+.howto-dlg .howto-actions { position: sticky; bottom: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-8); flex: none; min-width: 0; padding: var(--space-16); border-radius: 0 0 var(--radius-xl) var(--radius-xl); background: var(--well); }
 .howto-dlg .howto-actions[hidden] { display: none; }
 .howto-dlg .howto-actions #howtoGo { width: 100%; min-height: var(--control-h-lg); padding: var(--space-12) var(--space-16); border-color: var(--fam-lip); border-radius: var(--radius-sm); background: var(--fam); color: var(--on-fam); box-shadow: 0 var(--lift) 0 var(--fam-lip); font: var(--text-title); }
 .howto-dlg .howto-actions #howtoGo:disabled { border-color: var(--line); background: var(--line); color: var(--ink-dim); box-shadow: none; opacity: 1; cursor: not-allowed; transform: none; }
@@ -102,7 +102,7 @@ dialog.howto-start {
   .howto-start .howto-seat-scroll { padding: var(--space-16); }
   .howto-start .howto-main { gap: var(--space-12); margin-bottom: var(--space-24); }
   .howto-start .howto-panels { flex: none; overflow: visible; padding: var(--space-4) 0; }
-  .howto-start .howto-seat-content { padding: var(--space-16); border: var(--outline-w) solid var(--outline); border-radius: var(--radius-lg); background: var(--fam-soft); box-shadow: 0 var(--lift) 0 var(--fam-lip); }
+  .howto-start .howto-seat-content { padding: var(--space-16); border: var(--outline-w) solid var(--outline); border-radius: var(--radius-lg); background: var(--well); box-shadow: var(--shadow-sm); }
   .howto-start .howto-seat-title { margin-bottom: var(--space-12); }
   .howto-start .howto-actions { z-index: 1; padding: var(--space-12) var(--space-16) calc(var(--space-16) + env(safe-area-inset-bottom)); border-radius: 0; background: var(--card); }
   /* The fade belongs to the floating bar, never to readable rules. */

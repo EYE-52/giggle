@@ -279,6 +279,7 @@ document.addEventListener('visibilitychange', () => {
 });
 function syncThemeControl() {
   const night = document.documentElement.dataset.theme === 'night';
+  document.querySelector('meta[name="theme-color"]').content = getComputedStyle(document.documentElement).getPropertyValue('--topbar-bg').trim();
   $('srTheme').textContent = night ? '☀' : '☾';
   $('srTheme').setAttribute('aria-label', night ? 'Switch to day theme' : 'Switch to night theme');
   $('srTheme').setAttribute('aria-pressed', String(night));

@@ -114,9 +114,7 @@ body.game-playing[data-game="rank-it"] {
   #gbody .pl-fill.party-scene--rank .party-rank-item.is-moved .gk-mark { animation: rank-mark-pop var(--dur-base) var(--ease) both; }
 }
 @keyframes rank-mark-pop { from { transform: scale(0.8); } to { transform: scale(1); } }
-/* Night: a deep ink-violet page so stars and medals read as gold rather
- * than olive on brown; tinted cards mix gold into the card, not khaki. */
-[data-theme="night"] body.game-playing[data-game="rank-it"] { --bg: #1b1924; --card: #252231; --well: #2f2b3d; }
+/* Gold, silver and bronze identify positions on the neutral table. */
 [data-theme="night"] #gbody .pl-fill.party-scene--rank {
   --fam-soft: color-mix(in srgb, var(--fam) 10%, var(--card));
   --tint-lip: color-mix(in srgb, var(--fam) 30%, #15131c);
