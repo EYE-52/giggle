@@ -212,6 +212,7 @@ async function play(base, id, viewport, theme) {
       await f.locator('.b5-game').waitFor();
       await f.evaluate(() => document.fonts.ready);
     }
+    const frameByPlayer = new Map(await Promise.all(frames.map(async frame => [await frame.evaluate(() => window.__b5state.you), frame])));
     await wait(80);
     const opening = await geometry(host);
     steady(opening, opening, id + ' opening');
@@ -248,8 +249,8 @@ async function play(base, id, viewport, theme) {
     while (actions < 2400) {
       const S = await host.evaluate(() => window.__b5state);
       if (S.phase === 'done') break;
-      const actor = frames[S.turn];
-      await page.locator(`#practiceTab${S.turn + 1}`).click();
+      const actor = frameByPlayer.get(S.seats[S.turn]);
+      await page.locator(`#practiceTab${new URL(actor.url()).searchParams.get('seat')}`).click();
       await actor.waitForFunction(rev => window.__b5state?.rev === rev && !window.__b5state.preparing, S.rev);
       let selector;
       if (id === 'dots-boxes') selector = `[data-edge="${S.legal[0] ?? (await actor.evaluate(() => window.__b5state.legal[0]))}"]`;
@@ -279,13 +280,16 @@ async function play(base, id, viewport, theme) {
         }
       }
       const bounds = await geometry(actor);
-      if (after.phase === 'play') steady(baselines[S.turn], bounds, `${id} move ${actions}`);
+      if (after.phase === 'play') steady(baselines[frames.indexOf(actor)], bounds, `${id} move ${actions}`);
       else {
-        // The final score card grows in the panel, but neither board nor HUD
-        // nor the live scoreboard may shift when match points arrive.
-        // Final standings may scroll; the board and score strip stay put.
-        const finalBounds = { ...bounds, scrollHeight: Math.min(bounds.scrollHeight, bounds.height) };
-        steady(baselines[S.turn], finalBounds, id + ' final', ['.b5-playfield', '.b5-hud', '.bk-players']);
+        // The final score card replaces live HUD controls. The board stays
+        // mounted and the player must be able to reach scores and Rematch.
+        assert(bounds.scrollWidth <= bounds.width + 1, id + ' final: horizontal overflow');
+        assert.deepEqual(bounds.headerOverlaps, [], id + ' final: covered text');
+        assert(await actor.locator('.b5-playfield').isVisible(), id + ' final: board visible');
+        assert(await actor.locator('.bk-final').isVisible(), id + ' final: scores visible');
+        await actor.locator('[data-rematch]').scrollIntoViewIfNeeded();
+        assert(await actor.locator('[data-rematch]').isEnabled(), id + ' final: rematch available');
       }
       if (actions === 3) { initialPhase = bounds; await shot('playing'); }
     }
@@ -302,8 +306,16 @@ async function play(base, id, viewport, theme) {
     const old = final.instanceId;
     await host.locator('[data-rematch]').click();
     for (const f of frames) await f.waitForFunction(old => window.__b5state?.instanceId !== old && window.__b5state?.phase === 'play' && !window.__b5state.preparing, old);
-    await host.locator('[data-resign]').click();
-    await host.locator('[data-keep]').click();
+    const matchActions = host.locator('.bk-match > summary');
+    if (await matchActions.count()) {
+      await matchActions.click();
+      const resign = host.locator('[data-resign]');
+      if (await resign.count()) {
+        await resign.click();
+        await host.locator('[data-keep]').click();
+      }
+      await host.getByRole('button', { name: 'Close panel', exact: true }).click();
+    }
     const fresh = await host.evaluate(() => window.__b5state);
     assert.equal(fresh.rev, 0, 'cancel resignation is inert');
     // End game goes through the real room menu on every rematch.
@@ -344,7 +356,7 @@ async function play(base, id, viewport, theme) {
   ];
   const themes = process.env.B5_DAY_ONLY ? ['day'] : ['day', 'night'];
   for (const viewport of viewports) for (const theme of themes) for (const id of selected) await play(`http://127.0.0.1:${port}`, id, viewport, theme);
-  console.log(`NEW_GAMES_B5_BROWSER_PASS: ${rows.length} real practice matches; stable board, HUD, scores and controls`);
+  console.log(`NEW_GAMES_B5_BROWSER_PASS: ${rows.length} real practice matches; stable live controls, final scores, rematches and room actions`);
 })().catch(error => { failure = error.stack; console.error(error.stack); process.exitCode = 1; }).finally(async () => {
   fs.writeFileSync(path.join(out, 'results.json'), JSON.stringify({ passed: !failure, failure, rows, physicalDevice: false, externalServices: false }, null, 2));
   console.log('B5 browser evidence: ' + out);

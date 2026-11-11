@@ -158,3 +158,8 @@
   .hp-world .hp-older { min-height: 0; }
   .hp-world .hp-older:empty { display: none; }
 }
+
+/* Holder, retry and watching messages share one action row while the fuse runs. */
+#gbody .b4-stage.hp-world .b4-status {
+  min-height: max(2lh, calc(var(--control-h) / var(--b4-zoom, 1)));
+}

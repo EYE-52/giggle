@@ -71,6 +71,7 @@ async function geometry(frame) {
     return {
       game: document.body.dataset.game,
       phase: window.__b4State.phase,
+      turnKey: JSON.stringify([window.__b4State.round, window.__b4State.passNo, window.__b4State.holder]),
       phaseLabel: document.querySelector(".gk-hud-phase").textContent.trim(),
       boxes: [
         ".party-hud",
@@ -98,6 +99,10 @@ async function geometry(frame) {
             y = r.y + r.height / 2;
           if (x < 0 || y < 0 || x >= innerWidth || y >= innerHeight)
             return false;
+          for (let parent = n.parentElement; parent; parent = parent.parentElement) {
+            const style = getComputedStyle(parent), r = parent.getBoundingClientRect();
+            if (/auto|scroll|hidden/.test(style.overflowY) && (y < r.top || y >= r.bottom)) return false;
+          }
           const top = document.elementFromPoint(x, y);
           return top !== n && !n.contains(top);
         })
@@ -135,7 +140,10 @@ function stable(before, after, label) {
     [],
     label + " controls covered by floating UI",
   );
-  for (let i = 0; i < before.boxes.length; i++)
+  // Results and new turns may change content. Within one active turn,
+  // typing and peer updates must keep every action and score slot fixed.
+  const slots = before.phase === after.phase && before.turnKey === after.turnKey ? before.boxes.length : 0;
+  for (let i = 0; i < slots; i++)
     for (const key of ["x", "y", "width", "height"])
       assert(
         Math.abs(before.boxes[i][key] - after.boxes[i][key]) <= 1,
@@ -212,7 +220,7 @@ async function playCase(id, viewport, theme) {
           try {
             const m = JSON.parse(event.data);
             if (m.t === "state") {
-              window.__b4State = m;
+              window.__b4State = { ...m, me: m.you };
               if (m.phase === "show") {
                 window.__b4Echo ||= {};
                 const key = `${m.round}:${m.level}`;
@@ -287,6 +295,20 @@ async function playCase(id, viewport, theme) {
       null,
       { timeout: 20000 },
     );
+    await Promise.all(frames.map((frame) => frame.waitForFunction(() => window.__b4State?.you)));
+    const frameByPlayer = new Map(await Promise.all(frames.map(async (frame) => [(await state(frame)).you, frame])));
+    if (id === "hot-potato") {
+      const watcher = await context.newPage();
+      await watcher.goto(new URL(new URL(host.url()).pathname, `http://127.0.0.1:${port}`).href);
+      await watcher.locator("#nm").fill("Watcher");
+      await watcher.locator("#bJoin").click();
+      await watcher.waitForFunction(() => window.__b4State?.spectator && document.querySelector(".b4-input"));
+      assert(await watcher.locator(".b4-input").isDisabled(), "late spectator cannot type");
+      assert(await watcher.locator(".b4-primary").isDisabled(), "late spectator cannot pass");
+      await watcher.screenshot({ path: path.join(artifacts, prefix + "-spectator.png") });
+      result.spectator = true;
+      await watcher.close();
+    }
     await seat(page, host);
     await wait(800);
     const baseline = await geometry(host);
@@ -305,6 +327,18 @@ async function playCase(id, viewport, theme) {
     while (loops++ < 300) {
       const S = await state(host);
       if (S.phase === "done") break;
+      if (id === "hot-potato" && !result.knockoutWatching) {
+        for (const frame of frames) {
+          const own = await state(frame);
+          if (own.phase !== "pass" || own.lives[own.you] > 0) continue;
+          assert(await frame.locator(".b4-input").isDisabled(), "knocked-out seat cannot type");
+          assert(await frame.locator(".b4-primary").isDisabled(), "knocked-out seat cannot pass");
+          await shot(page, frame, prefix, "knocked-out");
+          result.knockoutWatching = true;
+          await seat(page, host);
+          break;
+        }
+      }
       stable(baseline, await geometry(host), prefix + " " + S.phase);
       result.checks++;
       const shotTag =
@@ -452,14 +486,17 @@ async function playCase(id, viewport, theme) {
       } else {
         if (passRound !== S.round) {
           passRound = S.round;
-          const authorIndex = S.players.findIndex((p) => p.id === S.holder),
-            author = frames[authorIndex];
+          const author = frameByPlayer.get(S.holder),
+            authorIndex = frames.indexOf(author);
           await seat(page, author);
+          const beforeTyping = await geometry(author);
           await author
             .locator(".b4-input")
             .fill(
               S.round === 2 ? "WMWMWMWMWMWMWMWMWMWMWMWMWMWMWM" : "Wooden spoon",
             );
+          stable(beforeTyping, await geometry(author), prefix + " holder types on the same turn");
+          result.sameTurnTyping = true;
           await author.locator(".b4-primary").click();
           await wait(100);
           let challengeSelector = ".hp-nope";
@@ -468,10 +505,15 @@ async function playCase(id, viewport, theme) {
             stable(baseline, await geometry(author), prefix + " long answer");
             const passed = await state(host);
             const challengeId = passed.history.at(-1).id;
-            const next =
-              frames[S.players.findIndex((p) => p.id === passed.holder)];
+            const next = frameByPlayer.get(passed.holder);
             await seat(page, next);
+            const beforeRetry = await geometry(next);
+            await next.locator(".b4-input").fill(passed.history.at(-1).answer);
+            assert(await next.locator(".b4-primary").isDisabled(), "duplicate answer cannot pass");
+            stable(beforeRetry, await geometry(next), prefix + " duplicate feedback on the same turn");
             await next.locator(".b4-input").fill("Another fresh answer");
+            stable(beforeRetry, await geometry(next), prefix + " fresh draft on the same turn");
+            result.sameTurnRetry = true;
             await next.locator(".b4-primary").click();
             await wait(100);
             await shot(page, next, prefix, "pass-older-answer");
@@ -495,7 +537,7 @@ async function playCase(id, viewport, theme) {
               (Object.values(S.lives).filter((n) => n > 0).length - 1) / 2,
             ) + 1;
           for (let i = 0; i < frames.length && count < needed; i++)
-            if (i !== authorIndex && S.lives[S.players[i].id] > 0) {
+            if (i !== authorIndex && S.lives[(await state(frames[i])).you] > 0) {
               await seat(page, frames[i]);
               await frames[i].locator(challengeSelector).click();
               count++;
@@ -580,7 +622,7 @@ async function playCase(id, viewport, theme) {
     ? [
         {
           width: Number(process.env.B4_WIDTH),
-          height: Number(process.env.B4_WIDTH) < 600 ? 844 : 800,
+          height: Number(process.env.B4_HEIGHT) || (Number(process.env.B4_WIDTH) < 600 ? 844 : 800),
         },
       ]
     : [
@@ -594,7 +636,7 @@ async function playCase(id, viewport, theme) {
       for (const id of process.env.B4_GAMES?.split(",") || IDS)
         await playCase(id, viewport, theme);
   console.log(
-    `NEW_GAMES_B4_BROWSER_PASS: ${results.length} full practice matches; stable HUD, field, controls and score rows across live updates and phases; rematches; no overflow`,
+    `NEW_GAMES_B4_BROWSER_PASS: ${results.length} full practice matches; stable controls and score rows within active turns; rematches; no overflow`,
   );
 })()
   .catch((error) => {

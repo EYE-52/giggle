@@ -93,11 +93,19 @@ async function geometry(frame) {
       overflow: document.documentElement.scrollWidth > innerWidth + 1,
       clipped: [
         ...document.querySelectorAll(".round-play,.who-names,.who-note"),
-      ].some(
-        (node) =>
-          node.scrollHeight > node.clientHeight + 2 &&
-          getComputedStyle(node).overflowY !== "visible",
-      ),
+      ].some((node) => {
+        if (node.scrollHeight <= node.clientHeight + 2 || getComputedStyle(node).overflowY === "visible") return false;
+        if (!node.matches(".round-play")) return true;
+        // The envelope's rotated paper can extend past its frame. Its text
+        // and controls must still fit; decoration is not playable content.
+        const frame = node.getBoundingClientRect();
+        return [...node.querySelectorAll("input,textarea,button,label,p")]
+          .filter((child) => child.getClientRects().length)
+          .some((child) => {
+            const r = child.getBoundingClientRect();
+            return r.top < frame.top - 1 || r.bottom > frame.bottom + 1 || r.left < frame.left - 1 || r.right > frame.right + 1;
+          });
+      }),
       scoreDebug: [...document.querySelectorAll(".pl-seat")].map((node) => ({
         outer: node.getBoundingClientRect().toJSON(),
         points: node
@@ -111,6 +119,7 @@ async function geometry(frame) {
           const outer = node.getBoundingClientRect();
           return [...node.querySelectorAll(".pl-points,.pl-gain")].every(
             (child) => {
+              if (!child.getClientRects().length) return true;
               const r = child.getBoundingClientRect();
               return (
                 r.left >= outer.left &&
