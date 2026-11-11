@@ -1064,8 +1064,8 @@ function embedPlayerChips(list, spot) {
     `<div class="player ${p.connected === false ? 'off' : ''}${spot && spot.has(p.id) ? ' just-joined' : ''}">${esc(p.name)}${room && p.id === room.hostId ? '<span class="hosttag">host</span>' : ''}</div>`).join('') + `</div>`;
 }
 
-/* Two coherent looks: Day (default, pale blush + raspberry) and Night
- * (slate, mint and soft gold). The four pre-D7 ids migrate
+/* Two coherent looks: Day (default, warm paper + raspberry) and Night
+ * (forest, marigold and soft gold). The four pre-D7 ids migrate
  * here (and in the index.html bootstrap) so an old stored
  * Midnight/Arcade/Lounge value never resurrects a rejected UI. Parent
  * embed context ids map the same way. */
@@ -1177,8 +1177,10 @@ function render() {
   // screen constantly, and must never flash the whole view or forms.
   if (screen !== lastScreen) {
     app.classList.remove('fade');
-    void app.offsetWidth;
-    app.classList.add('fade');
+    if (room) {
+      void app.offsetWidth;
+      app.classList.add('fade');
+    }
   }
   cancelAnimationFrame(timerRaf);
   // Screen transitions drop a stale howto panel (same-room roster ticks
@@ -1515,8 +1517,6 @@ function renderHome() {
   wireGameCards(app);
   // Home paints are rare (boot, catalog arrival, browse toggle) — a gentle
   // entrance each time stays delightful without ever firing on repaints.
-  staggerIn(app.querySelector('.pick-grid'), '.pick');
-  staggerIn(app.querySelector('.catalog-list'), '.catrow');
 }
 
 /* Solo practice uses the same art/text rhythm as the game cards. */

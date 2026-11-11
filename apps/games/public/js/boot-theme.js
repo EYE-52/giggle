@@ -23,5 +23,11 @@
       follow();
       dark.addEventListener?.('change', follow);
     }
+    const tint = document.querySelector('meta[name="theme-color"]');
+    if (tint) {
+      const updateTint = () => { tint.content = getComputedStyle(document.documentElement).getPropertyValue('--topbar-bg').trim(); };
+      updateTint();
+      new MutationObserver(updateTint).observe(document.documentElement, { attributes:true, attributeFilter:['data-theme'] });
+    }
   } catch { /* Storage restrictions keep the default day palette. */ }
 })();

@@ -4,15 +4,6 @@ body.same-room-page {
   --sr-tint: color-mix(in srgb, var(--card) 80%, var(--fam));
   margin: 0; min-height: 100dvh; color: var(--ink); background-color: var(--bg);
 }
-body.same-room-page[data-game] {
-  background-image: radial-gradient(ellipse at 8% 12%, color-mix(in srgb, var(--fam) 16%, transparent), transparent 45%), radial-gradient(ellipse at 100% 60%, color-mix(in srgb, var(--sky) 10%, transparent), transparent 48%);
-  background-attachment: fixed;
-}
-[data-theme="night"] body.same-room-page[data-game] {
-  --card: color-mix(in srgb, var(--bg) 78%, var(--sky));
-  --well: color-mix(in srgb, var(--card) 82%, var(--fam));
-  background-color: color-mix(in srgb, var(--bg) 88%, var(--sky));
-}
 .sr-bar { display: flex; align-items: center; gap: var(--space-12); padding: var(--space-8) var(--space-24); background: var(--sr-paper); border-bottom: var(--outline-w) solid var(--outline); }
 .sr-bar > span { flex: 1; font: var(--text-caption); color: var(--ink-dim); }
 .sr-main { max-width: var(--howto-dialog-w); margin: 0 auto; padding: var(--space-32) var(--space-24); }

@@ -293,10 +293,10 @@
 [data-theme="night"] .home-welcome .hero-form {
   border:1px solid var(--edge);
   border-radius:16px;
-  box-shadow:0 8px 20px #09101838;
+  box-shadow:0 8px 20px #15190e38;
 }
 [data-theme="night"] .home-welcome h1 .pop::after,
-[data-theme="night"] .hand-spark { display:none; }
+.hand-spark { display:none; }
 [data-theme="night"] .home-welcome .hero-cta .hero-create,
 [data-theme="night"] .home-welcome .hero-local,
 [data-theme="night"] .topbar .hbtn {
@@ -304,14 +304,15 @@
   border-radius:12px;
   box-shadow:none;
 }
-[data-theme="night"] .hero-hand .hand-card,
-[data-theme="night"] .hero-hand:hover .hand-card {
+.hero-hand .hand-card,
+.hero-hand:hover .hand-card,
+.hero-hand .hand-card:is(:hover,:focus-visible) {
   animation:none;
   translate:none;
   transform:rotate(calc(var(--i) * 3deg));
   border:1px solid var(--edge);
-  box-shadow:0 2px 6px #080c1430;
+  box-shadow:0 2px 6px #14160b30;
 }
 @media (hover:hover) and (prefers-reduced-motion:no-preference) {
-  [data-theme="night"] .hero-hand .hand-card:hover { transform:translateY(-4px); }
+  .hero-hand .hand-card:is(:hover,:focus-visible) { transform:translateY(-4px); }
 }

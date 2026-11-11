@@ -2,7 +2,7 @@
  * Raspberry primary, sunshine supporting blocks, ink outlines, small hard
  * offset shadows, fresh white / pale blush ground. Chunky Baloo 2 display
  * type + readable Nunito body. Two coherent looks: Day (default) and Night
- * (slate, mint and soft gold). Old stored ids (dark/light/
+ * (forest green and marigold). Old stored ids (dark/light/
  * arcade/lounge) migrate to day/night in app.js.
  * Baloo 2 + Nunito are self-hosted variable woff2 (latin + latin-ext,
  * SIL OFL — see public/fonts/README.md), so the party look never falls
@@ -28,19 +28,21 @@
   unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
 }
 :root {
-  --bg: #f8f8fc;
+  --bg: #fcf6e9;
+  --page-glow: #ffe1ac;
+  --page-wash: #f0dcc8;
   --card: #ffffff;
-  --well: #f1f0f8;
+  --well: #f4ead7;
   --chip: #ffffff;
-  --ink: #27243b;
-  --ink-dim: #6b677f;
-  --edge: #dad7e8;
+  --ink: #302c23;
+  --ink-dim: #685e4d;
+  --edge: #d7cbb7;
   --hard: #321829;
-  --line: #e9e6f1;
-  --line-strong: #d4d0e2;
-  --accent: #d92972;
-  --accent-deep: #8f0f42;
-  --accent-soft: #fce7f0;
+  --line: #e6dbca;
+  --line-strong: #cbbda7;
+  --accent: #b42e54;
+  --accent-deep: #892442;
+  --accent-soft: #f8e2df;
   --accent-ink: #ffffff;
   --sun: #ffbe35;
   --sun-soft: #ffe9be;
@@ -56,7 +58,7 @@
   --signal-deep: #b92a35;
   --signal-soft: #ffe3e4;
   --input-bg: #ffffff;
-  --topbar-bg: #f8f8fc;
+  --topbar-bg: #fcf6e9;
   --shadow-card: 0 6px 22px #3028480b;
   --shadow-btn: 0 3px 8px #30284812;
   --shadow-sm: 0 2px 6px #3028480b;
@@ -107,25 +109,27 @@
 }
 
 [data-theme="night"] {
-  --night-ground: #141a23;
-  --night-panel: #202936;
-  --night-raised: #293544;
+  --night-ground: #18241e;
+  --night-panel: #24332a;
+  --night-raised: #304036;
   --bg: var(--night-ground);
+  --page-glow: #384b35;
+  --page-wash: #3e3828;
   --card: var(--night-panel);
   --well: var(--night-raised);
-  --chip: #293544;
-  --ink: #edf3f8;
-  --ink-dim: #b4c2d1;
-  --edge: #405268;
+  --chip: #304036;
+  --ink: #f7f0df;
+  --ink-dim: #c7cbb8;
+  --edge: #4b604d;
   --hard: #000000;
-  --line: #edf3f822;
-  --line-strong: #edf3f855;
-  --accent: #83dfd0;
-  --accent-deep: #b3f3df;
-  --accent-soft: #203c3a;
-  --accent-ink: #102724;
+  --line: #f7f0df22;
+  --line-strong: #f7f0df55;
+  --accent: #ffcf73;
+  --accent-deep: #ffe5a1;
+  --accent-soft: #453c27;
+  --accent-ink: #2d2516;
   --sun: #ffc24d;
-  --sun-soft: #363343;
+  --sun-soft: #453b29;
   --sun-ink: #1e1400;
   --melon: #ff7a80;
   --melon-deep: #ffb3b6;
@@ -137,8 +141,8 @@
   --signal: #ff7a80;
   --signal-deep: #ffb3b6;
   --signal-soft: #3a1518;
-  --input-bg: #141a23;
-  --topbar-bg: #141a23;
+  --input-bg: #18241e;
+  --topbar-bg: #18241e;
   --outline: #000000;
   --success: #4ade80; --success-soft: #12301f; --on-success: #08170e;
   --danger: #ff7a80; --danger-soft: #3a1518; --on-danger: #1b0a0c;

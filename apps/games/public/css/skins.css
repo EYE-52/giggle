@@ -16,7 +16,13 @@ body #gbody .gk-btn.gk-primary:not(:disabled):active, body #gbody .bk-primary:no
   --card: color-mix(in srgb, var(--night-panel) 96%, var(--fam));
   --well: color-mix(in srgb, var(--night-raised) 96%, var(--fam));
 }
-body.game-playing { background: var(--bg); }
+body:not(.is-embed) {
+  background-color:var(--bg);
+  background-image:radial-gradient(ellipse at 92% 0,var(--page-glow),transparent 58%),
+    radial-gradient(ellipse at 3% 20%,var(--page-wash),transparent 54%);
+  background-size:100% max(100vh,800px);
+  background-repeat:no-repeat;
+}
 /* Display faces. Each game below sets --font-display to its own face
  * (@font-face rules in game-fonts.css) for its title, prompt and big
  * numbers; body text stays Nunito. The text-style tokens are resolved

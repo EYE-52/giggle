@@ -205,3 +205,9 @@ Each total combines the eight sampled size/theme combinations.
 | word-chain | 0 | 0 |
 | word-grid | 6 | 0 |
 | would-you-rather | 0 | 0 |
+
+## November 11 Day and Night update
+
+Day now blends apricot and warm paper. Night blends forest green and olive with a marigold primary action. Both use a static background. The home artwork and catalogue entries appear together on first paint. Browsing, room controls and one-device play draw from the same palette. The browser toolbar follows an explicit theme change and a saved Night preference survives reload.
+
+Chrome checks at 1440 × 900, 1024 × 768, 390 × 844 and 375 × 667 covered Day/Night switching, reload, the Chess details dialog and one-device setup. Both themes had zero horizontal overflow. The homepage browser suite also passed real room creation and joining, search, draft preservation and 320 px phone controls.
