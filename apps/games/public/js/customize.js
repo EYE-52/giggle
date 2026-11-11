@@ -2,7 +2,7 @@
  * and custom word/prompt lists. Lives in #dlg-root (outside #app) so lobby
  * re-renders never eat drafts. Guests see the same panel read-only with
  * safe summaries (pack contents never leave the server). */
-import { esc, store } from './util.js';
+import { esc, store, settingIcon, uiIcon } from './util.js';
 import { segPickerHtml, stepperHtml, wirePickers, syncPickers } from './pickers.js';
 import { kartSetupHtml, wireKartSetup, syncKartSetup } from './kart-setup.js';
 
@@ -180,17 +180,6 @@ function updatePackCount(g, p) {
   typed.textContent = n ? `${n} lines typed${range}` : `Nothing typed yet${range}`;
 }
 
-/* A small picture per setting so the sheet reads like a game menu. */
-const SETTING_ICONS = [
-  [/second|time|timer|clock|minute|duration/i, '⏱️'], [/round|turn/i, '🔁'], [/pace|speed/i, '⚡'],
-  [/target|score|point|goal|win/i, '🎯'], [/live|heart/i, '❤️'], [/difficult|level|hard/i, '🌶️'],
-  [/hint|clue/i, '💡'], [/team|player|seat/i, '👥'], [/board|size|grid/i, '🧩'], [/word|letter|categor/i, '🔤'],
-];
-function settingIcon(s) {
-  const key = `${s.key} ${s.label || ''}`;
-  return (SETTING_ICONS.find(([re]) => re.test(key)) || [null, '✨'])[1];
-}
-
 function settingField(g, s, current, host) {
   const id = `df-${g.id}-${s.key}`;
   const val = current[s.key] !== undefined ? current[s.key] : s.def;
@@ -224,7 +213,7 @@ function packField(g, p, meta, host) {
   const id = `dp-${g.id}-${p.key}`;
   const n = meta && meta.packs ? (meta.packs[p.key] || 0) : 0;
   const dis = host ? '' : 'disabled';
-  return `<div class="dlg-field gm-tile gm-pack"><div class="gm-tile-head"><span class="gm-ico" aria-hidden="true">📝</span><label class="conflabel gm-label" for="${id}">${esc(p.label || p.key)}</label>
+  return `<div class="dlg-field gm-tile gm-pack"><div class="gm-tile-head"><span class="gm-ico" aria-hidden="true">${uiIcon('note-pencil')}</span><label class="conflabel gm-label" for="${id}">${esc(p.label || p.key)}</label>
       <span class="gm-range">one per line${p.minItems ? ` · ${p.minItems}–${p.maxItems || '∞'}` : ''}</span></div>
     <textarea id="${id}" data-hostonly rows="4" placeholder="One per line — leave blank to keep the built-in list." ${dis}></textarea>
     <div class="dlg-packmeta"><span class="muted small" id="dpm-${g.id}-${p.key}">${esc(packCountText(p, n))}</span>

@@ -28,6 +28,35 @@ export function esc(s) {
   }[c]));
 }
 
+// The Games shell shares Giggle's Phosphor duotone artwork in one cacheable sprite.
+// These marks accompany a text label or a control with its own accessible name.
+export function uiIcon(name, size = 24) {
+  return `<svg class="game-ui-icon" width="${size}" height="${size}" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true" focusable="false"><use href="/assets/ui/settings-icons.svg#${esc(name)}"></use></svg>`;
+}
+
+const SETTING_GLYPHS = [
+  [/seconds?|time|clock|minutes?|duration/i, 'timer'],
+  [/round|turn/i, 'repeat'],
+  [/pace|speed/i, 'gauge'],
+  [/prompt|deck/i, 'cards'],
+  [/question/i, 'question'],
+  [/hint|clue/i, 'lightbulb'],
+  [/target|score|point|goal|win|finish/i, 'target'],
+  [/live|heart/i, 'heart'],
+  [/difficult|level|hard/i, 'barbell'],
+  [/team|player|seat/i, 'users-three'],
+  [/palette|theme|colou?r|lightCycle/i, 'palette'],
+  [/board|size|grid|map/i, 'grid-four'],
+  [/word|letter|categor/i, 'text-aa'],
+  [/swap|shuffle/i, 'shuffle'],
+  [/wild|dice/i, 'dice-five'],
+];
+
+export function settingIcon(setting) {
+  const match = SETTING_GLYPHS.find(([pattern]) => pattern.test(setting.key));
+  return uiIcon(match ? match[1] : 'sliders-horizontal');
+}
+
 /* Test-table seats (?seat=1..8, see /test/) keep their own name, room and
  * seat token, so several players can share one browser without taking
  * over each other's seat. Normal visits use the plain keys. */

@@ -233,3 +233,11 @@ Day now blends apricot and warm paper. Night blends forest green and olive with 
 Chrome checks at 1440 × 900, 1024 × 768, 390 × 844 and 375 × 667 covered Day/Night switching, reload, the Chess details dialog and one-device setup. Both themes had zero horizontal overflow. The homepage browser suite also passed real room creation and joining, search, draft preservation and 320 px phone controls.
 
 The full normal game test command passed. The browser fit check covered all 72 games, with 1,224 measurements and zero failures. The focused Chess review had zero clipping findings in its six desktop and phone captures. A two-player one-device Truth or Dare round also advanced from the spin to a playable card on both desktop and phone.
+
+## One-device setup icons and modal scrolling
+
+In the original picker, a 500 px wheel movement pushed the close button from y=34 to y=−466 in desktop WebKit. A wheel movement over the backdrop moved the setup page from y=100 to y=420. The shared dialog now keeps its heading in place, scrolls only its body, and uses a thin native thumb matched to the theme. The background stays at its original offset until the dialog closes.
+
+Browser checks covered 1440 × 900, 1024 × 768, 390 × 844 and 375 × 667 in Day and Night, using Chromium and WebKit. The checks included wheel, touch, Page Down, keyboard focus wrapping, Escape, and selecting Reversi at the bottom of the catalogue. The same changes retained pinned Chess history on desktop and the history sheet on phones. The report and how-to dialogs also kept their background page still.
+
+The one-device and online setup controls, report categories and kart picker use the rounded Phosphor duotone artwork already used by Giggle. The empty roster shows a seat. The 16 browser configurations passed, including full three-player one-device rounds, touch-sized controls, and theme changes.

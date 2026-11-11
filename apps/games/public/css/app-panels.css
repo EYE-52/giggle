@@ -9,7 +9,35 @@
 .app-disclosure > summary:focus-visible { outline:var(--focus-ring); outline-offset:var(--focus-offset); }
 .app-panel.app-panel { box-sizing:border-box; position:fixed; inset:auto; margin:0; width:min(400px,calc(100vw - var(--space-32))); max-width:none; max-height:calc(100dvh - var(--space-32)); padding:var(--space-16); overflow:auto; overscroll-behavior:contain; border:var(--outline-w) solid var(--line-strong); border-radius:var(--radius-lg); background:var(--card); color:var(--ink); box-shadow:var(--shadow-card); font:var(--text-body); line-height:1.5; text-align:left; }
 .app-panel::backdrop { background:color-mix(in srgb,var(--ink) 16%,transparent); }
-.app-panel[open] { animation:app-panel-in var(--dur-quick) var(--ease); }
+.app-panel[open] { display:flex; flex-direction:column; overflow:hidden; animation:app-panel-in var(--dur-quick) var(--ease); }
+.app-panel[open] > .app-panel-head { flex:none; }
+.app-panel[open] > .app-panel-body {
+  min-height:0; overflow:auto; overscroll-behavior:contain;
+  /* Allow focus rings and card edges to clear the scrollport. */
+  padding:var(--space-4); margin:calc(-1 * var(--space-4)); scroll-padding:var(--space-8);
+}
+:root:has(dialog:modal, #dlgOverlay, #roomMenu[open]) { overflow:hidden; overscroll-behavior:none; scrollbar-gutter:stable; }
+
+/* Use the native scroll thumb with the themed panel surface showing through. */
+:where(dialog:modal, [role="dialog"][aria-modal="true"]),
+:where(dialog:modal, [role="dialog"][aria-modal="true"]) * {
+  scrollbar-width:thin;
+  scrollbar-color:color-mix(in srgb,var(--ink-dim) 75%,transparent) transparent;
+}
+@supports not (scrollbar-color:auto) {
+  :is(dialog, [role="dialog"])::-webkit-scrollbar,
+  :is(dialog, [role="dialog"]) ::-webkit-scrollbar { width:8px; height:8px; }
+  :is(dialog, [role="dialog"])::-webkit-scrollbar-track,
+  :is(dialog, [role="dialog"]) ::-webkit-scrollbar-track { background:transparent; }
+  :is(dialog, [role="dialog"])::-webkit-scrollbar-thumb,
+  :is(dialog, [role="dialog"]) ::-webkit-scrollbar-thumb {
+    background:var(--ink-dim); background-clip:padding-box; border:2px solid transparent; border-radius:8px;
+  }
+}
+@media(forced-colors:active) {
+  :where(dialog:modal, [role="dialog"][aria-modal="true"]),
+  :where(dialog:modal, [role="dialog"][aria-modal="true"]) * { scrollbar-color:auto; scrollbar-width:auto; }
+}
 .app-panel .app-panel-head { display:flex; align-items:center; justify-content:space-between; gap:var(--space-16); margin:0 0 var(--space-12); padding:0; }
 .app-panel .app-panel-title { margin:0; font:var(--text-title); color:var(--ink); text-wrap:balance; }
 .app-panel [data-app-close] { display:grid; place-items:center; flex:none; width:var(--control-h-sm); height:var(--control-h-sm); padding:0; border:0; border-radius:var(--radius-md); background:var(--well); color:var(--ink); box-shadow:none; cursor:pointer; }

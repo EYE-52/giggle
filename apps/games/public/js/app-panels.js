@@ -44,7 +44,8 @@
     node.open = true;
     summary.setAttribute('aria-expanded', 'true');
     panel.querySelector('.app-panel-title').textContent = summary.getAttribute('aria-label') || summary.textContent.trim();
-    active = { node, summary, panel, key: key(node) };
+    const body = panel.querySelector(':scope > .app-panel-body');
+    active = { node, summary, panel, body, key: key(node) };
     // Put native autofocus inside the viewport before entering the top layer.
     // Otherwise a launcher low on a scrolling setup page can scroll that page.
     panel.style.left = '16px'; panel.style.top = '16px'; panel.style.bottom = 'auto';
@@ -58,10 +59,12 @@
     if (scrollX !== pageScroll[0] || scrollY !== pageScroll[1]) window.scrollTo({ left: pageScroll[0], top: pageScroll[1], behavior: 'instant' });
     document.dispatchEvent(new Event('game-screenchange'));
     if (restore) {
-      panel.scrollTop = restore.scroll;
+      body.scrollTop = restore.scroll;
       const target = restore.id ? document.getElementById(restore.id) : null;
       focus(target && panel.contains(target) ? target : panel.querySelector('[data-app-close]'));
       if (target && restore.selection && typeof target.setSelectionRange === 'function') target.setSelectionRange(...restore.selection);
+    } else if (body.scrollHeight > body.clientHeight) {
+      focus(body); // Native paging and arrow keys scroll the list from the first keystroke.
     } else focus(panel.querySelector('[data-app-close]'));
   }
   function mode(node) {
@@ -90,7 +93,8 @@
     const exit = document.createElement('button'); exit.type = 'button'; exit.dataset.appClose = ''; exit.setAttribute('aria-label', 'Close panel');
     exit.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg>';
     head.append(title, exit);
-    const body = document.createElement('div'); body.className = 'app-panel-body';
+    const body = document.createElement('div'); body.className = 'app-panel-body'; body.tabIndex = -1;
+    body.setAttribute('role','group'); body.setAttribute('aria-labelledby',title.id);
     for (const child of [...node.childNodes]) if (child !== summary) body.append(child);
     panel.append(head, body); node.append(panel);
     summary.setAttribute('aria-controls', panel.id); summary.setAttribute('aria-expanded', 'false');
@@ -126,7 +130,7 @@
       for (const record of records) for (const node of record.addedNodes) scan(node);
       if (previous && (!previous.node.isConnected || !previous.panel.isConnected)) {
         const focused = previous.panel.querySelector(':focus');
-        const restore = { scroll: previous.panel.scrollTop, id: focused?.id, selection: focused && typeof focused.selectionStart === 'number' ? [focused.selectionStart, focused.selectionEnd] : null };
+        const restore = { scroll: previous.body.scrollTop, id: focused?.id, selection: focused && typeof focused.selectionStart === 'number' ? [focused.selectionStart, focused.selectionEnd] : null };
         const replacement = [...document.querySelectorAll('details.app-disclosure')].find(node => key(node) === previous.key);
         close(false); if (replacement && !replacement.closest('.bk-panel.is-final')) open(replacement, { restore });
       }
@@ -137,8 +141,8 @@
     if (event.key === 'Escape') { event.preventDefault(); event.stopImmediatePropagation(); close(); }
     else if (event.key === 'Tab') {
       const items = focusables(active.panel), first = items[0], last = items.at(-1);
-      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); focus(last); }
-      else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); focus(first); }
+      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+      else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
     }
   }, true);
   window.addEventListener('resize', () => {

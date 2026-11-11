@@ -35,7 +35,9 @@ const registry = require('../games/registry');
     constructor() { this.readyState = 1; sockets.push(this); }
     send(raw) { sent.push(JSON.parse(raw)); }
   }
-  const ctx = { document, window,
+  const helpers=fs.readFileSync(require.resolve('../public/js/util.js'),'utf8');
+  const {uiIcon,settingIcon}=await import('data:text/javascript;base64,'+Buffer.from(helpers).toString('base64'));
+  const ctx = { document, window, uiIcon, settingIcon,
     getComputedStyle: () => ({ getPropertyValue: () => document.documentElement.dataset.theme === 'night' ? '#080808' : '#ffffff' }),
     location: { protocol: 'http:', host: 'localhost', search: '?game=truth-dare' },
     history: { replaceState() {} }, sessionStorage: storage, localStorage: storage, URLSearchParams,
@@ -54,9 +56,17 @@ const registry = require('../games/registry');
   const emit = message => ws.onmessage({ data: JSON.stringify(message) });
   emit({ t: 'games', games: registry.list() });
   const $ = id => document.getElementById(id);
+  assert.deepEqual([...document.querySelectorAll('.sr-section-icon use,.sr-field-title use,.sr-pace-art use')].map(el=>el.getAttribute('href').split('#')[1]),
+    ['users-three','sliders-horizontal','repeat','gauge','leaf','sneaker-move','rocket-launch','cards']);
+  const sprite=fs.readFileSync(require.resolve('../public/assets/ui/settings-icons.svg'),'utf8');
+  for(const game of registry.list())for(const setting of game.schema.settings){
+    const icon=settingIcon(setting),ref=icon.match(/#([a-z-]+)"/)[1];
+    assert(sprite.includes('id="'+ref+'"'),game.id+' has artwork for '+setting.key);
+    assert(icon.includes('aria-hidden="true"') && icon.includes('focusable="false"'));
+  }
   assert.equal(document.querySelectorAll('.sr-steps li').length, 3);
   assert(document.querySelector('.sr-hero-art .sr-cover'));
-  assert(document.querySelector('.sr-empty-friends'), 'empty seats have a friendly illustrated state');
+  assert.equal(document.querySelector('.sr-empty-friends use').getAttribute('href'), '/assets/ui/settings-icons.svg#armchair');
   assert.equal(document.querySelectorAll('.sr-prompt-styles .sr-prompt-art').length, 4);
   assert.equal(document.querySelectorAll('.sr-choice-desc').length, 4);
   assert.equal(document.querySelectorAll('.sr-pace-art').length, 3);
@@ -72,7 +82,7 @@ const registry = require('../games/registry');
     assert.equal(card.querySelector('.sr-game-tile').children.length, 3, 'art, name and count have separate rows');
     assert.equal(card.querySelector('.sr-game-name').textContent, meta.name);
     assert.match(card.querySelector('.sr-game-count').textContent, / people$/);
-    assert.equal(card.querySelector('.sr-game-check').textContent, '✓');
+    assert.equal(card.querySelector('.sr-game-check use').getAttribute('href'), '/assets/ui/settings-icons.svg#check');
   }
   assert.equal($('srShowGames').getAttribute('aria-expanded'), 'false');
   $('srShowGames').click();
@@ -173,7 +183,7 @@ const registry = require('../games/registry');
   assert.equal(document.body.dataset.stage, 'results');
   assert.equal($('srTurn').textContent, 'Final scores');
   assert(document.querySelector('.gk-final') && $('srAgain'));
-  assert.match(document.querySelector('.sr-head-avatar').textContent, /🏆/);
+  assert.equal(document.querySelector('.sr-head-avatar use').getAttribute('href'), '/assets/ui/settings-icons.svg#trophy');
   emit({ t: 'same-state', game: 'charades', step: 9, gate: 'play', private: false, kind: 'guess', player: 'b', players, state: { instanceId: 'charades', phase: 'act', me: 'b', actor: 'c', guessed: {}, players }, gameNow: 100, running: false });
   assert.equal($('srGuesser').type, 'hidden', 'guessers use avatar chips instead of a dropdown');
   assert.equal(document.querySelectorAll('[data-guesser]').length, 2);

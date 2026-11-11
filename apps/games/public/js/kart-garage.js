@@ -4,7 +4,7 @@
  * preview is a small Three.js turntable; driver cards get portraits
  * rendered from the same scene. Without WebGL the cards keep their emoji
  * and the stage shows a flat paint badge, and picking still works. */
-import { esc, store } from './util.js';
+import { esc, store, uiIcon } from './util.js';
 import { confetti, reducedMotion, sound } from './fx.js';
 import { KART_LOOK_DRIVERS, KART_PAINTS, cleanKartLook, kartPaintHex } from './engines/kart-looks.mjs';
 
@@ -40,7 +40,7 @@ export function kartGarageCardHtml(look, id = 'bKartGarage') {
   const d = driverOf(clean.driver), p = paintOf(clean.paint);
   const chosen = !!(clean.driver || clean.paint);
   return `<button type="button" class="garage-card" id="${id}" style="--kart-paint:${hex(p.hex)}">
-    <span class="garage-card-face" aria-hidden="true">${chosen ? d.emoji : '🏎️'}</span>
+    <span class="garage-card-face" aria-hidden="true">${chosen ? esc(d.emoji) : uiIcon('steering-wheel', 32)}</span>
     <span class="garage-card-text"><b>Your kart</b><span>${chosen ? `${esc(d.name)} · ${esc(p.name)}` : 'Pick a driver and paint'}</span></span>
     <span class="garage-card-go" aria-hidden="true">›</span></button>`;
 }

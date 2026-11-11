@@ -1,4 +1,4 @@
-import { esc } from './util.js';
+import { esc, settingIcon, uiIcon } from './util.js';
 import { sameRoomSupport, LOCAL_AVATARS } from './same-room-support.mjs';
 import { wsTargetFromConfig } from './netconfig.js';
 import { show, reset } from './game-host.js';
@@ -18,7 +18,7 @@ let bannerActor = '', lastPrivatePlayer = null;
 try { const draft = JSON.parse(read('giggle:one-device:names')); if (Array.isArray(draft)) names = draft.filter(n => typeof n === 'string').slice(0, 20); } catch { /* fresh group */ }
 const game = () => games.find(g => g.id === gameId);
 const status = text => { $('srStatus').textContent = text; };
-const avatar = p => `<span class="sr-avatar" data-colour="${p?.colour || 0}" aria-hidden="true">${esc(p?.avatar || '📱')}</span>`;
+const avatar = (p, fallback = 'device-mobile') => `<span class="sr-avatar" data-colour="${p?.colour || 0}" aria-hidden="true">${p?.avatar ? esc(p.avatar) : uiIcon(fallback)}</span>`;
 const btn = (id, text, variant = 'tb-primary') => `<button type="button" id="${id}" class="tb-btn ${variant}">${text}</button>`;
 function send(message) {
   if (socket?.readyState !== WebSocket.OPEN) { status('Connection lost. Keep this page open; we’re reconnecting.'); return false; }
@@ -53,12 +53,12 @@ function phoneArt(back) {
 }
 function settingChoices(s, choices, value, id) {
   const promptDescriptions = { 'Random card': 'Deal a surprise', 'Room pool vote': 'Pick as a group', 'Ask your own': 'Write the prompts', Mixed: 'Switch it up' };
-  const paceIcons = { Relaxed: '🐢', Normal: '🐇', Quick: '🚀' };
+  const paceIcons = { Relaxed: 'leaf', Normal: 'sneaker-move', Quick: 'rocket-launch' };
   return `<div class="picker-seg is-chips sr-choices${s.key === 'pace' ? ' sr-pace' : ' sr-prompt-styles'}" role="radiogroup" aria-labelledby="${id}-label" data-picker-for="${id}">${choices.map(choice => {
     const [v, label] = Array.isArray(choice) ? choice : [choice, choice];
-    const art = s.key === 'pace' ? `<span class="sr-pace-art" aria-hidden="true">${paceIcons[v] || '⏱'}</span>` : promptArt(v);
+    const art = s.key === 'pace' ? `<span class="sr-pace-art" aria-hidden="true">${uiIcon(paceIcons[v] || 'gauge', 32)}</span>` : promptArt(v);
     return `<button type="button" class="sr-setting-choice" role="radio" aria-checked="${String(v) === String(value)}" data-value="${esc(v)}" aria-label="${esc(label)}">
-      <span class="sr-choice-art">${art}<span class="sr-choice-check" aria-hidden="true">✓</span></span><span class="sr-choice-label">${esc(label)}</span>${s.key === 'promptStyle' ? `<span class="sr-choice-desc">${esc(promptDescriptions[v] || '')}</span>` : ''}</button>`;
+      <span class="sr-choice-art">${art}<span class="sr-choice-check" aria-hidden="true">${uiIcon('check', 16)}</span></span><span class="sr-choice-label">${esc(label)}</span>${s.key === 'promptStyle' ? `<span class="sr-choice-desc">${esc(promptDescriptions[v] || '')}</span>` : ''}</button>`;
   }).join('')}</div>`;
 }
 const cover = g => `/${g.art || `img/games/${g.id}.png`}`;
@@ -72,7 +72,7 @@ function gameCards() {
       const selected = g.id === gameId, support = sameRoomSupport(g);
       return `<button type="button" class="sr-game-card tb-card is-compact" data-game-choice="${g.id}" data-family="${family(g)}" aria-pressed="${selected}" aria-label="Choose ${esc(g.name)}">
         <span class="sr-game-tile">
-          <span class="sr-game-art"><img src="${esc(cover(g))}" alt="" loading="lazy" width="96" height="96"><span class="sr-game-check" aria-hidden="true">✓</span></span>
+          <span class="sr-game-art"><img src="${esc(cover(g))}" alt="" loading="lazy" width="96" height="96"><span class="sr-game-check" aria-hidden="true">${uiIcon('check', 16)}</span></span>
           <span class="sr-game-name">${esc(g.name)}</span>
           <span class="sr-game-count tb-badge">${support.min === support.max ? support.min : `${support.min}–${support.max}`} people</span>
         </span></button>`;
@@ -84,9 +84,9 @@ function field(s) {
     const choices = s.type === 'bool' ? [['true', 'On'], ['false', 'Off']] : s.options;
     const options = choices.map(o => Array.isArray(o) ? o : [o, o]);
     const illustrated = ['pace', 'promptStyle'].includes(s.key);
-    return `<div class="sr-field gm-tile gm-enum${options.length >= 4 ? ' sr-field-tiles' : ''}${illustrated ? ' sr-illustrated-setting' : ''}"><span id="${id}-label" class="sr-field-title"><span aria-hidden="true">${s.key === 'pace' ? '⏱' : s.key === 'promptStyle' ? '🃏' : '🎛'}</span>${esc(s.label)}</span><select hidden id="${id}" data-setting="${s.key}" class="picker-native" tabindex="-1" aria-hidden="true">${options.map(([v, text]) => `<option value="${esc(v)}"${String(v) === String(value) ? ' selected' : ''}>${esc(text)}</option>`).join('')}</select>${illustrated ? settingChoices(s, choices, value, id) : segPickerHtml(id, choices, value, `${id}-label`, false)}</div>`;
+    return `<div class="sr-field gm-tile gm-enum${options.length >= 4 ? ' sr-field-tiles' : ''}${illustrated ? ' sr-illustrated-setting' : ''}"><span id="${id}-label" class="sr-field-title"><span aria-hidden="true">${settingIcon(s)}</span>${esc(s.label)}</span><select hidden id="${id}" data-setting="${s.key}" class="picker-native" tabindex="-1" aria-hidden="true">${options.map(([v, text]) => `<option value="${esc(v)}"${String(v) === String(value) ? ' selected' : ''}>${esc(text)}</option>`).join('')}</select>${illustrated ? settingChoices(s, choices, value, id) : segPickerHtml(id, choices, value, `${id}-label`, false)}</div>`;
   }
-  return `<label class="sr-field sr-number-setting gm-tile" for="${id}"><span class="sr-field-title"><span aria-hidden="true">${s.key === 'rounds' ? '🔁' : '⏱'}</span>${esc(s.label)}</span><span class="sr-stepper"><button type="button" class="tb-btn tb-secondary" data-step="${s.key}" data-delta="-1" aria-label="Fewer ${esc(s.label.toLowerCase())}">−</button><input id="${id}" class="picker-value" type="number" inputmode="numeric" data-setting="${s.key}" min="${s.min}" max="${s.max}" value="${value ?? ''}" placeholder="${esc(s.autoLabel || 'Auto')}"><button type="button" class="tb-btn tb-secondary" data-step="${s.key}" data-delta="1" aria-label="More ${esc(s.label.toLowerCase())}">+</button></span></label>`;
+  return `<label class="sr-field sr-number-setting gm-tile" for="${id}"><span class="sr-field-title"><span aria-hidden="true">${settingIcon(s)}</span>${esc(s.label)}</span><span class="sr-stepper"><button type="button" class="tb-btn tb-secondary" data-step="${s.key}" data-delta="-1" aria-label="Fewer ${esc(s.label.toLowerCase())}">−</button><input id="${id}" class="picker-value" type="number" inputmode="numeric" data-setting="${s.key}" min="${s.min}" max="${s.max}" value="${value ?? ''}" placeholder="${esc(s.autoLabel || 'Auto')}"><button type="button" class="tb-btn tb-secondary" data-step="${s.key}" data-delta="1" aria-label="More ${esc(s.label.toLowerCase())}">+</button></span></label>`;
 }
 function setup() {
   reset(); current = null; mountKey = ''; readyStep = null; busy = false; bannerActor = ''; lastPrivatePlayer = null;
@@ -95,14 +95,14 @@ function setup() {
   const g = game();
   app.setAttribute('aria-busy', 'false');
   app.innerHTML = `<form id="srSetup" class="sr-setup">
-    <header class="sr-feature tb-card"><div class="sr-hero-art"><img class="sr-cover" src="${esc(cover(g))}" alt="" width="160" height="160"><span class="sr-hero-sticker" aria-hidden="true">✦</span></div><div class="sr-feature-copy"><p class="sr-kicker">Same room · one device</p><h1 class="t-heading">${esc(g.name)}</h1><p class="t-body">One phone. A whole table of friends.</p><ol class="sr-steps" aria-label="How to play"><li><span>1</span>Add friends</li><li><span>2</span>Pick your style</li><li><span>3</span>Pass & play</li></ol></div></header>
+    <header class="sr-feature tb-card"><div class="sr-hero-art"><img class="sr-cover" src="${esc(cover(g))}" alt="" width="160" height="160"><span class="sr-hero-sticker" aria-hidden="true">${uiIcon('sparkle', 22)}</span></div><div class="sr-feature-copy"><p class="sr-kicker">Same room · one device</p><h1 class="t-heading">${esc(g.name)}</h1><p class="t-body">One phone. A whole table of friends.</p><ol class="sr-steps" aria-label="How to play"><li><span>1</span>Add friends</li><li><span>2</span>Pick your style</li><li><span>3</span>Pass & play</li></ol></div></header>
     <input id="srGame" type="hidden" value="${g.id}">${gameCards()}
-    <section class="sr-panel sr-people-panel tb-card"><div class="sr-section-head"><span class="sr-section-icon" aria-hidden="true">👋</span><h2>Who’s here?</h2><span id="srSeatCount" class="tb-badge"></span></div><p class="t-body">Pull up a chair. Everyone gets an animal.</p>
+    <section class="sr-panel sr-people-panel tb-card"><div class="sr-section-head"><span class="sr-section-icon" aria-hidden="true">${uiIcon('users-three', 30)}</span><h2>Who’s here?</h2><span id="srSeatCount" class="tb-badge"></span></div><p class="t-body">Pull up a chair. Everyone gets an animal.</p>
       <div class="sr-add"><input id="srName" maxlength="200" autocomplete="off" enterkeyhint="done" aria-label="Player names" placeholder="Sam, Jess, Mo…"><button type="button" id="srAdd" class="tb-btn tb-secondary">Add</button></div>
       <div id="srNames" class="sr-names" aria-label="Players"></div><p id="srNameError" class="sr-error" role="alert"></p>
     </section>
-    <section class="sr-panel sr-settings-panel"><div class="sr-section-head"><span class="sr-section-icon" aria-hidden="true">✨</span><h2>Make it yours</h2></div><div class="sr-fields">${g.schema.settings.map(field).join('') || '<p class="t-body">The board is ready. Add your names and play.</p>'}</div><p class="sr-timer-note t-caption"><span aria-hidden="true">⏸</span>Private turns get their own timer. Passing time is on us.</p></section>
-    <div class="sr-start"><button id="srStart" class="tb-btn tb-primary" type="submit"><span class="sr-start-icon" aria-hidden="true">▶</span><span>Start ${esc(g.name)}</span></button><p id="srReason" class="sr-reason" aria-live="polite"></p></div>
+    <section class="sr-panel sr-settings-panel"><div class="sr-section-head"><span class="sr-section-icon" aria-hidden="true">${uiIcon('sliders-horizontal', 29)}</span><h2>Make it yours</h2></div><div class="sr-fields">${g.schema.settings.map(field).join('') || '<p class="t-body">The board is ready. Add your names and play.</p>'}</div><p class="sr-timer-note t-caption"><span aria-hidden="true">${uiIcon('pause', 18)}</span>Private turns get their own timer. Passing time is on us.</p></section>
+    <div class="sr-start"><button id="srStart" class="tb-btn tb-primary" type="submit"><span class="sr-start-icon" aria-hidden="true">${uiIcon('play', 18)}</span><span>Start ${esc(g.name)}</span></button><p id="srReason" class="sr-reason" aria-live="polite"></p></div>
   </form>`;
   const picker = $('srGamePicker');
   picker.ontoggle = () => { if (picker.isConnected) pickingGame = picker.open; };
@@ -158,7 +158,7 @@ function paintNames() {
   const max = sameRoomSupport(game()).max;
   const previous = new Set([...$('srNames').querySelectorAll('[data-name]')].map(el => el.dataset.name));
   $('srSeatCount').textContent = `${names.length} / ${max}`;
-  $('srNames').innerHTML = names.length ? names.map((name, i) => `<span class="sr-person${previous.has(name) ? '' : ' is-new'}" data-name="${esc(name)}" data-colour="${i % 6}">${avatar({ avatar: LOCAL_AVATARS[i], colour: i % 6 })}<span>${esc(name)}</span><button type="button" data-remove="${i}" aria-label="Remove ${esc(name)}">×</button></span>`).join('') : '<div class="sr-empty"><span class="sr-empty-friends" aria-hidden="true">🦊 🐸 🐼</span><strong class="t-title">Your table is waiting</strong><p class="t-caption">Add two names to take the first seats.</p></div>';
+  $('srNames').innerHTML = names.length ? names.map((name, i) => `<span class="sr-person${previous.has(name) ? '' : ' is-new'}" data-name="${esc(name)}" data-colour="${i % 6}">${avatar({ avatar: LOCAL_AVATARS[i], colour: i % 6 })}<span>${esc(name)}</span><button type="button" data-remove="${i}" aria-label="Remove ${esc(name)}">×</button></span>`).join('') : `<div class="sr-empty"><span class="sr-empty-friends" aria-hidden="true">${uiIcon('armchair', 40)}</span><strong class="t-title">Your table is waiting</strong><p class="t-caption">Add two names to take the first seats.</p></div>`;
   $('srNames').querySelectorAll('[data-remove]').forEach(b => { b.onclick = () => {
     names.splice(Number(b.dataset.remove), 1); save('giggle:one-device:names', JSON.stringify(names)); paintNames(); $('srName').focus();
   }; });
@@ -171,7 +171,7 @@ function handoff(message) {
   const passingBack = message.gate === 'return';
   const p = passingBack ? lastPrivatePlayer : message.players.find(p => p.id === message.player);
   document.body.dataset.stage = passingBack ? 'return' : 'pass';
-  app.innerHTML = `<section class="tb-card sr-hand" data-colour="${colour(p)}" aria-labelledby="srHandTitle"><p class="sr-kicker">${passingBack ? 'All tucked away' : 'For your eyes only'}</p><div class="sr-hand-avatar">${avatar(p || { avatar: '👋' })}</div>${phoneArt(passingBack)}<h1 id="srHandTitle">${passingBack ? 'Pass the phone back' : `Pass the phone to ${esc(p?.name || 'the next player')}`}</h1><p class="sr-hand-note">${passingBack ? 'Your private screen is hidden. Give the phone back to the group.' : `Only ${esc(p?.name || 'they')} should look at the next screen.`}</p>${btn('srUnlock', passingBack ? 'Done, pass it back' : `I’m ${esc(p?.name || 'ready')}`)}<p class="sr-privacy-note"><span aria-hidden="true">🔒</span>Hidden until you’re ready. The clock waits too.</p></section>`;
+  app.innerHTML = `<section class="tb-card sr-hand" data-colour="${colour(p)}" aria-labelledby="srHandTitle"><p class="sr-kicker">${passingBack ? 'All tucked away' : 'For your eyes only'}</p><div class="sr-hand-avatar">${avatar(p)}</div>${phoneArt(passingBack)}<h1 id="srHandTitle">${passingBack ? 'Pass the phone back' : `Pass the phone to ${esc(p?.name || 'the next player')}`}</h1><p class="sr-hand-note">${passingBack ? 'Your private screen is hidden. Give the phone back to the group.' : `Only ${esc(p?.name || 'they')} should look at the next screen.`}</p>${btn('srUnlock', passingBack ? 'Done, pass it back' : `I’m ${esc(p?.name || 'ready')}`)}<p class="sr-privacy-note"><span aria-hidden="true">${uiIcon('lock-simple', 16)}</span>Hidden until you’re ready. The clock waits too.</p></section>`;
   $('srUnlock').onclick = () => input(passingBack ? 'back' : 'unlock');
   window.scrollTo?.(0, 0);
   $('srUnlock').focus({ preventScroll: true });
@@ -197,7 +197,7 @@ function play(message) {
   if (mountKey !== key) {
     reset(); mountKey = key; readyStep = null;
     window.scrollTo?.(0, 0);
-    app.innerHTML = `<header class="sr-play-head tb-card${newTurn ? ' is-new-turn' : ''}" data-colour="${colour(actor)}"><div class="sr-head-avatar">${avatar(result ? { avatar: '🏆' } : actor)}</div><div class="sr-turn-copy"><p class="t-caption">${esc(game()?.name || gameId)}${S.round ? ` · round ${S.round}${S.rounds ? ` of ${S.rounds}` : ''}` : ''}</p><h1 id="srTurn" class="sr-turn"></h1></div><div class="sr-turn-tools"><span class="sr-private-badge${message.private ? '' : ' is-public'}" aria-label="${message.private ? 'Private turn' : 'Shared screen'}">${message.private ? '🔒 Private' : 'All together'}</span>${message.private ? btn('srCover', 'Hide', 'tb-chip') : '<span class="sr-turn-star" aria-hidden="true">✦</span>'}</div></header><div id="srView" class="sr-view-shell" aria-busy="true"><div class="sr-loading tb-card" role="status"><div class="tb-skeleton"></div><p class="t-body">Setting the table…</p></div><div id="gbody" class="sr-playfield" data-layout="standard"></div></div><div id="srExtras"></div><nav class="sr-game-tools" aria-label="Game controls">${btn('srEnd', 'End game', 'tb-chip')}</nav>`;
+    app.innerHTML = `<header class="sr-play-head tb-card${newTurn ? ' is-new-turn' : ''}" data-colour="${colour(actor)}"><div class="sr-head-avatar">${result ? avatar(null, 'trophy') : avatar(actor)}</div><div class="sr-turn-copy"><p class="t-caption">${esc(game()?.name || gameId)}${S.round ? ` · round ${S.round}${S.rounds ? ` of ${S.rounds}` : ''}` : ''}</p><h1 id="srTurn" class="sr-turn"></h1></div><div class="sr-turn-tools"><span class="sr-private-badge${message.private ? '' : ' is-public'}" aria-label="${message.private ? 'Private turn' : 'Shared screen'}">${message.private ? uiIcon('lock-simple', 16) + ' Private' : 'All together'}</span>${message.private ? btn('srCover', 'Hide', 'tb-chip') : `<span class="sr-turn-star" aria-hidden="true">${uiIcon('sparkle', 22)}</span>`}</div></header><div id="srView" class="sr-view-shell" aria-busy="true"><div class="sr-loading tb-card" role="status"><div class="tb-skeleton"></div><p class="t-body">Setting the table…</p></div><div id="gbody" class="sr-playfield" data-layout="standard"></div></div><div id="srExtras"></div><nav class="sr-game-tools" aria-label="Game controls">${btn('srEnd', 'End game', 'tb-chip')}</nav>`;
     if ($('srCover')) $('srCover').onclick = () => { clearPrivate(); input('cover'); };
     $('srEnd').onclick = () => confirmEnd();
   }
@@ -280,7 +280,7 @@ document.addEventListener('visibilitychange', () => {
 function syncThemeControl() {
   const night = document.documentElement.dataset.theme === 'night';
   document.querySelector('meta[name="theme-color"]').content = getComputedStyle(document.documentElement).getPropertyValue('--topbar-bg').trim();
-  $('srTheme').textContent = night ? '☀' : '☾';
+  $('srTheme').innerHTML = uiIcon(night ? 'sun' : 'moon', 20);
   $('srTheme').setAttribute('aria-label', night ? 'Switch to day theme' : 'Switch to night theme');
   $('srTheme').setAttribute('aria-pressed', String(night));
 }

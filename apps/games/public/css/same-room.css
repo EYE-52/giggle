@@ -29,7 +29,7 @@ body.same-room-page {
 .sr-steps { display: flex; flex-wrap: wrap; gap: var(--space-8) var(--space-16); margin: var(--space-4) 0 0; padding: 0; list-style: none; font: var(--text-caption); color: var(--ink); }
 .sr-steps li { display: flex; align-items: center; gap: var(--space-8); }
 .sr-steps li > span { display: grid; place-items: center; width: var(--space-24); height: var(--space-24); border-radius: var(--radius-pill); background: var(--card); font: var(--text-button-sm); }
-/* The catalogue scrolls as one dialog. Art, names and counts have separate rows. */
+/* The shared dialog scrolls the catalogue under its fixed heading. */
 .sr-game-picker { grid-column: 1 / -1; min-width: 0; }
 .sr-game-picker > summary { width: 100%; justify-content: space-between; list-style: none; background: var(--sr-paper); }
 .sr-game-picker > summary::-webkit-details-marker { display: none; }

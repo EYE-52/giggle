@@ -1,4 +1,4 @@
-import { esc } from './util.js';
+import { esc, uiIcon } from './util.js';
 
 // Menu previews are small views of the shipped worlds, keyed by profile
 // as well as map ID: the classic and elevated gardens are different arenas.
@@ -67,12 +67,12 @@ export function resolveKartSetup(settings, changedKey) {
   return next;
 }
 
-const MODE_ICONS = { 'Zap Battle': '⚡', 'Garage Battle': '🔧', 'Star Rush': '⭐' };
+const MODE_ICONS = { 'Zap Battle': 'lightning', 'Garage Battle': 'wrench', 'Star Rush': 'star' };
 function choices(g, key, values, selected, host, labels = {}, cards = false) {
   return `<input type="hidden" id="df-${g.id}-${key}" value="${esc(selected)}" data-hostonly ${host ? '' : 'disabled'}>
     <div class="ks-choices${cards ? ' ks-cards' : ''}" role="radiogroup" aria-label="${esc({ winRule: 'Win rule', mode: 'Mode', palette: 'Lighting', roundSeconds: 'Round length' }[key] || 'Light cycle')}">
     ${values.map(value => `<button type="button" class="ks-choice" role="radio" aria-checked="${value === selected}" tabindex="${value === selected ? 0 : -1}" data-kart-key="${key}" data-kart-value="${esc(value)}" data-hostonly ${host ? '' : 'disabled'}>${cards
-      ? `<span class="ks-card-ico" aria-hidden="true">${MODE_ICONS[value] || '🏁'}</span><b>${esc(labels[value] || value)}</b><span class="ks-card-note">${esc(MODES[value]?.[1] || '')}</span>`
+      ? `<span class="ks-card-ico" aria-hidden="true">${uiIcon(MODE_ICONS[value] || 'flag-checkered', 30)}</span><b>${esc(labels[value] || value)}</b><span class="ks-card-note">${esc(MODES[value]?.[1] || '')}</span>`
       : esc(labels[value] || value)}</button>`).join('')}</div>`;
 }
 

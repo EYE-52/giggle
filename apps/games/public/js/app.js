@@ -1,6 +1,6 @@
 /* Game Night shell: connection, home/lobby/game screens, game view host. */
 import {warmPickedKart} from './kart-warmup.mjs';
-import { esc, store, artGradient, artInitial, practiceContext } from './util.js';
+import { esc, store, artGradient, artInitial, practiceContext, uiIcon } from './util.js';
 import { practiceSupport } from './practice-support.mjs';
 import { finalHtml } from './kit.js';
 import { ZOOM_KEY, ZOOM_STEPS, currentZoom, stepZoom, percent, zoomable, zoomControlHtml } from './zoom.js';
@@ -1590,7 +1590,7 @@ function fitKind(g, n) {
 /* Home has no room, so the desired size is explicit: a game matches when
  * its player range OVERLAPS the picked range (intersection semantics). */
 const HOME_GROUPS = [
-  ['any', 'Any size', '👥 Any'], ['2', '2 players', '2'], ['3-4', '3–4 players', '3–4'],
+  ['any', 'Any size', 'Any'], ['2', '2 players', '2'], ['3-4', '3–4 players', '3–4'],
   ['5-8', '5–8 players', '5–8'], ['9+', '9+ players', '9+'],
 ];
 
@@ -2082,9 +2082,9 @@ function paintVoice() {
   const button = document.getElementById('bVoice');
   if (!button) return;
   const status = voiceClient.getStatus();
-  const labels = { active: '🎙️ Mic on', off: '🎙️ Talk together', denied: '🎙️ Mic blocked', unavailable: '🎙️ Mic unavailable' };
-  const label = !embedAuthed ? '🎙️ Connecting…' : (labels[status.mic] || '🎙️ Talk together');
-  button.innerHTML = '🎙️ <span class="voice-label">' + esc(label.replace(/^🎙️ /, '')) + '</span>';
+  const labels = { active: 'Mic on', off: 'Talk together', denied: 'Mic blocked', unavailable: 'Mic unavailable' };
+  const label = !embedAuthed ? 'Connecting…' : (labels[status.mic] || 'Talk together');
+  button.innerHTML = uiIcon('microphone', 20) + ' <span class="voice-label">' + esc(label) + '</span>';
   button.disabled = !embedTrusted || !embedAuthed;
   button.title = status.hint || 'Use the microphone in your Giggle call';
   button.setAttribute('aria-label', label);
@@ -2480,14 +2480,14 @@ function gameRoomMenu(g, context, floating = false) {
       <h2 id="roomMenuTitle">${esc(gameName(gameId))}</h2>
       <p id="gContext">${context}</p>
       ${lastState.spectator ? `<p class="room-watch" role="status">${esc(spectatorBanner(seatCap(g)))}</p>` : ''}
-      <button type="button" class="room-resume" id="bRoomResume">${lastState.spectator ? 'Back to watching' : 'Back to game'}<span aria-hidden="true">▶</span></button>
+      <button type="button" class="room-resume" id="bRoomResume">${lastState.spectator ? 'Back to watching' : 'Back to game'}<span aria-hidden="true">${uiIcon('play', 18)}</span></button>
       <div class="room-menu-actions">
         <button type="button" class="room-setting" id="bControls">Controls</button>
         <button type="button" class="room-setting is-switch" id="bSound" role="switch" aria-checked="${sound.enabled}">${roomSwitchHtml(soundIcon(sound.enabled), 'Sound')}</button>
         <button type="button" class="room-setting is-switch" id="bTheme" role="switch" aria-checked="${theme() === 'night'}">${roomSwitchHtml(themeIcon(theme()), 'Night')}</button>
         <button type="button" class="room-setting" id="bGameScreen">Full screen</button>
         ${!EMBED.enabled ? '<button type="button" class="room-setting" id="bGameInvite">Invite friends</button>' : ''}
-        ${EMBED.enabled && embedTrusted ? '<button type="button" class="room-setting" id="bVoice">🎙️ Talk together</button>' : ''}
+        ${EMBED.enabled && embedTrusted ? '<button type="button" class="room-setting" id="bVoice">' + uiIcon('microphone', 20) + ' Talk together</button>' : ''}
         <button type="button" class="room-setting" data-report>Report an issue</button>
       </div>
       ${zoomable(g) ? `<div class="room-size"><span class="room-size-label">Game size</span>${zoomControlHtml(gameZoom())}</div>` : ''}
