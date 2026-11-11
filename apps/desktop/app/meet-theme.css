@@ -1,0 +1,50 @@
+/* The frame around Meet follows the resolved mode. Palettes still supply
+   illustrations, brand accents, presence signals and Appearance previews. */
+html[data-mode="light"] {
+  color-scheme:light; --meet-scheme:light; --meet-on-danger:#fff;
+  --meet-bg:#fff; --meet-panel:#fff; --meet-raised:#f4f4f5;
+  --meet-ink:#19191b; --meet-secondary:#404046; --meet-muted:#616169;
+  --meet-line:#d7d7dc; --meet-line-strong:#85858d;
+  --meet-action:#242427; --meet-action-hover:#3b3b40; --meet-on-action:#fff;
+  --meet-wash:#faedf2; --meet-good:#116743; --meet-good-bg:#e2f2ea;
+  --meet-danger:#9f2745; --meet-danger-bg:#fae6eb;
+}
+html[data-mode="dark"] {
+  color-scheme:dark; --meet-scheme:dark; --meet-on-danger:#291118;
+  --meet-bg:#0c0c0e; --meet-panel:#171719; --meet-raised:#242427;
+  --meet-ink:#f7f7f8; --meet-secondary:#d2d2d7; --meet-muted:#b4b4bc;
+  --meet-line:#404045; --meet-line-strong:#81818b;
+  --meet-action:#f4f4f5; --meet-action-hover:#dcdce0; --meet-on-action:#151517;
+  --meet-wash:#24161f; --meet-good:#83dfae; --meet-good-bg:#173629;
+  --meet-danger:#ffa8ba; --meet-danger-bg:#392127;
+}
+html[data-skin][data-palette][data-mode] {
+  --bg:var(--meet-bg); --bg-2:var(--meet-raised);
+  --surface:var(--meet-panel); --surface-2:var(--meet-raised);
+  --panel:var(--meet-panel); --text:var(--meet-ink); --ink:var(--meet-ink);
+  --muted:var(--meet-muted); --text-muted:var(--meet-muted); --text-body:var(--meet-secondary);
+  --line:var(--meet-line); --border:var(--meet-line);
+  --meet-page:radial-gradient(ellipse at 100% 0,var(--meet-wash),transparent 49%) top right / 100% min(100vh,850px) no-repeat,var(--meet-bg);
+}
+/* Generated skin selectors include preview-specific specificity even on the live shell. */
+html[data-skin][data-palette][data-mode] :is(body,.gg-landing,.gg-app-root) { background:var(--meet-page) !important; }
+html[data-skin][data-palette][data-mode] .gg-app-root { color:var(--meet-ink); }
+html[data-skin][data-palette][data-mode] :is(.gg-header,.gg-mobile-nav,.gg-landing .nav) {
+  background:var(--meet-panel); color:var(--meet-ink); border-color:var(--meet-line); box-shadow:none;
+}
+html[data-skin][data-palette][data-mode] .gg-landing .btn.btn-primary {
+  background:var(--meet-action); color:var(--meet-on-action); border-color:var(--meet-action); box-shadow:none;
+}
+html[data-skin][data-palette][data-mode] .gg-landing .btn.btn-primary:hover {
+  background:var(--meet-action-hover);
+}
+html[data-skin][data-palette][data-mode] .gg-landing .btn.btn-secondary {
+  background:var(--meet-panel); color:var(--meet-ink); border-color:var(--meet-line);
+}
+/* Keep Clay's raised rims and pressed shapes while neutralising large fills. */
+html[data-skin="clay"][data-palette][data-mode] {
+  --clay-page:var(--meet-bg); --clay-fill:var(--meet-panel);
+  --clay-fill-2:var(--meet-raised); --clay-well:var(--meet-raised);
+  --clay-shade:color-mix(in srgb,var(--meet-ink) 16%,transparent);
+  --clay-shade-soft:color-mix(in srgb,var(--meet-ink) 9%,transparent);
+}

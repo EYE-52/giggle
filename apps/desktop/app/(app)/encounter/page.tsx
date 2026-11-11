@@ -1807,7 +1807,7 @@ function EncounterInner() {
                       alignItems: "center",
                       justifyContent: "center",
                       "--cbtn-bg": background,
-                      "--cbtn-fg": off ? "#fff" : selected ? "var(--accent-ink, var(--accent))" : "var(--text)",
+                      "--cbtn-fg": off ? "var(--meet-on-danger)" : selected ? "var(--accent-ink, var(--accent))" : "var(--text)",
                     } as CSSProperties}
                   >
                     {icon}

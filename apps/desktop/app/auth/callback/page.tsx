@@ -58,7 +58,7 @@ export default function AuthCallbackPage() {
   }, [router]);
 
   return (
-    <div style={{ minHeight: "100vh", background: "var(--bg-2)", display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
+    <div style={{ minHeight: "100vh", background: "var(--meet-page)", display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
       <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 16, maxWidth: 360, textAlign: "center" }}>
         <Logomark size={48} />
         {error ? (

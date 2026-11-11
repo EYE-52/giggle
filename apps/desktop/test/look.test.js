@@ -139,7 +139,7 @@ test("applyLook writes attributes, storage and the legacy data-theme bridge", ()
   const { look, restore } = loadLook({ storage, matchMedia: () => ({ matches: true, addEventListener: () => {}, removeEventListener: () => {} }) });
   const attrs = new Map();
   const previousDocument = global.document;
-  global.document = { documentElement: { setAttribute: (k, v) => attrs.set(k, v) } };
+  global.document = { documentElement: { setAttribute: (k, v) => attrs.set(k, v) }, querySelector: () => ({ setAttribute: (_, value) => attrs.set("chrome", value) }) };
   try {
     const resolved = look.applyLook({ skin: "clay", palette: "grape", mode: "auto" });
     assert.equal(resolved, "dark");
@@ -147,6 +147,7 @@ test("applyLook writes attributes, storage and the legacy data-theme bridge", ()
     assert.equal(attrs.get("data-palette"), "grape");
     assert.equal(attrs.get("data-mode"), "dark");
     assert.equal(attrs.get("data-theme"), "dark");
+    assert.equal(attrs.get("chrome"), "#0c0c0e");
     assert.equal(storage.get("giggle.look"), JSON.stringify({ skin: "clay", palette: "grape", mode: "auto" }));
 
     // An invalid look falls back to the stored one instead of breaking.

@@ -50,6 +50,14 @@
     root.setAttribute("data-palette", look.palette);
     root.setAttribute("data-mode", resolved);
     root.setAttribute("data-theme", resolved);
+    var meta = document.querySelector('meta[name="theme-color"]');
+    if (!meta) {
+      // This tag follows the saved preference, which can differ from the OS.
+      meta = document.createElement("meta");
+      meta.name = "theme-color";
+      document.head.appendChild(meta);
+    }
+    meta.content = resolved === "dark" ? "#0c0c0e" : "#ffffff";
   }
 
   apply();

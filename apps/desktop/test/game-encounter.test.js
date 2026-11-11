@@ -192,16 +192,22 @@ test("selected chat audience text has readable call-theme contrast", () => {
   const css = revampCssSource();
   const selected = css.match(/\.gg-chat-audience button\[aria-pressed="true"\] \{([^}]+)\}/)[1];
   const tokens = readFileSync(path.join(__dirname, "../app/call-room.css"), "utf8");
-  const color = property => {
-    const variable = selected.match(new RegExp(property + ":\\s*var\\((--[\\w-]+)"))[1];
-    return tokens.match(new RegExp(variable + ":\\s*(#[\\da-f]{6})", "i"))[1];
+  const themes = readFileSync(path.join(__dirname, "../app/meet-theme.css"), "utf8");
+  const color = (property, mode) => {
+    const name = selected.match(new RegExp(property + ":\\s*var\\((--[\\w-]+)"))[1];
+    const reference = tokens.match(new RegExp(name + ":\\s*var\\((--[\\w-]+)"))[1];
+    const palette = themes.match(new RegExp('html\\[data-mode="' + mode + '"\\] \\{([^}]+)'))[1];
+    return palette.match(new RegExp(reference + ":\\s*(#[\\da-f]{3,6})", "i"))[1];
   };
   const luminance = hex => {
+    if (hex.length === 4) hex = "#" + [...hex.slice(1)].map(c=>c+c).join("");
     const rgb = [1,3,5].map(index => parseInt(hex.slice(index,index + 2),16) / 255).map(channel => channel <= .04045 ? channel / 12.92 : ((channel + .055) / 1.055) ** 2.4);
     return rgb.reduce((sum,channel,index) => sum + channel * [.2126,.7152,.0722][index],0);
   };
-  const pair = [luminance(color("color")),luminance(color("background"))].sort((a,b) => a-b);
-  assert.ok((pair[1] + .05) / (pair[0] + .05) >= 4.5, "14px audience text needs at least 4.5:1 on its actual call fill");
+  for (const mode of ["light","dark"]) {
+    const pair = [luminance(color("color",mode)),luminance(color("background",mode))].sort((a,b) => a-b);
+    assert.ok((pair[1] + .05) / (pair[0] + .05) >= 4.5, "14px audience text needs at least 4.5:1 in "+mode+" mode");
+  }
 });
 
 

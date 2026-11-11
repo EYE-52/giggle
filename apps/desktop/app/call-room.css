@@ -3,41 +3,21 @@
 /* .gg-call-room-modal: dialogs opened from a call room (portaled to <body>)
    wear the room's palette instead of the profile skin's. */
 :is(.gg-lobby-root, .gg-screen-call, .gg-call-room-modal) {
-  --bg: #171922;
-  --bg-2: #1b1e28;
-  --surface: #21242f;
-  --surface-2: #2a2f3d;
-  --text: #f5f6fa;
-  --text-body: #d0d5e2;
-  --text-muted: #a8b0c5;
-  --muted: #a8b0c5;
-  --text-dim: #a8b0c5;
-  --border: #363c4d;
-  --line: #363c4d;
-  /* Skin strokes derive from --line at the root; re-derive them here. */
-  --stroke: color-mix(in srgb, var(--line) 78%, transparent);
-  --stroke-strong: color-mix(in srgb, var(--line) 92%, var(--text) 8%);
-  --border-strong: #586078;
-  --overlay: #2a2f3d;
-  --overlay-hover: #363d4f;
-  --accent: #da216c;
-  --accent-hover: #c91d62;
-  --accent-ink: #ff91bd;
-  --accent-soft: #382337;
-  --accent-line: #794460;
-  --accent-contrast: #fff;
-  --on-accent: #fff;
-  --brand: #da216c;
-  --brand-deep: #da216c;
-  --on-brand: #fff;
-  --ok: #6ee3b4;
-  --live: #6ee3b4;
-  --live-soft: #183e35;
-  --live-contrast: #c4f8e5;
-  --coral: #ff9aab;
-  --coral-soft: #472530;
-  --stage: #171922;
-  --stage-2: #21242f;
+  --bg:var(--meet-bg); --bg-2:var(--meet-raised);
+  --surface:var(--meet-panel); --surface-2:var(--meet-raised);
+  --ink:var(--meet-ink); --panel:var(--meet-panel);
+  --text:var(--meet-ink); --text-body:var(--meet-secondary); --text-muted:var(--meet-muted);
+  --muted:var(--meet-muted); --text-dim:var(--meet-muted);
+  --border:var(--meet-line); --line:var(--meet-line); --border-strong:var(--meet-line-strong);
+  --stroke:var(--meet-line); --stroke-strong:var(--meet-line-strong);
+  --overlay:var(--meet-raised); --overlay-hover:color-mix(in srgb,var(--meet-ink) 12%,var(--meet-panel));
+  --accent:var(--meet-action); --accent-hover:var(--meet-action-hover); --accent-ink:var(--meet-ink);
+  --accent-soft:var(--meet-raised); --accent-line:var(--meet-line-strong);
+  --brand:var(--meet-action); --brand-deep:var(--meet-action);
+  --on-accent:var(--meet-on-action); --on-brand:var(--meet-on-action); --accent-contrast:var(--meet-on-action);
+  --ok:var(--meet-good); --live:var(--meet-good); --live-soft:var(--meet-good-bg); --live-contrast:var(--meet-good);
+  --coral:var(--meet-danger); --coral-soft:var(--meet-danger-bg);
+  --stage:var(--meet-bg); --stage-2:var(--meet-panel);
   --font-body: var(--font-cabinet), "Cabinet Grotesk", system-ui, sans-serif;
   --font-display: var(--font-body);
   --font-hand: var(--font-body);
@@ -65,23 +45,23 @@
   --sb-ink: var(--text);
   --sb-ink-2: var(--text-muted);
   --sb-line: var(--border);
-  --sb-note: #2a2f3d;
-  --sb-note-mint: #2a2f3d;
-  --sb-note-pink: #382337;
-  --sb-note-ink: #f5f6fa;
-  --sb-note-muted: #a8b0c5;
+  --sb-note: var(--meet-raised);
+  --sb-note-mint: var(--meet-raised);
+  --sb-note-pink: var(--meet-raised);
+  --sb-note-ink: var(--meet-ink);
+  --sb-note-muted: var(--meet-muted);
   --sb-rule: transparent;
   --sb-margin-rule: transparent;
   --clay-fill: var(--surface-2);
   --clay-well: var(--surface);
   --clay-raised: none;
   --clay-inset: none;
-  background: var(--bg) !important;
+  background: var(--meet-page) !important;
   color: var(--text);
   font-family: var(--font-body);
   font-size: 16px;
   line-height: 1.5;
-  color-scheme: dark;
+  color-scheme:var(--meet-scheme);
 }
 /* The room's dialogs keep a see-through dimmed backdrop, not the room fill. */
 .gg-modal-backdrop.gg-call-room-modal { background: rgba(8, 9, 14, 0.72) !important; }
@@ -89,21 +69,21 @@
 /* Some profile skins redefine tokens on cards themselves. Re-establish the
    call palette at those boundaries so foreground and surface stay paired. */
 :is(.gg-lobby-root, .gg-screen-call) :is(.card, [data-testid="lobby-person"]) {
-  --bg: #171922 !important;
-  --surface: #21242f !important;
-  --surface-2: #2a2f3d !important;
-  --text: #f5f6fa !important;
-  --text-body: #d0d5e2 !important;
-  --text-muted: #a8b0c5 !important;
-  --text-dim: #a8b0c5 !important;
-  --muted: #a8b0c5 !important;
-  --line: #363c4d !important;
-  --border: #363c4d !important;
-  --sb-ink: #f5f6fa !important;
-  --sb-ink-2: #a8b0c5 !important;
-  --sb-line: #363c4d !important;
-  --sb-paper: #21242f !important;
-  --sb-note: #2a2f3d !important;
+  --bg: var(--meet-bg) !important;
+  --surface: var(--meet-panel) !important;
+  --surface-2: var(--meet-raised) !important;
+  --text: var(--meet-ink) !important;
+  --text-body: var(--meet-secondary) !important;
+  --text-muted: var(--meet-muted) !important;
+  --text-dim: var(--meet-muted) !important;
+  --muted: var(--meet-muted) !important;
+  --line: var(--meet-line) !important;
+  --border: var(--meet-line) !important;
+  --sb-ink: var(--meet-ink) !important;
+  --sb-ink-2: var(--meet-muted) !important;
+  --sb-line: var(--meet-line) !important;
+  --sb-paper: var(--meet-panel) !important;
+  --sb-note: var(--meet-raised) !important;
 }
 
 /* The legacy skins use high-specificity paint rules. These narrow overrides
@@ -138,6 +118,7 @@
   color: var(--on-accent) !important;
 }
 .gg-lobby-root > header > button[aria-expanded="true"] {
+  color:var(--text) !important;
   background: var(--surface-2) !important;
 }
 .gg-lobby-root > header > button[aria-label^="Copy squad code"] {
@@ -175,7 +156,7 @@
   /* Hug the name (ellipsis when long) instead of a full-width bar. */
   flex: 0 1 auto;
   padding: 4px 8px !important;
-  background: #171922e8 !important;
+  background: color-mix(in srgb,var(--meet-panel) 93%,transparent) !important;
   color: var(--text) !important;
   border-radius: 8px !important;
   font: 700 13px/18px var(--font-body) !important;
@@ -244,3 +225,14 @@ html[data-skin] .gg-screen-call .cbtn[data-cbtn-state="on"] { color: var(--accen
 .gg-lobby-root[data-short-games] > header { padding-bottom: 0; border-bottom: 0; }
 .gg-lobby-root[data-short-games] > header > button[aria-label="Edit squad topics"] { display: none !important; }
 .gg-lobby-root[data-short-games] { gap: 4px !important; }
+
+/* Even when the selected skin gives the toolbar its own palette, labels and
+   popovers use the same mode as the rest of this call. */
+html[data-palette] .gg-screen-call .gg-call-controls-wrap {
+  --text:var(--meet-ink); --text-muted:var(--meet-muted);
+  --surface:var(--meet-panel); --surface-2:var(--meet-raised);
+}
+.gg-screen-call .gg-call-menu { background:var(--meet-panel); color:var(--meet-ink); }
+html[data-skin][data-mode] .gg-screen-call .call-bar {
+  background:var(--meet-panel); border-color:var(--meet-line);
+}

@@ -417,7 +417,7 @@ const bodyStyle: React.CSSProperties = {
 
 function Shell({ children }: { children: React.ReactNode }) {
   return (
-    <div style={{ minHeight: "100vh", display: "grid", placeItems: "center", padding: "24px 16px", background: "var(--bg)" }}>
+    <div style={{ minHeight: "100vh", display: "grid", placeItems: "center", padding: "24px 16px", background: "var(--meet-page)" }}>
       <div
         role="dialog"
         aria-modal="true"

@@ -28,6 +28,7 @@ import "./skins/scrap-real.css";
 import "./skins/play-real.css";
 import "./skins/paper-real.css";
 import "./skins/soft-real.css";
+import "./meet-theme.css";
 import "./call-room.css";
 import { SketchLayer } from "@/components/SketchLayer";
 
@@ -72,8 +73,6 @@ export const viewport: Viewport = {
   // Draw under the notch / home indicator so env(safe-area-inset-*) engages and
   // the app renders edge-to-edge like a native shell.
   viewportFit: "cover",
-  // Default look (soft + honey) light background; dark picks it up from CSS.
-  themeColor: "#FCF9F1",
 };
 
 export const metadata: Metadata = {
