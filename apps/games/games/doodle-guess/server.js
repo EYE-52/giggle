@@ -1,4 +1,5 @@
 'use strict';
+const { containsAnswer } = require('../engines/guess-chat');
 /* Doodle Guess: one player draws, rest guess. Reference realtime game:
  * stroke streaming, per-player hidden word, speed scoring, hints. */
 
@@ -6,6 +7,7 @@ const { dealer, shuffle, roundsSetting, paceSetting, paced } = require('../_sdk'
 const { maskWord, revealLetter } = require('../engines/word-hints');
 const { normalizeStroke } = require('../engines/drawing-input');
 const { randomUUID } = require('node:crypto');
+const { createJsonRealtime } = require('../../server/realtime');
 
 const id = 'doodle-guess';
 const CHOICES = 3;
@@ -160,6 +162,7 @@ function nextTurn(state, ctx) {
   state.guessSerial = 0;
   state.feedback = {};
   state.guessed = {};
+  state.roundScores = { ...state.scores };
   state.phase = 'pick';
   state.endsAt = ctx.now() + state.pickMs;
   const round = state.round;
@@ -252,7 +255,9 @@ function drawingAction(state, a) {
       (a.preview && (!Number.isSafeInteger(a.sample) || a.sample < 1 || a.sample > 1e6))) return false;
   ink.tool = source.tool || 'pen';
   ink.color = ink.tool === 'eraser' ? '#ffffff' : ink.color.toLowerCase();
-  const stroke = { ...ink, gestureId: a.gestureId, chunk: a.chunk };
+  // A public chunk keeps this key through previews, commits and reconnects.
+  // rt1 can then append/evict chunks without replaying the retained canvas.
+  const stroke = { ...ink, id: `${a.gestureId}:${a.chunk}`, gestureId: a.gestureId, chunk: a.chunk };
   let active = state.inkActive;
   if (!active || active.id !== a.gestureId) {
     if (a.gestureId <= state.lastGestureId || a.chunk !== 0) return false;
@@ -304,11 +309,17 @@ function onAction(state, ctx, pid, a) {
     state.inkRevision += 1; // queued preview/commit/duplicate undo cannot restore old ink
     return;
   }
-  if (state.phase === 'draw' && pid !== state.drawer && typeof a.guess === 'string' && !state.guessed[pid]) {
+  if (state.phase === 'draw' && pid !== state.drawer && typeof a.guess === 'string') {
     const text = a.guess.trim();
     if (text.length > 60) return false;
     const g = text.toLowerCase();
     if (!g) return false;
+    if (state.guessed[pid]) {
+      if (containsAnswer(text, [state.word])) return false;
+      state.guesses.push({ id: ++state.guessSerial, pid, correct: false, text });
+      if (state.guesses.length > 80) state.guesses.splice(0, state.guesses.length - 80);
+      return;
+    }
     state.feedback[pid] = { message: `“${text}” is not it. Try again.` };
     if (g && g === state.word.toLowerCase()) {
       const left = Math.max(0, state.endsAt - ctx.now());
@@ -317,9 +328,10 @@ function onAction(state, ctx, pid, a) {
       state.guessed[pid] = pts;
       state.feedback[pid] = { message: `You got it! +${pts} points.` };
       state.scores[pid] = (state.scores[pid] || 0) + pts;
-      state.guesses.push({ id: ++state.guessSerial, pid, correct: true, points: pts });
+      // Correct guesses live only in private feedback/score state. They must
+      // neither consume public IDs nor evict visible chat from bounded history.
       if (allGuessed(state, ctx)) endTurn(state, ctx, 'Everyone got it');
-    } else state.guesses.push({ id: ++state.guessSerial, pid, correct: false, text });
+    } else if (!containsAnswer(text, [state.word])) state.guesses.push({ id: ++state.guessSerial, pid, correct: false, text });
     if (state.guesses.length > 80) state.guesses.splice(0, state.guesses.length - 80);
     return;
   }
@@ -387,8 +399,13 @@ function onTick(state, ctx) {
 }
 
 function view(state, pid, ctx) {
-  const { deal, feedback, previewDirty, inkActive, inkFeedback, lastGestureId, inkNonce, pickMs, revealMs, nextSeat, ...rest } = state;
+  const { guessSerial, roundScores, deal, feedback, previewDirty, inkActive, inkFeedback, lastGestureId, inkNonce, pickMs, revealMs, nextSeat, ...rest } = state;
   const out = { ...rest, myFeedback: feedback?.[pid] || null };
+  if (state.phase === 'draw') {
+    out.guessed = state.guessed[pid] ? { [pid]: state.guessed[pid] } : {};
+    out.guesses = state.guesses.filter(g => !g.correct);
+    out.scores = { ...roundScores };
+  }
   // The current host may press Next at the reveal (rooms re-elect hosts).
   if (ctx && typeof ctx.hostId === 'function') out.hostId = ctx.hostId();
   // Only the drawer sees the word; everyone sees the mask.
@@ -406,4 +423,6 @@ function view(state, pid, ctx) {
   return out;
 }
 
-module.exports = { id, minPlayers: 3, maxPlayers: 12, realtime: true, manifest, create, onAction, onTick, onEnd, onPlayerGone, view, guessPoints, artistPoints };
+const SNAPSHOT_REALTIME = createJsonRealtime(view, ['strokes', 'preview', 'guesses']);
+
+module.exports = { id, minPlayers: 3, maxPlayers: 12, realtime: () => SNAPSHOT_REALTIME, manifest, create, onAction, onTick, onEnd, onPlayerGone, view, guessPoints, artistPoints };

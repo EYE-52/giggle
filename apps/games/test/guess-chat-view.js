@@ -1,0 +1,40 @@
+'use strict';
+const fs=require('node:fs'), assert=require('node:assert/strict');
+const {makeDocument,surface}=require('./party-mobile');
+const data=source=>'data:text/javascript;base64,'+Buffer.from(source).toString('base64');
+(async()=>{
+ const util=data(fs.readFileSync(require.resolve('../public/js/util.js'),'utf8'));
+ let source=fs.readFileSync(require.resolve('../public/js/games/emoji-story.js'),'utf8').replace("'../util.js'",JSON.stringify(util)).replace("'../kit.js'",JSON.stringify(require('./_kit-url')(util)));
+ const view=(await import(data(source))).default,doc=makeDocument(),el=surface(doc),original=global.document;
+ global.document=doc;
+ const sent=[],players=['a','b','c'].map(id=>({id,name:id}));
+ const base={instanceId:'chat-match',me:'a',phase:'guess',round:1,rounds:3,endsAt:10000,director:'b',emoji:'🌊🐟',players,scores:{},guesses:[],solvers:[],mySolved:false};
+ const api={now:()=>1000,send:a=>{sent.push(a);return true;}};
+ try {
+  view.render(el,base,api);
+  const input=el.querySelector('#eGuess');input.value='draft before solve';
+  view.render(el,{...base,mySolved:true},api);
+  assert.equal(el.querySelector('#eGuess'),input,'authoritative solve keeps native input node');
+  assert.equal(input.value,'draft before solve','solve keeps in-progress draft');
+  assert(!input.disabled,'solved Emoji player can type');
+  el.querySelector('#eSend').click();
+  assert.deepEqual(sent,[{guess:'draft before solve'}],'solved player sends through original guess transport');
+  input.value='typing a bluff';
+  view.render(el,{...base,mySolved:true,guesses:[{pid:'c',text:'<img onerror=bad>'}]},api);
+  assert.equal(input.value,'typing a bluff','incoming public text preserves draft');
+  assert(el.querySelector('[data-live="guesses"]').textContent.includes('<img onerror=bad>'),'public chat renders as literal text');
+  assert.equal(el.querySelector('[data-live="guesses"]').querySelector('img'),null,'public chat cannot create markup');
+  view.render(el,{...base,mySolved:true,preparing:true},api);el.querySelector('#eSend').click();
+  assert.equal(sent.length,1,'preparation blocks solver chat');
+  view.render(el,{...base,mySolved:true,hostId:'c'},api);
+  assert.equal(el.querySelector('#eGuess'),input,'host transfer preserves the live input');
+  assert.equal(input.value,'typing a bluff','host transfer preserves the draft');
+  el.querySelector('#eSend').click();
+  assert.deepEqual(sent.at(-1),{guess:'typing a bluff'},'a new room host cannot silence the guesser');
+  const retired=el.querySelector('#eSend').onclick;
+  view.render(el,{...base,round:2},api);retired();
+  assert.equal(sent.length,2,'old round handler cannot send bluff');
+  view.dispose();
+  console.log('GUESS_CHAT_VIEW_PASS Emoji composer survives solve and snapshots, escapes text, blocks preparation and stale input');
+ }finally{view.dispose();global.document=original;}
+})().catch(e=>{console.error(e);process.exitCode=1});

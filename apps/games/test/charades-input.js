@@ -28,16 +28,16 @@ const data = source => 'data:text/javascript;base64,' + Buffer.from(source).toSt
     assert.equal(input.value,'next try');
     view.render(el,{...state,guessed:{a:300}},api('locked'));
     input.disabled = false; button.disabled = false; button.click();
-    assert.equal(sent.length,2,'queued controls cannot send after an authoritative correct guess');
+    assert.equal(sent.length,3,'solved players can keep chatting without locking their composer');
     view.render(el,{...state,round:2,w:'turn2'},api('new-turn'));
     const retired = button.onclick;
-    retired(); assert.equal(sent.length,2,'old turn handler cannot submit into a new turn');
+    retired(); assert.equal(sent.length,3,'old turn handler cannot submit into a new turn');
     const nextInput = el.querySelector('#cGuess'); nextInput.value='kite';
     view.render(el,{...state,round:2,w:'turn2'},api('fresh-paint'));
     assert.equal(el.querySelector('#cGuess'),nextInput,'same-turn updates preserve the compact composer node');
     assert.equal(nextInput.value,'kite','same-turn updates preserve a native typing draft');
     const nextSend = el.querySelector('#cSend').onclick;
-    view.dispose(); nextSend(); assert.equal(sent.length,2,'disposed handlers cannot send');
+    view.dispose(); nextSend(); assert.equal(sent.length,3,'disposed handlers cannot send');
     view.render(el,{...state,me:'b',wordShown:'a long actor word',instanceId:'actor'},api('actor'));
     assert(el.innerHTML.includes('a long actor word'),'actor word remains complete');
     view.render(el,{...state,phase:'reveal',instanceId:'reveal',word:'kite'},api('reveal'));
@@ -66,6 +66,6 @@ const data = source => 'data:text/javascript;base64,' + Buffer.from(source).toSt
       }
       finalView.dispose?.();
     }
-    console.log('CHARADES_INPUT_PASS: rejected draft, fresh API, preparation, correct-guess lock, retired turn and disposal');
+    console.log('CHARADES_INPUT_PASS: rejected draft, fresh API, preparation, post-solve chat, retired turn and disposal');
   } finally { view.dispose(); if(old===undefined)delete global.document;else global.document=old; }
 })().catch(e=>{console.error(e);process.exitCode=1;});

@@ -1,4 +1,5 @@
 'use strict';
+const { containsAnswer, awardPending, settlePending } = require('../engines/guess-chat');
 /* Emoji Story: each round one player gets a secret phrase and retells it
  * using emoji only (no letters); everyone else races to guess the phrase.
  * A correct guess is worth 100, plus up to 100 for speed (the first solver
@@ -106,6 +107,9 @@ function nextTurn(state, ctx) {
     : [];
   state.emoji = '';
   state.solved = {};
+  state.guesses = [];
+  state.roundScores = { ...state.scores };
+  state.pendingAwards = {};
   state.phase = 'emoji';
   state.endsAt = ctx.now() + state.emojiMs;
   const er = state.turnNo;
@@ -130,6 +134,7 @@ function skipStory(state, ctx) {
   if (state.phase !== 'emoji') return;
   state.phase = 'reveal';
   state.last = { skipped: true, phrase: state.phrase, emoji: '', director: state.director, solvers: [], points: {} };
+  settlePending(state, ctx);
   scheduleNext(state, ctx);
 }
 
@@ -148,7 +153,7 @@ function startGuess(state, ctx) {
 function score(state, ctx, pid, pts) {
   if (!pts) return;
   state.scores[pid] = (state.scores[pid] || 0) + pts;
-  ctx.award(pid, pts);
+  awardPending(state, pid, pts);
 }
 
 function norm(s) {
@@ -198,6 +203,7 @@ function reveal(state, ctx) {
     solvers: Object.keys(state.solved).map((pid) => ({ pid, pts: state.solved[pid].pts })),
     points,
   };
+  settlePending(state, ctx);
   scheduleNext(state, ctx);
 }
 
@@ -226,9 +232,14 @@ function onAction(state, ctx, pid, a) {
     }
     return;
   }
-  if (state.phase === 'guess' && pid !== state.director && typeof a.guess === 'string' && !state.solved[pid]) {
+  if (state.phase === 'guess' && pid !== state.director && typeof a.guess === 'string') {
     const g = a.guess.trim().slice(0, 80);
-    if (g.length >= 1 && isCorrect(state, g)) {
+    if (!g || a.guess.trim().length > 80) return;
+    if (!containsAnswer(g, [state.phrase, ...state.aliases])) {
+      state.guesses.push({ pid, text: g });
+      if (state.guesses.length > 80) state.guesses.shift();
+    }
+    if (!state.solved[pid] && isCorrect(state, g)) {
       const pts = solvePoints(state, ctx);
       state.solved[pid] = { pts };
       score(state, ctx, pid, pts);
@@ -247,7 +258,8 @@ function hostOf(ctx) {
 }
 
 /* End game: points already given stay; show our own final screen. */
-function onEnd(state) {
+function onEnd(state, ctx) {
+  settlePending(state, ctx);
   finish(state);
 }
 
@@ -271,7 +283,7 @@ function onPlayerGone(state, ctx, pid) {
 }
 
 function view(state, pid, ctx) {
-  const { deal, order, ptr, turns, ...rest } = state;
+  const { deal, order, ptr, turns, roundScores, pendingAwards, ...rest } = state;
   const out = { ...rest, ...(ctx ? { hostId: hostOf(ctx) } : {}) };
   if (state.phase === 'emoji') {
     out.phrase = pid === state.director ? state.phrase : '';
@@ -281,7 +293,8 @@ function view(state, pid, ctx) {
     out.phrase = pid === state.director ? state.phrase : '';
     out.aliases = [];
     out.mySolved = !!state.solved[pid];
-    out.solvers = Object.keys(state.solved);
+    out.solvers = [];
+    out.scores = { ...roundScores };
     out.solved = {};
   } else {
     out.mySolved = !!state.solved[pid];

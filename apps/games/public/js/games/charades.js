@@ -94,7 +94,7 @@ function rosterStatus(S) {
 
 function guessers(S) { return (S.players || []).filter((p) => p.id !== S.actor && !p.left); }
 function guessedLine(S) {
-  return `${Object.keys(S.guessed || {}).length} of ${guessers(S).length} guessed`;
+  return S.phase === 'act' ? 'Guesses are open' : `${Object.keys(S.guessed || {}).length} of ${guessers(S).length} guessed`;
 }
 
 function foundHtml(S) {
@@ -160,7 +160,7 @@ export default {
           const state = live.S;
           const inp = el.querySelector('#cGuess');
           if (inp && !inp.disabled && inp.value.trim() && !state.spectator && !state.preparing &&
-              state.phase === 'act' && !state.guessed?.[state.me] &&
+              state.phase === 'act' &&
               !(typeof live.api.now === 'function' && live.api.now() >= state.endsAt)) {
             if (live.api.send({ guess: inp.value.trim() }) === false) return;
             inp.value = '';
@@ -227,7 +227,7 @@ export default {
             || empty('?!', 'Waiting for guesses…', 'Every guess the room makes lands here as they type.')
           : S.spectator ? empty('👀', 'You are watching the actor.', 'Guesses stay private to the actor.')
             : (S.guessed && S.guessed[S.me]
-              ? `<p class="wg-feed-empty">You got it! +${S.guessed[S.me]} points — watch the stage.</p>`
+              ? `<p class="wg-feed-empty">You got it! +${S.guessed[S.me]} points. Only the actor sees your guesses.</p>` + mine.map(g => `<div class="ch-guess ck-row"><span class="ch-txt">${esc(g.text)}</span></div>`).join('')
               : (mine.length
                 ? mine.map((g) => `<div class="ch-guess ck-row is-miss"><span class="ch-txt">${esc(g.text)}</span><span class="wg-tag is-bad">Not it</span></div>`).join('')
                 : empty('?', 'First guess is yours to make.', `Watch ${esc(nameOf(S, S.actor))} on the call and type what you see. Faster guesses score more.`)));
@@ -237,10 +237,12 @@ export default {
       }
       paintRoster(el.querySelector('.ch-roster'), S, rosterStatus(S));
       const lock = el.querySelector('#cGuess');
-      const locked = !!S.guessed?.[S.me];
-      if (lock) { lock.disabled = !!(locked || S.spectator || S.preparing); if (locked) lock.placeholder = 'You got it!'; }
+      if (lock) {
+        lock.disabled = !!(S.spectator || S.preparing);
+        lock.placeholder = S.guessed?.[S.me] ? 'Guess again…' : 'Your guess…';
+      }
       const send = el.querySelector('#cSend');
-      if (send) send.disabled = !!(locked || S.spectator || S.preparing);
+      if (send) send.disabled = !!(S.spectator || S.preparing);
       const mask = el.querySelector('.ch-mask');
       if (mask && S.masked && mask._ckMask !== S.masked) {
         mask._ckMask = S.masked;

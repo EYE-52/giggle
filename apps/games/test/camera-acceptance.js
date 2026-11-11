@@ -58,14 +58,27 @@ async function main() {
           for(const p of all.filter(p=>p!==actor))ok(!('word' in p.state)&&!('wordShown' in p.state),'other seats do not receive private word');
           action(watcher,{guess:word}); await sleep(30); eq(a.state.guessed,{},'watcher cannot score');
           const guessers=active.filter(p=>p!==actor);
-          action(guessers[0],{guess:word});
-          await until(()=>a.state.guessed?.[guessers[0].hello.you],'first correct guess');
-          const points=a.state.scores[guessers[0].hello.you];
-          action(guessers[0],{guess:word}); await sleep(30);
-          eq(a.state.scores[guessers[0].hello.you],points,'duplicate guess cannot score twice');
+          const solver=guessers[0], solverId=solver.hello.you;
+          const beforeTotal=solver.state.totals[solverId]||0;
+          action(solver,{guess:word});
+          await until(()=>solver.state.guessed?.[solverId],'first private correct guess');
+          const points=solver.state.guessed[solverId];
+          ok(points>0,'solver receives private accepted points');
+          for(const p of all.filter(p=>p!==solver)) {
+            ok(!p.state.guessed?.[solverId],'actor and other audiences do not see solver identity');
+            eq(p.state.totals[solverId]||0,beforeTotal,'room totals do not reveal the solver');
+          }
+          eq(actor.state.wordShown,word,'actor retains the word for performing');
+          action(solver,{guess:'zqxv blorp'});
+          await until(()=>actor.state.guesses.some(g=>g.pid===solverId&&g.text==='zqxv blorp'),'actor receives private solver chat');
+          ok(!guessers[1].state.guesses.some(g=>g.pid===solverId),'other guesser cannot read private Charades attempts');
+          ok(!watcher.state.guesses.some(g=>g.pid===solverId),'watcher cannot read private Charades attempts');
+          action(solver,{guess:word}); await sleep(30);
+          eq(solver.state.guessed[solverId],points,'duplicate guess cannot change accepted points');
           for(const p of guessers.slice(1))action(p,{guess:word});
           await released(all,'reveal',round);
           eq(a.state.endReason,'Everyone guessed it','early reveal has a real completion reason');
+          eq(solver.state.totals[solverId],beforeTotal+points,'reveal settles accepted points once');
           const old=actor.state.w; action(actor,{next:true});
           if(round<rounds) {
             await released(all,'act',round+1);

@@ -84,9 +84,7 @@ function phaseName(S) {
   return S.phase === 'pick' ? 'Choosing' : S.phase === 'draw' ? 'Drawing' : S.phase === 'reveal' ? 'Reveal' : '';
 }
 function progressLabel(S) {
-  if (S.phase !== 'draw') return '';
-  const guessers = (S.players || []).filter(p => p.id !== S.drawer && !p.left && !(S.gone || []).includes(p.id)).length;
-  return `${Object.keys(S.guessed || {}).length}/${guessers} guessed`;
+  return S.phase === 'draw' ? 'Guesses are open' : '';
 }
 function dgHudHtml(S) {
   return `<div class="gk-hud dg-hud"><span class="gk-hud-round">Round ${esc(S.round)} of ${esc(S.rounds)}</span>`
@@ -162,12 +160,12 @@ function refresh(el, S, api) {
   const guessed = !!S.guessed?.[S.me];
   for (const id of ['#dGuess', '#dSend']) {
     const control = el.querySelector(id);
-    if (control) control.disabled = !!S.spectator || guessed;
+    if (control) control.disabled = !!S.spectator || !!S.preparing;
   }
   const input = el.querySelector('#dGuess');
-  if (input) input.placeholder = guessed ? 'You got it!' : 'Your guess…';
+  if (input) input.placeholder = guessed ? 'Keep chatting…' : 'Your guess…';
   const feedback = el.querySelector('#dFeedback');
-  if (feedback) { feedback.textContent = guessed ? `You got it! +${S.guessed[S.me]} points.` : S.myFeedback?.message || ''; feedback.classList.toggle('is-error', !guessed && !!S.myFeedback?.message); }
+  if (feedback) { feedback.textContent = guessed ? `You got it! +${S.guessed[S.me]} points. Keep chatting while the others guess.` : S.myFeedback?.message || ''; feedback.classList.toggle('is-error', !guessed && !!S.myFeedback?.message); }
   const inkFeedback = el.querySelector('#dInkFeedback');
   if (inkFeedback) inkFeedback.textContent = S.myInkFeedback || '';
   const undo = el.querySelector('#dUndo');
@@ -187,7 +185,7 @@ export default {
     // the last released scene so preparation cannot consume its reveal.
     const prior = cueBaseline;
     const live = !!prior && prior.instanceId === S.instanceId && prior.me === S.me && prior.spectator === S.spectator && !S.preparing && !S.audioBaseline;
-    const newCorrect = live && prior.round === S.round ? Object.keys(S.guessed || {}).filter(pid => !prior.guessed?.[pid]) : [];
+    const justSolved = live && prior.round === S.round && S.guessed?.[S.me] && !prior.guessed?.[S.me];
     const revealed = live && prior.phase === 'draw' && S.phase === 'reveal';
     const hinted = live && S.phase === 'draw' && prior.phase === 'draw' && prior.masked !== S.masked && S.me !== S.drawer;
     const key = `${S.instanceId || ''}:${S.phase}:${S.round}:${S.drawer || ''}:${S.me || ''}:${!!S.spectator}:${S.phase === 'reveal' ? canAdvance(S) + ':' + JSON.stringify(S.lastRound?.points || {}) : ''}`;
@@ -238,9 +236,9 @@ export default {
     }
     refresh(el, S, api);
     paint(el);
-    for (const pid of newCorrect) {
-      if (!reduced()) [...el.querySelectorAll('[data-guesser]')].find(n => n.dataset.guesser === pid)?.animate?.([{ opacity: .4, transform: 'translateX(6px)' }, { opacity: 1, transform: 'none' }], { duration: 220, easing: 'ease-out' });
-      api.cue?.('correct', { id: `${S.instanceId}:${S.round}:guess:${pid}`, gain: .75 });
+    if (justSolved) {
+      if (!reduced()) el.querySelector('#dFeedback')?.animate?.([{ opacity: .4 }, { opacity: 1 }], { duration: 180, easing: 'ease-out' });
+      api.cue?.('correct', { id: `${S.instanceId}:${S.round}:guess:${S.me}`, gain: .75 });
     }
     if (revealed || hinted) {
       if (!reduced()) el.querySelector('.dg-word')?.animate?.([{ opacity: .35, transform: 'translateY(-3px)' }, { opacity: 1, transform: 'none' }], { duration: 220, easing: 'ease-out' });

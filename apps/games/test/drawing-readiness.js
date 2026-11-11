@@ -24,11 +24,20 @@ function table(game){
 function doodle(){
  const t=table('doodle-guess');try{
   t.send(t.artist,{choose:t.artist.S.choices[0]});t.release();const word=t.artist.S.wordShown;
-  t.send(t.guesser,{guess:word});eq(t.peers.map(p=>p.r.cues.map(c=>c.name)),t.peers.map(()=>['correct']),'same-window first accepted guess cues once');
-  t.send(t.other,{guess:word});ok(t.room.game.preparing,'last correct opens a real reveal preparation');eq(t.peers.map(p=>p.r.cues.length),[1,1,1,1],'pending reveal cannot sound');
-  t.quietReconnect(t.artist);t.release();eq(t.artist.r.cues.map(c=>c.name),['correct'],'reconnect seeds historical correct/reveal while prepared');
-  for(const p of [t.guesser,t.other,t.watcher])eq(p.r.cues.map(c=>c.name),['correct','correct','reveal'],'release retains last correct then public word reveal');
-  t.room.broadcastState();eq(t.peers.map(p=>p.r.cues.length),[1,3,3,3],'released reveal heartbeat stays quiet');
+  const sounds=p=>p.r.cues.map(c=>c.name);
+  t.send(t.guesser,{guess:word});
+  eq(sounds(t.guesser),['correct'],'the solver hears success once');
+  for(const p of [t.artist,t.other,t.watcher])eq(sounds(p),[],'private solve stays quiet for other seats');
+  t.send(t.other,{guess:word});
+  ok(t.room.game.preparing,'last correct opens a real reveal preparation');
+  eq(sounds(t.other),[],'the last solver waits for reveal preparation');
+  t.quietReconnect(t.artist);t.release();
+  eq(sounds(t.artist),[],'reconnect during preparation stays quiet');
+  eq(sounds(t.guesser),['correct','reveal'],'first solver hears the public reveal');
+  eq(sounds(t.other),['correct','reveal'],'last solver hears their own success and the reveal');
+  eq(sounds(t.watcher),['reveal'],'spectator hears only the reveal');
+  const counts=t.peers.map(p=>p.r.cues.length);
+  t.room.broadcastState();eq(t.peers.map(p=>p.r.cues.length),counts,'released reveal heartbeat stays quiet');
  }finally{t.close();}
 }
 function phone(){

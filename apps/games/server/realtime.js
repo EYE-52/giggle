@@ -25,6 +25,28 @@ const interest = require('../public/js/toolkit/realtime/interest.mjs');
 
 const HISTORY = 4;
 
+/* Reuse the negotiated rt1 JSON delta for games without entity streams.
+ * Only explicitly shared fields from the spectator projection enter the
+ * shared history. All other fields come from each recipient's own view.
+ * Never project raw game state here: it may contain answers or private input.
+ */
+function createJsonRealtime(view, sharedKeys) {
+  const shared = new Set(sharedKeys);
+  return {
+    streams: [],
+    publicView(state, ctx) {
+      const projected = view(state, null, ctx), out = {};
+      for (const key of shared) if (Object.hasOwn(projected, key)) out[key] = projected[key];
+      return out;
+    },
+    privateView(state, pid, ctx) {
+      const projected = view(state, pid, ctx), out = {};
+      for (const key of Object.keys(projected)) if (!shared.has(key)) out[key] = projected[key];
+      return out;
+    },
+  };
+}
+
 function createRealtimeChannel(spec) {
   const streams = spec.streams.map(codec.compileSchema);
   const schemaJSON = JSON.stringify(spec.streams);
@@ -162,4 +184,4 @@ function createTickTiming() {
 
 const governor = createTickGovernor();
 
-module.exports = { createRealtimeChannel, createTickGovernor, createTickTiming, governor, CAPABILITY: codec.CAPABILITY };
+module.exports = { createJsonRealtime, createRealtimeChannel, createTickGovernor, createTickTiming, governor, CAPABILITY: codec.CAPABILITY };

@@ -68,7 +68,7 @@ let checks = 0;
   act(guesser, { guess: 'wrong' });
   act(guesser, { guess: s.word.toUpperCase() + '  ' });
   const publicView = game.view(s, 'watcher');
-  assert.equal(publicView.guesses.at(-1).text, undefined, 'correct answer text is omitted');
+  assert(publicView.guesses.every(g => !g.correct), 'correct solve events stay private');
   assert(!JSON.stringify(publicView.guesses).toLowerCase().includes(s.word.toLowerCase()), 'public feed does not contain the answer');
   assert.equal(publicView.inkNonce, undefined, 'only artist receives mutation nonce');
   assert.equal(publicView.lastGestureId, undefined, 'private drawing counters are omitted');
@@ -103,6 +103,25 @@ let checks = 0;
   act(drawer, { next: true }); act(drawer, { next: true });
   assert.equal(s.phase, 'done');
   assert.equal(s.endsAt, 0); checks += 3;
+}
+// Public IDs advance only for visible messages, even at the history bound.
+{
+  const { s, act, choose } = run(); choose();
+  const [solver, other] = roster.filter(p => p.id !== s.drawer).map(p => p.id);
+  for (let i = 0; i < 81; i++) act(solver, { guess: 'zqxv public ' + i });
+  const before = structuredClone(game.view(s, other).guesses);
+  act(solver, { guess: s.word });
+  for (const pid of [solver, other, s.drawer, 'watcher']) {
+    const projection = game.view(s, pid);
+    assert.equal(projection.guessSerial, undefined, 'internal counter never reaches any audience');
+    assert.deepEqual(projection.guesses, before, 'private success neither consumes an ID nor evicts public history');
+  }
+  act(solver, { guess: 'zqxv solver chat' });
+  const after = game.view(s, other).guesses;
+  assert.equal(after.length, 80);
+  assert.equal(after.at(-1).id, before.at(-1).id + 1, 'visible IDs have no private-event gap');
+  assert.deepEqual(after.slice(0, -1), before.slice(1), 'surviving messages retain stable public IDs');
+  checks += 11;
 }
 // Real Room routing: three active sockets, a watcher and a reclaimed artist seat.
 {

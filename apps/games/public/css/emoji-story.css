@@ -143,3 +143,6 @@ body.game-playing[data-game="emoji-story"] {
 /* The tray keeps its size for empty slots, one emoji and a long story. */
 .es-scene.ck .es-preview-text { height:calc(2 * var(--space-64)); min-height:0; overflow-y:auto; }
 .es-scene.ck .es-preview-text:not(:has(.es-slot)) { display:block; }
+
+.es-guesses { max-height: 240px; overflow: auto; overscroll-behavior: contain; overflow-wrap: anywhere; }
+.es-guesses:empty { display: none; }

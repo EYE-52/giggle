@@ -1,4 +1,5 @@
 'use strict';
+const { containsAnswer, awardPending, settlePending } = require('../engines/guess-chat');
 /* Charades: one player acts out a secret word for 60s while guessers type
  * guesses. A correct guess earns 100, up to 50 more for speed and 50 for
  * being first (25 second); the actor earns 50 per correct guesser, at most
@@ -106,6 +107,8 @@ function nextTurn(state, ctx) {
   state.masked = maskWord(state.word);
   state.guesses = [];
   state.guessed = {};
+  state.roundScores = { ...state.scores };
+  state.pendingAwards = {};
   state.actorPts = 0;
   state.phase = 'act';
   state.endReason = null;
@@ -120,6 +123,7 @@ function nextTurn(state, ctx) {
 
 function endTurn(state, ctx, reason = "Time's up") {
   if (state.phase !== 'act') return;
+  settlePending(state, ctx);
   state.phase = 'reveal';
   state.endsAt = ctx.now() + state.revealMs;
   state.endReason = reason;
@@ -137,19 +141,19 @@ function onAction(state, ctx, pid, a) {
   if (state.phase === 'act' && pid !== state.actor && typeof a.guess === 'string') {
     const text = String(a.guess).trim().slice(0, 60);
     if (!text) return;
-    state.guesses.push({ pid, text });
+    if (!containsAnswer(text, [state.word])) state.guesses.push({ pid, text });
     if (state.guesses.length > 200) state.guesses.splice(0, state.guesses.length - 200);
     if (!state.guessed[pid] && text.toLowerCase() === String(state.word).toLowerCase()) {
       const order = Object.keys(state.guessed).length;
       const pts = guessPoints(state.endsAt - ctx.now(), state.roundMs, order);
       state.guessed[pid] = pts;
       state.scores[pid] = (state.scores[pid] || 0) + pts;
-      ctx.award(pid, pts);
+      awardPending(state, pid, pts);
       const ap = Math.min(ACTOR_PER_GUESS, ACTOR_MAX - state.actorPts);
       if (ap > 0) {
         state.actorPts += ap;
         state.scores[state.actor] = (state.scores[state.actor] || 0) + ap;
-        ctx.award(state.actor, ap);
+        awardPending(state, state.actor, ap);
       }
       if (allGuessed(state, ctx)) endTurn(state, ctx, 'Everyone guessed it');
     }
@@ -178,15 +182,21 @@ function onPlayerGone(state, ctx, pid) {
 }
 
 /* End game: points already given stay; show the final scores. */
-function onEnd(state) {
+function onEnd(state, ctx) {
+  settlePending(state, ctx);
   state.phase = 'done';
   state.endsAt = 0;
   state.endReason = 'Game ended';
 }
 
 function view(state, pid, ctx) {
-  const { deal, ...rest } = state;
+  const { deal, roundScores, pendingAwards, ...rest } = state;
   const out = { ...rest, hostId: ctx && ctx.hostId ? ctx.hostId() : null };
+  if (state.phase === 'act') {
+    out.guessed = state.guessed[pid] ? { [pid]: state.guessed[pid] } : {};
+    out.scores = { ...roundScores };
+    delete out.actorPts;
+  }
   out.camera = state.phase === 'done' ? null : { mode: 'spotlight', featured: state.actor, caption: state.phase === 'act' ? 'Act it out · no talking' : 'Take a bow!' };
   if (pid !== state.actor) {
     if (state.phase !== 'reveal') delete out.word;

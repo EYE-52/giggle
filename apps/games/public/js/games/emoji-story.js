@@ -47,7 +47,12 @@ function scene(S, label, inner) {
   return `<section class="gk-col gk-stack es-scene ck" data-family="party" data-scene="emoji-story" data-phase="${esc(S.phase)}" aria-label="${esc(label)}">${hud(S)}${inner}${S.phase === 'done' ? '' : tableHtml(S)}</section>`;
 }
 
+function guessesHtml(S) {
+  return (S.guesses || []).map(g => `<p><b>${esc(nameOf(S, g.pid))}</b> ${esc(g.text)}</p>`).join('');
+}
+
 function solversLine(S) {
+  if (S.phase === 'guess') return waitingHtml('Keep guessing and chatting until the reveal');
   const pids = S.solvers || [];
   const left = Math.max(0, activeCount(S) - 1 - pids.length);
   return (pids.length ? `<p class="gk-meta es-center">Solved: ${esc(pids.map((pid) => nameOf(S, pid)).join(', '))}</p>` : '')
@@ -99,7 +104,10 @@ function paint(el, S, api) {
     ensureStylesheet('emoji-story-css', CSS);
     ensureStylesheet('create-kit-css', KIT_CSS);
     liveState = S; liveApi = api; liveEl = el;
-    const actionKey = JSON.stringify([S.instanceId, S.me, S.phase, S.round, S.endsAt, S.director, !!S.mySolved, !!S.spectator, S.hostId]);
+    // Host changes affect the Next button at reveal. A guesser can keep typing
+    // and submit the same draft if the room elects a new host mid-round.
+    const actionHost = S.phase === 'reveal' ? S.hostId : null;
+    const actionKey = JSON.stringify([S.instanceId, S.me, S.phase, S.round, S.endsAt, S.director, !!S.spectator, actionHost]);
     liveActionKey = actionKey;
     const canAct = () => liveEl === el && liveActionKey === actionKey && liveState && !liveState.preparing && !isWatching(liveState);
     const sendAction = (action) => (canAct() ? liveApi?.send(action) : false);
@@ -115,12 +123,21 @@ function paint(el, S, api) {
       ? JSON.stringify(['done', S.instanceId, S.me, S.scores, S.players])
       : S.phase === 'reveal'
         ? JSON.stringify(['reveal', S.instanceId, S.me, role, S.round, S.hostId, S.last])
-        : JSON.stringify([S.phase, S.instanceId, S.me, role, S.round, S.endsAt, S.emoji, S.mySolved ? 1 : 0]);
+        : JSON.stringify([S.phase, S.instanceId, S.me, role, S.round, S.endsAt, S.emoji]);
     if (key === screenKey && el.querySelector?.('[data-scene="emoji-story"]')) {
       const h = el.querySelector('.gk-hud');
       if (h) h.outerHTML = hud(S);
       const w = el.querySelector('[data-live="wait"]');
       if (w && S.phase === 'guess') w.innerHTML = solversLine(S);
+      const feed = el.querySelector('[data-live="guesses"]');
+      if (feed && feed._guessKey !== JSON.stringify(S.guesses)) {
+        const atEnd = feed.scrollHeight - feed.scrollTop - feed.clientHeight < 40;
+        feed._guessKey = JSON.stringify(S.guesses);
+        feed.innerHTML = guessesHtml(S);
+        if (atEnd) feed.scrollTop = feed.scrollHeight;
+      }
+      const status = el.querySelector('#eGuessStatus');
+      if (status && S.mySolved) { status.hidden = false; status.textContent = 'You solved it. Points locked in. Keep chatting while the others guess.'; }
       const t = el.querySelector('[data-live="table"]');
       const chips = tableChips(S);
       if (t && t._esChips !== chips) { t._esChips = chips; t.innerHTML = chips; }
@@ -145,15 +162,15 @@ function paint(el, S, api) {
       let action;
       if (watch) action = `<p class="gk-sub es-center">You are watching. The players are racing to guess.</p>`;
       else if (role === 'director') action = `<p class="gk-sub es-center">Your phrase: <b>${esc(S.phrase)}</b>. The others are guessing.</p>`;
-      else if (S.mySolved) action = `<div class="gk-card es-solved"><b>Locked in.</b> You solved it. Points show at the reveal.</div>`;
       else {
         action = inputRow({ id: 'eGuess', label: 'Guess the secret phrase', placeholder: 'Your guess…', max: 80, btnId: 'eSend', button: 'Guess', describedBy: 'eGuessStatus' })
-          + `<p id="eGuessStatus" class="gk-meta" role="status" hidden></p>`;
+          + `<p id="eGuessStatus" class="gk-meta" role="status" ${S.mySolved ? '' : 'hidden'}>${S.mySolved ? 'You solved it. Points locked in. Keep chatting while the others guess.' : ''}</p>`;
       }
       el.innerHTML = scene(S, 'Guess the phrase', `<h2 class="gk-prompt">What phrase is this?</h2>`
         + `<p class="es-emoji" role="img" aria-label="Emoji story">${esc(S.emoji)}</p>`
         + `<p class="gk-meta es-center">Story by ${esc(teller)}</p>`
         + action
+        + `<div class="es-guesses" role="log" aria-label="Guesses" data-live="guesses" tabindex="0">${guessesHtml(S)}</div>`
         + `<div class="es-foot" data-live="wait">${solversLine(S)}</div>`);
       const inp = el.querySelector('#eGuess');
       if (inp) {
@@ -171,7 +188,7 @@ function paint(el, S, api) {
             return;
           }
           status.hidden = false;
-          status.textContent = `Sent “${inp.value.trim()}”. A right guess locks in; keep guessing until it does.`;
+          status.textContent = liveState.mySolved ? 'Message sent. Your points are locked in.' : 'Guess sent. Keep guessing.';
           inp.value = '';
         };
         const form = el.querySelector('[data-gk-input]');
