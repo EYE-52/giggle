@@ -282,3 +282,15 @@
   #gbody .dial-world.pl-fill { gap: var(--space-8); }
   #gbody .dial-world .round-status { min-height: var(--space-32); }
 }
+
+/* Labels use the card's grid gaps, not the global form margins. This keeps
+ * wrapped spectra above the full-size clue and guess buttons in short panels. */
+@container game (max-width: 560px) and (max-height: 700px) {
+  #gbody .dial-world .dial-composer {
+    gap: var(--space-4);
+    margin-bottom: 0;
+  }
+  #gbody .dial-world .dial-slider-label {
+    margin-block: 0;
+  }
+}
