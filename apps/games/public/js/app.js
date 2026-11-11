@@ -1065,7 +1065,7 @@ function embedPlayerChips(list, spot) {
 }
 
 /* Two coherent looks: Day (default, pale blush + raspberry) and Night
- * (near-black + pink/yellow, never purple). The four pre-D7 ids migrate
+ * (slate, mint and soft gold). The four pre-D7 ids migrate
  * here (and in the index.html bootstrap) so an old stored
  * Midnight/Arcade/Lounge value never resurrects a rejected UI. Parent
  * embed context ids map the same way. */

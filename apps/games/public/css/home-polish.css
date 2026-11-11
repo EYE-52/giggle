@@ -288,3 +288,30 @@
 
 /* One-device play sits beside room creation in the same entry ticket. */
 .home-welcome .hero-local { display: flex; width: 100%; min-height: var(--control-h); margin-top: var(--space-12); font: var(--text-button); }
+
+/* Night lobby: a quiet surface around the illustrated game art. */
+[data-theme="night"] .home-welcome .hero-form {
+  border:1px solid var(--edge);
+  border-radius:16px;
+  box-shadow:0 8px 20px #09101838;
+}
+[data-theme="night"] .home-welcome h1 .pop::after,
+[data-theme="night"] .hand-spark { display:none; }
+[data-theme="night"] .home-welcome .hero-cta .hero-create,
+[data-theme="night"] .home-welcome .hero-local,
+[data-theme="night"] .topbar .hbtn {
+  border:1px solid var(--line);
+  border-radius:12px;
+  box-shadow:none;
+}
+[data-theme="night"] .hero-hand .hand-card,
+[data-theme="night"] .hero-hand:hover .hand-card {
+  animation:none;
+  translate:none;
+  transform:rotate(calc(var(--i) * 3deg));
+  border:1px solid var(--edge);
+  box-shadow:0 2px 6px #080c1430;
+}
+@media (hover:hover) and (prefers-reduced-motion:no-preference) {
+  [data-theme="night"] .hero-hand .hand-card:hover { transform:translateY(-4px); }
+}

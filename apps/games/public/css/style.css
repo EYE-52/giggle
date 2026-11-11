@@ -2,7 +2,7 @@
  * Raspberry primary, sunshine supporting blocks, ink outlines, small hard
  * offset shadows, fresh white / pale blush ground. Chunky Baloo 2 display
  * type + readable Nunito body. Two coherent looks: Day (default) and Night
- * (near-black + pink/yellow, never purple). Old stored ids (dark/light/
+ * (slate, mint and soft gold). Old stored ids (dark/light/
  * arcade/lounge) migrate to day/night in app.js.
  * Baloo 2 + Nunito are self-hosted variable woff2 (latin + latin-ext,
  * SIL OFL — see public/fonts/README.md), so the party look never falls
@@ -107,24 +107,25 @@
 }
 
 [data-theme="night"] {
-  --bg: #150d11;
-  --card: #211419;
-  --well: #2b1b22;
-  --chip: #2b1b22;
-  --ink: #fbeff4;
-  --ink-dim: #c9a9b6;
-  --edge: #493b4b;
+  --night-ground: #141a23;
+  --night-panel: #202936;
+  --night-raised: #293544;
+  --bg: var(--night-ground);
+  --card: var(--night-panel);
+  --well: var(--night-raised);
+  --chip: #293544;
+  --ink: #edf3f8;
+  --ink-dim: #b4c2d1;
+  --edge: #405268;
   --hard: #000000;
-  --line: #fbeff422;
-  --line-strong: #fbeff455;
-  --accent: #ff4f8f;
-  --accent-deep: #ffa3c4;
-  --accent-soft: #3a1626;
-  --accent-ink: #1b0a11;
+  --line: #edf3f822;
+  --line-strong: #edf3f855;
+  --accent: #83dfd0;
+  --accent-deep: #b3f3df;
+  --accent-soft: #203c3a;
+  --accent-ink: #102724;
   --sun: #ffc24d;
-  /* Raspberry-dark highlight: a dark-gold value here reads as brown on the
-   * watcher banner and turn panels. Light text stays readable on this. */
-  --sun-soft: #4a2135;
+  --sun-soft: #363343;
   --sun-ink: #1e1400;
   --melon: #ff7a80;
   --melon-deep: #ffb3b6;
@@ -136,14 +137,14 @@
   --signal: #ff7a80;
   --signal-deep: #ffb3b6;
   --signal-soft: #3a1518;
-  --input-bg: #150d11;
-  --topbar-bg: #150d11;
+  --input-bg: #141a23;
+  --topbar-bg: #141a23;
   --outline: #000000;
   --success: #4ade80; --success-soft: #12301f; --on-success: #08170e;
   --danger: #ff7a80; --danger-soft: #3a1518; --on-danger: #1b0a0c;
   --warning: #ffc24d; --warning-soft: #3a2a0c; --on-warning: #1e1400;
   --fam-board: #2bd4bd; --fam-board-deep: #9ef0e4; --on-fam-board: #04201c;
-  --fam-party: #ff4f8f; --fam-party-deep: #ffa3c4; --on-fam-party: #1b0a11;
+  --fam-party: #ec9bbe; --fam-party-deep: #f7c8db; --on-fam-party: #102724;
   --fam-create: #6cb8ee; --fam-create-deep: #b9dcf7; --on-fam-create: #07192a;
   --fam-arcade: #ffb347; --fam-arcade-deep: #ffd9a3; --on-fam-arcade: #2b1700;
 }
