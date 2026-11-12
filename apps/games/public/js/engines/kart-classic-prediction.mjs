@@ -2,6 +2,7 @@ import config from './kart-physics-config.mjs';
 import {createClassicMotion} from './kart-classic-motion.mjs';
 import {createInterpolationBuffer} from '../toolkit/realtime/client.mjs';
 import {loadKartPhysics} from './kart-physics-loader.mjs';
+import {rebasePreviousPose} from './kart-prediction-pose.mjs';
 export const loadClassicPhysics=loadKartPhysics;
 const mix=(a,b,t)=>({x:a.x+(b.x-a.x)*t,y:a.y+(b.y-a.y)*t,z:a.z+(b.z-a.z)*t});
 const multiply=(a,b)=>({x:a.w*b.x+a.x*b.w+a.y*b.z-a.z*b.y,y:a.w*b.y-a.x*b.z+a.y*b.w+a.z*b.x,z:a.w*b.z+a.x*b.y-a.y*b.x+a.z*b.w,w:a.w*b.w-a.x*b.x-a.y*b.y-a.z*b.z});
@@ -29,7 +30,7 @@ function remoteIntent(k,phase){
 }
 export function createClassicPrediction(R){
   const hull=new R.Cuboid(config.chassis.half.x,config.chassis.half.y,config.chassis.half.z);
-  let selfId,world,state,identity,lastAt=0,lastSeq=0,history=[],elapsed=0,retired=false,lastLife,lastControlEpoch,lastPoseEpoch,lastDraw,correction,observed,observedIdentity,driving,nearField=false,peerWeights=new Map(),advancedAt=null;
+  let selfId,world,state,identity,lastAt=0,lastSeq=0,history=[],elapsed=0,simulatedAt=0,frameCredit=0,retired=false,lastLife,lastControlEpoch,lastPoseEpoch,lastDraw,correction,observed,observedIdentity,driving,nearField=false,peerWeights=new Map(),advancedAt=null;
   // Remotes play back on SERVER time with an adaptive delay (toolkit buffer).
   const remotes=createInterpolationBuffer({maxDelay:250}),remoteVisual=new Map(),remoteStamps=new Map();
   const counters={corrections:0,snaps:0,maxErrorM:0,starvedMs:0,lastAgeMs:0};
@@ -80,11 +81,19 @@ export function createClassicPrediction(R){
     if(retired)return;
     observe(snapshot,now,serverAt);
     const next=snapshot.instanceId+':'+snapshot.map.id+':'+(snapshot.map.revision||''),changed=next!==identity;
-    const oldSelf=state?.karts.find(k=>k.pid===selfId),before=oldSelf?.physicalPose?stepBlend(oldSelf):null;
+    const simAt=Number.isFinite(snapshot.simAt)?snapshot.simAt:serverAt;
+    const priorSelf=state?.karts.find(k=>k.pid===selfId),sourceSelf=snapshot.karts.find(k=>k.pid===snapshot.you),gap=simAt-simulatedAt;
+    if(!changed&&snapshot.phase==='drive'&&snapshot.youDrive&&priorSelf&&sourceSelf?.connected!==false&&sourceSelf?.physicalPose&&!(sourceSelf.respawn>0)&&priorSelf.spawnSeq===sourceSelf.spawnSeq&&priorSelf.physicalPose?.epoch===sourceSelf.physicalPose.epoch&&snapshot.inputAck?.controlEpoch===lastControlEpoch&&gap>.001&&gap<=config.fixedDt*1000+.001){
+      let step=gap/1000;if(Math.abs(step-config.fixedDt)<1e-6)step=config.fixedDt;
+      world.advance(step,online());simulatedAt=simAt;frameCredit+=step;
+    }
+    // The checkpoint is a physical tick, not an interpolated draw frame.
+    // Keep both sides on that timeline so packet receipt cannot add a
+    // false one-tick visual correction to otherwise steady motion.
+    const oldSelf=state?.karts.find(k=>k.pid===selfId),before=oldSelf?.physicalPose||null,beforePrior=oldSelf?._prevPose;
     const previous=before&&correction?{...before,position:{x:before.position.x+correction.offset.x,y:before.position.y+correction.offset.y,z:before.position.z+correction.offset.z},rotation:multiply(correction.rotation,before.rotation)}:before;
     if(changed){world?.dispose();identity=next;state={map:snapshot.map.id,half:snapshot.map.half,blocks:snapshot.map.blocks,pads:snapshot.map.pads,surfaces:snapshot.map.surfaces,features:snapshot.map.features,roads:snapshot.map.roads,offroad:snapshot.map.offroad,barriers:snapshot.map.barriers,ramps:snapshot.map.ramps,mode:snapshot.mode,karts:snapshot.karts.map(k=>({...structuredClone(k),input:neutralIntent(),upgrades:snapshot.upgrades?.[k.pid],garage:snapshot.garage})),physicalEvents:[],physicalEventSeq:0};world=createClassicMotion(R,config,state);history=[];lastSeq=0;elapsed=0;lastDraw=null;correction=null;peerWeights.clear();}
     selfId=snapshot.you;const self=state.karts.find(k=>k.pid===snapshot.you);
-    const simAt=Number.isFinite(snapshot.simAt)?snapshot.simAt:serverAt;
     const fresh=serverAt-simAt<=250&&simAt<=serverAt+5;
     world.beginCorrection();
     for(const k of state.karts){const source=snapshot.karts.find(s=>s.pid===k.pid);if(!source?.physicalPose)continue;const renewed=k.spawnSeq!==source.spawnSeq||k.physicalPose?.epoch!==source.physicalPose.epoch;
@@ -92,16 +101,18 @@ export function createClassicPrediction(R){
       if(source.rtAge>0&&!renewed&&k.physicalPose){Object.assign(k,{...structuredClone(source),physicalPose:k.physicalPose,x:k.x,z:k.z,angle:k.angle,speed:k.speed},{input:fresh?remoteIntent(source,snapshot.phase):neutralIntent(),upgrades:snapshot.upgrades?.[k.pid],garage:snapshot.garage});continue;}
       Object.assign(k,structuredClone(source),{_driftHeld:!!source.driftDirection&&source.drifting===true,input:k.pid===snapshot.you||renewed||!fresh?neutralIntent():remoteIntent(source,snapshot.phase),upgrades:snapshot.upgrades?.[k.pid],garage:snapshot.garage});world.restore(k,source.physicalPose);}
     const reset=changed||self?.spawnSeq!==lastLife||self?.physicalPose?.epoch!==lastPoseEpoch||snapshot.inputAck?.controlEpoch!==lastControlEpoch;
-    if(reset){history=[];lastDraw=null;correction=null;lastLife=self?.spawnSeq;lastControlEpoch=snapshot.inputAck?.controlEpoch;lastPoseEpoch=self?.physicalPose?.epoch;if(previous)counters.snaps++;}
+    if(reset){history=[];frameCredit=0;lastDraw=null;correction=null;lastLife=self?.spawnSeq;lastControlEpoch=snapshot.inputAck?.controlEpoch;lastPoseEpoch=self?.physicalPose?.epoch;if(previous)counters.snaps++;}
     // ACK is an intent receipt, not the end of the time simulated with it.
     // Replay only the local intent intervals after this authoritative pose's
     // calibrated server timestamp, including intervals using the ACKed intent.
     history=history.filter(h=>h.end>Math.max(simAt,serverAt-1500)&&now-h.at<=1500);
     if(history.length)history[0].start=Math.max(history[0].start,serverAt-1500);
-    if(self&&snapshot.phase==='drive'&&snapshot.youDrive&&self.connected!==false&&!(self.respawn>0))for(const h of history){let dt=Math.max(0,Math.min(h.end,serverAt)-Math.max(h.start,simAt))/1000;const fixed=Math.round(dt/config.fixedDt)*config.fixedDt;if(Math.abs(fixed-dt)<1e-6)dt=fixed;self.input=h.intent;while(dt>1e-9){const step=Math.min(dt,.05);world.advance(step,online());dt-=step;}}
+    simulatedAt=simAt;
+    if(self&&snapshot.phase==='drive'&&snapshot.youDrive&&self.connected!==false&&!(self.respawn>0))for(const h of history){let dt=Math.max(0,Math.min(h.end,serverAt)-Math.max(h.start,simAt))/1000;const fixed=Math.round(dt/config.fixedDt)*config.fixedDt;if(Math.abs(fixed-dt)<1e-6)dt=fixed;self.input=h.intent;while(dt>1e-9){const step=Math.min(dt,.05);world.advance(step,online());simulatedAt+=step*1000;dt-=step;}}
     else history=[];
+    if(!reset&&self&&!self._prevPose)self._prevPose=rebasePreviousPose(beforePrior,before,self.physicalPose);
     if(!reset&&previous&&self?.physicalPose){
-      const p=stepBlend(self),c=visualError(previous,p,now),error=Math.hypot(c.offset.x,c.offset.y,c.offset.z),angle=Math.abs(Math.atan2(Math.sin(yaw(previous.rotation)-yaw(p.rotation)),Math.cos(yaw(previous.rotation)-yaw(p.rotation))));
+      const p=self.physicalPose,c=visualError(previous,p,now),error=Math.hypot(c.offset.x,c.offset.y,c.offset.z),angle=Math.abs(Math.atan2(Math.sin(yaw(previous.rotation)-yaw(p.rotation)),Math.cos(yaw(previous.rotation)-yaw(p.rotation))));
       counters.corrections++;counters.maxErrorM=Math.max(counters.maxErrorM,error);
       if(error>8||angle>Math.PI/3){correction=null;counters.snaps++;}else correction=c;
     }
@@ -120,8 +131,10 @@ export function createClassicPrediction(R){
       history=history.filter(h=>now-h.at<=1500&&h.end>serverAt-1500);
       if(history.length)history[0].start=Math.max(history[0].start,serverAt-1500);
       if(snapshot.phase==='drive'&&snapshot.youDrive&&self.connected!==false&&!(self.respawn>0)&&now-lastAt<=1500){
-        const step=Math.max(0,Math.min(dt,.25));self.input={...intent};let left=step;
-        do{const sub=Math.min(left,.05);world.advance(sub,online());left-=sub;}while(left>1e-9);elapsed+=step;
+        // Do not simulate the checkpoint-alignment part of this interval twice.
+        const budget=Math.max(0,Math.min(dt,.25)),credited=Math.min(budget,frameCredit),step=budget-credited;
+        frameCredit-=credited;self.input={...intent};let left=step;
+        do{const sub=Math.min(left,.05);world.advance(sub,online());left-=sub;}while(left>1e-9);elapsed+=step;simulatedAt+=step*1000;
         if(step>0){const previous=history.at(-1),start=serverAt-step*1000;
           if(previous&&Math.abs(previous.end-start)<1&&sameIntent(previous.intent,intent)){previous.end=serverAt;previous.at=now;previous.start=Math.max(previous.start,serverAt-1500);}
           else history.push({seq:lastSeq,intent:{...intent},start,end:serverAt,at:now});

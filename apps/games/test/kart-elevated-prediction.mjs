@@ -6,9 +6,21 @@ import {createElevatedMotion} from '../public/js/engines/kart-elevated-motion.mj
 import {createElevatedPrediction} from '../public/js/engines/kart-elevated-prediction.mjs';
 import {elevatedMap} from '../public/js/engines/kart-elevated-maps.mjs';
 import {elevatedStatics} from '../public/js/engines/kart-feature-solids.mjs';
+import {rebasePreviousPose} from '../public/js/engines/kart-prediction-pose.mjs';
 await R.init();
 const epoch=1700000000000,neutral={steer:0,throttle:0,brake:0,nitro:false,use:false},intent={...neutral,throttle:.3};
 const distance=(a,b)=>Math.hypot(...['x','y','z'].map(k=>a[k]-b[k]));
+{
+  const before={epoch:1,position:{x:1,y:0,z:2},rotation:{x:0,y:0,z:0,w:1},wheels:[{rotation:10,length:.3,steering:.2}]};
+  const prior={...structuredClone(before),position:{x:1,y:0,z:1},wheels:[{rotation:9,length:.31,steering:.1}]};
+  const after={...structuredClone(before),position:{x:5,y:3,z:7},rotation:{x:0,y:Math.SQRT1_2,z:0,w:Math.SQRT1_2},wheels:[{rotation:12,length:.28,steering:.3}]};
+  const input=JSON.stringify([prior,before,after]),draw=rebasePreviousPose(prior,before,after);
+  assert(distance(draw.position,{x:4,y:3,z:7})<1e-9,'prior motion follows the checkpoint translation and rotation');
+  assert(Math.abs(Math.hypot(...Object.values(draw.rotation))-1)<1e-9,'rebased orientation remains normalized');
+  assert.equal(draw.wheels[0].rotation,11,'wheel spin keeps the previous fixed-step offset');
+  assert.equal(JSON.stringify([prior,before,after]),input,'presentation history cannot mutate any physical pose');
+  assert.equal(rebasePreviousPose(prior,before,{...after,epoch:2}),null,'teleports cannot retain the old presentation step');
+}
 function fixture(){
   const map=elevatedMap('garden'),physics=createKartPhysics(R,C),prediction=createElevatedPrediction(R);
   elevatedStatics(map).forEach(d=>physics.addStatic(d));physics.addKart('a',{position:{x:0,y:.7,z:-50}});
@@ -115,4 +127,27 @@ for(const age of [0,100]){
     assert.equal(p.stats().snaps,0);
   }finally{f.dispose();}
 }
-console.log('PASS raised prediction: late packets, time history, slow frames, visual correction and reset safety');
+// Repeated ordinary 20Hz checkpoints must not turn a smooth 60Hz physical
+// trajectory into a packet-paced pulse, including fractional render frames.
+for(const hz of [60,120,144]){
+  const f=fixture(),p=f.prediction,startTick=f.physics.stats().tick,drive={...neutral,throttle:.5};
+  let latest=f.snapshot(0),nextPacket=50,previous,previousSpeed,maxJolt=0;
+  p.ingest(latest,0,epoch);
+  try{
+    for(let frame=1;frame<=Math.floor(hz*1.3);frame++){
+      const t=frame*1000/hz;f.advance(1/hz,drive);
+      if(t>=nextPacket-1e-6){
+        latest=f.snapshot((f.physics.stats().tick-startTick)*C.fixedDt*1000);
+        p.ingest(latest,t,epoch+t);p.frame(latest,drive,0,t,epoch+t);nextPacket+=50;
+      }
+      const draw=p.frame(latest,drive,1/hz,t,epoch+t).renderPose.position;
+      if(previous&&t>650){const speed=(draw.z-previous.z)*hz;if(previousSpeed!==undefined)maxJolt=Math.max(maxJolt,Math.abs(speed-previousSpeed));previousSpeed=speed;}
+      previous=draw;
+    }
+    assert(p.stats().maxErrorM<.01,`${hz}Hz: agreeing physical checkpoints do not invent correction offsets`);
+    assert(maxJolt<.65,`${hz}Hz: packet receipt does not hold/double a draw step: ${maxJolt}`);
+    assert.equal(p.stats().snaps,0);
+    console.log(JSON.stringify({raisedPeriodicHz:hz,maxJolt,maxCorrectionM:p.stats().maxErrorM}));
+  }finally{f.dispose();}
+}
+console.log('PASS raised prediction: periodic checkpoints, late packets, time history, slow frames, visual correction and reset safety');

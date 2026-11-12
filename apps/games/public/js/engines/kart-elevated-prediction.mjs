@@ -8,6 +8,7 @@ import {createElevatedMotion,clearElevatedMotion} from './kart-elevated-motion.m
 import {elevatedMap} from './kart-elevated-maps.mjs';
 import {blendElevatedPose} from './kart-elevated-pose.mjs';
 import {loadKartPhysics} from './kart-physics-loader.mjs';
+import {rebasePreviousPose} from './kart-prediction-pose.mjs';
 export const loadElevatedPhysics=loadKartPhysics;
 const neutral=()=>({steer:0,throttle:0,brake:0,nitro:false,use:false});
 const sameIntent=(a,b)=>a.steer===b.steer&&a.throttle===b.throttle&&a.brake===b.brake&&!!a.nitro===!!b.nitro&&!!a.use===!!b.use;
@@ -23,10 +24,10 @@ function slerp(a,b,t){
   return {x:q.x/n,y:q.y/n,z:q.z/n,w:q.w/n};
 }
 export function createElevatedPrediction(R){
-  let physics,motion,kart,identity,lastSnapshot,lastArrival=-Infinity,lastAt=-Infinity,history=[],accumulator=0,retired=false,lastDraw=null,correction=null;
+  let physics,motion,kart,identity,lastSnapshot,lastArrival=-Infinity,lastAt=-Infinity,history=[],accumulator=0,frameCredit=0,retired=false,lastDraw=null,correction=null;
   const peers=new Set(),dt=CONFIG.fixedDt,renderOutput={position:{},rotation:{}};let priorPose=null;
   const counters={corrections:0,snaps:0,maxErrorM:0,starvedMs:0};
-  function clear(){motion?.dispose();physics?.dispose();physics=motion=kart=null;peers.clear();history=[];accumulator=0;lastAt=-Infinity;lastArrival=-Infinity;lastSnapshot=null;priorPose=lastDraw=correction=null;}
+  function clear(){motion?.dispose();physics?.dispose();physics=motion=kart=null;peers.clear();history=[];accumulator=frameCredit=0;lastAt=-Infinity;lastArrival=-Infinity;lastSnapshot=null;priorPose=lastDraw=correction=null;}
   function trimHistory(arrival,serverAt){
     history=history.filter(h=>arrival-h.arrival<=1500&&h.end>serverAt-1500);
     if(history.length)history[0].start=Math.max(history[0].start,serverAt-1500);
@@ -64,8 +65,19 @@ export function createElevatedPrediction(R){
     const oldSource=lastSnapshot?.karts.find(k=>k.id===source.id);
     const reset=!lastSnapshot||source.spawnSeq!==oldSource?.spawnSeq||source.controlEpoch!==oldSource?.controlEpoch||source.pose.epoch!==oldSource?.pose.epoch||snapshot.inputAck.life!==lastSnapshot.inputAck.life||snapshot.inputAck.controlEpoch!==lastSnapshot.inputAck.controlEpoch;
     if(lastSnapshot&&snapshot.simAt===lastSnapshot.simAt&&!reset&&snapshot.phase===lastSnapshot.phase)return;
-    const previous=lastDraw?structuredClone(corrected(drawPose())):null;
-    if(reset){history=[];lastDraw=correction=null;if(previous)counters.snaps++;}
+    // A packet may contain the tick just after the last render's fractional
+    // simulation time. Compare that same tick before restoring the checkpoint.
+    const gap=snapshot.simAt-lastAt;
+    if(!reset&&source.alive&&source.connected!==false&&snapshot.phase==='live'&&!snapshot.preparing&&gap>.001&&gap<=dt*1000+.001){
+      let step=gap/1000;if(Math.abs(step-dt)<1e-6)step=dt;
+      run(step,kart.input);lastAt=snapshot.simAt;frameCredit+=step;
+    }
+    // Reconcile physics against physics. A restored snapshot has no previous
+    // render step yet; comparing it with the interpolated draw pose invents
+    // a one-tick correction on every packet and makes steady driving pulse.
+    const before=physics.pose(kart.id),beforePrior=priorPose;
+    const previous=lastDraw?structuredClone(corrected(before)):null;
+    if(reset){history=[];frameCredit=0;lastDraw=correction=null;if(previous)counters.snaps++;}
     accumulator=0;priorPose=null;
     for(const peer of snapshot.karts){
       if(peer.id===source.id||!peers.has(peer.id))continue;
@@ -82,8 +94,9 @@ export function createElevatedPrediction(R){
     if(source.alive&&source.connected!==false&&snapshot.phase==='live'&&!snapshot.preparing){
       for(const h of history){let seconds=Math.max(0,Math.min(h.end,serverAt)-Math.max(h.start,snapshot.simAt))/1000;const fixed=Math.round(seconds/dt)*dt;if(Math.abs(fixed-seconds)<1e-6)seconds=fixed;if(seconds){run(seconds,h.input);lastAt+=seconds*1000;}}
     }
+    if(!reset&&!priorPose)priorPose=rebasePreviousPose(beforePrior,before,physics.pose(kart.id));
     if(!reset&&previous){
-      const p=drawPose(),offset={x:previous.position.x-p.position.x,y:previous.position.y-p.position.y,z:previous.position.z-p.position.z},error=Math.hypot(offset.x,offset.y,offset.z),angle=Math.abs(Math.atan2(Math.sin(yaw(previous.rotation)-yaw(p.rotation)),Math.cos(yaw(previous.rotation)-yaw(p.rotation))));
+      const p=physics.pose(kart.id),offset={x:previous.position.x-p.position.x,y:previous.position.y-p.position.y,z:previous.position.z-p.position.z},error=Math.hypot(offset.x,offset.y,offset.z),angle=Math.abs(Math.atan2(Math.sin(yaw(previous.rotation)-yaw(p.rotation)),Math.cos(yaw(previous.rotation)-yaw(p.rotation))));
       counters.corrections++;counters.maxErrorM=Math.max(counters.maxErrorM,error);
       if(error>8||angle>Math.PI/3){correction=null;counters.snaps++;}
       else correction={offset,rotation:multiply(previous.rotation,{x:-p.rotation.x,y:-p.rotation.y,z:-p.rotation.z,w:p.rotation.w}),at:arrival};
@@ -93,7 +106,11 @@ export function createElevatedPrediction(R){
   function frame(snapshot,input,seconds,arrival,serverAt=arrival){
     if(retired||!kart||!physics||snapshot.phase!=='live'||snapshot.preparing||!snapshot.youDrive||!kart.alive||kart.connected===false)return null;
     const age=arrival-lastArrival;trimHistory(arrival,serverAt);counters.starvedMs=Math.max(0,age-1500);
-    const step=age<=1500?Math.max(0,Math.min(.25,seconds)):0,value={...input};
+    // Alignment already simulated part of this render interval. Consume it
+    // once, retaining any remainder across zero/very short draw calls.
+    const budget=Math.max(0,Math.min(.25,seconds)),credited=Math.min(budget,frameCredit);
+    frameCredit-=credited;
+    const step=age<=1500?budget-credited:0,value={...input};
     if(step){
       run(step,value);const start=serverAt-step*1000,previous=history.at(-1);
       if(previous&&Math.abs(previous.end-start)<1&&sameIntent(previous.input,value)){previous.end=serverAt;previous.arrival=arrival;previous.start=Math.max(previous.start,serverAt-1500);}

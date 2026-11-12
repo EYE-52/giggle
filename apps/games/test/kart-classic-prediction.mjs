@@ -9,6 +9,31 @@ const k={pid:'a',x:0,z:0,angle:0,speed:0,boost:0,boostCd:0,turbo:0,padCd:0,nitro
 // Isolate strict correction-jump limits from legitimate road relief/flight.
 // The all-map terrain test separately exercises actual Ring climbs/descent.
 const flatMap='flat-prediction-fixture';
+// Actual shared Rapier worlds with ordinary 20Hz checkpoints. The timestamp
+// belongs to the physical tick, even when a 144Hz frame receives it between
+// ticks. Acceleration is real; a checkpoint must not add a hold/double step.
+for(const hz of [60,120,144]){
+ const driver={pid:'smooth',x:0,z:0,angle:0,speed:0,input:{throttle:0,steer:0},spawnSeq:0,connected:true,nitro:1};
+ const room={map:flatMap,mode:'battle',half:200,blocks:[],pads:[],surfaces:[],karts:[driver],physicalEvents:[],physicalEventSeq:0};
+ const physics=createClassicMotion(RAPIER,config,room),prediction=createClassicPrediction(RAPIER),seats=new Set(['smooth']),epoch=1700000000000,drive={throttle:.5,steer:0};
+ for(let i=0;i<120;i++)physics.advance(config.fixedDt,seats);
+ const startTick=physics.stats().tick;
+ const snapshot=()=>({instanceId:'periodic-'+hz,phase:'drive',you:'smooth',youDrive:true,mode:'battle',map:{id:flatMap,half:200,blocks:[],pads:[],surfaces:[]},simAt:epoch+(physics.stats().tick-startTick)*config.fixedDt*1000,karts:[structuredClone(driver)],inputAck:{controlEpoch:0}});
+ let latest=snapshot(),nextPacket=50,previous,previousSpeed,maxJolt=0;prediction.ingest(latest,0,epoch);
+ try{
+  for(let frame=1;frame<=Math.floor(hz*1.3);frame++){
+   const t=frame*1000/hz;driver.input=drive;physics.advance(1/hz,seats);
+   if(t>=nextPacket-1e-6){latest=snapshot();prediction.ingest(latest,t,epoch+t);prediction.frame(latest,drive,0,t,epoch+t);nextPacket+=50;}
+   const draw=prediction.frame(latest,drive,1/hz,t,epoch+t).physicalPose.position;
+   if(previous&&t>650){const speed=(draw.z-previous.z)*hz;if(previousSpeed!==undefined)maxJolt=Math.max(maxJolt,Math.abs(speed-previousSpeed));previousSpeed=speed;}
+   previous=draw;
+  }
+  assert(prediction.stats().maxErrorM<.01,`${hz}Hz: agreeing physical checkpoints do not invent correction offsets`);
+  assert(maxJolt<.65,`${hz}Hz: packet receipt does not hold/double a draw step: ${maxJolt}`);
+  assert.equal(prediction.stats().snaps,0);
+  console.log(JSON.stringify({classicPeriodicHz:hz,maxJolt,maxCorrectionM:prediction.stats().maxErrorM}));
+ }finally{prediction.dispose();physics.dispose();}
+}
 const state={map:flatMap,mode:'battle',half:30,blocks:[],pads:[],surfaces:[],karts:[k],physicalEvents:[],physicalEventSeq:0};
 const authority=createClassicMotion(RAPIER,config,state),client=createClassicPrediction(RAPIER),online=new Set(['a']);let maxYStep=0,maxLengthStep=0,previous,minY=Infinity,maxY=-Infinity,seq=0,correctionCpu=[];
 const snap=()=>({instanceId:'fixture-1',phase:'drive',you:'a',youDrive:true,mode:'battle',map:{id:flatMap,half:30,blocks:[],pads:[],surfaces:[]},karts:[structuredClone(k)],inputAck:{appliedInputSeq:seq}});
