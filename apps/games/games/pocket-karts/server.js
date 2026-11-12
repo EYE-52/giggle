@@ -16,9 +16,9 @@ const legacy = createKartGame({
   id: 'pocket-karts',
   name: 'Pocket Karts',
   tagline: 'Kart battles with weapons and nitro',
-  howto: `Drive with WASD, arrows or the stick. N boosts and Shift drifts. Grab a box, then press Space or Fire to use it. Two direct rocket hits or six ${WEAPON_DISPLAY.trishot.label} hits knock out a full-health rival. Keep driving to lay all three trail mines. Most knockouts wins.`,
+  howto: `Drive with WASD, arrows or the stick. N boosts and Shift drifts. Grab a box, then press Space or Fire to use it. Two direct rocket hits or six ${WEAPON_DISPLAY.trishot.label} hits knock out a full-health rival. In team modes your shots pass through teammates. To capture, bring their flag to your base while your own flag is home.`,
   guide: {
-    goal: 'Take a rival from 100 HP to 0 to score a knockout. Most knockouts wins.',
+    goal: 'Collect stars, score knockouts or bring the other team’s flag back to your base.',
     controls: [
       { keys: ['WASD', 'Arrows'], touch:'Stick', does: 'Drive' },
       { keys: ['Space'], touch:'Fire', does: 'Fire the full weapon payload' },
@@ -40,6 +40,7 @@ const legacy = createKartGame({
   modes: ['starrush', 'battle'],
   maps: ['ring', 'blocks', 'garden', 'frost', 'neon'],
   garage: true,
+  teams: true,
   defaults: {
     roundSeconds: 180,
     targetStars: 15,

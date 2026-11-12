@@ -213,6 +213,10 @@ function pushEvent(state, type, pid, other, weapon, extra) {
   while (state.events.length > MAX_EVENTS) state.events.shift();
 }
 
+function rivals(state, owner, other) {
+  return state.teamRules ? state.teamRules.canDamage(owner, other) : owner !== other;
+}
+
 /* Score the shooter once and freeze the victim out for RESPAWN_TIME. The
  * shield value freezes untouched (never ticks while KO'd); duplicate-KO
  * protection comes from the dead state itself: dead karts are skipped by
@@ -249,6 +253,7 @@ function knockOut(state, victim, shooterPid, weapon, econ) {
     try { econ.award(shooterPid, COIN_KO); } catch { /* economy never breaks the tick */ }
   }
   pushEvent(state, 'ko', shooterPid, victim.pid, weapon,victim.physicalPose?{position:physicalHullCenter(victim)}:undefined);
+  if (shooter) state.teamRules?.scoreKO(shooter.pid, victim.pid, 'e' + state.eventSeq, state.nowMs);
 }
 
 /* Timed status effects. Frost slows and ram boosts. A KO or
@@ -265,7 +270,7 @@ function applyStatus(state, victim, weapon) {
  * while active. The old guard field only serves legacy state. */
 function damage(state,victim,owner,weapon,connected,econ,volley=null,override=null,shot=null) {
   const amount=override??damageAt(weapon);
-  if(!victim || victim.pid===owner || !connected.has(victim.pid) || victim.respawn>0 || victim.shield>0 || !(amount>0)) return false;
+  if(!victim || !rivals(state, owner, victim.pid) || !connected.has(victim.pid) || victim.respawn>0 || victim.shield>0 || !(amount>0)) return false;
   const hitPosition = victim.physicalPose ? physicalHullCenter(victim) : {x:+victim.x.toFixed(3),y:0,z:+victim.z.toFixed(3)};
   if(victim.supernovaT>0){
     let announce=true;
@@ -518,7 +523,7 @@ function seekerLock(state, kart, from, direction, connected, fireGeometry, rule=
   const fx=direction?direction.x:Math.sin(kart.angle),fz=direction?direction.z:Math.cos(kart.angle);
   const physical=!!kart.physicalPose&&typeof fireGeometry?.sweepStatic==='function';
   for(const k of state.karts) {
-    if(k.pid===kart.pid||!connected.has(k.pid)||(Number(k.respawn)||0)>0||(Number(k.shield)||0)>0)continue;
+    if(!rivals(state,kart.pid,k.pid)||!connected.has(k.pid)||(Number(k.respawn)||0)>0||(Number(k.shield)||0)>0)continue;
     const to=physical?physicalHullCenter(k):{x:k.x,z:k.z};
     const dx=to.x-from.x,dz=to.z-from.z,dy=physical?to.y-from.y:0,d=Math.hypot(dx,dy,dz);
     if(!inWeaponCone(from,direction||{x:fx,y:0,z:fz},to,rule.range,rule.halfAngle))continue;
@@ -1275,7 +1280,7 @@ module.exports = {
       // A Boomerang blade passes through every rival it cuts this tick.
 
       for (const kart of state.karts) {
-        if (kart.pid === zap.owner) continue; // never self-hit
+        if (!rivals(state, zap.owner, kart.pid)) continue;
         if (!connected.has(kart.pid)) continue; // offline karts are immune
         if ((Number(kart.respawn) || 0) > 0) continue; // KO'd: no duplicate KO
         const before = previousKarts?.get(kart.pid) || kart;
@@ -1389,7 +1394,7 @@ module.exports = {
       if (live) {
         const maxTravel = 40 * Math.max(0, dt) + 3;
         for (const kart of state.karts) {
-          if (kart.pid === mine.owner) continue; // exact owner never hit
+          if (!rivals(state, mine.owner, kart.pid)) continue;
           if (!connected.has(kart.pid)) continue;
           if ((Number(kart.respawn) || 0) > 0) continue;
           if ((Number(kart.shield) || 0) > 0) continue;

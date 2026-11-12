@@ -206,11 +206,18 @@ async function main() {
     eq(resumed.state.inputAck.receivedSeq, 0);
     await start(clients, params('Frost Quarry'), host); eq(resumed.state.mapId, 'frost'); eq(resumed.state.map.label, 'Frost Quarry');
     await start(clients, params('Neon Harbor'), host); eq(resumed.state.mapId, 'neon'); eq(resumed.state.map.label, 'Neon Harbor');
+    for (const mode of ['Star Rush', 'Garage Battle', 'Team Battle', 'Capture the Flag']) {
+      await start(clients, { ...params('Neon Harbor'), mode }, host);
+      eq(resumed.state.map.label, 'Neon Harbor');
+      eq(resumed.state.modeLabel, mode);
+      eq(resumed.state.garage, mode === 'Garage Battle');
+      if (mode === 'Capture the Flag') eq(resumed.state.flags.length, 2);
+      if (mode === 'Star Rush') ok(resumed.state.stars.length > 0);
+    }
     const beforeInvalid = resumed.state.instanceId, errors = host.frames.filter(f => f.t === 'error').length;
-    send(host, { t: 'start', game: 'pocket-karts', settings: { ...params('Neon Harbor'), mode: 'Star Rush' } });
-    await until(() => host.frames.filter(f => f.t === 'error').length > errors, 'unsupported combination error');
-    ok(host.frames.filter(f => f.t === 'error').at(-1).msg.includes('require Zap Battle'));
-    eq(resumed.state.instanceId, beforeInvalid, 'incompatible start preserves current World');
+    send(host, { t: 'start', game: 'pocket-karts', settings: { ...params('Neon Harbor'), mode: 'Unknown rules' } });
+    await until(() => host.frames.filter(f => f.t === 'error').length > errors, 'unknown mode is rejected');
+    eq(resumed.state.instanceId, beforeInvalid, 'invalid request preserves current World');
     await start(clients, { mode: 'Star Rush', map: 'Neon Yard', winRule: 'Score target', roundSeconds: 60 }, host);
     eq(resumed.state.mode, 'starrush'); eq(resumed.state.winRule, 'Score target'); ok(!resumed.state.profile);
     await settle(resumed, () => action(resumed, { input: { throttle: 1, steer: 0 } }, { i: undefined, w: undefined }), 'unstamped original-map input tick');

@@ -156,7 +156,9 @@ const park = (st) => st.karts.forEach((k, i) => { k.x = -20 + i * 20; k.z = 20; 
 async function elevated() {
   await product.initialize();
   ok(product.preflight({ map: 'Alpine Courtyard', mode: 'Zap Battle', winRule: 'Score target' }).ok, 'elevated arenas accept a score target');
-  ok(product.preflight({ map: 'Alpine Courtyard', mode: 'Star Rush' }).error, 'elevated arenas still need Zap Battle');
+  for (const mode of ['Star Rush', 'Garage Battle', 'Team Battle', 'Capture the Flag']) {
+    ok(product.preflight({ map: 'Alpine Courtyard', mode }).ok, mode + ' available on Alpine Courtyard');
+  }
   const ctx = stubCtx({ map: 'Alpine Courtyard', mode: 'Zap Battle', winRule: 'Score target', targetHits: 4, roundSeconds: 120 });
   const st = product.create(ctx);
   try {

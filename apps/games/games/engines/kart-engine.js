@@ -29,7 +29,14 @@ const { mapDef, normalizeMapId } = require('./kart-maps');
 const { crowdSpawns } = require('./kart-spawns');
 const starrush = require('./kart-rules-starrush');
 const battle = require('./kart-rules-battle');
+const { TEAM_MODES, createTeamRules, arrangeTeamSpawns } = require('./kart-team-rules');
 const { rankStandings } = require('./kart-standings');
+
+const {
+  GARAGE_CATS, GARAGE_MAX, GARAGE_PRICES, GARAGE_NONCE_CAP, GARAGE_WALLET_CAP,
+  COIN_PARTICIPATION, COIN_WIN, garageStore, garageLevels, syncGarageState,
+  awardGarageCoins, garagePurchase, awardFinishCoins,
+} = require('./kart-garage-economy');
 
 const RULES = { starrush, battle };
 
@@ -101,14 +108,6 @@ const LIGHT_CYCLES = ['Live sunset', 'Fixed light'];
  * turn rate x(1+0.04L). Reload L: fire cooldown x(1-0.06L). The pose
  * mirror multiplies its MAX_SPEED/ACCEL/TURN_RATE by the kart's tuning
  * (view.karts[].tuning) when view.garage is true; classic tuning is 1. */
-const GARAGE_CATS = ['engine', 'handling', 'reload'];
-const GARAGE_MAX = 3;
-const GARAGE_PRICES = [20, 35, 55]; // cost to reach level 1/2/3
-const GARAGE_NONCE_CAP = 200; // bounded exact-once purchase nonces per game
-const GARAGE_WALLET_CAP = 32; // room seats max; departing ghosts pruned past this
-const COIN_PARTICIPATION = 5;
-const COIN_WIN = 15;
-
 function clamp(v, lo, hi) {
   return v < lo ? lo : v > hi ? hi : v;
 }
@@ -540,116 +539,6 @@ function cleanInput(a) {
   return out;
 }
 
-/* Garage store: room-scoped per-seat wallet + upgrades + purchase
- * nonces. Preferred: ctx.session() (room.js, scoped automatically to the
- * running game id, survives rematches and away/back, dies with the room).
- * Fixtures without ctx.session fall back to a per-match object on the
- * state (functional single-match economy, no persistence). Shape:
- * { coins:{pid:n}, upgrades:{pid:{engine,handling,reload}},
- *   seen:{nonce:1}, seenOrder:[nonce...] }. Trusted server-only; clients
- * never address it (no pids or keys from the wire reach the store
- * except the sender's own validated pid and nonce). */
-function ensureGarageShape(store) {
-  if (!store || typeof store !== 'object') return { coins: {}, upgrades: {}, seen: {}, seenOrder: [] };
-  if (!store.coins || typeof store.coins !== 'object') store.coins = {};
-  if (!store.upgrades || typeof store.upgrades !== 'object') store.upgrades = {};
-  if (!store.seen || typeof store.seen !== 'object') store.seen = {};
-  if (!Array.isArray(store.seenOrder)) store.seenOrder = [];
-  return store;
-}
-
-function garageStore(ctx, state) {
-  let store = null;
-  if (ctx && typeof ctx.session === 'function') {
-    try { store = ctx.session(); } catch { store = null; }
-  }
-  if (!store || typeof store !== 'object') {
-    if (!state._garageLocal || typeof state._garageLocal !== 'object') state._garageLocal = {};
-    store = state._garageLocal;
-  }
-  return ensureGarageShape(store);
-}
-
-function garageCoins(store, pid) {
-  if (!store || !store.coins) return 0;
-  return Math.max(0, Math.floor(Number(store.coins[pid]) || 0));
-}
-
-function garageLevels(store, pid) {
-  const out = { engine: 0, handling: 0, reload: 0 };
-  const up = store && store.upgrades ? store.upgrades[pid] : null;
-  if (up && typeof up === 'object') {
-    for (const c of GARAGE_CATS) out[c] = clamp(Math.floor(Number(up[c]) || 0), 0, GARAGE_MAX);
-  }
-  return out;
-}
-
-/* Award coins exactly once (server-side only). Prunes departing ghosts
- * past the 24-seat cap (non-drivers first), so the wallet never grows
- * without bound. keepPids is the current driver set (may be null). */
-function awardGarageCoins(store, pid, amount, keepPids) {
-  ensureGarageShape(store);
-  if (!pid || typeof pid !== 'string') return 0;
-  const amt = Math.floor(Number(amount) || 0);
-  if (amt <= 0) return garageCoins(store, pid);
-  if (!Object.prototype.hasOwnProperty.call(store.coins, pid) &&
-      Object.keys(store.coins).length >= GARAGE_WALLET_CAP) {
-    const keys = Object.keys(store.coins);
-    let evicted = false;
-    for (const k of keys) {
-      if (!keepPids || !keepPids.has(k)) {
-        delete store.coins[k];
-        delete store.upgrades[k];
-        evicted = true;
-        break;
-      }
-    }
-    if (!evicted && keys.length) {
-      delete store.coins[keys[0]];
-      delete store.upgrades[keys[0]];
-    }
-  }
-  store.coins[pid] = garageCoins(store, pid) + amt;
-  return store.coins[pid];
-}
-
-/* Claim a purchase nonce exactly once. False for missing/malformed or
- * replayed nonces (no-op, never double-charges). Bounded to the last
- * GARAGE_NONCE_CAP entries. */
-function claimGarageNonce(store, nonce) {
-  ensureGarageShape(store);
-  if (typeof nonce !== 'string' || nonce.length < 1 || nonce.length > 64) return false;
-  if (store.seen[nonce]) return false;
-  store.seen[nonce] = 1;
-  store.seenOrder.push(nonce);
-  while (store.seenOrder.length > GARAGE_NONCE_CAP) {
-    const drop = store.seenOrder.shift();
-    delete store.seen[drop];
-  }
-  return true;
-}
-
-function hasGarageNonce(store, nonce) {
-  return !!store && !!store.seen && typeof nonce === 'string' && !!store.seen[nonce];
-}
-
-/* Copy the persistent wallet/upgrades into the match state for views
- * (views never receive ctx, so the state carries a projection). Small:
- * at most 24 seats. */
-function syncGarageState(state, store) {
-  ensureGarageShape(store);
-  const coins = {};
-  for (const pid of Object.keys(store.coins)) coins[pid] = garageCoins(store, pid);
-  state.coins = coins;
-  const ups = {};
-  for (const pid of Object.keys(store.upgrades)) ups[pid] = garageLevels(store, pid);
-  for (const pid of Object.keys(coins)) {
-    if (!ups[pid]) ups[pid] = { engine: 0, handling: 0, reload: 0 };
-  }
-  state.garageUpgrades = ups;
-  if (!state.garageResults || typeof state.garageResults !== 'object') state.garageResults = {};
-}
-
 /* endReason is explicit so an early goal finish never reads as a timer
  * bug: 'goal' (target reached) or 'timeout' (deadline). A goal landing on
  * the exact expiry tick counts as 'goal' — deterministic, scored once. */
@@ -670,9 +559,14 @@ function finish(state, ctx, rules, endReason) {
   if (state.skyCycle) state.skyCycle.endedAt = ctx.now();
   // Places pay 300/200/100/0, ties share rank and points, a full draw
   // pays 150 each, and drivers who dropped out rank last with 0.
-  const { standings, winners, winner, draw } = rankStandings(state.karts
+  if (state.teamRules && !state.teamRules.done()) {
+    const reason = { timeout: 'deadline', goal: 'target', 'players-left': 'abandonment' }[endReason];
+    state.teamRules.finish(ctx.now(), reason);
+  }
+  const result = state.teamRules?.result() ?? rankStandings(state.karts
     .map((k) => ({ pid: k.pid, score: rules.scoreOf(k), out: k.out === true })));
-  state.result = { standings, winner, winners, draw, endReason };
+  const { standings, winners } = result;
+  state.result = { ...result, endReason: result.endReason || endReason };
   for (const s of standings) {
     state.scores[s.pid] = s.score;
     if (s.points > 0) ctx.award(s.pid, s.points);
@@ -680,19 +574,7 @@ function finish(state, ctx, rules, endReason) {
   // Garage coins (battle only, exactly once): every driver banks
   // participation, winners bank extra. Runs inside finish, which the tick
   // driver calls at most once (done returns early).
-  if (rules && rules.key === 'battle') {
-    try {
-      const store = garageStore(ctx, state);
-      const keep = new Set(state.karts.map((k) => k.pid));
-      // Coin bonus keeps its old meaning: a scoreless draw wins no coins.
-      const winSet = new Set(standings.some((s) => !s.out && s.score > 0) ? winners : []);
-      for (const k of state.karts) {
-        awardGarageCoins(store, k.pid, COIN_PARTICIPATION, keep);
-        if (winSet.has(k.pid)) awardGarageCoins(store, k.pid, COIN_WIN, keep);
-      }
-      syncGarageState(state, store);
-    } catch { /* economy never breaks the finish */ }
-  }
+  if (rules.key === 'battle') awardFinishCoins(state, ctx, standings, winners);
 }
 
 /* ---- Arena features: fall-off zones and teleport bookkeeping ----
@@ -793,10 +675,12 @@ function createKartGame(config) {
   const defWinRule = WIN_RULES.includes(d.winRule) ? d.winRule : 'Score target';
   const defLight = LIGHT_CYCLES.includes(d.lightCycle) ? d.lightCycle : 'Fixed light';
   const offersGarage = cfg.garage === true && modes.includes('battle');
+  const offersTeams = cfg.teams === true && modes.includes('battle');
   const defGarage = d.garage === true;
 
   const modeOptions = modes.map((m) => RULES[m].label);
   if(offersGarage) modeOptions.splice(modeOptions.indexOf(RULES.battle.label)+1,0,'Garage Battle');
+  if (offersTeams) modeOptions.push(...Object.values(TEAM_MODES));
   const mapOptions = maps.map((m) => mapDef(m).label);
   // Immersive is opt-in per game: only an explicit 'immersive' passes, so
   // thin variants generated without a layout keep the standard card.
@@ -814,7 +698,8 @@ function createKartGame(config) {
     settings: [
       { key: 'roundSeconds', label: 'Round length (seconds)', type: 'int', min: ROUND_MIN_S, max: ROUND_MAX_S, def: defRound },
       { key: 'targetStars', label: 'Stars to win (Star Rush)', type: 'int', min: 8, max: 30, def: defStars },
-      { key: 'targetHits', label: 'Knockouts to win (Zap Battle)', type: 'int', min: 1, max: 20, def: defHits },
+      { key: 'targetHits', label: 'Knockouts to win', type: 'int', min: 1, max: 20, def: defHits },
+      ...(offersTeams ? [{ key: 'targetFlags', label: 'Flags to win', type: 'int', min: 1, max: 10, def: 3 }] : []),
       { key: 'mode', label: 'Mode', type: 'enum', options: modeOptions, def: RULES[defMode].label },
       { key: 'map', label: 'Arena', type: 'enum', options: mapOptions, def: mapDef(defMap).label },
       { key: 'palette', label: 'Arena palette', type: 'enum', options: PALETTES.slice(), def: defPalette },
@@ -835,7 +720,9 @@ function createKartGame(config) {
     for (const m of modes) {
       if (s.mode === RULES[m].label || s.mode === m) { mode = m; break; }
     }
-    if (offersGarage && s.mode==='Garage Battle') mode='battle';
+    const teamMode = offersTeams && Object.keys(TEAM_MODES).find(key => TEAM_MODES[key] === s.mode || key === s.mode);
+    const targetFlags = Number.isInteger(s.targetFlags) ? clamp(s.targetFlags, 1, 10) : 3;
+    if (teamMode || (offersGarage && s.mode === 'Garage Battle')) mode = 'battle';
     let map = defMap;
     for (const m of maps) {
       if (s.map === mapDef(m).label || s.map === m) { map = m; break; }
@@ -846,13 +733,13 @@ function createKartGame(config) {
     const lightCycle = LIGHT_CYCLES.includes(s.lightCycle) ? s.lightCycle : defLight;
     // Garage Battle = battle rules (rulesKey stays 'battle') plus the
     // progression flag. Classic default off; Star Rush never applies it.
-    const garage = offersGarage && mode === 'battle' && (s.mode==='Garage Battle'||s.garage === true || (s.garage === undefined && defGarage));
-    return { roundSeconds, targetStars, targetHits, mode, map, palette, winRule, lightCycle, garage };
+    const garage = offersGarage && !teamMode && mode === 'battle' && (s.mode==='Garage Battle'||s.garage === true || (s.garage === undefined && defGarage));
+    return { roundSeconds, targetStars, targetHits, targetFlags, teamMode, mode, map, palette, winRule, lightCycle, garage };
   }
 
   function create(ctx) {
     const drivers = ctx.allPlayers();
-    const { roundSeconds, targetStars, targetHits, mode, map, palette, winRule, lightCycle, garage } = settingsOf(ctx);
+    const { roundSeconds, targetStars, targetHits, targetFlags, teamMode, mode, map, palette, winRule, lightCycle, garage } = settingsOf(ctx);
     const rules = RULES[mode];
     const mapD = mapDef(map);
     const half = Number(mapD.half) > 0 ? Number(mapD.half) : ARENA_HALF;
@@ -934,68 +821,32 @@ function createKartGame(config) {
       syncGarageState(state, store);
     } catch { /* economy never breaks create */ }
     rules.createExtra(state, mapD.spots);
-    if (cfg.createMotion) { state.physicalEvents=[];state.physicalEventSeq=0;motions.set(state,cfg.createMotion(state)); }
+    if (teamMode) {
+      // Place both grids using the authored terrain before creating kart bodies.
+      // Once the World exists, live flags query its exact ramps and support.
+      state.teamRules = createTeamRules({
+        mode: teamMode, map: { ...mapD, id: map }, seats: karts, occupiedSpawns: karts,
+        startAt: countdownEnds, roundMs: state.roundMs, winRule,
+        get supportAt() { return motions.get(state)?.supportAt; },
+        targetScore: teamMode === 'ctf' ? targetFlags : targetHits,
+      });
+      state.teamMode = teamMode;
+      state.targetFlags = targetFlags;
+      if (teamMode === 'ctf' && spawnPool) {
+        const { teamByPlayer, bases } = state.teamRules.snapshot();
+        const grid = arrangeTeamSpawns(drivers, spawnPool, teamByPlayer, bases);
+        karts.forEach((kart, index) => {
+          const { x, z, angle } = grid[index];
+          Object.assign(kart, { x, z, angle });
+        });
+      }
+    }
+    if (cfg.createMotion) {
+      state.physicalEvents = [];
+      state.physicalEventSeq = 0;
+      motions.set(state, cfg.createMotion(state));
+    }
     return state;
-  }
-
-  /* Garage purchase (results-only). Validates mode, stage, seat, id,
-   * balance, cap, and nonce; deducts and levels up exactly once. Returns
-   * undefined so the room broadcasts the updated wallet/result. Errors
-   * are recorded privately per seat (view.garageResult) with clear text —
-   * never silent, never a throw, never a cross-seat spend. */
-  function garagePurchase(state, ctx, pid, req) {
-    const fail = (error) => {
-      if (!state.garageResults || typeof state.garageResults !== 'object') state.garageResults = {};
-      state.garageResults[pid] = {
-        ok: false, error,
-        nonce: req && typeof req.nonce === 'string' ? req.nonce.slice(0, 64) : null,
-        category: req && typeof req.category === 'string' ? req.category.slice(0, 16) : null,
-      };
-      return undefined; // broadcast the error to the buyer
-    };
-    if (state.rulesKey !== 'battle') return fail('Garage is available in Zap Battle results only.');
-    if (state.phase !== 'done') return fail('Garage opens on the results screen.');
-    let roster = [];
-    let online = [];
-    try {
-      roster = ctx.allPlayers().map((p) => p.id);
-      online = ctx.players().map((p) => p.id);
-    } catch { roster = state.karts.map((k) => k.pid); online = roster.slice(); }
-    if (!roster.includes(pid) || !state.karts.some(k=>k.pid===pid)) return fail('Only drivers in this match can use the garage.');
-    if (!online.includes(pid)) return fail('Reconnect to use the garage.');
-    const r = req && typeof req === 'object' ? req : {};
-    if (r.pid !== undefined && r.pid !== pid) return fail('You can only upgrade your own kart.');
-    if (r.target !== undefined && r.target !== pid) return fail('You can only upgrade your own kart.');
-    if (r.seat !== undefined && r.seat !== pid) return fail('You can only upgrade your own kart.');
-    const cat = r.category;
-    if (typeof cat !== 'string' || !GARAGE_CATS.includes(cat)) {
-      return fail(`Unknown upgrade "${String(cat).slice(0, 16)}" (want engine, handling, or reload).`);
-    }
-    if (typeof r.nonce !== 'string' || r.nonce.length < 1 || r.nonce.length > 64) {
-      return fail('Purchase needs a nonce (1..64 chars).');
-    }
-    let store;
-    try { store = garageStore(ctx, state); } catch { return fail('Garage unavailable. Try again.'); }
-    if (hasGarageNonce(store, r.nonce)) return fail('Duplicate purchase (already applied).');
-    const levels = garageLevels(store, pid);
-    if (levels[cat] >= GARAGE_MAX) return fail(`${cat} is already at max level ${GARAGE_MAX}.`);
-    const cost = GARAGE_PRICES[levels[cat]];
-    const have = garageCoins(store, pid);
-    if (have < cost) return fail(`Need ${cost} coins for ${cat} ${levels[cat] + 1} (have ${have}).`);
-    if (!claimGarageNonce(store, r.nonce)) return fail('Duplicate purchase (already applied).');
-    store.coins[pid] = have - cost;
-    if (!store.upgrades[pid] || typeof store.upgrades[pid] !== 'object') {
-      store.upgrades[pid] = { engine: 0, handling: 0, reload: 0 };
-    }
-    store.upgrades[pid][cat] = levels[cat] + 1;
-    syncGarageState(state, store);
-    const kart = state.karts.find((k) => k.pid === pid);
-    if (kart) kart.upgrades = garageLevels(store, pid);
-    state.garageResults[pid] = {
-      ok: true, category: cat, level: levels[cat] + 1,
-      coins: store.coins[pid], nonce: r.nonce,
-    };
-    return undefined; // broadcast the new wallet/levels
   }
 
   function onAction(state, ctx, pid, a) {
@@ -1053,6 +904,9 @@ function createKartGame(config) {
     if (kart.out && connected) return; // dropped drivers never rejoin this match
     if(motions.has(state)&&!connected&&kart.connected!==false){kart.controlEpoch=(kart.controlEpoch||0)+1;kart._receivedSeq=0;kart._appliedSeq=0;}
     kart.connected=connected;
+    if (state.teamRules && !connected && state.phase === 'drive') {
+      state.teamRules.update(state.lastTick, state.karts);
+    }
     if(connected)return;
     battle.cancelPayload(kart);
     kart.bladesT=0;kart.supernovaT=0;kart.bladesAge=0;kart.bladesVolley=null;kart.supernovaVolley=null;kart.bladesHits=null;
@@ -1080,7 +934,8 @@ function createKartGame(config) {
     kart.out = true;
     kart.connected = false;
     delete kart.goneSince;
-    if (state.karts.filter((k) => !k.out).length < 2) {
+    state.teamRules?.update(ctx.now(), state.karts);
+    if (state.karts.filter((k) => !k.out).length < 2 || state.teamRules?.done()) {
       finish(state, ctx, RULES[state.rulesKey] || RULES[modes[0]], 'players-left');
     }
     return true;
@@ -1104,7 +959,7 @@ function createKartGame(config) {
     if (state.phase === 'countdown') {
       if (now >= state.endsAt) {
         state.phase = 'drive';
-        state.endsAt = now + state.roundMs;
+        state.endsAt = (state.teamRules ? state.endsAt : now) + state.roundMs;
         // No edge queued during countdown may fire the opening: battle
         // karts re-arm, so only a new live press launches. Nitro holds
         // during countdown never drain (karts never step there).
@@ -1242,9 +1097,11 @@ function createKartGame(config) {
     }
     // A goal only ends the round under the 'Score target' win rule; under
     // 'Time limit' every round plays to the deadline (scores still count).
-    const goalCounts = state.winRule !== 'Time limit' && goalMet;
-    if (goalCounts || now >= state.endsAt) {
-      finish(state, ctx, rules, goalCounts ? 'goal' : 'timeout');
+    state.teamRules?.update(simNow, state.karts);
+    const teamEnd = state.teamRules?.result()?.endReason;
+    const individualGoal = !state.teamRules && state.winRule !== 'Time limit' && goalMet;
+    if (teamEnd || individualGoal || now >= state.endsAt) {
+      finish(state, ctx, rules, teamEnd || (individualGoal ? 'goal' : 'timeout'));
     }
     ctx.broadcast(state.phase === 'done' ? undefined : { discardable: true });
   }
@@ -1259,6 +1116,7 @@ function createKartGame(config) {
     const upsMap = state.garageUpgrades && typeof state.garageUpgrades === 'object' ? state.garageUpgrades : {};
     const resMap = state.garageResults && typeof state.garageResults === 'object' ? state.garageResults : {};
     const extras = rules.viewExtra(state), motion = motions.get(state);
+    const team = state.teamRules?.snapshot();
     if (motion?.groundAt) {
       for (const key of ['stars','crates']) if (extras[key]) {
         extras[key] = extras[key].map(item => ({...item,groundY:motion.groundAt(item.x,item.z)}));
@@ -1277,7 +1135,8 @@ function createKartGame(config) {
       phase: state.phase,
       ...(motions.has(state)?{motionProfile:'rapier-classic-v1',physicalEvents:state.physicalEvents,inputAck:inputAck(state,pid)}:{}),
       mode: rules.key,
-      modeLabel: isGarage ? 'Garage Battle' : rules.label,
+      modeLabel: TEAM_MODES[state.teamMode] || (isGarage ? 'Garage Battle' : rules.label),
+      ...(team ? { ...team, targetFlags: state.targetFlags } : {}),
       garage: isGarage,
       simAt: state.lastTick,
       map: {
@@ -1336,10 +1195,11 @@ function createKartGame(config) {
           nitroLocked: k.nitroLocked === true,
           ...(state.features ? featureKartView(k) : {}),
           ...rules.kartViewExtra(k),
+          ...(state.teamMode === 'ctf' ? { captures: team.capturesByPlayer?.[k.pid] || 0 } : {}),
         };
       }),
       ...extras,
-      scores: { ...state.scores },
+      scores: team ? Object.fromEntries(team.teams.flatMap(t => t.members.map(pid => [pid, t.score]))) : { ...state.scores },
       result: state.result,
       // Garage: private wallet (owner only) + private last purchase result,
       // public owned levels (kart cosmetics), static price table. simAt is

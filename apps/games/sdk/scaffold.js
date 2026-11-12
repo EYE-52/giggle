@@ -135,7 +135,8 @@ function generate(id, opts) {
       }
     }
     if (template === 'kart') {
-      for (const f of ['kart-view.js', 'kart-pose.mjs', 'kart-physics-config.mjs', 'kart-weapon-contract.mjs']) {
+      for (const f of ['kart-view.js', 'kart-pose.mjs', 'kart-physics-config.mjs', 'kart-weapon-contract.mjs',
+        'kart-road-terrain.mjs', 'kart-raised-support.mjs', 'kart-arena-polygons.mjs', 'kart-arena-authoring.mjs']) {
         copyIfMissing(
           path.join(kitRoot, 'public', 'js', 'engines', f),
           path.join(root, 'public', 'js', 'engines', f));
