@@ -1,8 +1,9 @@
 /* Sculpted background terrain for the stylized Alpine world. All patches
  * remain outside the legal driving field. No physics state lives here. */
+export const STYLIZED_ALPINE_COLORS=Object.freeze({foothill:0x3d9d79,distant:0x84adc7,snow:0xecf4fa});
 export function createStylizedAlpineLandscape(THREE,{parent,half=60,geometry,material,part}={}){
   const owned=[];
-  const paint=new THREE.Color(),low=new THREE.Color(0x3d9d79),high=new THREE.Color(0x84adc7),snow=new THREE.Color(0xecf4fa);
+  const paint=new THREE.Color(),low=new THREE.Color(STYLIZED_ALPINE_COLORS.foothill),high=new THREE.Color(STYLIZED_ALPINE_COLORS.distant),snow=new THREE.Color(STYLIZED_ALPINE_COLORS.snow);
   // Irregular individual silhouettes replace the repeating circular ridge.
   // The near patches open a valley; separate pale peaks supply distance.
   const patches=[

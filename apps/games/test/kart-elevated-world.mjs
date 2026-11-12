@@ -54,6 +54,16 @@ for(const id of elevatedMapIds){
   check(skyMaterial.uniforms.uTop.value.getHex()===0x0877e7&&skyMaterial.uniforms.uMid.value.getHex()===0x2da6ef,id+' daylight uses the classic blue sky palette');
   check(skyMaterial.uniforms.uHorizon.value.equals(world.lighting.fogColor)&&world.lighting.fogColor.getHex()===0xb7def2,id+' painted horizon blends into the same blue fog');
   check(!skyMaterial.uniforms.uTop.value.equals(skyMaterial.uniforms.uHorizon.value),id+' sky has height variation instead of a flat band');
+  if(!input.complex&&!input.arenaVersion&&input.environment!=='harbor'){
+    const meadows=world.scenery.children.filter(o=>o.name==='outside-valley-meadow');
+    check(meadows.length===4,id+' outside ground keeps the same four bounded draws');
+    for(const meadow of meadows){
+      meadow.geometry.computeBoundingBox();const box=meadow.geometry.boundingBox;
+      check(box.max.y-box.min.y>6,id+' rolling ground reaches the raised chase horizon');
+      check(Math.max(Math.abs(box.min.x),Math.abs(box.max.x),Math.abs(box.min.z),Math.abs(box.max.z))>=input.half+195,id+' ground reaches the painted backdrop');
+      check([...meadow.geometry.attributes.normal.array].filter((_,i)=>i%3===1).every(y=>y>0),id+' meadow faces upward');
+    }
+  }
   world.group.updateMatrixWorld(true);
   // An open, high driving level sees the dome above the painting all the
   // way to the top corners. Test actual mesh coverage without a GPU.

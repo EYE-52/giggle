@@ -93,6 +93,13 @@ world.scenery.traverse(o=>{
   }
 });
 check(drawInstances>20,'Source models actually populated in camera detail range');
+const meadows=world.scenery.children.filter(o=>o.name==='stylized-outside-meadow');
+check(meadows.length===4,'The grounded horizon reuses four outside meadow draws');
+for(const meadow of meadows){
+  const bounds=meadow.geometry.boundingBox,colors=meadow.geometry.attributes.color;let low=Infinity,high=-Infinity;
+  for(let i=0;i<colors.count;i++){const ratio=colors.getZ(i)/colors.getY(i);low=Math.min(low,ratio);high=Math.max(high,ratio);}
+  check(bounds.max.y-bounds.min.y>6&&high-low>.15,'Rolling meadow fades into the existing distant colours instead of a flat green band');
+}
 check(JSON.stringify(library.children.map(n=>n.matrix.toArray()))===JSON.stringify(beforeTransforms),'Placement never modifies hidden source library transforms');
 let plants=0;
 world.group.traverse(o=>{if(o.name.startsWith('stylized-meadow-')&&o.isInstancedMesh){check(o.count<=500&&!o.castShadow,'Bounded soft foliage avoids shadow load');plants+=o.count;}});

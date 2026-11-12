@@ -12,9 +12,10 @@ import {createKartComplexWorld} from './kart-complex-world.mjs';
  * stats() and idempotent dispose(). A null phase uses the chosen fixed palette;
  * a finite phase is caller-owned 0..1 daylight -> sunset -> readable night.
  */
-import { createStylizedAlpineLandscape } from './kart-stylized-landscape.mjs';
+import { createStylizedAlpineLandscape, STYLIZED_ALPINE_COLORS } from './kart-stylized-landscape.mjs';
 import { elevatedMap } from './kart-elevated-maps.mjs';
 import { createKartBackdrop, createKartClouds, createKartSky } from './kart-backdrop.mjs';
+import {outsideSceneryApron} from './kart-scenery-apron.mjs';
 
 const TAU=Math.PI*2;
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
@@ -381,8 +382,12 @@ diffuseColor.rgb+=vec3(.65,.90,.94)*glint;`);
   }
   if(!harbor&&!stylized){
     ridge(112,19,1.3,'valley-foothills');ridge(184,39,3.7,'alpine-distant-ridges');ridge(268,60,7.1,'snow-summit-horizon');
-    const turf=standard(frost?0xb9ccd0:0xffffff,{...(realTerrain?pbr(terrain.sets.grass):pattern('grass',256)),roughness:1,bumpScale:.003});
-    for(const[x,z,w,d]of[[-137,0,150,400],[137,0,150,400],[0,-137,124,150],[0,137,124,150]]){const ground=geo(new THREE.PlaneGeometry(w,d).rotateX(-Math.PI/2));physicalUV(THREE,ground);const meadow=part(scenery,ground,turf,[x,-.35,z],[1,1,1],[0,0,0],'outside-valley-meadow');meadow.castShadow=false;}
+    const turf=frost?mat(M.snow.clone()):standard(0xffffff,{...(realTerrain?pbr(terrain.sets.grass):pattern('grass',256)),roughness:1,bumpScale:.003,vertexColors:true});
+    turf.vertexColors=true;
+    for(let side=0;side<4;side++){
+      const ground=geo(outsideSceneryApron(THREE,{half,side}));physicalUV(THREE,ground);
+      const meadow=part(scenery,ground,turf,[0,0,0],[1,1,1],[0,0,0],'outside-valley-meadow');meadow.castShadow=false;
+    }
     if(realTerrain&&assets.nature){
       // Authored fir cards/bark and scanned rock topology retain their UVs.
       // Roots sit on the outside meadow, with complete crowns/rocks beyond
@@ -418,9 +423,9 @@ diffuseColor.rgb+=vec3(.65,.90,.94)*glint;`);
   }
 
   if(stylized){
-    const library=assets.stylized,turf=standard(0x3bba5b,{roughness:1});
-    for(const[x,z,w,d]of[[-137,0,150,400],[137,0,150,400],[0,-137,124,150],[0,137,124,150]]){
-      const meadow=part(scenery,geo(new THREE.PlaneGeometry(w,d).rotateX(-Math.PI/2)),turf,[x,-.35,z],[1,1,1],[0,0,0],'stylized-outside-meadow');meadow.castShadow=false;
+    const library=assets.stylized,turf=standard(0xffffff,{roughness:1,vertexColors:true});
+    for(let side=0;side<4;side++){
+      const meadow=part(scenery,geo(outsideSceneryApron(THREE,{half,side,color:0x3bba5b,distantColor:STYLIZED_ALPINE_COLORS.distant})),turf,[0,0,0],[1,1,1],[0,0,0],'stylized-outside-meadow');meadow.castShadow=false;
     }
     farRidges.push(...createStylizedAlpineLandscape(THREE,{parent:scenery,half,geometry:geo,material:mat,part}));
     const cloudParts=[],C=random(509);
@@ -551,7 +556,7 @@ diffuseColor.rgb+=vec3(.65,.90,.94)*glint;`);
   const readability=createRaisedReadability(THREE,{parent:soft,map:data,geometry:geo,material:mat,texture:t=>(textures.add(t),t)});
   const festive=createKartFestiveLights(THREE,{parent:soft,map:data,quality,reducedMotion});
   const skyResources={isAlive:()=>!disposed,geometry:geo,material:mat,texture:t=>(textures.add(t),t)};
-  const backdrop=createKartBackdrop(THREE,{parent:soft,theme:data.backdrop||data.id,radius:half+195,ridges:farRidges.filter(r=>r.name!=='valley-foothills'),...skyResources});
+  const backdrop=createKartBackdrop(THREE,{parent:soft,theme:data.backdrop||data.id,radius:half+195,ridges:farRidges.filter(r=>r.name!=='valley-foothills'&&!r.name.startsWith('stylized-valley-hill-')),...skyResources});
   // The elevated chase lens sees less sky: move clouds farther out so their
   // lower edges stay in frame while remaining above the painted peaks.
   if(sphereClouds)paintedClouds=createKartClouds(THREE,{parent:soft,radius:backdrop.radius*2,peakHeight:backdrop.height-6,

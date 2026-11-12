@@ -2,6 +2,7 @@ import {createKartFestiveLights} from './kart-festive-lights.mjs';
 import { instanceRepeats, mergeStaticMeshes } from './kart-instancing.mjs';
 import {createRoadTerrain} from './kart-road-terrain.mjs';
 import {buildTerrainRoads} from './kart-road-mesh.mjs';
+import {sceneryApronHeight} from './kart-scenery-apron.mjs';
 /* Giggle Grove Circuit — kart arena art module (Three.js, no simulation).
  *
  * Owns ONLY static world dressing for the kart arena: procedural sky dome +
@@ -1030,12 +1031,7 @@ export function createKartWorld(THREE, options) {
 
   // Flat under all legal driving space and the paddock, then a rising
   // meadow shelf. The same height function grounds every nature instance.
-  const apronHeight = (x, z) => {
-    const edge = Math.max(Math.abs(x), Math.abs(z));
-    const n = .52 * Math.sin(x * .071 + .7) * Math.cos(z * .083 + 1.2)
-      + .27 * Math.sin(x * .18 + z * .14) + .21 * Math.cos(x * .29 - z * .13);
-    return sstep(half + 48, half + 90, edge) * (5.0 + n * 3.1);
-  };
+  const apronHeight = (x, z) => sceneryApronHeight(x,z,half);
   const apronSize = 420 + Math.max(0, half - WORLD_HALF_DEFAULT) * 5;
   const apronGeo = new THREE.PlaneGeometry(apronSize, apronSize, 72, 72);
   {

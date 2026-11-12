@@ -134,7 +134,8 @@ try{
       assert.equal(backdropRequest.url,'/assets/karts/backdrops/'+BACKDROP_THEMES[elevatedMap(id).backdrop||id].file,'Elevated map id selects the painting, including both harbor variants');
       const resources=pending.map(succeed),disposals=new Map(resources.map(t=>[t,0]));
       for(const resource of resources)resource.addEventListener('dispose',()=>disposals.set(resource,disposals.get(resource)+1));
-      assert(mountains.every(m=>m.visible===(m.name==='valley-foothills')),'Loaded elevated panorama keeps the near foothills');
+      assert(mountains.every(m=>m.visible===(m.name==='valley-foothills'||m.name.startsWith('stylized-valley-hill-'))),'Loaded elevated panorama keeps authored and fallback near foothills');
+      if(stylized)assert.equal(mountains.filter(m=>m.visible).length,4,'The painting never removes the four sculpted valley hills');
       const panorama=world.group.getObjectByName('mountain-backdrop'),day=panorama.material.color.clone();
       world.animate(1/60,3,1);assert(!panorama.material.color.equals(day),'Elevated night cycle tints the shared panorama');
       if(stylized){
