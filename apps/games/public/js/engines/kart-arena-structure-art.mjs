@@ -11,7 +11,9 @@ export function createKartArenaStructures(THREE,scene,{groundAt=()=>0}={}) {
   const decal=new THREE.BufferGeometry(),coords=[[-.7,-.25],[-.45,-.5],[0,.05],[.45,-.5],[.7,-.25],[0,.65]];
   decal.setAttribute('position',new THREE.Float32BufferAttribute(coords.flatMap(([x,z])=>[x,(z+1)/2+.025,z]),3));
   decal.setIndex([0,1,2,2,3,4,0,2,5,2,4,5]);decal.computeVertexNormals();
-  const bodyMat=new THREE.MeshStandardMaterial({color:0xffffff,roughness:.8}),capMat=new THREE.MeshBasicMaterial({color:0xffffff});
+  // The thin cap sides overlap the upper body at the same X/Z plane.
+  // Bias only that paint so the shaded body cannot stipple through it.
+  const bodyMat=new THREE.MeshStandardMaterial({color:0xffffff,roughness:.8}),capMat=new THREE.MeshBasicMaterial({color:0xffffff,polygonOffset:true,polygonOffsetFactor:-1,polygonOffsetUnits:-2});
   // Tile faces in metres using the existing instance scale. Long walls keep
   // diagonal caution stripes instead of stretching them into horizontal lines.
   bodyMat.onBeforeCompile=shader=>{

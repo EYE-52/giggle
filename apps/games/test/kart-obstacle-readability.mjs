@@ -29,6 +29,7 @@ for(const id of ['ring','blocks','garden','frost','neon']){
   const caps=structures.root.getObjectByName('arena-barrier-caps'),contacts=structures.root.getObjectByName('arena-barrier-contact');
   ok(bodies.material.map?.isDataTexture&&!bodies.material.emissiveMap,id+' lamp emission uses the existing panel sample');
   ok(caps.material.isMeshBasicMaterial&&contacts.count===map.barriers.length,id+' unlit caps and one instanced contact batch');
+  ok(caps.material.polygonOffset&&caps.material.polygonOffsetFactor<0&&caps.material.polygonOffsetUnits<0,id+' flush cap paint wins depth over the shaded upper body band');
   for(let i=0;i<map.barriers.length;i++){
     const b=map.barriers[i];bodies.getMatrixAt(i,matrix);matrix.decompose(position,rotation,scale);
     ok(Math.abs(position.x-b.x)<1e-5&&Math.abs(position.z-b.z)<1e-5&&Math.abs(scale.x-b.hw*2)<1e-5&&Math.abs(scale.z-b.hd*2)<1e-5,id+' body stays inside authority footprint');
