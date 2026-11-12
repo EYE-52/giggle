@@ -15,12 +15,15 @@ export function createRaisedReadability(THREE,{parent,map,geometry,material,text
       vEmissiveMapUv.x*=span;
     #endif`);};
   const bright=material(new THREE.MeshBasicMaterial({color:0xffffff}));
+  // The coloured caps sit flush on the collision mesh. Give only their
+  // paint a depth bias so the body cannot flicker through at shallow angles.
+  const capPaint=material(new THREE.MeshBasicMaterial({color:0xffffff,polygonOffset:true,polygonOffsetFactor:-1,polygonOffsetUnits:-2}));
   const contactMat=material(new THREE.MeshBasicMaterial({map:contact,transparent:true,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-2}));
   const washMat=material(new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:.23,depthWrite:false}));
   const plane=geometry(new THREE.PlaneGeometry(1,1)),flat=geometry(new THREE.PlaneGeometry(1,1).rotateX(-Math.PI/2)),box=geometry(new THREE.BoxGeometry(1,1,1));
   const arrow=geometry(new THREE.BufferGeometry());
   arrow.setAttribute('position',new THREE.Float32BufferAttribute([-.9,0,-.4,-.65,0,-.65,0,0,.05,.65,0,-.65,.9,0,-.4,0,0,.65],3));arrow.setIndex([0,2,1,2,4,3,0,5,2,2,5,4]);arrow.computeVertexNormals();
-  const buckets={faces:{g:plane,m:faceMat,rows:[]},caps:{g:box,m:bright,rows:[]},contacts:{g:flat,m:contactMat,rows:[]},zones:{g:flat,m:washMat,rows:[]},edges:{g:flat,m:bright,rows:[]},chevrons:{g:arrow,m:bright,rows:[]}};
+  const buckets={faces:{g:plane,m:faceMat,rows:[]},caps:{g:box,m:capPaint,rows:[]},contacts:{g:flat,m:contactMat,rows:[]},zones:{g:flat,m:washMat,rows:[]},edges:{g:flat,m:bright,rows:[]},chevrons:{g:arrow,m:bright,rows:[]}};
   const add=(key,p,s,color=0xffffff,q=new THREE.Quaternion())=>buckets[key].rows.push({p,s,color,q});
   const turn=a=>new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,1,0),a);
   const levelAt=y=>map.levels?.reduce((best,l)=>Math.abs(l.y-y)<Math.abs(best.y-y)?l:best,map.levels[0])||{y:0,color:style.top};
