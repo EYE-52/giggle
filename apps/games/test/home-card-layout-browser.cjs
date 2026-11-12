@@ -40,16 +40,16 @@ async function checkCase(url, viewport, theme) {
       const art = card.querySelector('.home-card-art'), copy = card.querySelector('.home-card-copy'), badge = art.querySelector('.cat-tag');
       return { id:card.dataset.how || 'practice', variant:card.className, card:rect(card), art:rect(art), copy:rect(copy), badge:badge && rect(badge), parts:[...copy.children].map(rect), scrollWidth:card.scrollWidth, clientWidth:card.clientWidth };
     }));
-    assert.equal(cards.length, 47, 'four picks, practice and every catalogue card are checked');
+    assert.equal(cards.length, 5 + require('../games/registry').list().length, 'four picks, practice and every catalogue card are checked');
     for (const card of cards) {
       const name = label + ' ' + card.variant + ' ' + card.id;
       assert(card.card.x >= -1 && card.card.right <= viewport.width + 1, name + ' fits the viewport');
       assert(card.scrollWidth <= card.clientWidth + 1, name + ' has no horizontal scroll');
-      assert(Math.abs(card.art.width - card.art.height) < 1, name + ' has square art');
+      assert(Math.abs(card.art.width / card.art.height - 1.25) < .02, name + ' cover has its intended ratio');
       assert(Math.abs(card.art.y + card.art.height / 2 - card.copy.y - card.copy.height / 2) < 1, name + ' centres art against the text');
-      assert(Math.abs(card.copy.x - card.art.right - 16) < 1, name + ' has an even art/text gap');
-      for (let i = 1; i < card.parts.length; i++) assert(Math.abs(card.parts[i].y - card.parts[i - 1].bottom - 8) < 1, name + ' keeps copy and Play together');
-      if (card.badge) assert(card.badge.x >= card.art.x && card.badge.right <= card.art.right + 1 && card.badge.y >= card.art.y && card.badge.bottom <= card.art.bottom + 1, name + ' keeps its badge on the art');
+      assert(card.copy.x - card.art.right >= 9 && card.copy.x - card.art.right <= 15, name + ' art and text sit together');
+      for (let i = 1; i < card.parts.length; i++) assert(Math.abs(card.parts[i].y - card.parts[i - 1].bottom - 3) < 1, name + ' keeps the copy together');
+      assert.equal(card.badge, null, name + ' art stays unobstructed');
     }
     await page.locator('.home-picks').screenshot({ path:path.join(out, label + '-picks.png') });
     await page.locator('#games').screenshot({ path:path.join(out, label + '-catalogue.png') });
@@ -83,6 +83,29 @@ async function checkCase(url, viewport, theme) {
       }
       sheets.push({ id, ...sheet });
       await page.locator('#howtoClose').click();
+    }
+    if (viewport.width === 320 && theme === 'night') {
+      await page.locator('#nm').fill('Layout host');
+      await page.locator('#bCreate').click();
+      await page.locator('.roomcode').first().waitFor();
+      const peer = await browser.newContext();
+      try {
+        const guest = await peer.newPage();
+        await guest.goto(page.url());
+        await guest.locator('#nm').fill('Layout guest');
+        await guest.locator('#bJoin').click();
+        for (const shelf of ['.feat-strip', '.grid-games']) {
+          const row = page.locator(shelf + ' .home-game-card').first();
+          await row.scrollIntoViewIfNeeded();
+          assert(await row.evaluate(el => {
+            const art = el.querySelector('.home-card-art');
+            const image = art.firstElementChild.getBoundingClientRect(), frame = art.getBoundingClientRect();
+            return Math.abs(image.height - frame.height) <= 1 && Math.abs(image.width - frame.width) <= 1;
+          }), shelf + ' artwork fits its frame in the room');
+          await row.click();
+          await page.getByRole('button', { name: 'Close game details' }).click();
+        }
+      } finally { await peer.close(); }
     }
     assert.deepEqual(errors, []);
     report.cases.push({ label, viewport, isMobile:mobile, cards, sheets });

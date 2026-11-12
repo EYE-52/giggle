@@ -1364,31 +1364,21 @@ function heroHandHtml() {
     `<button type="button" class="hand-card card-open" data-how="${g.id}" aria-haspopup="dialog" aria-label="${esc(g.name)}" style="--i:${i - (hand.length - 1) / 2};--d:${Math.abs(i - (hand.length - 1) / 2)};--n:${i}">${artImg(g, 'hand-art')}<span class="hand-tag" aria-hidden="true">${esc(g.name)}</span></button>`).join('')}</div>`;
 }
 
-function pickHtml(g, i) {
-  // Single-action card: the whole card is one button opening the shared
-  // setup dialog (rules + Customize + Create room). No shelf links — setup
-  // belongs inside. Fixed geometry: the dialog never stretches these cards.
-  return `
-    <button type="button" class="pick home-game-card card-open${i === 0 ? ' pick--lead' : ''}" data-how="${g.id}" data-cat="${esc(g.cat || '')}" data-family="${controlFamily(g)}" aria-haspopup="dialog">
-      <span class="home-card-art">${artImg(g, 'gart')}${g.cat ? `<span class="cat-tag">${esc(catLabel(g.cat))}</span>` : ''}</span>
-      <span class="home-card-copy">
-      <span class="t">${esc(g.name)}</span>
-      <span class="d">${esc(g.tagline)}</span>
-      <span class="p">${seatsLine(g)}</span>
-      <span class="play-row"><span class="play-pill">Play</span></span>
-      </span>
-    </button>`;
+/* Each entry opens the guide. The same hit target works from picks, search and a room. */
+function gameChoiceHtml(g, classes, artClass, meta = seatsLine(g)) {
+  return `<button type="button" class="${classes} home-game-card card-open" data-how="${esc(g.id)}" data-cat="${esc(g.cat || '')}" data-family="${controlFamily(g)}" aria-haspopup="dialog">
+    <span class="home-card-art">${artImg(g, artClass)}</span>
+    <span class="home-card-copy"><span class="t">${esc(g.name)}</span>
+      <span class="d">${esc(g.tagline)}</span><span class="p">${meta}</span></span>
+  </button>`;
+}
+
+function pickHtml(g) {
+  return gameChoiceHtml(g, 'pick', 'gart');
 }
 
 function catalogRowHtml(g) {
-  // Single-action shelf row: art + text + one Play pill, all opening the
-  // shared setup dialog. Exactly one button — no nested controls.
-  return `
-    <button type="button" class="catrow home-game-card card-open" data-how="${g.id}" data-cat="${esc(g.cat || '')}" data-family="${controlFamily(g)}" aria-haspopup="dialog">
-      <span class="home-card-art">${artImg(g, 'catart')}${g.cat ? `<span class="cat-tag">${esc(catLabel(g.cat))}</span>` : ''}</span>
-      <span class="catrow-text home-card-copy"><span class="t">${esc(g.name)}</span><span class="d">${esc(g.tagline)}</span><span class="p">${seatsLine(g)}</span>
-      <span class="play-row"><span class="play-pill">Play</span></span></span>
-    </button>`;
+  return gameChoiceHtml(g, 'catrow', 'catart');
 }
 
 function heroPosters() {
@@ -1575,12 +1565,9 @@ function renderHome() {
 
 /* Solo practice uses the same art/text rhythm as the game cards. */
 const PRACTICE_TILE = `<a class="pick-practice home-game-card" href="/practice/">
-      <span class="home-card-art"><span class="pp-seats" aria-hidden="true"><i></i><i></i><i></i></span></span>
-      <span class="home-card-copy">
-      <span class="t">Just you?</span>
-      <span class="d">Practice solo and play every seat yourself.</span>
-      <span class="play-row"><span class="play-pill">Practice</span></span>
-      </span>
+      <span class="home-card-art practice-art">${uiIcon('game-controller', 32)}</span>
+      <span class="home-card-copy"><span class="t">Solo practice</span>
+      <span class="d">Try a game and play every seat yourself.</span></span>
     </a>`;
 
 /* Shared invite-link copy for the rail button, the Invite-N-more actions,
@@ -1749,23 +1736,8 @@ function configNoteText(g) {
 }
 
 function cardHtml(g) {
-  const played = playedIds();
-  const { min, max } = countFor(g);
-  const seated = Number.isInteger(g.seats) && g.seats >= 1;
-  const seatText = seated ? seatsLine(g) : `${min}–${max} players`;
-  // Single-action card for every seat: the whole card opens the shared
-  // setup dialog, so guests and short groups can always read the rules.
-  // Host/min-player/room gating lives inside the dialog, never here — no
-  // disabled cards to guess about, no shelf setup badges.
-  return `
-    <button type="button" class="gamepick card-open" data-how="${g.id}" aria-haspopup="dialog">
-      ${played.includes(g.id) ? '<span class="played">✓ Played</span>' : ''}
-      ${artImg(g, 'gart')}
-      <span class="t">${esc(g.name)}</span>
-      <span class="d">${esc(g.tagline)}</span>
-      <span class="p">${seatText}</span>
-      <span class="play-row"><span class="play-pill">Play</span></span>
-    </button>`;
+  const meta = seatsLine(g) + (playedIds().includes(g.id) ? ' · Played' : '');
+  return gameChoiceHtml(g, 'gamepick', 'gart', meta);
 }
 
 /* Room catalog: the whole live list filtered by category, search,
@@ -1927,14 +1899,9 @@ function featuredHtml() {
   if (n >= 2 && elig.length) {
     // Single-action recommendations: one button per pick, opening the
     // shared setup dialog like every other card. Gating lives inside.
-    return `<div class="feat-strip">` + elig.map((g) => `
-      <button type="button" class="gamepick gstart feat card-open" data-how="${g.id}" aria-haspopup="dialog">
-        ${artImg(g, 'featart')}
-        <span class="ftext"><span class="t">${esc(g.name)}</span>
-        <span class="d">${esc(g.tagline)}</span>
-        <span class="p">Fits ${n} players</span></span>
-        <span class="play-pill">Play</span>
-      </button>`).join('') + `</div>`;
+    return `<div class="feat-strip">` + elig.map(g =>
+      gameChoiceHtml(g, 'gamepick gstart feat', 'featart', `Fits ${n} players`)
+    ).join('') + '</div>';
   }
   const next = games.map((g) => ({ g, ...countFor(g) }))
     .filter((x) => x.min > n)

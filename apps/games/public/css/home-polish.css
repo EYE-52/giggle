@@ -251,40 +251,50 @@
 .hero-joinrow .code-tiles.full .code-tile { border-color: color-mix(in srgb, var(--fam) 60%, var(--outline)); }
 @media (prefers-reduced-motion: reduce) { .hero-joinrow .code-tile { transition: none; } }
 
-/* One card rhythm for Tonight's picks, the catalogue and solo practice.
- * Art and its badge share a frame. Copy flows as one compact stack, so
- * neither equal-height grid rows nor longer neighbours create middle gaps. */
+/* Library entries share one link-sized row, with the illustration and the full title visible. */
 .home-picks { padding: var(--space-24) 0 var(--space-32); }
 .home-picks .sec-head { margin-bottom: var(--space-16); }
 .home-picks .sec-head h2 { font: var(--text-heading); }
 .home-picks .sec-head .muted { font: var(--text-caption); }
-.home-picks .pick-grid, #games .catalog-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-16); margin-top: var(--space-16); }
-.home-picks .home-game-card, #games .home-game-card {
-  display: grid; grid-template-columns: var(--home-card-art) minmax(0, 1fr);
-  grid-template-rows: auto; grid-column: auto; grid-row: auto;
-  align-items: center; align-content: start; gap: var(--space-16);
-  width: 100%; min-width: 0; min-height: 0; height: auto;
-  margin: 0; padding: var(--space-16); text-align: left; text-decoration: none;
-  border: var(--outline-w) solid var(--outline); border-radius: var(--radius-xl);
-  background: var(--card); color: var(--ink); box-shadow: var(--shadow-sm);
-  transition: transform var(--dur-quick) var(--ease);
+.home-picks .pick-grid, #games .catalog-list, .grid-games, .feat-strip {
+  display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 clamp(20px, 3vw, 44px);
 }
-.home-game-card .home-card-art { position: relative; display: block; min-width: 0; width: 100%; aspect-ratio: 1; align-self: center; border: var(--outline-w) solid var(--outline); border-radius: var(--radius-sm); background: var(--fam-soft); box-shadow: var(--shadow-sticker-sm); }
-.home-game-card .home-card-art :is(img, .art-fallback, .pp-seats) { display: block; width: 100%; height: 100%; aspect-ratio: 1; margin: 0; padding: 0; object-fit: cover; border: 0; border-radius: inherit; box-shadow: none; transform: none; }
-.home-game-card .home-card-art .art-fallback { display: grid; place-items: center; }
-.home-game-card .home-card-art .cat-tag { position: absolute; inset: var(--space-4) auto auto var(--space-4); z-index: 1; max-width: calc(100% - var(--space-8)); margin: 0; padding: 0 var(--space-4); border: var(--outline-w) solid var(--fam-lip); border-radius: var(--radius-sm); background: var(--fam); color: var(--on-fam); font: var(--text-caption); letter-spacing: normal; text-transform: none; transform: none; overflow-wrap: anywhere; pointer-events: none; }
-.home-game-card .home-card-copy { display: grid; grid-template-columns: minmax(0, 1fr); align-content: start; gap: var(--space-8); min-width: 0; }
-.home-game-card .home-card-copy :is(.t, .d, .p, .play-row) { display: block; min-width: 0; min-height: 0; margin: 0; padding: 0; overflow: visible; -webkit-line-clamp: unset; text-wrap: pretty; overflow-wrap: anywhere; }
-.home-game-card .home-card-copy .t { font: var(--text-title); text-wrap: balance; }
-.home-game-card .home-card-copy .d { color: var(--ink-dim); font: var(--text-button-sm); }
-.home-game-card .home-card-copy .p { color: var(--ink-dim); font: var(--text-caption); }
-.home-game-card .home-card-copy .play-pill { display: inline-flex; align-items: center; justify-content: center; width: auto; min-width: 0; min-height: var(--control-h-sm); margin: 0; padding: var(--space-8) var(--space-16); border: var(--outline-w) solid var(--outline); border-radius: var(--radius-sm); background: var(--well); color: var(--ink); box-shadow: 0 var(--lift-sm) 0 var(--outline); font: var(--text-button-sm); white-space: normal; }
-.home-picks .pick-practice .play-pill { border-color: var(--outline); background: var(--well); color: var(--ink); box-shadow: var(--shadow-sticker-sm); }
-.home-game-card:focus-visible { outline: var(--focus-ring); outline-offset: var(--focus-offset); }
-.home-game-card:active { transform: translateY(var(--lift)); box-shadow: none; }
-@media (hover: hover) { .home-game-card:hover { transform: translateY(calc(-1 * var(--lift-sm))); border-color: var(--fam); } }
-@media (width < 700px) { .home-picks .pick-grid, #games .catalog-list { grid-template-columns: minmax(0, 1fr); } }
-@media (prefers-reduced-motion: reduce) { .home-game-card { transition: none; } .home-game-card:hover, .home-game-card:active { transform: none; } }
+:is(.home-picks, #games, .grid-games, .feat-strip) .home-game-card {
+  display: grid; grid-template-columns: clamp(76px, 8vw, 104px) minmax(0, 1fr) 10px;
+  grid-template-rows: auto; grid-column: auto; grid-row: auto; align-items: center; gap: 14px;
+  width: 100%; min-width: 0; min-height: 0; height: auto;
+  margin: 0; padding: 14px 6px; text-align: left; text-decoration: none;
+  border: 0; border-bottom: 1px solid var(--line); border-radius: 0;
+  background: transparent; color: var(--ink); box-shadow: none; transform: none;
+}
+.home-game-card::after {
+  content: ""; width: 7px; height: 7px; justify-self: center; border: solid var(--ink-dim);
+  border-width: 1.5px 1.5px 0 0; transform: rotate(45deg); pointer-events: none;
+}
+.home-game-card .home-card-art { display: block; width: 100%; min-width: 0; aspect-ratio: 5 / 4; border-radius: 9px; overflow: hidden; background: var(--well); }
+.home-game-card .home-card-art :is(img, .art-fallback) {
+  display: block; width: 100%; height: 100%; min-height: 0; object-fit: cover;
+  margin: 0; padding: 0; border: 0; border-radius: inherit; box-shadow: none; transform: none;
+}
+.home-game-card .home-card-art img[src$=".svg"] { object-fit: contain; }
+.home-game-card .home-card-art [data-art-id="pocket-karts"] { object-position: 20% center; }
+.home-game-card .home-card-art .art-fallback, .home-game-card .practice-art { display: grid; place-items: center; }
+.home-game-card .practice-art { background: var(--fam-soft); color: var(--fam-deep); }
+.home-game-card .home-card-copy { display: grid; align-content: center; gap: 3px; min-width: 0; }
+:is(.home-picks, #games, .grid-games, .feat-strip) .home-card-copy > span {
+  display: block; min-height: 0; margin: 0; padding: 0; overflow: visible;
+  white-space: normal; overflow-wrap: anywhere; -webkit-line-clamp: unset;
+}
+.home-game-card .home-card-copy .t { font: 800 18px/1.2 var(--font-display); color: var(--ink); }
+.home-game-card .home-card-copy .d { font: 500 14px/1.35 var(--font-body); color: var(--ink-dim); }
+.home-game-card .home-card-copy .p { font: 650 12px/1.4 var(--font-body); color: var(--ink-dim); }
+.home-game-card:focus-visible { outline: var(--focus-ring); outline-offset: -2px; }
+@media (hover: hover) { :is(.home-picks, #games, .grid-games, .feat-strip) .home-game-card:hover { background: var(--well); } }
+:is(.home-picks, #games, .grid-games, .feat-strip) .home-game-card:active { background: var(--well); }
+@media (max-width: 699px) {
+  .home-picks .pick-grid, #games .catalog-list, .grid-games, .feat-strip { grid-template-columns: minmax(0, 1fr); }
+  :is(.home-picks, #games, .grid-games, .feat-strip) .home-game-card { gap: 10px; padding-block: 12px; }
+}
 
 /* One-device play sits beside room creation in the same entry ticket. */
 .home-welcome .hero-local { display: flex; width: 100%; min-height: var(--control-h); margin-top: var(--space-12); font: var(--text-button); }

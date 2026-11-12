@@ -41,7 +41,7 @@ async function visit(viewport,night,before=false){
    assert.equal(await page.locator('.home-welcome #bCreate').textContent(),'Create room');
    assert.equal(await page.locator('.home-welcome #bJoin').textContent(),'Join room');
    for(const id of ['nm','jc','bCreate','bJoin'])assert(await page.locator('#'+id).evaluate(e=>e.getBoundingClientRect().height>=44),id+' is a usable target');
-   assert(await page.locator('.home-picks .gart').evaluateAll(elements=>elements.every(e=>Math.abs(e.getBoundingClientRect().width-e.getBoundingClientRect().height)<1)),'all picks use the same square image frame');
+   assert(await page.locator('.home-picks .gart').evaluateAll(elements=>elements.every(e=>Math.abs(e.getBoundingClientRect().width/e.getBoundingClientRect().height-1.25)<.02)),'all picks use the same landscape image frame');
    const headerBefore=await page.locator('.topbar').boundingBox();
    await page.locator('#nm').fill('Fixture Host');await page.locator('#jc').fill('ABCD');
    await page.locator('#hq').fill('Chess');

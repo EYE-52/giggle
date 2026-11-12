@@ -1657,15 +1657,6 @@ body.is-embed .gamehead .btn { min-height: 42px; padding: 6px 14px; font-size: 1
   .catbar select { width: 100%; min-width: 0; }
   .catbar .chip { width: 100%; justify-content: center; }
   .catchips { flex: 1 1 100%; }
-  /* Phone catalog: one-column art rows, comfortably tappable. */
-  .grid-games { grid-template-columns: 1fr; gap: 12px; }
-  .grid-games button.gamepick { display: grid; grid-template-columns: 104px minmax(0, 1fr); gap: 0 12px; align-items: center; padding: 0; }
-  .grid-games button.gamepick .gart { grid-row: 1 / span 4; border-bottom: none; border-right: 1px solid var(--line); aspect-ratio: auto; height: 100%; min-height: 118px; }
-  .grid-games button.gamepick .t, .grid-games button.gamepick .d,
-  .grid-games button.gamepick .p { padding-left: 0; padding-right: 12px; }
-  .grid-games button.gamepick .t { padding-top: 10px; font-size: 17px; }
-  .grid-games button.gamepick .play-row { padding: 6px 12px 10px 0; }
-  .grid-games button.gamepick .play-pill { min-width: 0; }
 }
 @media (max-width: 560px) {
   .app { padding: 0 12px 56px; }
