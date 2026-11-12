@@ -5,69 +5,41 @@
       "players": 8,
       "variant": "full",
       "comparisons": 400,
-      "binaryKiBs": 24.567985893416925,
-      "jsonKiBs": 345.4086868142633,
-      "updateP95": 3.3492919999999913,
-      "updateP99": 6.141249999999957
+      "binaryKiBs": 30.851293103448274,
+      "jsonKiBs": 355.5564875587774,
+      "updateP95": 3.066874999999982,
+      "updateP99": 5.6034590000000435
     },
     {
       "label": "Skyport Split",
       "players": 8,
       "variant": "compact",
       "comparisons": 400,
-      "binaryKiBs": 23.850840027429467,
-      "jsonKiBs": 388.70916193181813,
-      "updateP95": 3.874749999999949,
-      "updateP99": 5.1060419999998885
+      "binaryKiBs": 25.36007298197492,
+      "jsonKiBs": 369.51514743338555,
+      "updateP95": 3.58266599999979,
+      "updateP99": 4.252417000000037
     },
     {
       "label": "Skyport Split",
       "players": 16,
       "variant": "medium",
       "comparisons": 400,
-      "binaryKiBs": 39.18029976489028,
-      "jsonKiBs": 565.987338362069,
-      "updateP95": 3.8732500000000982,
-      "updateP99": 5.786417000000029
+      "binaryKiBs": 41.522580329153605,
+      "jsonKiBs": 509.7921972962382,
+      "updateP95": 6.928792000000158,
+      "updateP99": 8.120249999999942
     },
     {
       "label": "Skyport Split",
       "players": 32,
       "variant": "full",
       "comparisons": 400,
-      "binaryKiBs": 69.32203908699059,
-      "jsonKiBs": 851.9364713949843,
-      "updateP95": 9.825624999999945,
-      "updateP99": 12.66387500000019
-    },
-    {
-      "label": "Rookie Ribbons",
-      "players": 32,
-      "variant": "full",
-      "comparisons": 400,
-      "binaryKiBs": 50.63375538793103,
-      "jsonKiBs": 750.7719435736676,
-      "updateP95": 3.0994999999993524,
-      "updateP99": 17.044959000000745
-    },
-    {
-      "label": "Alpine Courtyard",
-      "players": 32,
-      "comparisons": 400,
-      "binaryKiBs": 45.79661784874608,
-      "jsonKiBs": 724.3153041731974,
-      "updateP95": 2.429124999999658,
-      "updateP99": 2.7460829999999987
-    },
-    {
-      "label": "Harbor Heights",
-      "players": 32,
-      "comparisons": 400,
-      "binaryKiBs": 44.728460521159874,
-      "jsonKiBs": 675.7887196316614,
-      "updateP95": 2.1829579999994166,
-      "updateP99": 2.3481250000004366
+      "binaryKiBs": 77.93305495689654,
+      "jsonKiBs": 866.0748310148903,
+      "updateP95": 14.372875000000022,
+      "updateP99": 15.581416999999874
     }
   ],
-  "scope": "Mixed real Room binary/JSON clients, 20s, motion, ACKs, reconnect and current pickup pads; not a 5-minute active-combat bandwidth claim."
+  "scope": "Mixed real Room binary/JSON clients, 20s, motion, ACKs, reconnect and fixed homes; not a 5-minute active-combat bandwidth claim."
 }
