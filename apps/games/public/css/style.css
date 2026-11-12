@@ -284,6 +284,30 @@ h3 { font-size: 19px; font-weight: 800; }
   border-bottom: 1px solid var(--line);
   margin: 0 -20px 8px; padding: 12px 20px;
 }
+/* A shallow dock hangs from the top of the viewport. The controls stay on
+ * the content grid; only this non-interactive surface extends past it. */
+body:not(.is-embed) .topbar {
+  background: transparent;
+  border-bottom: 0;
+}
+body:not(.is-embed) .topbar::before {
+  content: "";
+  position: absolute;
+  inset-block: 0;
+  inset-inline: calc((100% - 100vw + 24px) / 2);
+  z-index: -1;
+  pointer-events: none;
+  background: var(--topbar-bg);
+  border: 1px solid var(--line);
+  border-top: 0;
+  border-radius: 0 0 20px 20px;
+}
+@media (max-width: 1280px) {
+  body:not(.is-embed) .topbar::before { inset-inline: 12px; }
+}
+@media (max-width: 560px) {
+  body:not(.is-embed) .topbar::before { inset-inline: 4px; }
+}
 .brand {
   display: inline-flex; align-items: center; gap: 10px;
   font-family: var(--font-display); font-weight: 800; font-size: 23px;
@@ -2009,7 +2033,7 @@ html:has(> body.is-embed) { background: #171922; color-scheme: dark; }
  * The room/game-specific palettes and immersive renderers keep ownership. */
 :root { --discovery-width: 1280px; --discovery-gap: 16px; }
 body:not(.game-playing):not(.is-embed) .app { max-width: var(--discovery-width); padding-bottom: 32px; }
-body:not(.game-playing):not(.is-embed) .topbar { padding-block: 8px; }
+body:not(.game-playing):not(.is-embed) .topbar { padding-block: 6px; }
 .hero { grid-template-columns: minmax(0, 1fr) minmax(300px, .85fr) minmax(0, .9fr); gap: 28px; padding-block: 24px; }
 .hero h1 { font-size: clamp(32px, 3.3vw, 44px); line-height: 1.08; }
 .hero-eyebrow { background: none; color: var(--ink-dim); padding: 0; border: 0; box-shadow: none; transform: none; font-size: 12px; letter-spacing: .03em; margin-bottom: 12px; }
