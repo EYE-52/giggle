@@ -128,6 +128,24 @@ function createElevatedCombat(RAPIER,config,map,seats,options={}) {
       return support && Math.abs(support.point.y-s.y)<0.15 && support.normal.y>0.65;
     });
   }
+  // Test the whole first six metres for walls. Check wheel support along
+  // the same flat departure so an overflow seat never points off a deck.
+  function clearDeparture(s) {
+    const dx = Math.sin(s.angle), dz = Math.cos(s.angle);
+    const pose = spawnPose(s);
+    const width = C.chassis.half.x+.12, length = C.chassis.half.z+.12;
+    const half = {x:width,y:C.chassis.half.y+.03,z:length+3};
+    if (physics.overlapsStatic({x:s.x+dx*3,y:s.y+.75,z:s.z+dz*3}, pose.rotation, half)) return false;
+    const corners = [[0,0],[-width,-length],[-width,length],[width,-length],[width,length]];
+    for (let ahead=0; ahead<=6; ahead+=.5) {
+      for (const [across,end] of corners) {
+        const forward=ahead+end, x=s.x+dx*forward+dz*across, z=s.z+dz*forward-dx*across;
+        const hit=physics.supportAt({x,y:s.y+.4,z},.85);
+        if (!hit || hit.normal.y<.65 || Math.abs(hit.point.y-s.y)>.25) return false;
+      }
+    }
+    return true;
+  }
   // Keep the authored grid. For a crowded room, use spare starts first,
   // then form rows beside them on the same driveable surface.
   function fillStartingGrid(starts, reserves) {
@@ -144,7 +162,12 @@ function createElevatedCombat(RAPIER,config,map,seats,options={}) {
         for (const origin of reserves) {
           if (grid.length >= gridSize) return grid;
           const s = {...origin, id: 'grid-'+grid.length, x: origin.x+radius*dx, z: origin.z+radius*dz};
-          if (separated(s) && !elevatedFallZone(M,s) && legalSpawn(s)) grid.push(s);
+          if (!separated(s) || elevatedFallZone(M,s)) continue;
+          for (const turn of [0, Math.PI/2, -Math.PI/2, Math.PI]) {
+            const angle = origin.angle+turn;
+            s.angle = Math.atan2(Math.sin(angle),Math.cos(angle));
+            if (legalSpawn(s) && clearDeparture(s)) { grid.push(s); break; }
+          }
         }
       }
     }
