@@ -26,7 +26,9 @@ async function check(page, label, capture = true) {
     return { header:r, app:box(app), viewport:innerWidth, scrollWidth:document.documentElement.scrollWidth,
       dockLeft:r.x + parseFloat(backdrop.left), dockRight:r.right - parseFloat(backdrop.right), bg:backdrop.backgroundColor,
       line:backdrop.borderBottomColor, radius:parseFloat(backdrop.borderBottomLeftRadius), gutter:parseFloat(grid.paddingLeft), brand:box(header.querySelector('.brand')),
-      controls:[...header.querySelectorAll('button')].map(n => { const r = box(n); return { ...r, label:n.getAttribute('aria-label'), hit:n.contains(document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2)) }; }) };
+      brandWidth:header.querySelector('.brand').scrollWidth,
+      toolsWidth:box(header.querySelector('.topbar-actions')).width,
+      controls:[...header.querySelectorAll('button')].filter(n => n.getClientRects().length).map(n => { const r = box(n); return { ...r, label:n.getAttribute('aria-label'), hit:n.contains(document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2)) }; }) };
   });
   assert(bounds.scrollWidth <= bounds.viewport + 1, label + ' no horizontal page overflow');
   assert(Math.abs(bounds.header.y) < 1, label + ' dock sticks to viewport top');
@@ -36,6 +38,9 @@ async function check(page, label, capture = true) {
   assert(bounds.dockRight - bounds.controls.at(-1).right >= 12, label + ' space between the last action and the dock edge');
   assert(bounds.radius >= 16, label + ' lower corners form a dock');
   assert(Math.abs(bounds.brand.x - (bounds.app.x + bounds.gutter)) < 1, label + ' brand keeps the content grid');
+  assert(bounds.brandWidth <= bounds.brand.width + 1, label + ' the wordmark fits at its natural width');
+  assert(bounds.brand.right + 8 <= bounds.controls[0].x, label + ' wordmark and tools do not overlap');
+  if (bounds.viewport <= 720 && label.includes('-home')) assert.equal(bounds.toolsWidth, 44, 'phone utilities take one tap target');
   for (const control of bounds.controls) {
     assert(control.x >= bounds.dockLeft && control.right <= bounds.dockRight, label + ' control stays within dock: ' + control.label);
     assert(control.width >= 44 && control.height >= 44, label + ' control has a usable target');
@@ -52,8 +57,18 @@ async function check(page, label, capture = true) {
   return bounds;
 }
 async function checkUtilities(page, width) {
-  const buttons = page.locator('.topbar-actions button');
+  const compact = width <= 720;
+  const trigger = page.getByRole('button', { name: 'Game options', exact: true });
+  const buttons = page.locator('#headerTools button');
   assert.equal(await buttons.count(), 3);
+  assert.equal(await trigger.isVisible(), compact);
+  await page.locator('.topbar .brand').focus();
+  if (compact) {
+    await page.keyboard.press('Tab');
+    assert(await trigger.evaluate(n => n === document.activeElement));
+    await page.keyboard.press('Enter');
+    assert(await page.locator('#headerTools').evaluate(n => n.matches(':popover-open')));
+  }
   const inspect = n => {
     const s = getComputedStyle(n), r = n.getBoundingClientRect();
     const ink = n.querySelector('svg').getBoundingClientRect();
@@ -69,10 +84,10 @@ async function checkUtilities(page, width) {
   for (const button of await buttons.all()) states.push(await button.evaluate(inspect));
   for (const [index, state] of states.entries()) {
     assert.deepEqual(state.surface, states[0].surface, 'same resting face, stroke and shadow for each action');
-    assert.equal(state.surface[2], '1px'); assert.equal(state.surface[4], 'none');
-    assert.deepEqual(state.icon, [18, 18]); assert.equal(state.height, 44);
-    assert.equal(state.textVisible, width > 720);
-    if (index) assert(state.left - states[index-1].right >= 12, 'space between adjacent actions');
+    assert.equal(state.surface[0], 'rgba(0, 0, 0, 0)'); assert.equal(state.surface[2], '0px'); assert.equal(state.surface[4], 'none');
+    assert.deepEqual(state.icon, [20, 20]); assert.equal(state.height, 44);
+    assert.equal(state.textVisible, compact);
+    if (index && !compact) assert(state.left - states[index-1].right >= 8, 'desktop icons keep separate tap targets');
   }
   if (await page.evaluate(() => matchMedia('(hover:hover)').matches)) {
     const hovered = [];
@@ -80,7 +95,8 @@ async function checkUtilities(page, width) {
     assert(hovered.every(face => JSON.stringify(face) === JSON.stringify(hovered[0])), 'hover feedback matches across controls');
     await page.mouse.move(0, 0);
   }
-  await page.locator('.topbar .brand').focus();
+  if (compact) await trigger.focus();
+  else await page.locator('.topbar .brand').focus();
   let expectedRing;
   for (const button of await buttons.all()) {
     await page.keyboard.press('Tab');
@@ -90,8 +106,41 @@ async function checkUtilities(page, width) {
     if (expectedRing) assert.deepEqual(outline, expectedRing);
     expectedRing = outline;
   }
+  if (compact) {
+    await page.keyboard.press('Escape');
+    assert(await trigger.evaluate(n => n === document.activeElement), 'Escape returns focus to Game options');
+  }
   await page.locator('.topbar .brand').focus();
   await page.locator('.topbar .brand').evaluate(n => n.blur());
+}
+async function checkLobbyUpdates(page) {
+  const options = page.locator('#headerOptions');
+  const contexts = [];
+  async function join(name) {
+    const guest = await browser.newContext();
+    contexts.push(guest);
+    const remote = await guest.newPage();
+    await remote.goto(page.url());
+    await remote.locator('#nm').fill(name);
+    await remote.locator('#bJoin').click();
+    await page.waitForFunction(count => document.body.textContent.includes('For your group of ' + count), contexts.length + 1);
+  }
+  try {
+    await options.click();
+    await page.locator('#bSound').focus();
+    await join('Robin');
+    assert(await page.locator('#headerTools').evaluate(n => n.matches(':popover-open')));
+    assert(await page.locator('#bSound').evaluate(n => n === document.activeElement));
+    await page.keyboard.press('Escape');
+    assert(await options.evaluate(n => n === document.activeElement));
+    await options.click();
+    await page.getByRole('button', { name:'Report an issue', exact:true }).click();
+    await join('Sam');
+    await page.getByRole('button', { name:'Close issue report' }).click();
+    assert(await options.evaluate(n => n === document.activeElement), 'Report returns to the current options button after a room update');
+  } finally {
+    for (const context of contexts) await context.close();
+  }
 }
 async function visit(url, viewport, theme) {
   const context = await browser.newContext({ viewport, isMobile:viewport.width < 560, hasTouch:viewport.width < 560, deviceScaleFactor:1 });
@@ -105,9 +154,14 @@ async function visit(url, viewport, theme) {
     const initial = await check(page, label + '-home');
     await page.evaluate(() => scrollTo(0, 700));
     await check(page, label + '-sticky');
+    const compact = viewport.width <= 720;
+    const trigger = page.locator('#headerOptions');
+    if (compact) await trigger.click();
     await page.locator('#bTheme').click();
+    if (compact) await page.keyboard.press('Escape');
     const toggled = await check(page, label + '-toggled', false);
     assert.notEqual(initial.bg, toggled.bg, 'theme control repaints the entire dock');
+    if (compact) await trigger.click();
     await page.locator('#bTheme').click();
     const sound = page.locator('#bSound'), oldSound = await sound.getAttribute('data-state');
     await sound.click();
@@ -115,12 +169,25 @@ async function visit(url, viewport, theme) {
     await page.locator('[data-report]').first().click();
     await page.getByRole('dialog', { name:'Report an issue' }).waitFor();
     await page.getByRole('button', { name:'Close issue report' }).click();
-    await page.waitForFunction(() => document.activeElement?.matches('[data-report]'));
+    await page.waitForFunction(mobile => document.activeElement?.matches(mobile ? '#headerOptions' : '[data-report]'), compact);
     await page.evaluate(() => scrollTo(0, 0));
     await page.locator('#nm').fill('Header QA');
     await page.locator('#bCreate').click();
     await page.locator('.roomcode').first().waitFor();
     await check(page, label + '-lobby');
+    if (viewport.width === 320 && theme === 'day') await checkLobbyUpdates(page);
+    if (compact) {
+      await trigger.click();
+      await page.mouse.click(2, 60);
+      assert(!await page.locator('#headerTools').isVisible(), 'tap outside dismisses options');
+      await trigger.click();
+      await page.setViewportSize({ width: 900, height: viewport.height });
+      await page.waitForFunction(() => !document.querySelector('#headerTools').hasAttribute('popover'));
+      assert(!await trigger.isVisible() && await sound.isVisible(), 'wide layout exposes the direct actions');
+      await page.setViewportSize(viewport);
+      await trigger.waitFor();
+      assert(!await sound.isVisible(), 'narrow header starts collapsed on resize');
+    }
     assert.deepEqual(errors, []);
     report.cases.push({ label, initial });
     console.log('HEADER_BROWSER_CASE_PASS', label);

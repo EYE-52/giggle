@@ -1,4 +1,14 @@
-# Giggle Games UI polish — 11 November 2026
+# Giggle Games UI polish
+
+## Games header, 12 November
+
+The three phone actions previously occupied 156 CSS pixels with their labels hidden. A single 44 × 44 options button now opens the theme, sound and report actions at widths up to 720 pixels. The full Game Night name fits at 320 pixels. On wider screens the same three actions are visible as unboxed icons with individual 44 × 44 targets. The sticky dock is 52 pixels tall.
+
+- Chrome exercised home and lobby, scrolling, theme and sound changes, report dismissal, keyboard focus and the 720/721-pixel transition in both themes. A second player joining while the host was in options or reporting an issue did not interrupt that task.
+- WebKit checked the actual header and report dialog at 320, 375, 390, 1024 and 1440 pixels in both themes. These were browser viewport checks on a Mac.
+- The Number Hunt practice screenshot sweep found zero clipped or covered controls across six views. It covered all four handoff sizes, with Night repeated at 390 and 1440 pixels.
+
+The 259 normal Games test commands passed across the main run and reruns. The first run found an old test expecting Doodle strokes without their published IDs. That assertion was corrected separately. The telemetry browser check timed out once on an independent game frame and passed on rerun. The 72-game layout sweep passed all 1,224 measurements.
 
 ## White and black themes
 

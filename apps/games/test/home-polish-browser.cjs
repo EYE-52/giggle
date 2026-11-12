@@ -1,4 +1,5 @@
 'use strict';
+const clickHeaderAction = require('./helpers/header-action.cjs');
 /* Optional local homepage acceptance. Actual Games HTTP/WS server and app,
  * task-owned SQLite,isolated anonymous players;no production/media/accounts. */
 const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),os=require('node:os');
@@ -48,7 +49,7 @@ async function visit(viewport,night,before=false){
    assert.equal(await page.locator('#shelfGames [data-how]').getAttribute('data-how'),'chess');
    assert.equal(await page.locator('#nm').inputValue(),'Fixture Host');assert.equal(await page.locator('#jc').inputValue(),'ABCD');
    // A real home rerender (theme toggle) must retain name and join drafts.
-   await page.locator('#bTheme').click();await page.locator('#bTheme').click();
+   await clickHeaderAction(page, '#bTheme');await clickHeaderAction(page, '#bTheme');
    assert.equal(await page.locator('#nm').inputValue(),'Fixture Host');assert.equal(await page.locator('#jc').inputValue(),'ABCD');
    assert.deepEqual(await page.locator('.topbar').boundingBox(),headerBefore,'hero changes do not alter header geometry');
    await page.locator('#hq').fill('');

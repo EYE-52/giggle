@@ -320,29 +320,39 @@ body:not(.is-embed) .topbar::before {
 }
 .brand .dot { color: var(--accent); }
 .brandmark { flex: none; display: block; }
-/* One control style for Report, theme and sound in either color scheme. */
-.topbar-actions { display: flex; flex: none; align-items: center; gap: 16px; }
+/* The dock owns the surface. Utility icons share an invisible tap target. */
+.topbar-actions, .header-tools { display: flex; align-items: center; gap: 8px; }
+.topbar-actions { flex: none; }
 .topbar .hbtn {
-  display: inline-flex; align-items: center; justify-content: center; gap: 9px;
-  min-width: 44px; height: 44px; padding: 0 14px;
-  border: 1px solid var(--line); border-radius: 12px;
-  background: var(--card); color: var(--ink); font: var(--text-button-sm); font-size: 14px;
-  cursor: pointer; touch-action: manipulation;
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 44px; height: 44px; padding: 0; border: 0; border-radius: 10px;
+  background: transparent; color: var(--ink-dim); font: var(--text-button-sm);
+  cursor: pointer; touch-action: manipulation; -webkit-tap-highlight-color: transparent;
 }
-.topbar .hbtn svg { width: 18px; height: 18px; flex: none; display: block; }
-.topbar .hbtn .hlabel { white-space: nowrap; }
+.topbar .hbtn[hidden], .topbar .hlabel { display: none; }
+.topbar .hbtn svg { width: 20px; height: 20px; flex: none; display: block; }
+.topbar #headerOptions svg { width: 22px; height: 22px; }
 @media (hover: hover) {
-  .topbar .hbtn:hover { background: var(--well); border-color: var(--ink-dim); }
+  .topbar .hbtn:hover { background: var(--well); color: var(--ink); }
 }
-.topbar .hbtn:active { background: var(--well); border-color: var(--ink-dim); }
-.topbar .hbtn:focus-visible { outline: var(--focus-ring); outline-offset: 2px; }
+.topbar .hbtn:active { background: var(--well); color: var(--ink); }
+.topbar .hbtn:focus-visible { outline: var(--focus-ring); outline-offset: -2px; }
 @media (max-width: 1280px) {
   .topbar-actions { margin-inline-end: 8px; }
 }
 @media (max-width: 720px) {
-  .topbar-actions { gap: 12px; margin-inline-end: 4px; }
-  .topbar .hbtn { padding: 0; }
-  .topbar .hbtn .hlabel { display: none; }
+  .topbar-actions { margin-inline-end: 4px; }
+  .header-tools[popover] { display: none; }
+  .header-tools:popover-open {
+    position: fixed; inset: auto; margin: 0; display: grid; gap: 0;
+    width: min(196px, calc(100vw - 32px)); padding: 4px;
+    border: 1px solid var(--line); border-radius: 14px;
+    background: var(--card); color: var(--ink); box-shadow: var(--shadow-card);
+  }
+  .header-tools:popover-open .hbtn {
+    width: 100%; justify-content: flex-start; gap: 12px; padding-inline: 12px; color: var(--ink);
+  }
+  .header-tools:popover-open .hlabel { display: inline; }
 }
 .roomchip {
   font-family: var(--font-display); font-weight: 800; font-size: 15px;
@@ -1668,7 +1678,7 @@ body.is-embed .gamehead .btn { min-height: 42px; padding: 6px 14px; font-size: 1
    * Icon-only, compact rounded rectangles (not circles): the label text
    * hides, the SVG icon and the meaningful aria-label stay. */
   .topbar { gap: 8px; flex-wrap: nowrap; }
-  .brand { font-size: 19px; overflow: hidden; text-overflow: ellipsis; }
+  .brand { flex: none; font-size: 19px; }
   .brand small { display: none; }
   .brandmark { width: 24px; height: 24px; }
   .roomchip { font-size: 13px; letter-spacing: 2px; text-indent: 2px; padding: 4px 10px; }
@@ -2046,7 +2056,7 @@ html:has(> body.is-embed) { background: #171922; color-scheme: dark; }
  * The room/game-specific palettes and immersive renderers keep ownership. */
 :root { --discovery-width: 1280px; --discovery-gap: 16px; }
 body:not(.game-playing):not(.is-embed) .app { max-width: var(--discovery-width); padding-bottom: 32px; }
-body:not(.game-playing):not(.is-embed) .topbar { padding-block: 6px; }
+body:not(.game-playing):not(.is-embed) .topbar { padding-block: 4px; }
 .hero { grid-template-columns: minmax(0, 1fr) minmax(300px, .85fr) minmax(0, .9fr); gap: 28px; padding-block: 24px; }
 .hero h1 { font-size: clamp(32px, 3.3vw, 44px); line-height: 1.08; }
 .hero-eyebrow { background: none; color: var(--ink-dim); padding: 0; border: 0; box-shadow: none; transform: none; font-size: 12px; letter-spacing: .03em; margin-bottom: 12px; }

@@ -971,11 +971,22 @@ function soundIcon(on) {
 /* Toggle repaints that preserve the icon: header buttons (hbtn) redraw
  * icon + label, the embedded gamehead iconbtn redraws its icon, and the
  * room-drawer plain controls keep text only. */
+function headerThemeAction(id) {
+  return id === 'night'
+    ? { icon: ICON_SUN, label: 'Use day mode' }
+    : { icon: ICON_MOON, label: 'Use night mode' };
+}
+function soundAction(on) { return on ? 'Mute sound' : 'Unmute sound'; }
+
 function paintThemeButton(btn, id) {
-  const label = themeName(id);
   if (btn.classList.contains('room-setting')) { btn.innerHTML = roomSwitchHtml(themeIcon(id), 'Night'); btn.setAttribute('aria-checked', String(id === 'night')); }
-  else if (btn.classList.contains('hbtn')) btn.innerHTML = `${themeIcon(id)}<span class="hlabel">${label}</span>`;
-  else btn.textContent = label;
+  else if (btn.classList.contains('hbtn')) {
+    const { icon, label } = headerThemeAction(id);
+    btn.title = label;
+    btn.setAttribute('aria-label', label);
+    btn.innerHTML = `${icon}<span class="hlabel">${label}</span>`;
+  }
+  else btn.textContent = themeName(id);
 }
 
 /* Room-menu toggles read as switches: fixed label, state on the knob. */
@@ -987,9 +998,12 @@ function paintSoundButton(btn, on) {
   btn.dataset.state = on ? 'on' : 'off';
   if (btn.classList.contains('iconbtn')) btn.innerHTML = soundIcon(on);
   else if (btn.classList.contains('room-setting')) { btn.innerHTML = roomSwitchHtml(soundIcon(on), 'Sound'); btn.setAttribute('aria-checked', String(on)); return; }
-  else if (btn.classList.contains('hbtn')) btn.innerHTML = `${soundIcon(on)}<span class="hlabel">${on ? 'Sound on' : 'Muted'}</span>`;
+  else if (btn.classList.contains('hbtn')) {
+    btn.title = soundAction(on);
+    btn.innerHTML = `${soundIcon(on)}<span class="hlabel">${btn.title}</span>`;
+  }
   else btn.textContent = on ? 'Sound on' : 'Muted';
-  btn.setAttribute('aria-label', on ? 'Mute sound' : 'Unmute sound');
+  btn.setAttribute('aria-label', soundAction(on));
 }
 
 /* Connection banner alone: embedded PLAYING screens skip the redundant
@@ -1012,20 +1026,25 @@ function topbar() {
   const brand = EMBED.enabled
     ? `<span class="brand">${BRANDMARK}<span>Game Night<span class="dot">.</span></span></span>`
     : `<a class="brand" href="/" data-nav>${BRANDMARK}<span>Game Night<span class="dot">.</span></span><small>by Giggle</small></a>`;
+  const themeTool = headerThemeAction(theme());
+  const soundLabel = soundAction(sound.enabled);
   return `<div class="topbar">
     ${brand}
     <div class="topbar-actions" role="group" aria-label="Game controls">
       ${room && !EMBED.enabled ? `<div class="roomchip" title="Share this code">${esc(room.code)}</div>` : ''}
-      ${reportButton()}
-      ${document.body.classList.contains('is-embed') ? '' : `<button class="hbtn" type="button" id="bTheme" title="Switch theme" aria-label="Switch theme, current ${themeName(theme())}">${themeIcon(theme())}<span class="hlabel">${themeName(theme())}</span></button>`}
-      <button class="hbtn" type="button" id="bSound" title="Sound on/off" aria-label="${sound.enabled ? 'Mute sound' : 'Unmute sound'}" data-state="${sound.enabled ? 'on' : 'off'}">${soundIcon(sound.enabled)}<span class="hlabel">${sound.enabled ? 'Sound on' : 'Muted'}</span></button>
+      <button type="button" class="hbtn" id="headerOptions" popovertarget="headerTools" title="Game options" aria-label="Game options" hidden>${uiIcon('sliders-horizontal', 22)}</button>
+      <div class="header-tools" id="headerTools" role="group" aria-label="Game options">
+        ${document.body.classList.contains('is-embed') ? '' : `<button class="hbtn" type="button" id="bTheme" title="${themeTool.label}" aria-label="${themeTool.label}">${themeTool.icon}<span class="hlabel">${themeTool.label}</span></button>`}
+        <button class="hbtn" type="button" id="bSound" title="${soundLabel}" aria-label="${soundLabel}" data-state="${sound.enabled ? 'on' : 'off'}">${soundIcon(sound.enabled)}<span class="hlabel">${soundLabel}</span></button>
+        ${reportButton()}
+      </div>
     </div>
   </div>
   ${connbarHtml()}`;
 }
 
 function reportButton(extraClass = '') {
-  const label = extraClass ? '' : '<span class="hlabel">Report</span>';
+  const label = extraClass ? '' : '<span class="hlabel">Report an issue</span>';
   return `<button type="button" class="report-icon ${extraClass || 'hbtn'}" data-report aria-label="Report an issue" title="Report an issue"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 4H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h3l4 3v-3h9a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2Z"/><path d="M12 8v4m0 3h.01"/></svg>${label}</button>`;
 }
 
@@ -1106,14 +1125,35 @@ function setTheme(next) {
   else document.documentElement.dataset.theme = id;
   store.set('pb_theme', id);
   const t = document.getElementById('bTheme');
-  if (t) {
-    paintThemeButton(t, id);
-    if (!t.classList.contains('room-setting')) t.setAttribute('aria-label', 'Switch theme, current ' + themeName(id));
-  }
+  if (t) paintThemeButton(t, id);
   if (room?.game && lastState && gameById(gameId)?.runtime) paintGameBody();
 }
 
+const compactHeader = window.matchMedia('(max-width: 720px)');
+function syncHeaderTools() {
+  const tools = document.getElementById('headerTools');
+  const trigger = document.getElementById('headerOptions');
+  if (!tools || !trigger || !tools.showPopover) return;
+  const compact = compactHeader.matches && !document.body.classList.contains('is-embed');
+  const focused = document.activeElement;
+  if (compact === tools.hasAttribute('popover') && trigger.hidden === !compact) return;
+  trigger.hidden = !compact;
+  tools.toggleAttribute('popover', compact);
+  if (compact && tools.contains(focused)) trigger.focus({ preventScroll: true });
+  else if (!compact && focused === trigger) tools.querySelector('button').focus({ preventScroll: true });
+  else if (!compact && tools.contains(focused)) focused.focus({ preventScroll: true });
+}
+compactHeader.addEventListener('change', syncHeaderTools);
+
 function wireTopbar() {
+  syncHeaderTools();
+  const tools = document.getElementById('headerTools');
+  if (tools) tools.onbeforetoggle = event => {
+    if (event.newState !== 'open') return;
+    const trigger = document.getElementById('headerOptions').getBoundingClientRect();
+    tools.style.top = (trigger.bottom + 6) + 'px';
+    tools.style.right = (document.documentElement.clientWidth - trigger.right) + 'px';
+  };
   const b = document.getElementById('bSound');
   if (b) b.onclick = () => {
     const on = sound.toggle();
@@ -1187,10 +1227,23 @@ function render() {
   // Screen transitions drop a stale howto panel (same-room roster ticks
   // keep it — refreshHowto re-derives its CTA instead).
   if (screen !== lastScreen) closeHowto({ returnFocus: false });
+  // A room update can rebuild the lobby while someone is choosing an option.
+  const tools = document.getElementById('headerTools');
+  const keepOptions = screen === lastScreen && tools?.hasAttribute('popover') && tools.matches(':popover-open');
+  const focusedOption = keepOptions && tools.contains(document.activeElement) ? document.activeElement : null;
   if (!room) renderHome();
   else if (!room.game || leftToLobby()) renderLobby();
   else renderGame();
   wireTopbar();
+  if (keepOptions && tools !== document.getElementById('headerTools')) {
+    const next = document.getElementById('headerTools');
+    if (next?.hasAttribute('popover')) {
+      const trigger = document.getElementById('headerOptions');
+      trigger.focus({ preventScroll: true });
+      trigger.click();
+      if (focusedOption) next.querySelector(focusedOption.id ? '#' + focusedOption.id : '[data-report]')?.focus({ preventScroll: true });
+    }
+  }
   // Screen transitions start at the top (joins mid-scroll must not yank).
   if (screen !== lastScreen) {
     lastScreen = screen;
@@ -3090,9 +3143,15 @@ document.addEventListener('click', (e) => {
     if (menu) menu.open = false;
     closeCustomizer({ returnFocus: false });
     closeHowto({ returnFocus: false });
+    const panel = report.closest('#headerTools[popover]');
+    let opener = report;
+    if (panel) {
+      panel.hidePopover();
+      opener = document.getElementById('headerOptions');
+    }
     const reportGame = room?.game && gameId ? gameId : 'platform';
     runLog.save();
-    openIssueReport({ games, url: publicConfig?.reportingUrl || '/api/reports', game: reportGame, phase: room?.game ? lastState?.phase || '' : room ? 'lobby' : 'home', theme: theme(), embedded: EMBED.enabled, runLog: runLog.latest(reportGame) }, report);
+    openIssueReport({ games, url: publicConfig?.reportingUrl || '/api/reports', game: reportGame, phase: room?.game ? lastState?.phase || '' : room ? 'lobby' : 'home', theme: theme(), embedded: EMBED.enabled, runLog: runLog.latest(reportGame) }, opener);
     return;
   }
   const nav = e.target.closest('[data-nav]');

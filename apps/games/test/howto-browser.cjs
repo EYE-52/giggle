@@ -1,4 +1,5 @@
 'use strict';
+const clickHeaderAction = require('./helpers/header-action.cjs');
 // Optional real-browser regression: production catalogue, Room, sheets,
 // keyboard tabs, roster refresh, settings ACK and ordinary Play. No protocol
 // actions or DOM/state injection. Uses an installed Playwright (NODE_PATH).
@@ -16,7 +17,7 @@ async function close(c){await c.page.locator('#howtoClose').click();}
 async function layoutChecks(c) {
   report.startLayouts = [];
   for (const theme of ['day', 'night']) {
-    if (await c.page.evaluate(() => document.documentElement.dataset.theme || 'day') !== theme) await c.page.locator('#bTheme').click();
+    if (await c.page.evaluate(() => document.documentElement.dataset.theme || 'day') !== theme) await clickHeaderAction(c.page, '#bTheme');
     for (const viewport of [{width:1280,height:720},{width:1440,height:800},{width:1280,height:800},{width:860,height:720},{width:390,height:844},{width:320,height:720},{width:568,height:320}]) {
       await c.page.setViewportSize(viewport);
       for (const game of ['pocket-karts', 'chess', 'doodle-guess', 'ludo', 'trivia']) {
@@ -60,12 +61,14 @@ async function layoutChecks(c) {
           eq(long.dialogFits,true,label+' long rules do not scroll the dialog');
           eq(viewport.width>=860 ? long.panelsScroll : long.seatScroll,true,label+' long rules use the correct scroller');
           eq(Math.abs(long.goBottom-metrics.primary.bottom)<1,true,label+' long rules keep primary visible');
+          const rulesPanel = c.page.locator('.howto-all .app-panel[open]');
+          if (await rulesPanel.isVisible()) await rulesPanel.getByRole('button', { name:'Close panel' }).click();
         }
         await close(c);
       }
     }
   }
-  if (await c.page.evaluate(() => document.documentElement.dataset.theme || 'day') !== 'day') await c.page.locator('#bTheme').click();
+  if (await c.page.evaluate(() => document.documentElement.dataset.theme || 'day') !== 'day') await clickHeaderAction(c.page, '#bTheme');
   await c.page.setViewportSize({width:390,height:844});
 }
 async function liveLudoTimer(previousInstance) {
@@ -98,7 +101,7 @@ function luminance(color) { return rgb(color).map(v=>v/255).map(v=>v<=0.04045?v/
 function contrast(fg,bg) { const a=luminance(fg),b=luminance(bg); return (Math.max(a,b)+0.05)/(Math.min(a,b)+0.05); }
 report.sheetMetrics=[];
 for (const theme of ['day','night']) {
-  if (await host.page.evaluate(()=>document.documentElement.dataset.theme||'day') !== theme) await host.page.locator('#bTheme').click();
+  if (await host.page.evaluate(()=>document.documentElement.dataset.theme||'day') !== theme) await clickHeaderAction(host.page, '#bTheme');
   eq(await host.page.evaluate(()=>document.documentElement.dataset.theme||'day'),theme,'ordinary theme switch reaches '+theme);
   for (const viewport of [{width:390,height:844},{width:568,height:320}]) {
     await host.page.setViewportSize(viewport);
@@ -118,11 +121,11 @@ for (const theme of ['day','night']) {
     }
   }
 }
-await host.page.setViewportSize({width:390,height:844});await host.page.locator('#bTheme').click();eq(await host.page.evaluate(()=>document.documentElement.dataset.theme||'day'),'day','ordinary controls restore Day');
+await host.page.setViewportSize({width:390,height:844});await clickHeaderAction(host.page, '#bTheme');eq(await host.page.evaluate(()=>document.documentElement.dataset.theme||'day'),'day','ordinary controls restore Day');
 // Panels never clip their own text: desktop scroll belongs to the guide
 // wrapper, while phones share one content scroller above the action bar.
 for (const theme of ['day', 'night']) {
-  if (await host.page.evaluate(()=>document.documentElement.dataset.theme||'day') !== theme) await host.page.locator('#bTheme').click();
+  if (await host.page.evaluate(()=>document.documentElement.dataset.theme||'day') !== theme) await clickHeaderAction(host.page, '#bTheme');
   for (const viewport of [{width:1280,height:720},{width:1440,height:800},{width:390,height:844}]) {
     await host.page.setViewportSize(viewport);
     await open(host,'pocket-karts');
@@ -144,13 +147,13 @@ for (const theme of ['day', 'night']) {
     await close(host);
   }
 }
-if (await host.page.evaluate(()=>document.documentElement.dataset.theme||'day') !== 'day') await host.page.locator('#bTheme').click();
+if (await host.page.evaluate(()=>document.documentElement.dataset.theme||'day') !== 'day') await clickHeaderAction(host.page, '#bTheme');
 await host.page.setViewportSize({width:390,height:844});
 eq(catalog.length,require('../games/registry').count(),'real catalogue includes every shipping game');report.catalogue=[];for(const g of catalog){await open(host,g.id);const info=await host.page.evaluate(()=>({intro:document.querySelector('#howtoPlayPanel').textContent,introHidden:document.querySelector('#howtoPlayPanel').hidden,height:document.querySelector('#howtoPlayPanel').getBoundingClientRect().height,custom:!!document.querySelector('#howtoCustom'),tabs:[...document.querySelectorAll('.howto-tabs [role="tab"]')].map(t=>t.textContent)}));eq(info.custom,!!g.customizable,g.id+' options match real metadata');eq(info.tabs,['Play','How to play'],g.id+' keeps the two real tabs');eq(info.intro.startsWith('Goal')&&info.height>0,true,g.id+' Play tab shows its goal and controls');report.catalogue.push({id:g.id,customizable:!!g.customizable,...info});await close(host);}
-await open(host,'chain-reaction');d=await scene('customizable-chain',host);eq(d.intro.startsWith('Goal'),true,'customizable host retains its guide');await host.page.locator('#howtoCustom').click();await host.page.locator('#df-chain-reaction-moveTimer').selectOption('60 seconds');await host.page.locator('#dlgSave').click();await host.page.locator('#dlgSave').waitFor({state:'detached'});await open(host,'chain-reaction');eq(await host.page.locator('.howto-meta').innerText().then(t=>t.includes('60 seconds')),true,'real settings ACK appears in sheet');await scene('saved-chain',host);await close(host);
+await open(host,'chain-reaction');d=await scene('customizable-chain',host);eq(d.intro.startsWith('Goal'),true,'customizable host retains its guide');await host.page.locator('#howtoCustom').click();await host.page.locator('[data-picker-for="df-chain-reaction-moveTimer"]').getByRole('radio', { name:'60 seconds', exact:true }).click();await host.page.locator('#dlgSave').click();await host.page.locator('#dlgSave').waitFor({state:'detached'});await open(host,'chain-reaction');eq(await host.page.locator('.howto-meta').innerText().then(t=>t.includes('60 seconds')),true,'real settings ACK appears in sheet');await scene('saved-chain',host);await close(host);
 await open(host,'ludo');await host.page.locator('#howtoCustom').click();
 const moveTimer=host.page.locator('#df-ludo-moveTimer');eq(await moveTimer.inputValue(),'Off','Ludo Move timer defaults to Off');eq(await moveTimer.locator('option').allTextContents(),['Off','30 seconds','60 seconds'],'real customizer exposes the three supported timers');
-await moveTimer.selectOption('30 seconds');await host.page.locator('#dlgSave').click();await host.page.locator('#dlgSave').waitFor({state:'detached'});await open(host,'ludo');eq(await host.page.locator('.howto-meta').innerText().then(t=>t.includes('30 seconds')),true,'Ludo settings ACK updates the sheet');await scene('saved-ludo-move-timer',host);await host.page.locator('#howtoCustom').click();eq(await host.page.locator('#df-ludo-moveTimer').inputValue(),'30 seconds','acknowledged Ludo timer persists when reopening');await host.page.locator('#dlgSave').click();await host.page.locator('#dlgSave').waitFor({state:'detached'});await open(host,'ludo');await host.page.locator('#howtoGo:not([disabled])').click();await host.page.locator('.ld-board').waitFor();await peer.page.locator('.ld-board').waitFor();eq(host.state.game,'ludo','ordinary sheet Play starts selected game');eq(host.state.spectator,false,'host is genuinely seated');eq(peer.state.spectator,false,'second player is genuinely seated');
+await host.page.locator('[data-picker-for="df-ludo-moveTimer"]').getByRole('radio', { name:'30 seconds', exact:true }).click();await host.page.locator('#dlgSave').click();await host.page.locator('#dlgSave').waitFor({state:'detached'});await open(host,'ludo');eq(await host.page.locator('.howto-meta').innerText().then(t=>t.includes('30 seconds')),true,'Ludo settings ACK updates the sheet');await scene('saved-ludo-move-timer',host);await host.page.locator('#howtoCustom').click();eq(await host.page.locator('#df-ludo-moveTimer').inputValue(),'30 seconds','acknowledged Ludo timer persists when reopening');await host.page.locator('#dlgSave').click();await host.page.locator('#dlgSave').waitFor({state:'detached'});await open(host,'ludo');await host.page.locator('#howtoGo:not([disabled])').click();await host.page.locator('.ld-board').waitFor();await peer.page.locator('.ld-board').waitFor();eq(host.state.game,'ludo','ordinary sheet Play starts selected game');eq(host.state.spectator,false,'host is genuinely seated');eq(peer.state.spectator,false,'second player is genuinely seated');
 const initialRemaining=await liveLudoTimer();
 const firstInstance=host.state.instanceId,timedOutSide=host.state.turn,timeoutStarted=performance.now();
 await host.page.locator('.bk-final').waitFor({timeout:45000});await peer.page.locator('.bk-final').waitFor();eq(performance.now()-timeoutStarted>=initialRemaining-1000,true,'natural timeout does not fire early');eq(host.state.outReason[timedOutSide],'timeout','real unmodified server clock forfeits the idle player');eq(peer.state.result.reason,'timeout','peer receives the same timed-out result');eq(host.state.phase,'done','two-player Ludo settles after timeout');eq(peer.state.outReason[timedOutSide],'timeout','both clients identify the forfeited side');eq(host.state.scores[host.state.seats[timedOutSide]],0,'timed-out player earns zero');eq(host.state.scores[host.state.result.winnerPid],300,'remaining player earns the authoritative win');if(out)await host.page.screenshot({path:path.join(out,'ludo-natural-timeout.png')});report.moveTimer={milliseconds:host.state.moveTimerMs,initialRemaining,observedElapsedMs:performance.now()-timeoutStarted,timedOutSide,result:host.state.result};
