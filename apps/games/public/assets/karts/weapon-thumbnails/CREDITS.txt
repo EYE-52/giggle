@@ -1,4 +1,4 @@
-Current 96px portraits are rendered from the twelve Gear models by scripts/build-kart-pickup-art.py. The rocket pod, tracking blaster and perimeter ring include original Meshy artwork. See ../ASSETS.md for source models, permissions and rebuild instructions.
+Current 96px portraits are rendered from the twelve Gear models by scripts/build-kart-pickup-art.py. All eleven unique pickup silhouettes include original Meshy artwork; the fake crate is derived from the common loot crate. Source task IDs, hashes and triangle counts are recorded in manifest.json and the source task file. See ../ASSETS.md for source models, permissions and rebuild instructions.
 
 Earlier and legacy thumbnails
 96px transparent UI thumbnails rendered offline from the shipped kart/combat model factories.

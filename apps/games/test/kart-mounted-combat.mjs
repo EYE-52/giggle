@@ -80,9 +80,10 @@ for(const kind of WEAPON_IDS){
   }
   chassis.remove(rig);
  }
- if(kind==='cannon')for(const count of [3,2,1,0,3]){
+ if(kind==='mine')check(c.rounds.every(round=>round?.isMesh&&round.geometry===c.rounds[0].geometry),'three trail tokens share one sourced geometry');
+ if(kind==='cannon'||kind==='mine')for(const count of [3,2,1,0,3]){
   c.ammo=count;art.animate(rig,.02,1,false);
-  check(c.rounds.filter(rocket=>rocket.visible).length===count,'side rack reflects '+count+' remaining rockets');
+  check(c.rounds.filter(rocket=>rocket.visible).length===count,kind+' rack reflects '+count+' remaining rounds');
  }
 }
 for(const kind of ['scatter','rocket','seeker','proximity','nuke']){

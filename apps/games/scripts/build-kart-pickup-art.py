@@ -4,6 +4,8 @@
 """Build the editable Gear scene and its 96px HUD portraits. Pass an output GLB path."""
 from pathlib import Path
 import sys
+import json
+import hashlib
 import numpy as np
 import trimesh as tm
 from PIL import Image, ImageDraw
@@ -45,7 +47,7 @@ def orb(size, position, color):
 def components(filename):
     model = tm.load(SOURCE / filename, force='mesh')
     model.merge_vertices(merge_norm=True, merge_tex=True)
-    return sorted(model.split(only_watertight=False), key=lambda part:-len(part.faces))
+    return sorted(model.split(only_watertight=False, repair=False), key=lambda part:-len(part.faces))
 
 def wing(vertices, color):
     return paint(tm.convex.convex_hull(np.array(vertices)), color)
@@ -123,15 +125,9 @@ def lighter_mount(mesh):
             parts.append(part)
     return together(parts)
 
-def canister(size, color, belt):
-    parts = [orb(size,(0,0,0),color)]
-    for z in (-.21,.21):
-        parts.append(cylinder(size[0]*.44,.1,(0,0,z),belt))
-    return together(parts)
-
-def draw(mesh, path):
+def draw(mesh, path, eye=(1.12,.87,1.40)):
     v, f = mesh.vertices, mesh.faces
-    eye = tm.unitize((1.12,.87,1.40))
+    eye = tm.unitize(eye)
     right = tm.unitize(np.cross((0,1,0),eye))
     up = np.cross(eye,right)
     pos = np.column_stack((v@right,-v@up))
@@ -147,45 +143,77 @@ def draw(mesh, path):
         canvas.polygon([tuple(p) for p in pos[f[i]]],fill=tuple(pixels[i])+(255,))
     image.resize((96,96),Image.Resampling.LANCZOS).quantize(colors=208,method=Image.Quantize.FASTOCTREE).save(path,optimize=True)
 
-def models():
-    mounted = 'combat/arsenal-mounted.glb'
-    dart = asset(mounted,'SeekerShot')
-    disc = asset(mounted,'MineTrap')
-    # The next disc hides the fuzes on the lower two trays. Keep their
-    # pressure shells and outside rim, with the complete sourced trap on top.
-    rim = asset(mounted,'MineTrapRimAndFuze')
-    rim.merge_vertices(merge_norm=True, merge_tex=True)
-    lower_rim = max(rim.split(only_watertight=False, repair=False), key=lambda part: part.extents[0])
-    lower_disc = together([asset(mounted,'MineTrapPressureShell'), lower_rim])
-    iced = paint(fit(dart,(.47,.42,.97)), ICE)
-    collar = cylinder(.22,.10,(0,0,-.1),'#409bcc')
-    crystal = wing([(0,.12,0),(-.14,.2,0),(.02,.46,.03),(.11,.20,0),(0,.19,.12)],CREAM)
-    ram = [orb((2.52,.2,.36),(0,0,0),NAVY)]
-    for x in (-1.24,1.24):
-        horn = wing([(x-.16,-.1,-.13),(x+.16,-.1,-.13),(x-.13,.13,-.10),
-                     (x+.13,.13,-.10),(x,.31,.70)],GOLD)
-        ram.append(horn)
-    core = [orb((.51,.50,.51),(0,0,0),PLUM)]
-    for angle in (-.73,.73):
-        hoop = paint(tm.creation.torus(.33,.028,major_sections=24,minor_sections=6),CREAM)
-        core.append(turn(hoop,angle,(1,0,0)))
-    mine = [fit(lower_disc,(.72,.14,.68),(0,y,0)) for y in (-.13,.025)]
-    mine.append(fit(disc,(.72,.14,.68),(0,.18,0)))
-    shell = canister((.60,.60,.94),'#f38135',NAVY)
-    tail = wing([(.10,-.03,-.45),(.10,.03,-.45),(.36,0,-.50),(.18,0,-.19)],NAVY)
-    nuke = together([shell, cylinder(.13,.08,(0,0,-.44),CREAM)] +
-                    [turn(tail.copy(),a*np.pi/2,(0,0,1)) for a in range(4)])
-    burst = [fit(asset('combat/arsenal-secondary.glb','Scatter'),(.64,.37,.82),(0,-.06,-.15))]
-    # The three tube openings and the three actual ray origins share their spacing.
-    for x in (-.2,0,.2):
-        burst += [cylinder(.095,.58,(x,0,.30),STEEL), cylinder(.105,.095,(x,0,.55),TEAL),
-                  cylinder(.065,.098,(x,0,.551),NAVY), cylinder(.074,.09,(x,.06,-.48),CREAM)]
+def sourced(name, colors, size):
+    pieces = components(name+'.glb')
+    painted = [paint(piece, colors.get(i, colors.get('rest', STEEL)))
+               for i,piece in enumerate(pieces)]
+    mesh = together(painted)
+    return fit(mesh,size)
 
+def missile():
+    parts = components('missile.glb')
+    body = paint(parts[0], RED)
+    centers = body.triangles_center
+    colors = body.visual.face_colors.copy()
+    # Paint the existing rear cap and swept fins. The dark cap, gold rim and
+    # pale forward lens make direction clear from either end without new mesh.
+    rear = centers[:,2] < -.23
+    fins = (np.maximum(np.abs(centers[:,0]),np.abs(centers[:,1])) > .34) & (centers[:,2] < .15)
+    colors[rear | fins] = tm.visual.color.hex_to_rgba(GOLD)
+    colors[rear & (np.linalg.norm(centers[:,:2],axis=1)<.22)] = tm.visual.color.hex_to_rgba(NAVY)
+    body.visual = tm.visual.ColorVisuals(body,face_colors=colors)
+    return fit(together([body,paint(parts[1],ICE)]+[paint(p,GOLD) for p in parts[2:]]),(.55,.52,1.14))
+
+def trishot():
+    parts = components('trishot.glb')
+    colors = {0:TEAL,1:CREAM,2:GOLD,3:GOLD,4:GOLD,5:GOLD}
+    for i,part in enumerate(parts):
+        paint(part,colors.get(i,NAVY))
+        if i in (3,4,5):
+            # These are the three real open tubes, not painted extra mouths.
+            pigment=part.visual.face_colors.copy()
+            centers=part.triangles_center
+            radial=np.linalg.norm(centers[:,:2]-part.bounds.mean(axis=0)[:2],axis=1)
+            pigment[(centers[:,2]<.20)|(radial<.075)]=tm.visual.color.hex_to_rgba(NAVY)
+            part.visual=tm.visual.ColorVisuals(part,face_colors=pigment)
+    return fit(together(parts),(.78,.43,.88))
+
+def mine_round():
+    pieces = components('mine.glb')
+    # The stepped rim has most of the triangles. Reduce that surface alone;
+    # keep the raised flower and its boundaries intact on all three rounds.
+    pieces[0] = pieces[0].simplify_quadric_decimation(face_count=400)
+    return fit(turn(together([paint(p, NAVY if i==0 else GOLD if i==1 else RED)
+                              for i,p in enumerate(pieces)]),-np.pi/2,(1,0,0)),(.72,.14,.68))
+
+def ram_bumper():
+    parts = components('ram.glb')
+    # Move the original curved horns onto the original bumper. The unwanted
+    # vehicle body, wheels and tall cockpit hoop never enter the library.
+    for i in (6,7):
+        parts[i].apply_translation((0,-.18,.49))
+    return fit(together([paint(parts[i], GOLD if i in (6,7) else TEAL if i==8 else NAVY)
+                         for i in (6,7,8,10,12,20,23)]),(2.72,.55,.54))
+
+def models():
+    mine = mine_round()
+    stack = []
+    for y in (-.13,.025,.18):
+        copy = mine.copy()
+        copy.apply_translation((0,y,0))
+        stack.append(copy)
     return dict(cannon=rocket_parts()[2], machinegun=blaster(), blades=spinner(),
-                missile=together([paint(fit(dart,(.55,.52,1.14)),RED),cylinder(.13,.16,(0,0,.11),CREAM)]),trishot=together(burst),
-                mine=together(mine),proximity=fit(asset(mounted,'BombShot'),(.61,.47,.62)),
-                fakecrate=fit(lighter_mount(asset('giggle-crate.glb','CrateRoot')),(.65,.65,.65)),
-                nuke=nuke,supernova=together(core),frost=together([iced,collar,crystal]),ram=together(ram))
+        missile=missile(),
+        trishot=trishot(),
+        mine=together(stack),
+        proximity=sourced('proximity',{0:TEAL,1:NAVY,2:GOLD,'rest':CREAM},(.61,.47,.62)),
+        fakecrate=fit(lighter_mount(asset('giggle-crate.glb','CrateRoot')),(.65,.65,.65)),
+        nuke=sourced('nuke',{0:RED,1:RED,2:NAVY,3:GOLD,4:CREAM,13:NAVY,'rest':GOLD},(.60,.62,.60)),
+        supernova=sourced('supernova',{0:CREAM,9:PLUM,'rest':GOLD},(.72,.68,.55)),
+        frost=sourced('frost',{0:TEAL,1:ICE,2:ICE,3:ICE,4:NAVY,5:TEAL,'rest':CREAM},(.62,.62,.82)),
+        # The generation includes a cockpit and wheels. Keep only its actual
+        # bumper, two curved horns and their braces for the snap-on accessory.
+        ram=ram_bumper())
 
 def standard_material(tree):
     tree['materials']=[{'name':'Toy enamel','pbrMetallicRoughness':{'metallicFactor':.15,'roughnessFactor':.53}}]
@@ -203,10 +231,27 @@ def linear_colors(mesh):
 
 if __name__ == '__main__':
     scene = tm.Scene()
+    manifest = {'portraitSize':96,'models':{}}
+    tasks = json.loads((SOURCE / 'source-tasks.json').read_text())
     for name,mesh in models().items():
-        draw(mesh,ART / 'weapon-thumbnails' / (name+'.png'))
-        if name != 'cannon':
+        source_name = {'cannon':'rocketpod','machinegun':'blaster','blades':'spinner'}.get(name,name)
+        source = ART / 'giggle-crate.glb' if name=='fakecrate' else SOURCE / (source_name+'.glb')
+        manifest['models'][name] = {'node':'Gear_'+name,'triangles':len(mesh.faces)}
+        manifest['models'][name]['sourceSha256'] = hashlib.sha256(source.read_bytes()).hexdigest()
+        task = tasks.get(name,{}).get('task') or {'cannon':'01a1cb50-3ce2-7597-b979-609cb35f69e5','machinegun':'01a1cb50-4d6a-726b-88ec-c8249837b0f8','blades':'01a1cb50-2f48-7787-9520-ac38b753ea53'}.get(name)
+        if task:
+            manifest['models'][name]['task'] = task
+        draw(mesh,ART / 'weapon-thumbnails' / (name+'.png'),eye=(.65,.38,1.60) if name=='trishot' else (1.12,.87,1.40))
+        if name not in ('cannon','mine'):
             scene.add_geometry(linear_colors(mesh),node_name='Gear_'+name,geom_name='Gear_'+name)
+    scene.graph.update(frame_to='Gear_mine',frame_from='world',matrix=np.eye(4))
+    for i,y in enumerate((-.13,.025,.18)):
+        pose = tm.transformations.translation_matrix((0,y,0))
+        if i == 0:
+            scene.add_geometry(linear_colors(mine_round()),node_name='Mine0',geom_name='TrailRound',
+                               parent_node_name='Gear_mine',transform=pose)
+        else:
+            scene.graph.update(frame_to='Mine'+str(i),frame_from='Gear_mine',matrix=pose,geometry='TrailRound')
     rocket,saddle,_ = rocket_parts()
     scene.add_geometry(linear_colors(saddle),node_name='Gear_cannon',geom_name='RocketSaddle')
     for i, offset in enumerate([(-.18,-.09,0),(.18,-.09,0),(0,.19,0)]):
@@ -216,4 +261,5 @@ if __name__ == '__main__':
                                parent_node_name='Gear_cannon',transform=pose)
         else:
             scene.graph.update(frame_to='Rocket'+str(i),frame_from='Gear_cannon',matrix=pose,geometry='ToyRound')
+    (ART / 'weapon-thumbnails' / 'manifest.json').write_text(json.dumps(manifest,indent=2)+'\n')
     Path(sys.argv[1]).write_bytes(tm.exchange.gltf.export_glb(scene,include_normals=True,tree_postprocessor=standard_material))

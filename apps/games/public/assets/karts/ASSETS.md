@@ -34,16 +34,15 @@ Drivers: `drivers/fox.glb`, `bunny.glb`, `panda.glb` and `raccoon.glb` are origi
 
 ## Equipped items and HUD portraits
 
-The side pod for Triple Rockets, Tracking Blaster housing and Spinning Bumper ring use original Meshy models. The editable GLBs are in `scripts/sources/kart-powerups`. Their task IDs are `01a1cb50-3ce2-7597-b979-609cb35f69e5`, `01a1cb50-4d6a-726b-88ec-c8249837b0f8` and `01a1cb50-2f48-7787-9520-ac38b753ea53`, respectively. The builder fits the props to the kart and uses the project's own crate and existing credited combat models for the other items. The three rockets share one mesh and disappear individually as the player fires them.
+All eleven unique pickup silhouettes use original Meshy artwork. The three earlier sources (Triple Rockets pod, Tracking Blaster housing, Spinning Bumper ring) keep task IDs `01a1cb50-3ce2-7597-b979-609cb35f69e5`, `01a1cb50-4d6a-726b-88ec-c8249837b0f8` and `01a1cb50-2f48-7787-9520-ac38b753ea53`. The eight additional smart-topology generations, their prompts and task IDs are recorded in `scripts/sources/kart-powerups/source-tasks.json`; the original, texture-free GLBs sit alongside it. The fake crate uses the shared real loot crate, including its question marks.
 
+The builder paints the source components with the common toy palette and fits them to the existing mount positions. The ram keeps the generated bumper, horns and braces; its accidental cockpit and wheels are excluded. The mine rim alone is reduced to keep all three visible tokens below 3,000 triangles. Each rocket and each mine token shares one geometry and disappears separately as the accepted ammo count falls. Other new smart-topology silhouettes are retained without a blanket simplification pass. The portrait manifest records source hashes, task IDs and equipped triangle counts.
 Rebuild from `apps/games` with Python via uv and glTF Transform 4.5.0. Supply a temporary working directory for the intermediate GLBs.
 
 ```sh
 gear_build=$(mktemp -d)
 uv run --script scripts/build-kart-pickup-art.py "$gear_build/gear.glb"
-npx --yes @gltf-transform/cli@4.5.0 weld "$gear_build/gear.glb" "$gear_build/weld.glb"
-npx --yes @gltf-transform/cli@4.5.0 simplify "$gear_build/weld.glb" "$gear_build/lod.glb" --ratio .40 --error .004
-npx --yes @gltf-transform/cli@4.5.0 meshopt "$gear_build/lod.glb" public/assets/karts/combat/pickup-gear.glb --level high
+npx --yes @gltf-transform/cli@4.5.0 meshopt "$gear_build/gear.glb" public/assets/karts/combat/pickup-gear.glb --level high
 npm run vendor
 ```
 

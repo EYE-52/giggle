@@ -48,7 +48,7 @@ export function createCuratedArt(THREE, lookup = () => null){
    const clone=model.clone(true);
    inner.add(clone);
    clone.traverse(node=>{if(node.isMesh)node.castShadow=false;});
-   if(kind==='cannon')c.rounds=[0,1,2].map(i=>clone.getObjectByName('Rocket'+i));
+   if(kind==='cannon'||kind==='mine')c.rounds=[0,1,2].map(i=>clone.getObjectByName((kind==='mine'?'Mine':'Rocket')+i));
   }else{
    const K=build();
    if(kind==='blades'){

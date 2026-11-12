@@ -59,6 +59,7 @@ kart.weapon='cannon';kart.ammo=1;assert(predictor.accept('box'));assert.equal(ka
 const {document}=parseHTML('<div id="slot"></div>');const slot=document.getElementById('slot');paintKartWeapon(slot,{weapon:'machinegun',ammo:30});assert.equal(slot.querySelector('strong').textContent,'Tracking Blaster');assert.equal(slot.querySelector('.kart-item-count').textContent,'×30');const copy=slot.querySelector('strong');paintKartWeapon(slot,{weapon:'machinegun',ammo:10});assert.equal(slot.querySelector('.kart-item-count').textContent,'×10');assert(slot.querySelector('strong')===copy);
 await MeshoptDecoder.ready;
 const file=await readFile(new URL('../public/assets/karts/combat/pickup-gear.glb',import.meta.url));
+assert(file.byteLength<=120*1024,'shared equipment stays within its120KiB startup budget');
 const {scene:library}=await new GLTFLoader().setMeshoptDecoder(MeshoptDecoder)
   .parseAsync(file.buffer.slice(file.byteOffset,file.byteOffset+file.byteLength),'');
 const art=createKartCombatArt(THREE,{assets:{get:name=>library.getObjectByName(name)}}),budgets=[];

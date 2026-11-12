@@ -1,0 +1,76 @@
+{
+  "portraitSize": 96,
+  "models": {
+    "cannon": {
+      "node": "Gear_cannon",
+      "triangles": 2288,
+      "sourceSha256": "034e383947524cdca148fda3729719ab76fd53b419eb56f95fabc9adb4a6c858",
+      "task": "01a1cb50-3ce2-7597-b979-609cb35f69e5"
+    },
+    "machinegun": {
+      "node": "Gear_machinegun",
+      "triangles": 1256,
+      "sourceSha256": "bf02a0d2cf315996a472867dce65ae01af9238bb35a2dcbf67a52b7602dfc5d0",
+      "task": "01a1cb50-4d6a-726b-88ec-c8249837b0f8"
+    },
+    "blades": {
+      "node": "Gear_blades",
+      "triangles": 1516,
+      "sourceSha256": "31c71761bc4c1a9a9cb36b39ad362be7e7c8a813fb98edef738c82e7838faa41",
+      "task": "01a1cb50-2f48-7787-9520-ac38b753ea53"
+    },
+    "missile": {
+      "node": "Gear_missile",
+      "triangles": 1303,
+      "sourceSha256": "1af902f4bb36e45305f6efb9c6080a33a9a80a0d79532a46daf91a23fd4d1d99",
+      "task": "01a1cff1-b5af-738c-b729-a043f6c53968"
+    },
+    "trishot": {
+      "node": "Gear_trishot",
+      "triangles": 927,
+      "sourceSha256": "ef19131c3b347ac5bc0f10f6f98fdc805c8c62d85d516def33affdb29b993d85",
+      "task": "01a1cff1-5c7d-7059-bd0b-4982b67ceda5"
+    },
+    "mine": {
+      "node": "Gear_mine",
+      "triangles": 2694,
+      "sourceSha256": "0e1a6a0c9249fa8f85119de249d55bace4ec919aa6eda051be999fc7f24fa4f0",
+      "task": "01a1cff1-68dc-75f3-84e9-5e40b7e3e4fb"
+    },
+    "proximity": {
+      "node": "Gear_proximity",
+      "triangles": 1310,
+      "sourceSha256": "1044c79cfe517d05a397c855e01421e602347ec6dfdd27913ffcef1972542e93",
+      "task": "01a1cff1-76c3-76e3-a4a7-ad2a097a209c"
+    },
+    "fakecrate": {
+      "node": "Gear_fakecrate",
+      "triangles": 1933,
+      "sourceSha256": "aa0cc8516562ae4c79f903eaa52a3095887a7ea939d1f8ce52609ad2937bb053"
+    },
+    "nuke": {
+      "node": "Gear_nuke",
+      "triangles": 1205,
+      "sourceSha256": "e7bc64797789b0c4c59b4fe13741ac41a161e5f2316c215cba0cfa0ad37a66ae",
+      "task": "01a1cff1-d489-7631-82de-da729db81c2b"
+    },
+    "supernova": {
+      "node": "Gear_supernova",
+      "triangles": 1128,
+      "sourceSha256": "c13fbdd35bda3689f40114a48ad40ca4cd47b060abf7c0038a3908a441955f9d",
+      "task": "01a1cff1-c454-7507-b53c-6050cd29895c"
+    },
+    "frost": {
+      "node": "Gear_frost",
+      "triangles": 1225,
+      "sourceSha256": "d49530d7635a355e33ab3cc0ec5495239101e6d3d9e44cf746c0469f38aac4b5",
+      "task": "01a1cfef-8ee6-774d-8e7f-ed16da992dbe"
+    },
+    "ram": {
+      "node": "Gear_ram",
+      "triangles": 326,
+      "sourceSha256": "9ab2652457a89218b8d5708e91800cc24c99ebeb3def6200bccb603892469cc0",
+      "task": "01a1cfef-9e4e-71b0-b9fc-177d97e06724"
+    }
+  }
+}

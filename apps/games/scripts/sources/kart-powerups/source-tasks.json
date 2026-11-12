@@ -1,0 +1,34 @@
+{
+  "frost": {
+    "task": "01a1cfef-8ee6-774d-8e7f-ed16da992dbe",
+    "prompt": "A single original fantasy ice power-up for a cheerful tabletop kart racing game. A squat, forward-pointing frosted crystal seed in a scalloped enamel holder, with one broad faceted snowflake collar at the back and three swept, rounded translucent-looking fins. The silhouette reads like a snowflake comet from behind. Smooth toy-grade bevels, bold connected surfaces, rounded edges. Display just this object, centered in space, clean outline on every side, no lettering, no base, no kart."
+  },
+  "ram": {
+    "task": "01a1cfef-9e4e-71b0-b9fc-177d97e06724",
+    "prompt": "A single original front bumper accessory for a toy kart in a colorful arcade racing game, like the nose of a smiling bumper car. Low, wide crescent of soft molded rubber with two large rounded upward-curving bull horns, a recessed center panel and two shallow cushioning grooves. Symmetric silhouette wider than tall, facing forward, simple broad surfaces, soft bevels, no lettering, no vehicle, no display pedestal. This is a playful snap-on toy car accessory."
+  },
+  "trishot": {
+    "task": "01a1cff1-5c7d-7059-bd0b-4982b67ceda5",
+    "prompt": "A single compact candy-arcade bubble blower module, the Burst Blaster in a toy kart game. A rounded rectangular side pod with three large hollow bubble-wand mouths in one horizontal row facing straight forward, short enamel housing and three little raised capsule ribs on its upper rear. One joined object, low profile, chunky molded rounded bevels, from the back the three equal lobes read clearly. No cartoon eyes, hands, text, base or vehicle. Keep a playful toy silhouette."
+  },
+  "mine": {
+    "task": "01a1cff1-68dc-75f3-84e9-5e40b7e3e4fb",
+    "prompt": "One single low round trail token for a toy kart racing game: a thick flattened rubber puck with a raised five-lobed flower cap, a smooth coin-like stepped rim, and three wide scallops around the outer wall. View from above, lend itself to vertically stacking three copies. Broad readable enamel surfaces, softly rounded edges, pocket-sized arcade collectible, one connected object, no pedestal or car or lettering."
+  },
+  "proximity": {
+    "task": "01a1cff1-76c3-76e3-a4a7-ad2a097a209c",
+    "prompt": "One single toy proximity pickup for a stylized kart battle game: a small squat round bell-shaped floor beacon on a wide three-footed saucer. Big domed cap and one prominent concentric signal ridge around its waist. Like a vintage tabletop game buzzer, balanced and low, clean broad enamel surfaces and rounded soft bumpers. No wires, no fuse, no writing, no base separate from the object, no vehicle."
+  },
+  "missile": {
+    "task": "01a1cff1-b5af-738c-b729-a043f6c53968",
+    "prompt": "A single fictional self-guiding toy comet dart for an arcade kart racing game. One blunt bulbous nose with an oversized circular glass eye lens recessed into the tip, one tapered oval body, and three swept rounded fins around the short tail. Clear direction even at thumbnail size, softly beveled molded toy styling, no intricate markings, no launch hardware, no base, no vehicle. Horizontal forward axis."
+  },
+  "supernova": {
+    "task": "01a1cff1-c454-7507-b53c-6050cd29895c",
+    "prompt": "One magical Supernova orbital energy core for a stylized toy kart game. A chunky faceted four-point star cradled at the center of two broad interlocking asymmetrically tilted orbital rings; visible open air between the rings. Looks like a premium enamel celestial desk toy, readable from behind, clean rounded stepped edges, compact horizontal proportions, no text or stand or car. One accessory."
+  },
+  "nuke": {
+    "task": "01a1cff1-d489-7631-82de-da729db81c2b",
+    "prompt": "One fictional shockwave capsule pickup for a playful toy kart game: a stout plump acorn-shaped power cell, with a large convex front dome, wide recessed equatorial collar, and four short rounded petal-shaped vanes at the tail. Like a compressed shooting-star toy, deliberately broader than long and heavy-looking. Distinct simple curved enamel surfaces, no smoke, symbols, text, mounting stand or vehicle."
+  }
+}
