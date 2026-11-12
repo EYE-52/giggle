@@ -32,6 +32,25 @@ html[data-mode] {
 }
 .gg-header-inner { justify-content:flex-start; }
 .gg-header-actions { margin-inline-start:auto; }
+.gg-header .gg-main-nav .tab { min-height:44px; }
+/* Secondary header actions stay quiet; the skin still owns the page, brand
+   and navigation. Keep the full hit area and a visible open/focus state. */
+.gg-header .gg-header-actions .icon-btn {
+  --sketch:none !important;
+  min-width:44px;
+  min-height:44px;
+  border:0 !important;
+  background:transparent !important;
+  box-shadow:none !important;
+  transform:none !important;
+}
+.gg-header .gg-header-actions .icon-btn:is(:hover, [aria-expanded="true"]) {
+  background:color-mix(in srgb,var(--text) 8%,transparent) !important;
+}
+.gg-header .gg-header-actions .icon-btn:focus-visible {
+  outline:2px solid var(--text) !important;
+  outline-offset:2px;
+}
 .gg-header-inner::after {
   content:"";
   position:absolute;

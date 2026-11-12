@@ -450,7 +450,7 @@ export default function ProfilePage() {
           </button>
           <div style={{ minWidth: 0, textAlign: isPhone ? "left" : "center", display: "flex", flexDirection: "column", gap: 4 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 6, justifyContent: isPhone ? "flex-start" : "center" }}>
-              <h1 style={{ maxWidth: "100%", fontFamily: "var(--font-display, var(--font-space-grotesk))", fontSize: isPhone ? 20 : 22, fontWeight: 700, color: textPrimary, letterSpacing: "-0.02em", margin: 0, overflow: "hidden", textOverflow: "ellipsis" }}>{displayName}</h1>
+              <h1 style={{ maxWidth: "100%", fontFamily: "var(--font-display, var(--font-space-grotesk))", fontSize: isPhone ? 20 : 22, fontWeight: 700, color: textPrimary, letterSpacing: "-0.02em", margin: 0, overflowWrap: "anywhere" }}>{displayName}</h1>
             </div>
           </div>
           </div>
