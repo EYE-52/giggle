@@ -20,7 +20,7 @@ import {
 } from './embed.js';
 import { wsTargetFromConfig } from './netconfig.js';
 import { createServerClock } from './server-clock.js';
-import { createGameScreen, createGameScreenPrompt } from './toolkit/game-screen.mjs';
+import { createGameScreen } from './toolkit/game-screen.mjs';
 import { readInputCapabilities } from './toolkit/input-capabilities.mjs';
 import { createResultPresentation } from './toolkit/result-presentation.mjs';
 import { createGameCuePlayer } from './toolkit/game-cues.mjs';
@@ -1178,7 +1178,6 @@ function wireTopbar() {
 
 let lastScreen = '';
 let gameScreen = null;
-const gameScreenPrompt = createGameScreenPrompt();
 
 // Apply the chrome change before measuring the canvas. Some browsers do not
 // emit resize when document fullscreen changes without changing screen size.
@@ -2528,7 +2527,7 @@ function gameRoomMenu(g, context, floating = false) {
       <div id="roomMembers" class="room-members"></div>
       ${!EMBED.enabled ? '<a class="room-meet" href="https://gigglemeet.com" target="_blank" rel="noopener">Hang out on Giggle Meet ↗</a>' : ''}
     </div>
-  </details><button type="button" id="bGameScreenToggle" class="tb-btn tb-icon tb-chip game-screen-toggle" aria-label="Full screen" title="Full screen" aria-pressed="false" hidden></button>${reportButton('game-report-icon')}`;
+  </details><button type="button" id="bGameScreenToggle" class="tb-btn tb-icon tb-chip game-screen-toggle" aria-label="Full screen" title="Full screen" aria-pressed="false" hidden></button>`;
 }
 
 /* Inline confirmations for the two match-ending choices in the drawer. */
@@ -2598,21 +2597,13 @@ function wireGameRoom() {
     if (menu) menu.open = false;
     openControls({ game: gameById(gameId), opener: menu?.querySelector('summary') || controls });
   };
-  for (const id of ['bGameScreen', 'bGameScreenToggle', 'bGameScreenPrompt']) {
+  for (const id of ['bGameScreen', 'bGameScreenToggle']) {
     const screenButton = document.getElementById(id);
     if (screenButton) screenButton.onclick = () => {
-      gameScreenPrompt.dismiss();
       if (menu) menu.open = false;
       void gameScreen.toggle();
     };
   }
-  const dismissScreenPrompt = document.getElementById('bGameScreenDismiss');
-  if (dismissScreenPrompt) dismissScreenPrompt.onclick = () => {
-    gameScreenPrompt.dismiss();
-    document.getElementById('bGameScreenToggle')?.focus({ preventScroll: true });
-    paintGameScreen(gameScreen.state());
-    document.dispatchEvent(new Event('game-screenchange'));
-  };
   paintGameScreen(gameScreen.state());
   const invite = document.getElementById('bGameInvite');
   if (invite) invite.onclick = () => copyInvite();
@@ -2691,8 +2682,6 @@ function paintGameScreen({ busy, fullscreen, available }) {
     else button.textContent = label;
   }
   document.body.classList.toggle('game-fullscreen', fullscreen);
-  const prompt = document.getElementById('gameScreenPrompt');
-  if (prompt) prompt.hidden = !gameScreenPrompt.shouldShow({ touch, immersive: gameById(gameId)?.layout === 'immersive', fullscreen, available });
 }
 
 function renderGame() {
@@ -2719,10 +2708,6 @@ function renderGame() {
     // The game owns the viewport. The platform provides a quiet, optional
     // room drawer instead of imposing its title card/HUD on every game.
     app.innerHTML = connbarHtml() + gameRoomMenu(g, context, true) + `
-      <div id="gameScreenPrompt" class="game-screen-prompt" role="group" aria-label="Play with more space" hidden>
-        <button type="button" id="bGameScreenPrompt" class="tb-btn tb-chip">Play full screen</button>
-        <button type="button" id="bGameScreenDismiss" class="tb-btn tb-icon tb-chip" aria-label="Dismiss full-screen tip" title="Dismiss full-screen tip">×</button>
-      </div>
       <main id="gbody" data-layout="immersive" data-game="${esc(gameId)}" aria-label="${esc(gameName(gameId))}"></main>
       <div class="timerbar" id="tbar" hidden><div></div></div><div id="ttime" hidden></div>`;
     if (rematchSnapshot?.game === gameId) placeCapturedSnapshot(document.getElementById('gbody'), rematchSnapshot.snap);
@@ -3111,7 +3096,7 @@ document.addEventListener('click', (e) => {
     closeCustomizer({ returnFocus: false });
     closeHowto({ returnFocus: false });
     const panel = report.closest('#headerTools[popover]');
-    let opener = report;
+    let opener = report.closest('#roomMenu')?.querySelector('summary') || report;
     if (panel) {
       panel.hidePopover();
       opener = document.getElementById('headerOptions');

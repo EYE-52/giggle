@@ -1,60 +1,8 @@
 /* Batch 3's shared party stage. Physical-size tracks survive the shell zoom. */
-/* Keep utilities with their header while long boards and score strips scroll. */
-body.game-playing:has(#gbody > .word-party) .play-toolbar {
-  position: relative;
-}
-body.game-playing:has(#gbody > .word-party) .play-toolbar #roomMenu {
-  position: absolute;
-  top: var(--space-8);
-  right: calc(var(--control-h-sm) + var(--space-8));
-}
-body.game-playing:has(#gbody > .word-party)
-  .play-toolbar
-  :is(.game-report-icon, .game-screen-toggle) {
-  position: absolute;
-  top: var(--space-8);
-  left: auto;
-  right: 0;
-}
-/* Word games lay out their own three slots: report, full screen, then the menu. */
-body.game-playing:has(#gbody > .word-party) .play-toolbar .game-screen-toggle {
-  translate: calc(-1 * (var(--control-h-sm) + var(--space-8))) 0;
-}
-body.game-playing:has(#gbody > .word-party)
-  .play-toolbar:has(#bGameScreenToggle:not([hidden])) {
-  padding-right: calc(
-    3 * var(--control-h-sm) + 2 * var(--space-8) + var(--space-12)
-  );
-}
-body.game-playing:has(#gbody > .word-party)
-  .play-toolbar:has(#bGameScreenToggle:not([hidden]))
-  #roomMenu {
-  right: calc(2 * (var(--control-h-sm) + var(--space-8)));
-}
-/* The kit replaces the round root on final scores. Keep all three slots there. */
-body.game-playing:is(
-    [data-game="clue-grid"],
-    [data-game="letter-lock"],
-    [data-game="word-grid"],
-    [data-game="banned-words"],
-    [data-game="read-my-lips"]
-  ):has(#gbody > #rematch:not([hidden]))
-  .play-toolbar:has(#bGameScreenToggle:not([hidden])) {
-  padding-right: calc(
-    3 * var(--control-h-sm) + 2 * var(--space-8) + var(--space-12)
-  );
-}
-body.game-playing:is(
-    [data-game="clue-grid"],
-    [data-game="letter-lock"],
-    [data-game="word-grid"],
-    [data-game="banned-words"],
-    [data-game="read-my-lips"]
-  ):has(#gbody > #rematch:not([hidden]))
-  .play-toolbar:has(#bGameScreenToggle:not([hidden]))
-  #roomMenu {
-  right: calc(2 * (var(--control-h-sm) + var(--space-8)));
-}
+/* Utilities scroll with the word-game title instead of covering clues. */
+body.game-playing:has(#gbody > .word-party) .play-toolbar { position: relative; }
+body.game-playing:has(#gbody > .word-party) .play-toolbar #roomMenu { position: absolute; top: var(--space-8); right: calc(var(--control-h-sm) + var(--space-8)); }
+body.game-playing:has(#gbody > .word-party) .play-toolbar .game-screen-toggle { position: absolute; top: var(--space-8); left: auto; right: 0; }
 .word-party,
 .word-party * {
   box-sizing: border-box;

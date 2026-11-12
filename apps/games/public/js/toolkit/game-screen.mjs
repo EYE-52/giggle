@@ -74,18 +74,3 @@ export function createGameScreen({ doc = document, navigator: nav = globalThis.n
   }
   return { toggle, state, dispose };
 }
-
-/* One invitation per browser, also remembered for this session when storage
- * is blocked. Reading localStorage itself can throw in private/iframe modes. */
-export function createGameScreenPrompt({ storage = () => globalThis.localStorage } = {}) {
-  const key = 'giggle:game-screen-prompt-dismissed';
-  let dismissed = false;
-  try { dismissed = storage()?.getItem(key) === '1'; } catch { /* storage unavailable */ }
-  return {
-    shouldShow: ({ touch, immersive, fullscreen, available }) => !dismissed && touch && immersive && !fullscreen && available,
-    dismiss() {
-      dismissed = true;
-      try { storage()?.setItem(key, '1'); } catch { /* session memory still works */ }
-    },
-  };
-}

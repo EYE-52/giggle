@@ -118,9 +118,6 @@ body.game-playing:not(.game-immersive):not(:has(.sk-doodle.dg,.sk-phone.dp)):has
  body.game-playing:has(.bk-game) #roomMenu,
  body.game-playing:has(.bk-game) :is(.game-report-icon, .game-screen-toggle){position:absolute}
 }
-/* The full-screen toggle shares the report icon's anchoring rules above and
- * sits one 52px slot further along, away from the anchored edge. */
-.game-screen-toggle{translate:52px 0}
-/* Header order from the right: report, room menu, full screen. One slot is 44px + 8px. */
-.play-toolbar .game-screen-toggle{translate:-104px 0}
-body.game-playing .play-toolbar:has(.game-screen-toggle:not([hidden])){padding-right:160px}
+/* Room and Full screen share two 44px targets with an 8px gap. */
+.game-screen-toggle{translate:none}
+body.game-playing .play-toolbar:has(.game-screen-toggle:not([hidden])){padding-right:108px}

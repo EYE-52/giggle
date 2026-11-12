@@ -57,7 +57,7 @@ export function openIssueReport({ games = [], game = 'platform', phase, theme, e
     document.dispatchEvent(new Event('game-screenchange'));
     const visibleOpener = opener?.isConnected && opener.getClientRects().length && !opener.closest('details:not([open])');
     const options = document.getElementById('headerOptions');
-    const fallback = options?.getClientRects().length ? options : document.querySelector('.report-icon[data-report]');
+    const fallback = options?.getClientRects().length ? options : document.querySelector('#roomMenu > summary, .report-icon[data-report]');
     const returnTarget = visibleOpener ? opener : fallback;
     returnTarget?.focus({ preventScroll: true });
   };

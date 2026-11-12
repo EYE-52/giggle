@@ -1,7 +1,8 @@
 /* Shared app chrome. Keep the controls quiet and give each a steady slot. */
 body.game-playing #roomMenu > summary,
-body.game-playing :is(.game-report-icon,.game-screen-toggle) { min-width:var(--control-h-sm); width:var(--control-h-sm); min-height:var(--control-h-sm); height:var(--control-h-sm); padding:0; border:0; border-radius:var(--radius-md); background:var(--card); color:var(--ink); box-shadow:none; }
+body.game-playing :is(.game-report-icon,.game-screen-toggle) { min-width:var(--control-h-sm); width:var(--control-h-sm); min-height:var(--control-h-sm); height:var(--control-h-sm); padding:0; border:0; border-radius:var(--radius-md); background:transparent; color:var(--ink); box-shadow:none; }
 body.game-playing #roomMenu > summary { justify-content:center; }
+body.game-playing.game-immersive:has(.pk, .pke, .bs-game) #roomMenu > summary { background:var(--card); }
 body.game-playing #roomMenu > summary > span { display:none; }
 body.game-playing #roomMenu > summary svg { width:var(--space-24); height:var(--space-24); }
 body.game-playing #roomMenu .room-menu-kicker { font:var(--text-caption); letter-spacing:0; }
@@ -12,7 +13,6 @@ body.game-playing #roomMenu :is(.room-setting,.room-menu-exit button,.room-resum
 body.game-playing #roomMenu .room-menu-actions [data-report] { border:0; }
 /* Board titles share the utility row, so no second heading row is needed. */
 body.game-playing:has(.bk-game) { --game-viewport-height:100dvh; }
-body.game-playing:has(.bk-game) #gameScreenPrompt { display:none; }
 body.game-playing:has(.bk-game) #roomMenu { position:fixed; left:max(var(--space-8),env(safe-area-inset-left)); right:auto; top:max(var(--space-8),env(safe-area-inset-top)); }
 body.game-playing:has(.bk-game) .game-report-icon { position:fixed; left:auto; right:calc(max(var(--space-8),env(safe-area-inset-right)) + var(--control-h-sm) + var(--space-8)); top:max(var(--space-8),env(safe-area-inset-top)); translate:none; }
 body.game-playing:has(.bk-game) .game-screen-toggle { position:fixed; left:auto; right:max(var(--space-8),env(safe-area-inset-right)); top:max(var(--space-8),env(safe-area-inset-top)); translate:none; }
@@ -35,7 +35,7 @@ body.is-embed :is(#roomMenu,.game-report-icon,.game-screen-toggle) { --card:var(
  body.game-playing .play-toolbar:has(.game-zoom) .play-title { flex: 1 1 0; min-width: 0; }
  /* The title's wrapper must shrink too, or the name slides under the size control. */
  body.game-playing .play-toolbar .play-title > div { min-width: 0; }
- body.game-playing .play-toolbar .play-title h1 { font: var(--text-button); line-height: 1.5; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+ body.game-playing .play-toolbar .play-title h1 { font: var(--text-button); line-height: 1.5; white-space: normal; overflow: visible; overflow-wrap: anywhere; }
 }
 
 /* Game size lives quietly in the room menu: one labelled row, not a header pill. */
@@ -45,21 +45,29 @@ body.game-playing #roomMenu .room-size .game-zoom { margin-left: 0; border: 0; b
 body.game-playing #roomMenu .room-size .game-zoom button { min-width: var(--control-h-sm); min-height: var(--control-h-sm); border-radius: var(--radius-sm); }
 body.game-playing #roomMenu .room-size .game-zoom .game-zoom-value { position: static; width: auto; height: auto; min-width: 56px; clip-path: none; clip: auto; overflow: visible; border-inline: 0; font: var(--text-button-sm); }
 
-/* Drawing uses the same four header slots as the rest of the app. Keep the
+/* Drawing uses the same title and two utilities as the rest of the app. Keep the
  * utilities in normal flow instead of translating a fixed button off-screen. */
 body.game-playing:has(.sk-doodle.dg, .sk-phone.dp) .play-toolbar {
  position: relative; inset: auto; display: grid;
- grid-template-columns: minmax(0, 1fr) repeat(3, var(--control-h-sm));
+ grid-template-columns: minmax(0, 1fr) repeat(2, var(--control-h-sm));
  align-items: center; gap: var(--space-8); height: auto;
- min-height: var(--control-h-lg); margin: 0; padding: var(--space-8) var(--space-12);
+ min-height: var(--control-h-lg); margin: 0; padding: max(var(--space-8), env(safe-area-inset-top)) max(var(--space-12), env(safe-area-inset-right)) var(--space-8) max(var(--space-12), env(safe-area-inset-left));
  border-bottom: 1px solid var(--line); background: var(--bg);
 }
 body.game-playing:has(.sk-doodle.dg, .sk-phone.dp) .play-toolbar .play-title { display: flex; min-width: 0; }
 body.game-playing:has(.sk-doodle.dg, .sk-phone.dp) .play-toolbar .play-title h1 { font: var(--text-button); line-height: 1.5; }
 body.game-playing:has(.sk-doodle.dg, .sk-phone.dp) .play-toolbar :is(#roomMenu, .game-report-icon, .game-screen-toggle) {
- position: static; inset: auto; translate: none;
+ position: static; inset: auto; translate: none; background: transparent;
 }
 #gbody .sk-phone.dp .dp-identity { display: none; }
 #gbody .sk-phone.dp .dp-header { padding-inline: 0; }
 #gbody .sk-doodle.dg { padding-inline: var(--space-16); }
 #gbody .sk-doodle.dg :is(.dg-header.sk-deskcue, .dg-hud) { padding-left: 0; }
+
+/* Report lives in the labelled Room drawer. The visible row keeps just
+ * Room and Full screen, leaving the complete game name room to breathe. */
+body.game-playing .game-screen-toggle { translate: none; }
+body.game-playing:not(.game-immersive) .play-toolbar .play-title { flex: 1; min-width: 0; }
+@media (max-width: 599px) {
+ body.game-playing .play-toolbar .play-title :is(.gthumb, .art-fallback) { display: none; }
+}

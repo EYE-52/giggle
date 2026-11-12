@@ -112,11 +112,11 @@ body.same-room-page {
 .sr-start #srStart:active:not(:disabled) { box-shadow: none; }
 .sr-start-icon { display: grid; place-items: center; flex: none; width: var(--space-32); height: var(--space-32); border: var(--outline-w) solid currentColor; border-radius: var(--radius-pill); font: var(--text-button); }
 .sr-reason { color: var(--ink-dim); font: var(--text-caption); min-height: var(--space-24); }
-/* A fixed set of banner tracks keeps long names and private badges steady. */
+/* Keep the turn slot steady while the full title and round can wrap. */
 .sr-play-head.tb-card { display: grid; grid-template-columns: auto minmax(0, 1fr) var(--space-64); align-items: center; gap: var(--space-16); min-height: calc(var(--space-64) + var(--space-40)); margin-bottom: var(--space-16); padding: var(--space-12) var(--space-16); border-color: color-mix(in srgb, var(--sr-player) 60%, var(--outline)); background: color-mix(in srgb, var(--sr-player) 4%, var(--card)); box-shadow: 0 var(--lift) 0 color-mix(in srgb, var(--sr-player) 60%, var(--outline)); }
 .sr-head-avatar .sr-avatar { width: var(--space-64); height: var(--space-64); font-size: var(--space-48); }
-.sr-turn-copy { display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: var(--space-24) var(--space-48); gap: var(--space-4); min-width: 0; }
-.sr-turn-copy .t-caption { max-width: 100%; color: var(--ink); line-height: var(--space-24); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sr-turn-copy { display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(var(--space-24), auto) var(--space-48); gap: var(--space-4); min-width: 0; }
+.sr-turn-copy .t-caption { max-width: 100%; color: var(--ink); line-height: var(--space-24); white-space: normal; overflow-wrap: anywhere; }
 .sr-turn { display: grid; align-content: center; min-width: 0; overflow-wrap: anywhere; }
 .sr-turn-tools { display: grid; justify-items: center; align-items: center; gap: var(--space-4); grid-template-rows: var(--space-24) var(--control-h-sm); }
 .sr-private-badge { font: var(--text-caption); white-space: nowrap; color: var(--ink); }
@@ -208,7 +208,7 @@ body.same-room-page #gbody .bk-final { background: var(--sr-paper); border-color
   .sr-choice-desc { font: var(--text-caption); }
   .sr-play-head.tb-card { gap: var(--space-12); padding: var(--space-12); }
   .sr-head-avatar .sr-avatar { width: var(--control-h-lg); min-width: var(--control-h-lg); height: var(--control-h-lg); font-size: var(--space-40); }
-  .sr-turn-copy { grid-template-rows: var(--space-24) var(--space-64); }
+  .sr-turn-copy { grid-template-rows: minmax(var(--space-24), auto) var(--space-64); }
   .sr-turn { font: var(--text-heading); font-family: var(--font-ui, var(--font-display)); }
   .sr-hand.tb-card { padding: var(--space-24) var(--space-16); min-height: calc(100dvh - var(--control-h) - var(--space-64) - var(--space-24)); }
   .sr-hand-avatar .sr-avatar { width: var(--home-card-art); height: var(--home-card-art); }
@@ -228,11 +228,11 @@ body.same-room-page #gbody .bk-final { background: var(--sr-paper); border-color
 .same-room-page.game-playing .sr-main { padding-block: var(--space-8); }
 .same-room-page[data-family="board"] .sr-main { padding-top: var(--space-8); }
 .same-room-page[data-family="board"] .sr-play-head.tb-card { padding: var(--space-8) var(--space-12); min-height: 0; }
-.same-room-page[data-family="board"] .sr-turn-copy { grid-template-rows: var(--space-24) var(--space-40); }
+.same-room-page[data-family="board"] .sr-turn-copy { grid-template-rows: minmax(var(--space-24), auto) var(--space-40); }
 .same-room-page[data-family="board"] .sr-head-avatar .sr-avatar { width: var(--control-h); height: var(--control-h); font-size: var(--space-32); }
 @media (max-height: 700px) {
   .sr-play-head.tb-card { margin-bottom: var(--space-8); padding-block: var(--space-8); min-height: 0; }
-  .sr-turn-copy { grid-template-rows: var(--space-24) var(--space-40); }
+  .sr-turn-copy { grid-template-rows: minmax(var(--space-24), auto) var(--space-40); }
   .sr-head-avatar .sr-avatar { width: var(--control-h); min-width: var(--control-h); height: var(--control-h); font-size: var(--space-32); }
   .sr-hand.tb-card { gap: var(--space-8); padding-block: var(--space-16); }
   .sr-hand-avatar .sr-avatar { width: var(--space-64); height: var(--space-64); font-size: var(--space-40); }

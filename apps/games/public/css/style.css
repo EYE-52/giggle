@@ -2290,19 +2290,12 @@ input[type="text"], input[type="number"], select, textarea { border-width: 2px; 
   border: 2px solid var(--outline); border-radius: var(--radius-md); box-shadow: 0 var(--lift-sm) 0 var(--outline);
 }
 .game-playing .room-menu > summary:active { transform: translateY(var(--lift-sm)); box-shadow: none; }
-/* Full screen takes the second HUD utility slot. Report stays in Room, so
- * the existing two-button space stays clear of boards and driving controls. */
+/* Full screen is available beside Room and in the drawer, without a
+ * second invitation bar taking height from the playfield. */
 .game-screen-toggle svg { width: var(--space-24); height: var(--space-24); fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
-.game-screen-toggle.tb-btn, .game-screen-prompt .tb-icon { min-width: var(--control-h-sm); flex: none; }
-.game-screen-toggle[hidden], .game-screen-prompt[hidden], .game-playing #roomMenu #bGameScreen[hidden] { display: none; }
-.game-screen-prompt {
-  display: flex; justify-content: flex-end; align-items: center; gap: var(--space-8);
-  padding: max(var(--space-8), env(safe-area-inset-top)) max(var(--space-12), env(safe-area-inset-right)) var(--space-8) calc(max(var(--space-12), env(safe-area-inset-left)) + 2 * var(--control-h-sm) + 2 * var(--space-8));
-  background: var(--bg); color: var(--ink);
-}
-.game-screen-prompt #bGameScreenPrompt { min-width: 0; padding-inline: var(--space-12); color: var(--fam-deep); background: var(--fam-soft); white-space: nowrap; }
+.game-screen-toggle.tb-btn { min-width: var(--control-h-sm); flex: none; }
+.game-screen-toggle[hidden], .game-playing #roomMenu #bGameScreen[hidden] { display: none; }
 body.game-immersive { --game-viewport-height: 100dvh; }
-body.game-immersive:has(#gameScreenPrompt:not([hidden])) { --game-viewport-height: calc(100dvh - var(--control-h-sm) - var(--space-8) - max(var(--space-8), env(safe-area-inset-top))); }
 body.game-immersive #gbody > :is(.pk, .pke, .bs-game, .game-document) { height: var(--game-viewport-height); min-height: 0; }
 /* Document fullscreen keeps each immersive game's own HUD and safe-area
  * rules. Only the platform's spare chrome and outer bounds go away. */

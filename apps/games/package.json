@@ -90,6 +90,7 @@
     "test:garage:browser": "node test/kart-garage-browser.cjs",
     "test:home-layout:browser": "node test/home-card-layout-browser.cjs",
     "test:home:browser": "node test/home-polish-browser.cjs",
+    "test:game-header:browser": "node test/game-header-browser.cjs",
     "test:status-layout:browser": "node test/status-layout-browser.cjs",
     "test:realtime": "node test/realtime-transport.mjs && node test/drawing-realtime.mjs",
     "test:kart-32:browser": "node test/kart-32-browser.cjs",

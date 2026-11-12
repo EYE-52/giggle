@@ -19,7 +19,7 @@ async function clearOfControls(page, selector, message) {
   await target.evaluate(el => el.scrollIntoView({ block: 'start' }));
   const result = await target.evaluate(el => {
     const r = el.getBoundingClientRect();
-    const overlaps = [...document.querySelectorAll('#roomMenu > summary, .game-report-icon')].some(control => {
+    const overlaps = [...document.querySelectorAll('#roomMenu > summary, .game-screen-toggle')].some(control => {
       const c = control.getBoundingClientRect();
       return r.left < c.right && r.right > c.left && r.top < c.bottom && r.bottom > c.top;
     });
@@ -67,12 +67,16 @@ async function clearOfControls(page, selector, message) {
     await page.evaluate(() => document.fonts.ready);
     await clearOfControls(page, '.bk-title', `chess title clear at ${width}`);
     if (height < 500) {
-      const m = await page.evaluate(() => ({ stage: document.querySelector('.bk-stage').getBoundingClientRect().toJSON(), panel: document.querySelector('.bk-panel').getBoundingClientRect().toJSON(), room: document.querySelector('#roomMenu > summary').getBoundingClientRect().toJSON() }));
-      ok(await page.locator('.bk-name').evaluateAll(names => names.every(el => el.getBoundingClientRect().width >= 80)), `roster names retain readable space at ${width}`);
-      ok(m.panel.top >= m.room.bottom + 8 && m.stage.right <= m.panel.left, `separate board/sidebar/control regions at ${width}`);
+      if (process.env.BROWSER_EVIDENCE_DIR) { fs.mkdirSync(process.env.BROWSER_EVIDENCE_DIR, {recursive:true}); await page.screenshot({path:path.join(process.env.BROWSER_EVIDENCE_DIR,'chess-live-'+width+'.png')}); }
+      const m = await page.evaluate(() => ({ stage: document.querySelector('.bk-stage').getBoundingClientRect().toJSON(), player: document.querySelector('.bk-player').getBoundingClientRect().toJSON(), title: document.querySelector('.bk-head').getBoundingClientRect().toJSON(), tools: document.querySelector('.bk-tools').getBoundingClientRect().toJSON() }));
+      ok(await page.locator('.bk-name').evaluateAll(names => names.every(el => el.getBoundingClientRect().width >= 80)), `roster names retain readable space at ${width}: ` + JSON.stringify(await page.locator('.bk-name').evaluateAll(ns => ns.map(n=>({text:n.textContent,w:n.getBoundingClientRect().width})))));
+      ok(m.stage.width >= 200 && m.stage.top >= m.title.bottom && m.stage.bottom <= height && m.stage.right <= m.player.left && m.stage.right <= m.tools.left, `usable board, readable roster and clear actions at ${width}: `+JSON.stringify(m));
       await page.locator('.bk-help > summary').click();
-      await clearOfControls(page, '.bk-help > summary', `help heading clear at ${width}`);
-      await page.locator('.bk-help > summary').click();
+      await page.locator('.app-panel[open]').waitFor();
+      const help = await page.locator('.app-panel[open]').boundingBox();
+      ok(help.y >= 0 && help.y + help.height <= height, `Rules sheet fits at ${width}`);
+      await page.locator('.app-panel[open] [data-app-close]').click();
+      ok(await page.locator('.bk-help > summary').evaluate(n=>n===document.activeElement), `Rules returns focus at ${width}`);
     }
     ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), `no horizontal overflow at ${width}`);
   }
@@ -82,7 +86,8 @@ async function clearOfControls(page, selector, message) {
   ok(menu.y >= 0 && menu.y + menu.height <= 320, 'short Room overlay fits');
   await page.keyboard.press('Escape');
   ok(await page.locator('#roomMenu > summary').evaluate(el => document.activeElement === el), 'Room focus returns to relocated launcher');
-  await page.locator('.game-report-icon').click();
+  await page.locator('#roomMenu > summary').click();
+  await page.locator('#roomMenu [data-report]').click();
   const issue = await page.locator('.issue-dialog[open]').boundingBox();
   ok(issue.y >= 0 && issue.y + issue.height <= 320, 'short Report dialog fits');
   await page.locator('.issue-close').click();
@@ -115,6 +120,21 @@ async function clearOfControls(page, selector, message) {
     await clearOfControls(page, '.bk-title', `Ludo title clear at ${width}`);
     await clearOfControls(page, '.ld-dice', `Ludo die clear at ${width}`);
     ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), `Ludo fits at ${width}`);
+  }
+  await page.locator('#roomMenu > summary').click();
+  await page.locator('#bLobby').click(); await page.locator('#bEndConfirm').click(); await page.locator('#bChange').click();
+  await start('mega-tic-tac-toe');
+  for (const [width,height] of [[320,568],[568,320],[390,844]]) {
+    for (const client of clients) await client.page.setViewportSize({width,height});
+    await clearOfControls(page,'.bk-title',`Mega title clear at ${width}`);
+    ok(await page.locator('.bk-status').evaluate(n=>n.scrollHeight<=n.clientHeight+1),`Mega instruction and hint fully visible at ${width}`);
+    for(let move=0;move<2;move++) {
+      const actor=clients.find(c=>c.state.youAre===c.state.turn),cell=actor.state.legal[0];
+      await actor.page.locator(`[data-cell="${cell}"]`).click();
+      await waitFor(()=>clients.every(c=>c.state.lastMove?.cell===cell),page);
+      ok(host.state.board[cell]>0,`Mega accepts an actual cell tap at ${width}`);
+    }
+    if(process.env.BROWSER_EVIDENCE_DIR) await page.screenshot({path:path.join(process.env.BROWSER_EVIDENCE_DIR,'mega-live-'+width+'.png')});
   }
   ok(errors.length === 0, 'zero uncaught errors on both clients: ' + JSON.stringify(errors));
   console.log(`BOARD_LANDSCAPE_BROWSER_PASS: ${checks} checks`);

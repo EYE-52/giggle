@@ -5,11 +5,11 @@
  * High-level layout is scoped to #gbody so older game art stays independent. */
 #gbody .bk-game[data-family="board"] {
   --bk-roster:var(--control-h); --bk-bottom:var(--control-h);
-  --bk-extra-space:0px; --bk-sidebar:280px; --bk-aspect:1;
-  --bk-chrome:calc(var(--space-48) + var(--bk-roster) + var(--bk-bottom) + var(--space-48) + var(--control-h-sm) + 5 * var(--space-8) + var(--space-16) + var(--bk-extra-space));
+  --bk-extra-space:0px; --bk-sidebar:280px; --bk-aspect:1; --bk-status-height:var(--space-48);
+  --bk-chrome:calc(var(--space-48) + var(--bk-roster) + var(--bk-bottom) + var(--bk-status-height) + var(--control-h-sm) + 5 * var(--space-8) + var(--space-16) + var(--bk-extra-space));
   --bk-size:min(calc(100cqw - var(--space-32)),calc((var(--game-viewport-height,100dvh) - var(--bk-chrome)) * var(--bk-aspect)));
   display:grid; grid-template-columns:minmax(0,var(--bk-size));
-  grid-template-rows:var(--space-48) var(--bk-roster) calc(var(--bk-size) / var(--bk-aspect)) var(--bk-bottom) var(--space-48) var(--control-h-sm);
+  grid-template-rows:var(--space-48) var(--bk-roster) calc(var(--bk-size) / var(--bk-aspect)) var(--bk-bottom) var(--bk-status-height) var(--control-h-sm);
   grid-template-areas:"head" "top" "board" "bottom" "status" "tools";
   gap:var(--space-8); justify-content:center; align-content:start; align-items:stretch;
   height:var(--game-viewport-height,100dvh); min-height:0; width:100%; min-width:0;
@@ -17,8 +17,8 @@
 }
 body:not(.is-embed) #gbody .bk-game[data-family="board"] { background:var(--page-light),var(--bg); }
 #gbody .bk-game[data-family="board"] :is(.bk-panel,.bk-players) { display:contents; overflow:visible; }
-#gbody .bk-game[data-family="board"] .bk-head { grid-area:head; order:initial; display:flex; flex-direction:row; align-items:center; justify-content:center; min-height:0; height:var(--space-48); padding:0; margin:0; overflow:hidden; }
-#gbody .bk-game[data-family="board"] .bk-title { max-width:calc(100cqw - 176px); margin:0; font:var(--text-title); line-height:1.4; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; text-wrap:nowrap; }
+#gbody .bk-game[data-family="board"] .bk-head { grid-area:head; order:initial; display:flex; flex-direction:row; align-items:center; justify-content:center; justify-self:center; width:max-content; max-width:calc(100cqw - 128px); min-height:0; height:var(--space-48); padding:0; margin:0; overflow:hidden; }
+#gbody .bk-game[data-family="board"] .bk-title { max-width:calc(100cqw - 128px); margin:0; font:var(--text-title); line-height:1.4; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; text-wrap:nowrap; }
 #gbody .bk-game[data-family="board"] .bk-meta { display:none; }
 #gbody .bk-game[data-family="board"] .bk-stage { grid-area:board; order:initial; width:100%; height:auto; min-width:0; max-width:none; max-height:none; align-self:center; justify-self:center; margin:0; }
 #gbody .bk-game[data-family="board"] .bk-player { grid-area:top; height:var(--control-h); min-height:var(--control-h); display:grid; grid-template-columns:var(--space-32) minmax(0,1fr) auto; grid-template-rows:1fr; align-items:center; gap:var(--space-8); padding:var(--space-4) var(--space-8); border:var(--outline-w) solid transparent; border-radius:var(--radius-md); background:color-mix(in srgb,var(--card) 65%,transparent); box-shadow:none; }
@@ -33,7 +33,7 @@ body:not(.is-embed) #gbody .bk-game[data-family="board"] { background:var(--page
 #gbody .bk-game[data-family="board"] .bk-stat-value { font:var(--text-button-sm); min-height:0; }
 #gbody .bk-game[data-family="board"] .bk-stat-label { position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); }
 #gbody .bk-game[data-family="board"] .bk-player:not(.has-stat) .bk-stat { visibility:hidden; }
-#gbody .bk-game[data-family="board"] .bk-status { grid-area:status; order:initial; height:var(--space-48); min-height:0; overflow:auto; align-content:center; gap:var(--space-8); padding:var(--space-4) var(--space-8); border:0; border-radius:0; background:transparent; box-shadow:none; }
+#gbody .bk-game[data-family="board"] .bk-status { grid-area:status; order:initial; height:var(--bk-status-height); min-height:0; overflow:auto; align-content:start; gap:var(--space-8); padding:var(--space-4) var(--space-8); border:0; border-radius:0; background:transparent; box-shadow:none; }
 #gbody .bk-game[data-family="board"] .bk-status-copy { gap:0; }
 #gbody .bk-game[data-family="board"] .bk-status-text { font:var(--text-button-sm); }
 #gbody .bk-game[data-family="board"] .bk-hint { font:var(--text-caption); }
@@ -73,14 +73,14 @@ body:not(.is-embed) #gbody .bk-game[data-family="board"] { background:var(--page
 #gbody .bk-game[data-family="board"]:has(.bk-player:nth-child(3)) .bk-player { grid-area:auto!important; }
 #gbody .bk-game[data-family="board"]:has(.bk-player:nth-child(5)) { --bk-roster:var(--b5-roster-height,152px); }
 /* Game-specific controls are primary actions, not hidden menu items. */
-#gbody .bk-game[data-family="board"]:has(.bk-extra):not(:has(.chhist-wrap)) { --bk-extra-space:calc(var(--space-64) + var(--space-8)); grid-template-rows:var(--space-48) var(--bk-roster) calc(var(--bk-size) / var(--bk-aspect)) var(--bk-bottom) var(--space-48) var(--space-64) var(--control-h-sm); grid-template-areas:"head" "top" "board" "bottom" "status" "extra" "tools"; }
-#gbody .bk-game[data-family="board"].fl-game:has(.bk-extra) { --bk-extra-space:224px; --bk-aspect:.88; grid-template-rows:var(--space-48) var(--bk-roster) calc(var(--bk-size) / var(--bk-aspect)) var(--bk-bottom) var(--space-48) 224px var(--control-h-sm); }
+#gbody .bk-game[data-family="board"]:has(.bk-extra):not(:has(.chhist-wrap)) { --bk-extra-space:calc(var(--space-64) + var(--space-8)); grid-template-rows:var(--space-48) var(--bk-roster) calc(var(--bk-size) / var(--bk-aspect)) var(--bk-bottom) var(--bk-status-height) var(--space-64) var(--control-h-sm); grid-template-areas:"head" "top" "board" "bottom" "status" "extra" "tools"; }
+#gbody .bk-game[data-family="board"].fl-game:has(.bk-extra) { --bk-extra-space:224px; --bk-aspect:.88; grid-template-rows:var(--space-48) var(--bk-roster) calc(var(--bk-size) / var(--bk-aspect)) var(--bk-bottom) var(--bk-status-height) 224px var(--control-h-sm); }
 #gbody .bk-game[data-family="board"].kl { --bk-aspect:2.333; }
 #gbody .bk-game[data-family="board"].kl.kl-portrait { --bk-aspect:.833; }
 #gbody .bk-game[data-family="board"] .b5-hud { display:none; }
 #gbody .bk-game[data-family="board"] .b5-action-reason { min-height:0; margin:0; }
 #gbody .bk-game[data-family="board"] .bk-extra:has(>.b5-action-reason:only-child) { display:none; }
-#gbody .bk-game[data-family="board"]:has(.bk-extra>.b5-action-reason:only-child) { --bk-extra-space:0px; grid-template-rows:var(--space-48) var(--bk-roster) calc(var(--bk-size) / var(--bk-aspect)) var(--bk-bottom) var(--space-48) var(--control-h-sm); grid-template-areas:"head" "top" "board" "bottom" "status" "tools"; }
+#gbody .bk-game[data-family="board"]:has(.bk-extra>.b5-action-reason:only-child) { --bk-extra-space:0px; grid-template-rows:var(--space-48) var(--bk-roster) calc(var(--bk-size) / var(--bk-aspect)) var(--bk-bottom) var(--bk-status-height) var(--control-h-sm); grid-template-areas:"head" "top" "board" "bottom" "status" "tools"; }
 #gbody .bk-game[data-family="board"] .ld-dock { display:flex; align-items:center; gap:var(--space-8); height:var(--space-64); }
 #gbody .bk-game[data-family="board"] .ld-dice { width:var(--space-64); min-height:var(--space-64); height:var(--space-64); padding:var(--space-4); flex:none; }
 #gbody .bk-game[data-family="board"] .ld-face { width:var(--space-32); height:var(--space-32); }
@@ -99,7 +99,7 @@ body:not(.is-embed) #gbody .bk-game[data-family="board"] { background:var(--page
  #gbody .bk-game[data-family="board"] .chhist-wrap > summary span::before { content:none; }
  #gbody .bk-game[data-family="board"] .chhist { max-height:calc(var(--bk-size) - var(--space-64)); padding:var(--space-8) 0; }
  #gbody .bk-game[data-family="board"] .ch-capture-rail { display:none; }
- #gbody .bk-game[data-family="board"]:has(.bk-extra):not(:has(.chhist-wrap)),#gbody .bk-game[data-family="board"]:has(.bk-extra>.b5-action-reason:only-child) { --bk-extra-space:0px; grid-template-rows:var(--space-48) var(--bk-roster) calc(var(--bk-size) / var(--bk-aspect)) var(--bk-bottom) var(--space-48) var(--control-h-sm); grid-template-areas:"head head" "top extra" "board extra" "bottom extra" "status extra" "tools extra"; }
+ #gbody .bk-game[data-family="board"]:has(.bk-extra):not(:has(.chhist-wrap)),#gbody .bk-game[data-family="board"]:has(.bk-extra>.b5-action-reason:only-child) { --bk-extra-space:0px; grid-template-rows:var(--space-48) var(--bk-roster) calc(var(--bk-size) / var(--bk-aspect)) var(--bk-bottom) var(--bk-status-height) var(--control-h-sm); grid-template-areas:"head head" "top extra" "board extra" "bottom extra" "status extra" "tools extra"; }
  #gbody .bk-game[data-family="board"] .ld-dock { flex-wrap:wrap; height:auto; }
  #gbody .bk-game[data-family="board"] .ld-choices { flex-basis:100%; }
  #gbody .bk-game[data-family="board"] .ld-reason { display:block; }
@@ -122,7 +122,7 @@ body:not(.is-embed) #gbody .bk-game[data-family="board"] { background:var(--page
  #gbody .bk-game[data-family="board"]:not(:has(.bk-extra)) { --bk-size:min(calc(100cqw - var(--space-32)),calc((var(--game-viewport-height,100dvh) - var(--bk-chrome)) * var(--bk-aspect))); grid-template-columns:minmax(0,var(--bk-size)); grid-template-areas:"head" "top" "board" "bottom" "status" "tools"; }
 }
 /* Fleet selection is a tool menu; placing and firing stay beside the chart. */
-#gbody .bk-game[data-family="board"].fl-game:has(.bk-extra) { --bk-aspect:1; --bk-extra-space:128px; grid-template-rows:var(--space-48) var(--bk-roster) calc(var(--bk-size) + var(--control-h-lg)) var(--bk-bottom) var(--space-48) 72px var(--control-h-sm); }
+#gbody .bk-game[data-family="board"].fl-game:has(.bk-extra) { --bk-aspect:1; --bk-extra-space:128px; grid-template-rows:var(--space-48) var(--bk-roster) calc(var(--bk-size) + var(--control-h-lg)) var(--bk-bottom) var(--bk-status-height) 72px var(--control-h-sm); }
 #gbody .bk-game[data-family="board"].fl-game .fl-placement { display:grid; grid-template-columns:auto auto minmax(0,1fr); gap:var(--space-8); align-items:start; }
 #gbody .bk-game[data-family="board"].fl-game .fl-placement[hidden] { display:none; }
 #gbody .bk-game[data-family="board"].fl-game .fl-ships-menu>summary { display:flex; align-items:center; min-height:var(--control-h); padding:0 var(--space-12); border-radius:var(--radius-md); background:var(--card); font:var(--text-button-sm); }
@@ -135,7 +135,7 @@ body:not(.is-embed) #gbody .bk-game[data-family="board"] { background:var(--page
 #gbody .bk-game[data-family="board"].fl-game .fl-tabs { padding:var(--space-4); border:0; border-radius:var(--radius-md); box-shadow:none; }
 #gbody .bk-game[data-family="board"].fl-game .fl-tabs button { min-height:var(--control-h-sm); padding:0 var(--space-4); font:var(--text-caption); border:0; border-radius:var(--radius-sm); }
 @container(min-width:1000px) {
- #gbody .bk-game[data-family="board"].fl-game:has(.bk-extra):not(:has(.chhist-wrap)) { --bk-extra-space:var(--control-h-lg); grid-template-rows:var(--space-48) var(--bk-roster) calc(var(--bk-size) + var(--control-h-lg)) var(--bk-bottom) var(--space-48) var(--control-h-sm); }
+ #gbody .bk-game[data-family="board"].fl-game:has(.bk-extra):not(:has(.chhist-wrap)) { --bk-extra-space:var(--control-h-lg); grid-template-rows:var(--space-48) var(--bk-roster) calc(var(--bk-size) + var(--control-h-lg)) var(--bk-bottom) var(--bk-status-height) var(--control-h-sm); }
  #gbody .bk-game[data-family="board"].fl-game .fl-placement { grid-template-columns:auto auto; }
  #gbody .bk-game[data-family="board"].fl-game .fl-place-actions { grid-column:1/-1; }
 }
@@ -146,10 +146,10 @@ body:not(.is-embed) #gbody .bk-game[data-family="board"] { background:var(--page
 #gbody .bk-game[data-family="board"].fl-game .fl-placement .fl-ships-menu { grid-column:1; grid-row:1; }
 #gbody .bk-game[data-family="board"].fl-game .fl-placement > [data-rotate] { grid-column:2; grid-row:1; }
 #gbody .bk-game[data-family="board"].fl-game .fl-reason { order:0; grid-row:2; min-height:var(--space-32); }
-#gbody .bk-game[data-family="board"].fl-game:has(.bk-extra) { --bk-extra-space:152px; grid-template-rows:var(--space-48) var(--bk-roster) calc(var(--bk-size) + var(--control-h-lg)) var(--bk-bottom) var(--space-48) 88px var(--control-h-sm); }
+#gbody .bk-game[data-family="board"].fl-game:has(.bk-extra) { --bk-extra-space:152px; grid-template-rows:var(--space-48) var(--bk-roster) calc(var(--bk-size) + var(--control-h-lg)) var(--bk-bottom) var(--bk-status-height) 88px var(--control-h-sm); }
 #gbody .bk-game[data-family="board"].fl-game .bk-extra .fl-fire { align-self:start; }
 @container(min-width:1000px) {
- #gbody .bk-game[data-family="board"].fl-game:has(.bk-extra):not(:has(.chhist-wrap)) { --bk-extra-space:var(--control-h-lg); grid-template-rows:var(--space-48) var(--bk-roster) calc(var(--bk-size) + var(--control-h-lg)) var(--bk-bottom) var(--space-48) var(--control-h-sm); }
+ #gbody .bk-game[data-family="board"].fl-game:has(.bk-extra):not(:has(.chhist-wrap)) { --bk-extra-space:var(--control-h-lg); grid-template-rows:var(--space-48) var(--bk-roster) calc(var(--bk-size) + var(--control-h-lg)) var(--bk-bottom) var(--bk-status-height) var(--control-h-sm); }
  #gbody .bk-game[data-family="board"].fl-game .fl-placement .fl-place-actions { grid-column:1/-1; grid-row:2; }
  #gbody .bk-game[data-family="board"].fl-game .fl-reason { grid-row:3; }
 }
@@ -159,7 +159,7 @@ body:not(.is-embed) #gbody .bk-game[data-family="board"] { background:var(--page
 #gbody .bk-game[data-family="board"] .ld-choices button { min-width:0; gap:var(--space-4); }
 #gbody .bk-game[data-family="board"] .ld-choices svg { width:var(--space-24); height:var(--space-24); }
 @container(max-width:999px) {
- #gbody .bk-game[data-family="board"].sl-game:has(.bk-extra) { --bk-extra-space:96px; grid-template-rows:var(--space-48) var(--bk-roster) calc(var(--bk-size) / var(--bk-aspect)) var(--bk-bottom) var(--space-48) 88px var(--control-h-sm); }
+ #gbody .bk-game[data-family="board"].sl-game:has(.bk-extra) { --bk-extra-space:96px; grid-template-rows:var(--space-48) var(--bk-roster) calc(var(--bk-size) / var(--bk-aspect)) var(--bk-bottom) var(--bk-status-height) 88px var(--control-h-sm); }
 }
 /* Pig Dice is a table, not a square grid. Fit its primary controls into the
  * table's height rather than allowing a fixed art height to cover a seat. */
@@ -189,16 +189,13 @@ body:not(.is-embed) #gbody .bk-game[data-family="board"] { background:var(--page
 /* Keep visually hidden stat labels inside the scrolling player's clip. */
 #gbody .bk-game[data-family="board"] .bk-player { position:relative; }
 #gbody .bk-game[data-family="board"] .bk-panel.is-final .bk-match { visibility:hidden; pointer-events:none; }
-/* The old fullscreen-tip selector reserved extra phone padding even while
- * the board's app toolbar hid that tip. The workspace owns this row now. */
-body.game-immersive:has(#gameScreenPrompt) #gbody .bk-game[data-family="board"] { padding-block:var(--space-8); }
 /* A short landscape panel has room beside the chart, but not below it. */
 @container game (min-width:760px) and (max-width:999px) and (max-height:640px) {
  #gbody .bk-game[data-family="board"].fl-game:has(.bk-extra):not(:has(.chhist-wrap)) {
   --bk-extra-space:var(--control-h-lg);
   --bk-size:min(calc(100cqw - var(--bk-sidebar) - 3 * var(--space-32)),calc(var(--game-viewport-height) - var(--bk-chrome)));
   grid-template-columns:minmax(0,var(--bk-size)) var(--bk-sidebar); column-gap:var(--space-24);
-  grid-template-rows:var(--space-48) var(--bk-roster) calc(var(--bk-size) + var(--control-h-lg)) var(--bk-bottom) var(--space-48) var(--control-h-sm);
+  grid-template-rows:var(--space-48) var(--bk-roster) calc(var(--bk-size) + var(--control-h-lg)) var(--bk-bottom) var(--bk-status-height) var(--control-h-sm);
   grid-template-areas:"head head" "top extra" "board extra" "bottom extra" "status extra" "tools extra";
  }
  #gbody .bk-game[data-family="board"].fl-game .fl-placement { grid-template-columns:auto auto; }
@@ -225,4 +222,26 @@ body.game-immersive:has(#gameScreenPrompt) #gbody .bk-game[data-family="board"] 
 @container (min-width: 1000px) {
  #gbody .bk-game[data-family="board"] .bk-head { grid-column: 1; grid-row: 1; }
  #gbody .bk-game.ch-tabletop { --bk-sidebar: calc(3 * var(--space-64) + var(--space-16)); }
+}
+
+/* Mega's turn instruction and next-board hint both remain visible. */
+#gbody .bk-game.mt-game[data-family="board"] { --bk-status-height:calc(var(--space-48) + var(--space-32)); --bk-landscape-player-height:var(--control-h-sm); }
+
+/* Short landscape has height for a board beside the roster and tools.
+ * Keep the shared title/utility row above both, including after rotation. */
+@container game (orientation: landscape) and (min-width: 560px) and (max-height: 500px) {
+#gbody .bk-game[data-family="board"]:is(:not(:has(.bk-extra)), :has(.chhist-wrap), :has(.bk-extra > .b5-action-reason:only-child)) {
+  --bk-sidebar:clamp(220px,36cqw,280px);
+  --bk-size:min(calc(100cqw - var(--bk-sidebar) - 3 * var(--space-16)),calc((var(--game-viewport-height,100dvh) - var(--space-48) - 3 * var(--space-8)) * var(--bk-aspect)));
+  grid-template-columns:minmax(0,var(--bk-size)) var(--bk-sidebar);
+  grid-template-rows:var(--space-48) var(--bk-landscape-player-height,var(--control-h)) var(--bk-landscape-player-height,var(--control-h)) minmax(var(--bk-status-height),1fr) var(--control-h-sm);
+  grid-template-areas:"head head" "board top" "board bottom" "board status" "board tools";
+  column-gap:var(--space-16); padding:var(--space-8) var(--space-16);
+ }
+#gbody .bk-game[data-family="board"]:is(:not(:has(.bk-extra)), :has(.chhist-wrap), :has(.bk-extra > .b5-action-reason:only-child)) .bk-head { grid-area:head; }
+#gbody .bk-game[data-family="board"]:is(:not(:has(.bk-extra)), :has(.chhist-wrap), :has(.bk-extra > .b5-action-reason:only-child)) .bk-stage { align-self:center; }
+#gbody .bk-game[data-family="board"]:is(:not(:has(.bk-extra)), :has(.chhist-wrap), :has(.bk-extra > .b5-action-reason:only-child)) .bk-player { height:var(--bk-landscape-player-height,var(--control-h)); min-height:var(--bk-landscape-player-height,var(--control-h)); }
+#gbody .bk-game[data-family="board"]:is(:not(:has(.bk-extra)), :has(.chhist-wrap), :has(.bk-extra > .b5-action-reason:only-child)) .bk-extra:has(>.chhist-wrap) { grid-area:tools; width:25%; padding:0; justify-self:start; align-self:stretch; }
+#gbody .bk-game[data-family="board"]:is(:not(:has(.bk-extra)), :has(.chhist-wrap), :has(.bk-extra > .b5-action-reason:only-child)) .bk-tools { width:75%; justify-self:end; display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:0; }
+#gbody .bk-game[data-family="board"]:is(:not(:has(.bk-extra)), :has(.chhist-wrap), :has(.bk-extra > .b5-action-reason:only-child)) .bk-tools :is(.bk-btn,summary) { padding-inline:var(--space-4); }
 }

@@ -1,10 +1,10 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
-import { createGameScreen, createGameScreenPrompt } from '../public/js/toolkit/game-screen.mjs';
+import { createGameScreen } from '../public/js/toolkit/game-screen.mjs';
 
-// Run the actual shell callbacks, including their controller and storage,
-// rather than a second implementation of the button/prompt state rules.
+// Run the actual shell callbacks and controller, including capability,
+// gesture, busy and failed-request behavior.
 const source = fs.readFileSync(new URL('../public/js/app.js', import.meta.url), 'utf8');
 const wire = source.slice(source.indexOf('function wireGameRoom() {'), source.indexOf('/* ---- game size'));
 const paint = source.slice(source.indexOf('function paintGameScreen('), source.indexOf('\nfunction renderGame()'));
@@ -12,14 +12,13 @@ const resizeStart = source.indexOf("document.addEventListener('game-screenchange
 const resize = source.slice(resizeStart, source.indexOf('\n\nfunction render()', resizeStart));
 assert(wire && paint && resize);
 assert.match(source, /<\/details><button[^>]+id="bGameScreenToggle"/, 'visible toggle is outside the closed Room drawer');
-assert.match(source, /id="bGameScreenPrompt"[^>]*>Play full screen<\/button>/);
+assert.doesNotMatch(source, /id="(?:gameScreenPrompt|bGameScreenPrompt)"/, 'no duplicate phone invitation occupies the playfield');
+const menuSource = source.slice(source.indexOf('function gameRoomMenu('), source.indexOf('/* Inline confirmations', source.indexOf('function gameRoomMenu(')));
+assert.match(menuSource, /class="room-setting" data-report>Report an issue/, 'Report remains a labelled room action');
+assert.doesNotMatch(menuSource, /reportButton\(/, 'Report does not consume a third live header slot');
 
-function memory() {
-  const values = new Map();
-  return { getItem: key => values.get(key), setItem: (key, value) => values.set(key, value) };
-}
 function rig({ touch = false, layout = 'immersive', enabled = true, request = true,
-  navigator = {}, frame = false, storage = () => memory() } = {}) {
+  navigator = {}, frame = false } = {}) {
   const doc = new EventTarget(), win = new EventTarget(), frames = [], calls = [], messages = [];
   const classes = new Set();
   doc.body = { classList: { toggle(name, on) { if (on) classes.add(name); else classes.delete(name); } } };
@@ -37,7 +36,7 @@ function rig({ touch = false, layout = 'immersive', enabled = true, request = tr
     doc.dispatchEvent(new Event('fullscreenchange'));
   };
   const nodes = new Map();
-  for (const id of ['bGameScreen', 'bGameScreenToggle', 'bGameScreenPrompt', 'bGameScreenDismiss', 'gameScreenPrompt']) {
+  for (const id of ['bGameScreen', 'bGameScreenToggle']) {
     nodes.set(id, { hidden: true, disabled: false, attrs: {},
       setAttribute(key, value) { this.attrs[key] = value; }, focus() { calls.push('focus:' + id); } });
   }
@@ -50,14 +49,14 @@ function rig({ touch = false, layout = 'immersive', enabled = true, request = tr
   const context = vm.createContext({ document: doc, window: win, Event,
     requestAnimationFrame: fn => frames.push(fn),
     createGameScreen: options => createGameScreen({ ...options, doc, navigator, orientation: {}, isPortrait: () => true }),
-    gameScreen: null, gameScreenPrompt: createGameScreenPrompt({ storage }),
+    gameScreen: null,
     readInputCapabilities: () => ({ preferred: { touch } }),
     gameId: 'test-game', gameById: () => ({ layout }), toast: message => messages.push(message),
     renderHostStates() {}, applyGameZoom() {}, menuConfirm: null,
   });
   vm.runInContext(wire + '\n' + paint + '\n' + resize + '\nwireGameRoom();', context);
   return { doc, nodes, context, calls, messages, menu, sizes, classes,
-    button: nodes.get('bGameScreenToggle'), prompt: nodes.get('gameScreenPrompt'),
+    button: nodes.get('bGameScreenToggle'),
     flush() { for (const fn of frames.splice(0)) fn(); } };
 }
 
@@ -67,7 +66,6 @@ for (const touch of [false, true]) {
   assert.equal(r.button.attrs['aria-label'], touch ? 'Play full screen' : 'Full screen');
   assert.equal(r.button.title, r.button.attrs['aria-label']);
   assert.equal(r.button.attrs['aria-pressed'], 'false');
-  assert.equal(r.prompt.hidden, !touch);
   assert.deepEqual(r.calls, [], 'mounting never requests fullscreen without a tap');
   const expand = r.button.innerHTML;
   r.menu.open = true;
@@ -80,20 +78,17 @@ for (const touch of [false, true]) {
   assert.notEqual(r.button.innerHTML, expand, 'collapse icon replaces expand icon');
   assert(r.classes.has('game-fullscreen'));
   assert(r.sizes.includes(true), 'resize runs after fullscreen chrome is painted');
-  assert.equal(r.prompt.hidden, true);
-  // System Escape updates both controls and does not repeat the invitation.
+  // System Escape updates both controls.
   r.doc.fullscreenElement = null; r.doc.dispatchEvent(new Event('fullscreenchange')); r.flush();
   assert.equal(r.button.attrs['aria-pressed'], 'false');
   assert.equal(r.button.innerHTML, expand);
   assert.equal(r.classes.has('game-fullscreen'), false);
-  assert.equal(r.prompt.hidden, true);
   r.context.gameScreen.dispose();
 }
 for (const options of [{ enabled: false }, { request: false }, { enabled: false, frame: true }]) {
   const r = rig({ ...options, touch: true });
   assert.equal(r.button.hidden, true, 'unsupported document/iframe hides the visible entry');
   assert.equal(r.nodes.get('bGameScreen').hidden, true);
-  assert.equal(r.prompt.hidden, true);
 }
 {
   const r = rig({ touch: true, frame: true });
@@ -115,31 +110,6 @@ for (const navigator of [
   assert.equal(deniedFrame.button.hidden, true, 'iOS does not bypass iframe permissions');
 }
 {
-  const saved = memory(), storage = () => saved;
-  const r = rig({ touch: true, storage });
-  r.nodes.get('bGameScreenDismiss').onclick();
-  assert.equal(r.prompt.hidden, true);
-  assert.equal(r.calls.includes('enter'), false, 'dismissing never requests fullscreen');
-  assert.equal(rig({ touch: true, storage }).prompt.hidden, true, 'dismissal survives a new page/session');
-}
-for (const storage of [() => { throw Error('blocked'); }, () => ({ getItem() { throw Error('blocked'); }, setItem() { throw Error('quota'); } })]) {
-  const r = rig({ touch: true, storage });
-  assert.equal(r.prompt.hidden, false);
-  r.nodes.get('bGameScreenDismiss').onclick();
-  vm.runInContext('paintGameScreen(gameScreen.state());', r.context);
-  assert.equal(r.prompt.hidden, true, 'blocked storage still remembers dismissal during the session');
-}
-assert.equal(rig({ touch: true, layout: 'standard' }).prompt.hidden, true);
-{
-  const saved = memory(), storage = () => saved;
-  const r = rig({ touch: true, storage });
-  r.nodes.get('bGameScreenPrompt').onclick(); await Promise.resolve(); await Promise.resolve();
-  assert.equal(r.context.gameScreen.state().fullscreen, true, 'the phone chip uses the same gesture controller');
-  assert.equal(rig({ touch: true, storage }).prompt.hidden, true, 'accepting also retires the one-time invitation');
-  r.context.gameScreen.dispose(); r.flush();
-  assert.equal(r.classes.has('game-fullscreen'), false, 'leaving clears fullscreen chrome');
-}
-{
   const r = rig(); let resolve;
   r.doc.documentElement.requestFullscreen = () => new Promise(done => { resolve = done; });
   r.button.onclick();
@@ -157,4 +127,4 @@ assert.equal(rig({ touch: true, layout: 'standard' }).prompt.hidden, true);
   assert.equal(r.classes.has('game-fullscreen'), false, 'a denied request never applies fullscreen chrome');
   assert.equal(r.messages.length, 1);
 }
-console.log('GAME_SCREEN_UI_PASS: actual shell controls, icons/labels, capability/iframe/iOS rules, resize, prompt gestures and saved/blocked-storage dismissal');
+console.log('GAME_SCREEN_UI_PASS: actual shell controls, icons/labels, capability/iframe/iOS rules, resize, compact entry and labelled Room report');
