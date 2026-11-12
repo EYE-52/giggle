@@ -287,3 +287,16 @@ Playwright WebKit passed 48 cases across the longest standard title, drawing, Me
 The optional matrix is available as `npm run test:game-header:browser`; it stays outside the default suite like the existing browser matrices. `GAME_HEADER_BROWSER=webkit` selects WebKit, `GAME_HEADER_GAMES` narrows the public families, and `GAME_HEADER_EVIDENCE` saves screenshots and JSON.
 
 Local evidence is in `/tmp/giggle-game-header/`: `final/report.json`, `webkit-final/report.json`, `board-results/`, and the matching `before-final-*.png` images from `c8844e1c`. Representative final captures are `final-mega-320-day.png`, `final-mega-390-day.png`, `final/public-two-truths-320-night.png`, `final/public-doodle-guess-390-day.png`, `final/public-pocket-karts-390-day.png`, `final/local-two-truths-375-day.png`, and `board-results/chess-live-568.png`. These are local QA artifacts, not published assets.
+
+## Game catalogue and room picks on phones
+
+The whole entry now opens the game guide or setup. The Pocket Karts art, name, description and player count fit in one row. The old Play badge duplicated that action and the 3D label covered the thumbnail. Home recommendations, the catalogue and the room now use the same entry. Keyboard focus marks its full width.
+
+| Phone width | Previous Pocket Karts row | Updated row |
+| --- | --- | --- |
+| 320 pixels | 201 pixels | 124 pixels |
+| 390 pixels | 183 pixels | 88 pixels |
+
+The catalogue and guide checks passed in 18 desktop, tablet and phone layouts. In 12 additional WebKit and Chromium runs, two browser players joined a local room, opened the recommendations and full catalogue, and selected a game. The card art stayed inside its frame in both appearances. A separate Number Hunt check found zero clipped or covered elements across four viewport sizes in Day and Night.
+
+The full 259-command Games suite passed. Its container check measured 72 games in 1,224 layouts with zero failures or browser errors. The separate portrait and short-landscape board playtest passed 90 checks on the final board layout.

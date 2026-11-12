@@ -7,10 +7,13 @@ keep their meaning. Use the shared components and existing fonts.
 
 ## One workspace pattern
 
-- Header: a flexible title, then separate full-screen, room and report slots.
-  No control may sit outside the header or on top of a title.
+- Header: let the game title wrap. Keep Room and Full screen within reach.
+  Put Report in the labelled Room menu. In a moving 3D scene, give controls
+  enough contrast to read over the track.
 - Panel: one surface around one task. Use the existing card background, rim,
   corner and spacing values. Avoid another card around every small label.
+- Game picker: use the artwork, full title, short description and player count
+  in one clickable row. The row opens the game guide or setup.
 - Players: name and current state together; score and unit on the same line.
   Reserve score space so timer/score updates do not move the controls.
 - Actions: tools next to the game; one main action immediately below its task.
