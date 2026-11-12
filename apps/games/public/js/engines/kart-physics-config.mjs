@@ -6,6 +6,7 @@ export const KART_PHYSICS_CONFIG = Object.freeze({
   fixedDt: 1 / 60,
   gravity: Object.freeze({ x: 0, y: -18, z: 0 }),
   maxKarts: 32,
+  additionalSolverIterations: 4,
   maxStatics: 128,
   chassis: Object.freeze({
     half: Object.freeze({ x: 1.22, y: 0.26, z: 1.55 }),
@@ -41,6 +42,7 @@ export const KART_PHYSICS_CONFIG = Object.freeze({
     engineForce: 1000,
     // Extra pull fades out before cruise; forward/Nitro speed caps stay put.
     launchBoost: 1.8,
+    directionChangeBrake: .9,
     launchSpeed: 20,
     maxForward: 26,
     maxReverse: 8,

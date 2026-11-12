@@ -122,7 +122,7 @@ function createKartPhysics(RAPIER, config) {
     if (karts.size >= C.maxKarts) throw new RangeError('kart limit');
     const p = vector(spawn?.position, 'position'), q = rotation(spawn.rotation), H = C.chassis.half;
     const body = world.createRigidBody(RAPIER.RigidBodyDesc.dynamic().setTranslation(p.x, p.y, p.z).setRotation(q)
-      .setLinearDamping(C.chassis.linearDamping).setAngularDamping(C.chassis.angularDamping).setCcdEnabled(true).setSoftCcdPrediction(C.softCcdPrediction || 0).setAdditionalSolverIterations(4));
+      .setLinearDamping(C.chassis.linearDamping).setAngularDamping(C.chassis.angularDamping).setCcdEnabled(true).setSoftCcdPrediction(C.softCcdPrediction || 0).setAdditionalSolverIterations(C.additionalSolverIterations ?? 2));
     try {
       const collider = world.createCollider(RAPIER.ColliderDesc.cuboid(H.x, H.y, H.z).setMassProperties(C.chassis.mass,
         { x: 0, y: C.chassis.centerOfMassY, z: 0 },
@@ -203,7 +203,7 @@ function createKartPhysics(RAPIER, config) {
           v.setWheelSideFrictionStiffness(i,C.suspension.sideStiffness*(C.wheels[i].front?1:kart.tuning.rearStiffness));
           v.setWheelSteering(i, C.wheels[i].front ? -steer * C.handling.steering * kart.tuning.steering / (1 + Math.abs(speed) * C.handling.highSpeedSteer) : 0);
           v.setWheelEngineForce(i, force);
-          v.setWheelBrake(i, Math.max(brake, opposing ? 0.9 : 0) * C.handling.brake + (throttle === 0 ? C.handling.coastBrake : 0));
+          v.setWheelBrake(i, Math.max(brake, opposing ? (C.handling.directionChangeBrake ?? .65) : 0) * C.handling.brake + (throttle === 0 ? C.handling.coastBrake : 0));
         }
         // Only authored driveable statics support suspension, never another kart.
         v.updateVehicle(C.fixedDt, undefined, undefined, (collider) => C.arcadeContacts?driveSurfaces.has(collider.handle):surfaces.has(collider.handle));
