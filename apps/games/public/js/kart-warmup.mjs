@@ -44,7 +44,7 @@ export function warmPickedKart(game,{players=[],settings={}}={}) {
 }
 async function warmAssets(players,settings){
   try{
-    const [{prefetchKartGLB},{matchKartAssetEntries,matchKartDrivers,KART_ELEVATED_FILES,loadKartWeaponThumbnails}]=await Promise.all([
+    const [{prefetchKartGLB},{matchKartAssetEntries,kartMatchAssetURL,matchKartDrivers,KART_ELEVATED_FILES,loadKartWeaponThumbnails}]=await Promise.all([
       import('./engines/kart-prefetch.mjs'),import('./engines/kart-assets.mjs')]);
     loadKartWeaponThumbnails().catch(()=>{});
     // Exact URLs match the scene loaders; never download another map's art.
@@ -52,7 +52,7 @@ async function warmAssets(players,settings){
     const name=settings.map||'Rookie Ribbons';
     let urls;
     if(Object.hasOwn(classic,name)){
-      urls=matchKartAssetEntries({id:classic[name]}).map(([key,file])=>`/assets/karts/${file}.glb${key==='crate'?'?v=question-20261007':''}`);
+      urls=matchKartAssetEntries({id:classic[name]}).map(([key,file])=>kartMatchAssetURL(key,file));
     }else{
       const {elevatedEnvironmentByName}=await import('./engines/kart-elevated-maps.mjs');
       // Saved legacy arenas and current layouts use their real game labels.

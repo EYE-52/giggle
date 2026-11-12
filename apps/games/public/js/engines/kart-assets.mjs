@@ -27,9 +27,14 @@ export const KART_ASSETS = {
 // batching so it merges and leans with KartBody. Every driver gets its own
 // batched kart variant; the view picks one per player.
 // Shared raised-arena library; environment files remain selected by map.
+const pickupArtRevision = 'meshy-20261112';
+export function kartMatchAssetURL(key, file) {
+  const updatedPickup = key === 'crate' || key === 'pickupGear';
+  return '/assets/karts/' + file + '.glb' + (updatedPickup ? '?v=' + pickupArtRevision : '');
+}
 export const KART_ELEVATED_FILES = Object.freeze([
-  ['pickupGear','combat/pickup-gear','arcade-1'],
-  ['kart','giggle-kart.meshopt','kart-20261007'],['crate','giggle-crate.meshopt','question-20261007'],
+  ['pickupGear','combat/pickup-gear',pickupArtRevision],
+  ['kart','giggle-kart.meshopt','kart-20261007'],['crate','giggle-crate.meshopt',pickupArtRevision],
   ['combat','combat/combat-core.meshopt','953c38c2'],['pulse','combat/pulse-mounted.meshopt','bfaaaf39'],
   ['arsenal','combat/arsenal-mounted.meshopt','8bd555ac'],['secondary','combat/arsenal-secondary.meshopt','31eec689'],
 ]);
@@ -161,7 +166,7 @@ export async function loadKartAssets(THREE, scene, {map,drivers:neededDrivers}={
   // build still belong to this scene and can be disposed with it.
   const results = await Promise.allSettled([...matchKartAssetEntries(map).map(async ([key, name]) => {
     let gltf;
-    try { gltf = await loadKartGLB(loader,`/assets/karts/${name}.glb${key==='crate'?'?v=question-20261007':''}`); }
+    try { gltf = await loadKartGLB(loader,kartMatchAssetURL(key,name)); }
     catch(error) {
       // A failed optional prop asset should not discard the whole arena.
       if(key==='combat'){console.warn('Combat models unavailable; using local prop fallback.',error);return;}

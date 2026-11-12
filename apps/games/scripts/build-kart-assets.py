@@ -718,40 +718,63 @@ def _question_faces_local():
 def build_crate(coll, mats):
     root = new_empty("CrateRoot", coll, (0.0, 0.0, 0.0))
     root["giggle_asset"] = "crate"
-    blue = mats["CrateBlue"]
-    yellow = mats["CrateYellow"]
+    # The Meshy shell already has a moulded lid and two nested panels per
+    # face. Colour those parts and keep their bevels at their original depth.
+    source = os.path.join(REPO_ROOT, "scripts", "sources", "kart-powerups", "mystery-crate.glb")
+    existing = set(bpy.data.objects)
+    bpy.ops.import_scene.gltf(filepath=source)
+    imported = set(bpy.data.objects) - existing
+    raw = next(obj for obj in imported if obj.type == "MESH")
+    bm = bmesh.new()
+    bm.from_mesh(raw.data)
+    bm.transform(raw.matrix_world)
+    bmesh.ops.remove_doubles(bm, verts=list(bm.verts), dist=0.00001)
+    lo = Vector([min(v.co[i] for v in bm.verts) for i in range(3)])
+    hi = Vector([max(v.co[i] for v in bm.verts) for i in range(3)])
+    for v in bm.verts:
+        v.co = Vector([(v.co.x-lo.x)/(hi.x-lo.x)*1.15-.575,
+                       (v.co.y-lo.y)/(hi.y-lo.y)*1.15-.575,
+                       (v.co.z-lo.z)/(hi.z-lo.z)*1.5])
+    bm.verts.index_update()
+    bm.faces.index_update()
+    groups = {"CrateBody": [], "CrateTrim": [], "CrateInset": []}
+    for seed in bm.verts:
+        if seed.tag:
+            continue
+        island, stack = [], [seed]
+        seed.tag = True
+        while stack:
+            v = stack.pop()
+            island.append(v)
+            for edge in v.link_edges:
+                other = edge.other_vert(v)
+                if not other.tag:
+                    other.tag = True
+                    stack.append(other)
+        width = min(max(v.co[i] for v in island) - min(v.co[i] for v in island) for i in (0, 1))
+        if width < .05:
+            group = "CrateInset"  # outer face pads
+        elif width < .14 or min(v.co.z for v in island) > 1.3:
+            group = "CrateTrim"   # panel rims and lid
+        else:
+            group = "CrateBody"
+        groups[group].extend({f for v in island for f in v.link_faces})
+    materials = {"CrateBody": "CrateBlue", "CrateTrim": "CrateYellow", "CrateInset": "CrateInset"}
+    for name, faces in groups.items():
+        verts = sorted({v for f in faces for v in f.verts}, key=lambda v: v.index)
+        index = {v: n for n, v in enumerate(verts)}
+        data = bpy.data.meshes.new(name)
+        data.from_pydata([tuple(v.co) for v in verts], [],
+                         [[index[v] for v in f.verts] for f in sorted(faces, key=lambda f: f.index)])
+        data.materials.append(mats[materials[name]])
+        data.update()
+        obj = bpy.data.objects.new(name, data)
+        coll.objects.link(obj)
+        parent_keep(root, obj)
+    bm.free()
+    for obj in imported:
+        bpy.data.objects.remove(obj, do_unlink=True)
     glow = mats["BoltGlow"]
-
-    # Body: 1.15 x 1.15 footprint, 1.5 tall, bottom at z=0.
-    bm = bmesh.new()
-    bm_box(bm, compose((0.0, 0.0, 0.75), scale=(1.15, 1.15, 1.4)), 0)
-    body_o = mesh_from_bm("CrateBody", bm, [blue], coll)
-    finish(body_o, bevel_width=.075, bevel_segments=2)
-    parent_keep(root, body_o)
-
-    # Inset sapphire face panels give the question mark a clean surround.
-    bm = bmesh.new()
-    for sy in (-1, 1):
-        bm_box(bm, compose((0, sy * .575, .75), scale=(.77, .018, 1.08)), 0)
-    for sx in (-1, 1):
-        bm_box(bm, compose((sx * .575, 0, .75), scale=(.018, .77, 1.08)), 0)
-    panel_o = mesh_from_bm("CrateInset", bm, [mats["CrateInset"]], coll)
-    finish(panel_o, bevel_width=.07, bevel_segments=2)
-    parent_keep(root, panel_o)
-
-    # Corner posts + top/bottom rim frames.
-    bm = bmesh.new()
-    for sx in (-1.0, 1.0):
-        for sy in (-1.0, 1.0):
-            bm_box(bm, compose((sx * 0.5, sy * 0.5, 0.75), scale=(0.18, 0.18, 1.5)), 0)
-    for z in (0.08, 1.42):
-        for sy in (-1.0, 1.0):
-            bm_box(bm, compose((0.0, sy * 0.5, z), scale=(1.19, 0.16, 0.16)), 0)
-        for sx in (-1.0, 1.0):
-            bm_box(bm, compose((sx * 0.5, 0.0, z), scale=(0.16, 1.19, 0.16)), 0)
-    trim_o = mesh_from_bm("CrateTrim", bm, [yellow], coll)
-    finish(trim_o, bevel_width=.045, bevel_segments=2)
-    parent_keep(root, trim_o)
 
     # Question marks on all four sides: base plane embedded 0.015 into
     # the body face, extruded 0.06 outward along an explicit outward vector
