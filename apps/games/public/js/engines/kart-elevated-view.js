@@ -8,7 +8,7 @@ import {createRaisedCameraQuery} from './kart-raised-camera.mjs';
 import {createRaisedShadows,disableRaisedStaticShadows} from './kart-raised-shadows.mjs';
 import {kartLightTier} from './kart-festive-lights.mjs';
 import {controlsPickerHtml,wirePickers,syncPickers} from '../pickers.js';
-import {WEAPON_DISPLAY,WEAPON_IDS,CURATED_MUZZLE,weaponForward} from './kart-weapon-contract.mjs';
+import {WEAPON_DISPLAY,WEAPON_IDS,CURATED_MUZZLE,activeKartPower,weaponForward} from './kart-weapon-contract.mjs';
 import {paintKartWeapon,kartWeaponArt} from './kart-weapon-hud.mjs';
 import {paintKartHearts,createKartHitFeedback,landedText,kartEventCue} from './kart-hearts.mjs';
 import {createKartImpactFX} from './kart-impact-fx.mjs';
@@ -360,7 +360,7 @@ export function createElevatedKartView() {
           statusOptions.time=time;statusOptions.elapsed=Math.max(0,(performance.now()-(lastSnapshotArrival??performance.now()))/1000);arsenalFX.status(model,k.alive?k:null,statusOptions);
           const featureKart=model.userData.featureKart||(model.userData.featureKart={pid:k.id});featureKart.respawn=k.respawn;featureKart.out=k.out;featureKart.spawnSeq=k.spawnSeq;
           arena.dressKart(featureKart,model,moving.flight);
-          const equipped=k.alive?(k.ammo>0?k.weapon:k.bladesT>0?'blades':k.supernovaT>0?'supernova':k.rammingT>0?'ram':performance.now()<(model.userData.fireUntil||0)?model.userData.fireKind:null):null;const rig=rigs.get(k.id);if(rig?.kind!==equipped){if(rig){rig.object.removeFromParent();rigPools.get(rig.kind)?.push(rig.object);}rigs.delete(k.id);if(equipped){const object=rigPools.get(equipped)?.pop();if(!object)continue;object.position.set(...object.userData.combat.mount);model.userData.kart.inner.add(object);rigs.set(k.id,{kind:equipped,object});}}
+          const equipped=k.alive?(activeKartPower(k)||(k.ammo>0?k.weapon:performance.now()<(model.userData.fireUntil||0)?model.userData.fireKind:null)):null;const rig=rigs.get(k.id);if(rig?.kind!==equipped){if(rig){rig.object.removeFromParent();rigPools.get(rig.kind)?.push(rig.object);}rigs.delete(k.id);if(equipped){const object=rigPools.get(equipped)?.pop();if(!object)continue;object.position.set(...object.userData.combat.mount);model.userData.kart.inner.add(object);rigs.set(k.id,{kind:equipped,object});}}
           const equipment=rigs.get(k.id)?.object.userData.combat;
           if(equipment){equipment.ammo=k.ammo;equipment.active=k.bladesT>0;equipment.firing=k.firing;}
         }

@@ -1,3 +1,4 @@
+import {activeKartPower} from './kart-weapon-contract.mjs';
 // Never grants inventory or damage. Predicts only contact feedback and box hiding.
 export function createKartPickupPrediction({now=()=>performance.now(),onPredict=()=>{},onReject=()=>{}}={}){
  let claim=null,scope='',blocked=null;
@@ -9,7 +10,7 @@ export function createKartPickupPrediction({now=()=>performance.now(),onPredict=
     if(kart.weapon||!c||c.available===false){claim=null;return;}
     if(expired){blocked=claim.id;claim=null;onReject();}return;
    }
-   if(kart.weapon||kart.firing||!position)return;
+   if(kart.weapon||kart.firing||activeKartPower(kart)||!position)return;
    let near=null;for(const c of crates||[]){const p=c.position||c;if(c.available===false)continue;
     const dx=position.x-p.x,dz=position.z-p.z,dy=position.y==null?0:position.y-(c.position?.y??c.groundY??position.y);
     if(dx*dx+dz*dz<2.4*2.4&&Math.abs(dy)<2.4){near=c;break;}}

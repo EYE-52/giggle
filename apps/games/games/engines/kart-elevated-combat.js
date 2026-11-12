@@ -14,7 +14,7 @@ const B = require('./kart-rules-battle').constants;
 const H = require('./kart-engine').constants;
 const {config:COMBAT,damageAt,blastDamage,bladeContact,volleyHit} = require('./kart-combat-config');
 const {normalizeWeapon}=require('./kart-combat-config');
-const {weaponForward,launchVelocity,TRI_FAN,CURATED_MUZZLE,inWeaponCone,WEAPON_FEEL}=require('../../public/js/engines/kart-weapon-contract.mjs');
+const {activeKartPower,weaponForward,launchVelocity,TRI_FAN,CURATED_MUZZLE,inWeaponCone,WEAPON_FEEL}=require('../../public/js/engines/kart-weapon-contract.mjs');
 const LEGACY={proximity:{bodyRadius:.6,splashRadius:5.5,triggerRadius:3},laser:{speed:190,ttl:.7},bouncer:{speed:48,ttl:3.5,bounces:4},cluster:{fuse:.75,bomblets:5,splashRadius:3}};
 const ZERO = Object.freeze({ x: 0, y: 0, z: 0 });
 const IDENTITY = Object.freeze({ x: 0, y: 0, z: 0, w: 1 });
@@ -737,7 +737,7 @@ function createElevatedCombat(RAPIER,config,map,seats,options={}) {
       const p=physics.pose(k.id);
       if(elevatedFallZone(M,p.position) || p.position.y < -12 || Math.abs(p.position.x)>M.half+8 || Math.abs(p.position.z)>M.half+8) { k.alive=false;k.health=0;k.respawn=B.RESPAWN_TIME;k.weapon=null;k.ammo=0;k.shield=0;k.guard=false;clean(k);k.controlEpoch++;physics.freezeKart(k.id,true);physics.setKartEnabled(k.id,false);emit('recovery',k.id);continue; }
       if(recoverStuck(k,p)) continue;
-      if(k.weapon || k.sequence || !p.grounded) continue;
+      if(k.weapon || k.sequence || activeKartPower(k) || !p.grounded) continue;
       for(const c of crates) {
         if(at<c.availableAt || c.blocked?.has(k.id) || distance(p.position,c.position)>Math.sqrt(B.PICKUP_R2) || !p.wheels.some(w=>w.contact&&(w.surfaceId===c.surfaceId||c.supportIds?.includes(w.surfaceId))) || !los(c.position,p.position)) continue;
         k.itemSeq++;k.weapon=rewardPolicy?rewardPolicy.roll(c.profile,at-liveAt):rollWeapon();k.ammo=k.weapon==='machinegun'?ARSENAL.machinegun.ammo:(COMBAT.weapons[k.weapon]?.ammo||1);award(k,B.COIN_PICKUP,'pickup-'+c.id);emit('pickup',k.id,{weapon:k.weapon,crateId:c.id,position:c.position});

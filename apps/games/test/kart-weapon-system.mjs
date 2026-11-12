@@ -49,6 +49,16 @@ for(const kind of ['blades','ram'])for(const gate of ['live','shield','cover','o
  f.arm(kind);f.step(0);assert.equal(f.b.health,gate==='live'?0:100,kind+' '+gate);
 }
 // Denied prediction restores a crate once, accepted claims never grant inventory.
+for (const [kind,timer] of [['blades','bladesT'],['supernova','supernovaT'],['ram','rammingT']]){
+ const kart={weapon:null,ammo:0,[timer]:1};
+ const predictor=createKartPickupPrediction();
+ predictor.update(kart,{x:0,z:0},[{id:'busy',x:0,z:0}]);
+ assert(!predictor.hidden('busy'),kind+' does not hide an uncollected crate');
+ assert.equal(kartWeaponDisplay({...kart,weapon:'cannon',ammo:2}).kind,kind,'active power stays visible even in a mixed snapshot');
+ kart[timer]=0;
+ predictor.update(kart,{x:0,z:0},[{id:'new',x:0,z:0}]);
+ assert(predictor.hidden('new'),'an empty slot can predict the next pickup');
+}
 let time=0,pops=0,rejects=0;const predictor=createKartPickupPrediction({now:()=>time,onPredict(){pops++;},onReject(){rejects++;}});
 const kart={health:100,maxHealth:100,alive:true,weapon:null,ammo:0},crate={id:'box',x:0,z:0};predictor.sync('round',1);
 predictor.update(kart,{x:0,z:0},[crate]);assert(predictor.hidden('box'));assert.equal(kartWeaponDisplay(kart).state,'empty');assert.equal(kart.ammo,0);

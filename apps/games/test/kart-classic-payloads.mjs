@@ -31,6 +31,16 @@ function fixture(weapon='machinegun'){
   close(){battle.cancelPayloads(s);physics.dispose();},
  };
 }
+for(const [kind,timer] of [['blades','bladesT'],['supernova','supernovaT'],['ram','rammingT']]){
+ const f=fixture(kind);
+ try{
+  f.s.spots=[[0,0],[20,0],[-20,0],[20,20]];f.s.crates=[{id:'next-box',x:f.a.x,z:f.a.z}];
+  f.tap();f.tick(0);
+  check(f.a[timer]>0&&f.a.weapon===null&&f.s.crates[0].id==='next-box',kind+' owns the slot until its effect ends');
+  f.pose(f.a,18,18);f.pose(f.b,0,0);f.tick(0);
+  check(f.b.weapon!==null,'another driver can claim a box the active power skipped');
+ }finally{f.close();}
+}
 // Collect normally, spend the whole pickup, then wait at its old position.
 // The empty slot must not turn a recycled box into a camping reward loop.
 {

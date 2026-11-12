@@ -30,6 +30,13 @@ export const WEAPON_DISPLAY=Object.freeze({
 export const WEAPON_IDS=Object.freeze(Object.keys(WEAPONS));
 export const WEAPON_ALIASES=Object.freeze({pulse:'machinegun',scatter:'trishot',rocket:'cannon',seeker:'missile',shield:'supernova',laser:'machinegun',cluster:'frost'});
 export const normalizeWeapon=id=>WEAPON_ALIASES[id]||id;
+// A timed contact power occupies the pickup slot until the server ends it.
+export function activeKartPower(kart){
+  if(kart?.supernovaT>0)return 'supernova';
+  if(kart?.bladesT>0)return 'blades';
+  if(kart?.rammingT>0)return 'ram';
+  return null;
+}
 export const TRI_FAN=Object.freeze([-2.5*Math.PI/180,0,2.5*Math.PI/180]);
 export const CURATED_MUZZLE=Object.freeze({x:1.03,y:0.47,z:1.63});
 // Rotation comes from the physical body, never the eased visual pose or slip.

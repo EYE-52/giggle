@@ -116,6 +116,18 @@ for(const kind of ['blades','supernova']){
   check(!kart(w,'b').alive&&kart(w).hits===1&&kart(w)[kind==='blades'?'bladesT':'supernovaT']>0,kind+' contact scores while its timer continues');
  }finally{w.dispose();}
 }
+// The next real box is within reach when a timed pickup is activated.
+for(const [kind,timer] of [['blades','bladesT'],['supernova','supernovaT'],['ram','rammingT']]){
+ const w=armed(kind);
+ try{
+  tap(w);
+  check(kart(w)[timer]>0,kind+' activated');
+  step(w,20,s=>{
+   const a=s.karts.find(k=>k.id==='a');
+   check(a.weapon===null&&a[timer]>0,kind+' keeps the active slot when crossing another box');
+  });
+ }finally{w.dispose();}
+}
 for(const moving of [false,true]){
  const w=armed('mine');try{
   tap(w);check(w.snapshot().mines.length===1&&kart(w).ammo===2&&kart(w).firing,'Mine activation begins one of three sequential drops');

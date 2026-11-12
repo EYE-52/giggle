@@ -15,7 +15,7 @@
 
 const {config:COMBAT,damageAt,blastDamage,weaponForRoll,bladeContact,volleyHit} = require('./kart-combat-config');
 const {normalizeWeapon}=require('./kart-combat-config');
-const {weaponForward,launchVelocity,TRI_FAN,CURATED_MUZZLE,inWeaponCone,WEAPON_FEEL}=require('../../public/js/engines/kart-weapon-contract.mjs');
+const {activeKartPower,weaponForward,launchVelocity,TRI_FAN,CURATED_MUZZLE,inWeaponCone,WEAPON_FEEL}=require('../../public/js/engines/kart-weapon-contract.mjs');
 const LEGACY={laser:{speed:190,ttl:.7},bouncer:{speed:48,ttl:3.5,bounces:4},cluster:{fuse:.75,bomblets:5,splashRadius:3}};
 const PHYSICS = require('../../public/js/engines/kart-physics-config.mjs').default;
 const PICKUP_R2 = 2.4 * 2.4;
@@ -1210,7 +1210,7 @@ module.exports = {
         // first"), so parking on a crate can never farm items.
         const nearGround = !kart.physicalPose || !fireGeometry?.groundAt ||
           Math.abs(kart.physicalPose.position.y-fireGeometry.groundAt(crate.x,crate.z)) < 2.4;
-        if (dx * dx + dz * dz < PICKUP_R2 && nearGround && !kart.weapon && !payloads.has(kart)) {
+        if (dx * dx + dz * dz < PICKUP_R2 && nearGround && !kart.weapon && !activeKartPower(kart) && !payloads.has(kart)) {
           const collectedId=crate.id;
           const weapon = rollWeapon(state);
           kart.weapon = weapon;
