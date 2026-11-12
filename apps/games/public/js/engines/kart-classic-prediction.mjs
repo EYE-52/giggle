@@ -131,14 +131,15 @@ export function createClassicPrediction(R){
       if(now-lastAt>1500&&lastDraw)p=lastDraw;
       else if(correction){
         const size=Math.hypot(correction.offset.x,correction.offset.y,correction.offset.z),visual=corrected(p,correction,now,12,Math.max(60,Math.min(140,90-size*10))),{position,rotation}=visual;
-        const overlapsPeer=state.karts.some(k=>{if(k===self||k.connected===false||k.respawn>0)return false;const peer=k.physicalPose,contact=hull.contactShape(position,rotation,hull,peer.position,peer.rotation,.02);return contact&&contact.distance<-.02;});
+        const overlapsPeer=state.karts.some(k=>{if(k===self||k.connected===false||k.respawn>0)return false;const peer=stepBlend(k),contact=hull.contactShape(position,rotation,hull,peer.position,peer.rotation,.02);return contact&&contact.distance<-.02;});
         if(!world.overlapsStatic(position,rotation)&&!overlapsPeer)p=visual;else correction=null;
       }
       lastDraw=structuredClone(p);
       peerWeights.clear();
       if(nearField){
         const peers=state.karts.filter(k=>k!==self&&k.connected!==false&&!(k.respawn>0));
-        for(const k of peers){const q=k.physicalPose.position,distance=Math.hypot(q.x-p.position.x,q.z-p.position.z),band=Math.max(0,Math.min(1,(12-distance)/6));peerWeights.set(k.pid,band*band*(3-2*band));}
+        // Begin the blend before the faster launch can close the contact zone.
+        for(const k of peers){const q=k.physicalPose.position,distance=Math.hypot(q.x-p.position.x,q.z-p.position.z),band=Math.max(0,Math.min(1,(18-distance)/12));peerWeights.set(k.pid,band*band*(3-2*band));}
         // Nearby peers share one timeline through their own mutual contact.
         const pairs=[],samples=new Map(peers.map(k=>[k.pid,remoteSample(k.pid,serverAt)]));
         for(let i=0;i<peers.length;i++)for(let j=i+1;j<peers.length;j++){const a=peers[i],b=peers[j],pa=a.physicalPose.position,pb=b.physicalPose.position;if(Math.hypot(pa.x-pb.x,pa.z-pb.z)<4.5)pairs.push([a.pid,b.pid]);}
@@ -153,7 +154,9 @@ export function createClassicPrediction(R){
     },
     remote(pid,now,serverAt=now){
       let pose=remoteSample(pid,serverAt);if(!pose)return null;
-      const stamp=remoteStamps.get(pid),visual=remoteVisual.get(pid),peer=state?.karts.find(k=>k.pid===pid),predicted=peer?.physicalPose;
+      // Local and nearby peers use the same pair of fixed steps. Mixing a
+      // blended local pose with a peer's newest step can overlap their hulls.
+      const stamp=remoteStamps.get(pid),visual=remoteVisual.get(pid),peer=state?.karts.find(k=>k.pid===pid),predicted=peer?.physicalPose?stepBlend(peer):null;
       const near=nearField&&lastDraw&&predicted&&peer.connected!==false&&!(peer.respawn>0)&&now-lastAt<=250&&predicted.epoch===pose.epoch&&(peerWeights.get(pid)||0)>0;
       if(near){
         const weight=peerWeights.get(pid),position=mix(pose.position,predicted.position,weight),rotation=slerp(pose.rotation,predicted.rotation,weight);
@@ -162,9 +165,11 @@ export function createClassicPrediction(R){
       let residual=visual?.correction;
       if(visual?.now===now&&visual.serverAt===serverAt&&!!visual.near===!!near)pose=visual.pose;
       else if(visual&&visual.serverAt<=serverAt){
-        if(stamp?.at!==visual.stamp&&visual.ahead||!!visual.near!==!!near)residual=visualError(visual.pose,pose,now);
+        // Near peers already follow the shared physical timeline. A snapshot
+        // must not turn their ordinary travel into a new smoothing offset.
+        if((!near&&stamp?.at!==visual.stamp&&visual.ahead)||!!visual.near!==!!near)residual=visualError(visual.pose,pose,now);
         if(residual){
-          const draw=corrected(pose,residual,now,10,120),overlapsPeer=state?.karts.some(k=>{if(k.pid===pid||k.connected===false||k.respawn>0)return false;const other=k.pid===selfId&&lastDraw?lastDraw:k.physicalPose;if(!other)return false;const contact=hull.contactShape(draw.position,draw.rotation,hull,other.position,other.rotation,.02);return contact&&contact.distance<-.02;});
+          const draw=corrected(pose,residual,now,10,120),overlapsPeer=state?.karts.some(k=>{if(k.pid===pid||k.connected===false||k.respawn>0)return false;const other=k.pid===selfId&&lastDraw?lastDraw:stepBlend(k);if(!other)return false;const contact=hull.contactShape(draw.position,draw.rotation,hull,other.position,other.rotation,.02);return contact&&contact.distance<-.02;});
           if(world?.overlapsStatic(draw.position,draw.rotation)||overlapsPeer)residual=null;else pose=draw;
         }
       }

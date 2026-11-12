@@ -57,8 +57,7 @@ function createKartPhysics(RAPIER, config) {
   if (!numeric(C) || !Number.isInteger(C.maxKarts) || C.maxKarts < 1 || C.maxKarts > 32 || !Number.isInteger(C.maxStatics) || C.maxStatics < 1 || C.maxStatics > 128 || C.chassis.mass <= 0 || Object.values(C.chassis.half).some(v => v <= 0) || C.wheels.some(w => w.radius <= 0)) throw new RangeError('invalid numeric vehicle config');
   const world = new RAPIER.World(vector(C.gravity, 'gravity'));
   world.timestep = C.fixedDt;
-  // The rebound/inertia tuning needs two more contact iterations on ice;
-  // retain the bounded two CCD substeps rather than increasing work broadly.
+  // Preserve the existing contact/CCD envelope with the stronger launch.
   world.numSolverIterations = 8;
   world.maxCcdSubsteps = 2;
   const karts = new Map(), statics = new Map(), surfaces = new Map(), kartColliders = new Map(),driveSurfaces=new Set();
@@ -123,7 +122,7 @@ function createKartPhysics(RAPIER, config) {
     if (karts.size >= C.maxKarts) throw new RangeError('kart limit');
     const p = vector(spawn?.position, 'position'), q = rotation(spawn.rotation), H = C.chassis.half;
     const body = world.createRigidBody(RAPIER.RigidBodyDesc.dynamic().setTranslation(p.x, p.y, p.z).setRotation(q)
-      .setLinearDamping(C.chassis.linearDamping).setAngularDamping(C.chassis.angularDamping).setCcdEnabled(true).setSoftCcdPrediction(C.softCcdPrediction || 0).setAdditionalSolverIterations(2));
+      .setLinearDamping(C.chassis.linearDamping).setAngularDamping(C.chassis.angularDamping).setCcdEnabled(true).setSoftCcdPrediction(C.softCcdPrediction || 0).setAdditionalSolverIterations(4));
     try {
       const collider = world.createCollider(RAPIER.ColliderDesc.cuboid(H.x, H.y, H.z).setMassProperties(C.chassis.mass,
         { x: 0, y: C.chassis.centerOfMassY, z: 0 },
@@ -191,14 +190,19 @@ function createKartPhysics(RAPIER, config) {
         const speed = forwardSpeed(kart.body);
         const opposing = throttle * speed < -0.2;
         const top = (throttle < 0 ? C.handling.maxReverse : C.handling.maxForward) * kart.tuning.top;
-        const force = opposing ? 0 : throttle * C.handling.engineForce * kart.tuning.engine * Math.max(0, 1 - (Math.abs(speed) / top) ** 2);
+        // Build pull once rolling; a kart held against cover keeps its original
+        // torque rather than forcing the hull upward with the launch assist.
+        const launch = 1 + ((C.handling.launchBoost || 1) - 1) * Math.min(1, Math.abs(speed) / 2) * Math.max(0, 1 - Math.abs(speed) / (C.handling.launchSpeed || 20));
+        // Nitro already supplies its own punch; stacking both can lift the nose.
+        const engine = Math.max(kart.tuning.engine, Math.min(C.handling.launchBoost || 1, kart.tuning.engine * launch));
+        const force = opposing ? 0 : throttle * C.handling.engineForce * engine * Math.max(0, 1 - (Math.abs(speed) / top) ** 2);
         for (let i = 0; i < 4; i++) {
           const surface = surfaces.get(v.wheelGroundObject(i)?.handle);
           v.setWheelFrictionSlip(i, C.suspension.frictionSlip * (surface?.grip || 1) * kart.tuning.traction * (C.wheels[i].front ? 1 : kart.tuning.rearTraction));
           v.setWheelSideFrictionStiffness(i,C.suspension.sideStiffness*(C.wheels[i].front?1:kart.tuning.rearStiffness));
           v.setWheelSteering(i, C.wheels[i].front ? -steer * C.handling.steering * kart.tuning.steering / (1 + Math.abs(speed) * C.handling.highSpeedSteer) : 0);
           v.setWheelEngineForce(i, force);
-          v.setWheelBrake(i, Math.max(brake, opposing ? 0.65 : 0) * C.handling.brake + (throttle === 0 ? C.handling.coastBrake : 0));
+          v.setWheelBrake(i, Math.max(brake, opposing ? 0.9 : 0) * C.handling.brake + (throttle === 0 ? C.handling.coastBrake : 0));
         }
         // Only authored driveable statics support suspension, never another kart.
         v.updateVehicle(C.fixedDt, undefined, undefined, (collider) => C.arcadeContacts?driveSurfaces.has(collider.handle):surfaces.has(collider.handle));
@@ -252,7 +256,7 @@ function createKartPhysics(RAPIER, config) {
     kart.slideSpeed=speed;
     const q=kart.body.rotation(),angle=Math.atan2(2*(q.x*q.z+q.w*q.y),1-2*(q.x*q.x+q.y*q.y));
     const d=slide.direction,turn=d*clamp(.62+.38*kart.intent.steer*d,.24,1);
-    const a=kart.body.angvel(),targetYaw=-turn*(.95+.8*Math.min(1,speed/20));
+    const a=kart.body.angvel(),targetYaw=-turn*(1.3+1.05*Math.min(1,speed/20))*Math.min(1,Math.sqrt(slide.traction));
     slideAngular.x=a.x;slideAngular.y=a.y+(targetYaw-a.y)*(1-Math.exp(-16*C.fixedDt));slideAngular.z=a.z;
     kart.body.setAngvel(slideAngular,true);
     const desired=angle+d*(.22+.10*Math.abs(turn))*slide.ease;

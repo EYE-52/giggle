@@ -1,5 +1,5 @@
 import {CURATED_MUZZLE} from './kart-weapon-contract.mjs';
-// Shared numeric configuration for the elevated kart authority and renderer.
+// Shared numeric configuration for classic/elevated authority and prediction.
 // Muzzle coordinates are chassis-local. +Y up, nose +Z.
 export const KART_PHYSICS_CONFIG = Object.freeze({
   version: 1,
@@ -33,15 +33,19 @@ export const KART_PHYSICS_CONFIG = Object.freeze({
     compression: 7,
     relaxation: 9,
     maxForce: 10000,
-    frictionSlip: 2.2,
+    // Grip supports the sharper front wheels without full-lock understeer.
+    frictionSlip: 3,
     sideStiffness: 1,
   }),
   handling: Object.freeze({
     engineForce: 1000,
+    // Extra pull fades out before cruise; forward/Nitro speed caps stay put.
+    launchBoost: 1.8,
+    launchSpeed: 20,
     maxForward: 26,
-    maxReverse: 5,
-    steering: 0.43,
-    highSpeedSteer: 0.055,
+    maxReverse: 8,
+    steering: 0.56,
+    highSpeedSteer: 0.045,
     brake: 22,
     coastBrake: 0.45,
   }),
