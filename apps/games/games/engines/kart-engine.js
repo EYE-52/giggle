@@ -858,7 +858,7 @@ function createKartGame(config) {
     const intent = cleanInput(a);
     if (!intent) return;
     const kart = state.karts.find((k) => k.pid === pid);
-    if (!kart || state.phase === 'done') return false;
+    if (!kart || kart.out || state.phase === 'done') return false;
     if (state.phase === 'drive' && ctx.now() >= state.endsAt) return false;
     const battleKart = state.rulesKey === 'battle';
     if (battleKart && ((Number(kart.respawn) || 0) > 0 || !ctx.players().some((p) => p.id === pid))) {
@@ -1167,7 +1167,7 @@ function createKartGame(config) {
         }
         : null,
       endsAt: state.endsAt,
-      youDrive: state.karts.some((k) => k.pid === pid),
+      youDrive: state.karts.some((k) => k.pid === pid && !k.out),
       karts: state.karts.map((k) => {
         const v = kartVelocity(k);
         const applied=k._motionIntent,live=motion&&state.phase==='drive'&&k.connected!==false&&!(k.respawn>0)&&applied?.life===(k.spawnSeq||0)&&applied?.epoch===(k.controlEpoch||0);
@@ -1223,7 +1223,7 @@ function createKartGame(config) {
     const coinsMap = state.coins && typeof state.coins === 'object' ? state.coins : {};
     const resMap = state.garageResults && typeof state.garageResults === 'object' ? state.garageResults : {};
     return {
-      youDrive: state.karts.some((k) => k.pid === pid),
+      youDrive: state.karts.some((k) => k.pid === pid && !k.out),
       ...(motions.has(state) ? { inputAck: inputAck(state, pid) } : {}),
       coins: Math.max(0, Math.floor(Number(coinsMap[pid]) || 0)),
       garageResult: resMap[pid] ? { ...resMap[pid] } : null,

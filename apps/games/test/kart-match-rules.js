@@ -148,6 +148,7 @@ const park = (st) => st.karts.forEach((k, i) => { k.x = -20 + i * 20; k.z = 20; 
   ctx._now += 100; karts.onTick(st, ctx);
   ctx._now += constants.GONE_AFTER_MS; karts.onTick(st, ctx);
   ok(st.karts[2].out === true, 'a minute away drops the driver');
+  eq(karts.view(st, st.karts[2].pid).youDrive, false, 'departed driver watches the classic match');
   eq(st.phase, 'drive', 'the others play on');
   eq(constants.GONE_AFTER_MS, 60000, 'the window is 60 seconds');
 }
@@ -166,6 +167,7 @@ async function elevated() {
     eq([v.winRule, v.targetHits, v.roundMs], ['Score target', 4, 120000], 'elevated view carries the score target and round length');
     ctx._now += 3500; product.onTick(st, ctx);
     eq(product.onPlayerGone(st, ctx, 'pc'), true, 'elevated onPlayerGone drops the driver');
+    eq(product.view(st, 'pc').youDrive, false, 'departed driver watches the raised match');
     const after = product.view(st, 'pa');
     ok(after.karts.find((k) => k.id === 'pc').out === true, 'elevated view marks the dropped kart');
     eq(after.phase, 'live', 'two drivers left keep playing');

@@ -833,7 +833,7 @@ function createElevatedCombat(RAPIER,config,map,seats,options={}) {
   }
   function privateStatus(viewer) {
     alive(); const own=karts.get(viewer);
-    return own?{id:own.id,receivedSeq:own.receivedSeq,appliedInputSeq:own.appliedSeq,life:own.spawnSeq,controlEpoch:own.controlEpoch,coins:own.coins}:null;
+    return own?{id:own.id,...(own.out?{out:true}:{}),receivedSeq:own.receivedSeq,appliedInputSeq:own.appliedSeq,life:own.spawnSeq,controlEpoch:own.controlEpoch,coins:own.coins}:null;
   }
   function snapshot(viewer=null) {
     alive();

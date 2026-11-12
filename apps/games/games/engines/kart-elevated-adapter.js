@@ -236,7 +236,7 @@ function createElevatedKartAdapter({ RAPIER, config, maps, defaults, createMatch
   function viewForTransport(state, pid) {
     const record = matches.get(state);
     const own = record.private.get(pid);
-    return { ...record.view, youDrive: !!own,
+    return { ...record.view, youDrive: !!own && !own.out,
       inputAck: own ? { receivedSeq: own.receivedSeq, appliedInputSeq: own.appliedInputSeq, life: own.life, controlEpoch: own.controlEpoch } : null,
       coins:own?Math.max(0,Math.floor(state.coins?.[pid]||0)):0,garageResult:own&&state.garageResults?.[pid]?{...state.garageResults[pid]}:null };
   }
