@@ -8,7 +8,7 @@ const assert = require('node:assert/strict'), { spawn } = require('node:child_pr
 const WebSocket = require('ws'), { chromium } = require('playwright');
 const ROOT = path.resolve(__dirname, '..'), OUT = process.env.KART32_OUT || '/tmp';
 const DRIVERS = Number(process.env.KART32_DRIVERS || 32), DRIVE_MS = Number(process.env.KART32_DRIVE_MS || 20000);
-const MAP = process.env.KART32_MAP || 'Garden Circuit',RAISED=Object.hasOwn(require('../games/engines/kart-elevated-adapter').LAUNCH_ARENA_CAPS,MAP);
+const MAP = process.env.KART32_MAP || 'Garden Circuit',RAISED=Object.hasOwn(require('../games/engines/kart-elevated-adapter').MAP_LABELS,MAP);
 const live=s=>s?.phase===(RAISED?'live':'drive'),id=k=>k?.pid||k?.id,position=k=>k.pose?.position||{x:k.x,z:k.z};
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 async function until(fn, label, ms = 15000) { const end = Date.now() + ms; while (Date.now() < end) { const v = await fn(); if (v) return v; await sleep(25); } throw Error('timeout: ' + label); }

@@ -14,9 +14,11 @@ function room(count){
   }return {r,clients};
 }
 (async()=>{
+  const fullCounts = process.argv.includes('--all-counts');
+  const counts = fullCounts ? Array.from({length:31}, (_,i) => i+2) : [2,8,32];
   await def.initialize();const originalNow=Date.now;let now=1000000;Date.now=()=>now;
   try{
-    for(const [map,id] of Object.entries(MAP_LABELS))for(const count of [2,8,32]){
+    for(const [map,id] of Object.entries(MAP_LABELS))for(const count of counts){
       const {r,clients}=room(count);try{
         assert.deepEqual(r.startGame(def,{settings:{map,mode:'Zap Battle',roundSeconds:60}},r.hostId),{ok:true});
         let s=latest(clients[0].ws);assert.equal(s.profile,'elevated-combat-v1');assert.equal(s.map.label,map);assert.equal(s.mapId,id);assert.equal(s.karts.length,count);assert(s.youDrive);assert.equal(s.map.half,launchArenas[id]?.half ?? (id==='skyport'||id==='foundry'?122:id==='harbor'?86:60));
@@ -39,7 +41,7 @@ function room(count){
     }
     const maps = def.manifest.settings.find(s => s.key === 'map').options;
     for (const map of maps.filter(label => !Object.hasOwn(MAP_LABELS,label))) {
-      for (const count of [2,32]) {
+      for (const count of fullCounts ? counts : [2,32]) {
         const {r,clients} = room(count);
         try {
           assert.deepEqual(r.startGame(def,{settings:{map,mode:'Zap Battle'}},r.hostId),{ok:true});
@@ -57,6 +59,6 @@ function room(count){
       setting.def=map;assert.equal(clientSchema(def).settings.find(s=>s.key==='map').def,map);
       const {r,clients}=room(2);try{assert.deepEqual(r.startGame(def,{settings:{}},r.hostId),{ok:true});const s=latest(clients[0].ws);assert.equal(s.profile,'elevated-combat-v1');assert.equal(s.map.label,map);assert.notEqual(s.map.label,'Garden Circuit');}finally{r.destroy();}
     }}finally{setting.def=saved;}
-    console.log('Complex Room routing, 2/8/32 seats and elevated-default practice regression PASS');
+    console.log('All 18 maps, room sizes '+counts.join(',')+' and elevated-default practice PASS');
   }finally{Date.now=originalNow;}
 })().catch(e=>{console.error(e);process.exitCode=1;});

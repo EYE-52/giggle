@@ -2,7 +2,6 @@
 
 const {selectArenaVariant}=require('../../public/js/engines/kart-arena-policy.mjs');
 const {launchArenas}=require('../../public/js/engines/kart-launch-arenas.mjs');
-const LAUNCH_ARENA_CAPS=Object.freeze(Object.fromEntries(Object.values(launchArenas).map(m=>[m.name,Object.freeze({min:m.minPlayers,max:m.maxPlayers})])));
 const crypto = require('crypto');
 const { createElevatedCombat } = require('./kart-elevated-combat');
 const { rankStandings } = require('./kart-standings');
@@ -235,4 +234,4 @@ function createElevatedKartAdapter({ RAPIER, config, maps, defaults, createMatch
   return Object.freeze({ preflight, create, onAction, onTick, onConnection, onPlayerGone, view, viewForTransport, publicView, privateView, dispose, owns: state => matches.has(state) });
 }
 
-module.exports = { GONE_AFTER_MS, PROFILE, MAP_LABELS, LAUNCH_ARENA_CAPS, preflightElevated, loadElevatedDependencies, createElevatedKartAdapter };
+module.exports = { GONE_AFTER_MS, PROFILE, MAP_LABELS, preflightElevated, loadElevatedDependencies, createElevatedKartAdapter };
