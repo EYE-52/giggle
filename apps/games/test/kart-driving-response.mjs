@@ -76,6 +76,16 @@ function measure(profile){
       result.reverse={to10,topKmh:-w.k.speed*3.6};
     }finally{w.dispose();}
   }
+  {
+    const w=world(profile);let maxFrameStep=0;
+    try{
+      for(let i=0;i<48;i++){
+        const previous={x:w.k.x,z:w.k.z};w.step({throttle:.3,steer:0});
+        maxFrameStep=Math.max(maxFrameStep,Math.hypot(w.k.x-previous.x,w.k.z-previous.z));
+      }
+      result.partialThrottle={speedKmh:w.k.speed*3.6,maxFrameStep};
+    }finally{w.dispose();}
+  }
   return result;
 }
 const classic=measure('classic'),elevated=measure('elevated-core');
@@ -91,6 +101,8 @@ for(const result of [classic,elevated]){
   assert(result.normalTurn.minUp>.98&&result.fullTurn.minUp>.98,result.profile+' turns remain upright');
   assert(result.reverse.to10<=.14,result.profile+' reverse responds from rest');
   assert(result.reverse.topKmh>26&&result.reverse.topKmh<29,result.profile+' reverse is useful and bounded');
+  assert(result.partialThrottle.speedKmh>10&&result.partialThrottle.speedKmh<30,result.profile+' a partial stick launch remains gentle');
+  assert(result.partialThrottle.maxFrameStep<.15,result.profile+' partial throttle does not make a large fixed-step jump');
 }
 assert(elevated.acceleration.to40<=.5&&elevated.acceleration.to80<=1.08,'elevated launch remains responsive');
 assert(elevated.acceleration.cruise>87&&elevated.acceleration.cruise<90,'elevated forward speed range is retained');

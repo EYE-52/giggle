@@ -192,7 +192,8 @@ function createKartPhysics(RAPIER, config) {
         const top = (throttle < 0 ? C.handling.maxReverse : C.handling.maxForward) * kart.tuning.top;
         // Build pull once rolling; a kart held against cover keeps its original
         // torque rather than forcing the hull upward with the launch assist.
-        const launch = 1 + ((C.handling.launchBoost || 1) - 1) * Math.min(1, Math.abs(speed) / 2) * Math.max(0, 1 - Math.abs(speed) / (C.handling.launchSpeed || 20));
+        // Partial stick input adds a gentler share of the launch punch.
+        const launch = 1 + ((C.handling.launchBoost || 1) - 1) * Math.abs(throttle) * Math.min(1, Math.abs(speed) / 2) * Math.max(0, 1 - Math.abs(speed) / (C.handling.launchSpeed || 20));
         // Nitro already supplies its own punch; stacking both can lift the nose.
         const engine = Math.max(kart.tuning.engine, Math.min(C.handling.launchBoost || 1, kart.tuning.engine * launch));
         const force = opposing ? 0 : throttle * C.handling.engineForce * engine * Math.max(0, 1 - (Math.abs(speed) / top) ** 2);
