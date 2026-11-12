@@ -10,7 +10,7 @@ import {WEAPON_FEEL,CURATED_MUZZLE} from './kart-weapon-contract.mjs';
  *   fx.objects()                 // pooled meshes, for shader warm-up
  *   fx.reset(); fx.dispose();
  *
- * Every burst is pooled and short (<= 0.14 s); a full pool recycles the
+ * Every burst is pooled and short (<= 0.55 s); a full pool recycles the
  * oldest. Status attachments live on the kart model and hide themselves
  * the moment the authority's timer reaches zero.
  */
@@ -26,18 +26,18 @@ export function createArsenalFX(THREE, scene, { reducedMotion = () => false, gro
   const attachments=[];let eventAge=0;
   const rm = () => (typeof reducedMotion === 'function' ? reducedMotion() : reducedMotion) === true;
   // ---- ground rings (blasts, frost, bounce, ram clang) ----
-  const ringGeo = keepG(new THREE.RingGeometry(.78, 1, 36)); ringGeo.rotateX(-Math.PI / 2);
-  const RING = {mine:[0xff697b,4,.55],nuke:[0xffc35a,14,.55],supernova:[0x73ffe0,9,.55],cannon:[0xffbc54,2.8,.5],missile:[0xff8c56,3,.5], frost: [0xbff4ff, 4.5, .55], bounce: [0xff7ad9, 1.3, .25], ram: [0xffd34a, 2.2, .3], burst: [0xff8a3c, 2, .3] };
+  const ringGeo = keepG(new THREE.RingGeometry(.94, 1, 36)); ringGeo.rotateX(-Math.PI / 2);
+  const RING = {mine:[0xff697b,4,.55],nuke:[0xffc35a,4.5,.55],supernova:[0x73ffe0,4.2,.55],cannon:[0xffbc54,2.8,.5],missile:[0xff8c56,3,.5], frost: [0xbff4ff, 4.5, .55], bounce: [0xff7ad9, 1.3, .25], ram: [0xffd34a, 2.2, .3], burst: [0xff8a3c, 2, .3] };
   const rings = Array.from({ length: 10 }, (_, i) => {
     // Normal blending keeps each ring's colour on bright daytime ground.
-    const mesh = new THREE.Mesh(ringGeo, keepM(new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: .8, depthWrite: false, toneMapped: false, side: THREE.DoubleSide }))); mesh.name = 'ArsenalRing' + i; mesh.visible = false; mesh.frustumCulled = false; root.add(mesh);
+    const mesh = new THREE.Mesh(ringGeo, keepM(new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: .22, depthWrite: false, toneMapped: false, side: THREE.DoubleSide }))); mesh.name = 'ArsenalRing' + i; mesh.visible = false; mesh.frustumCulled = false; root.add(mesh);
     return { mesh, age: 0, life: 0, size: 1 };
   });
   let ringHead = 0;
   function ring(kind, p) {
     const spec = RING[kind]; if (!spec) return;
     const r = rings.find(v => !v.mesh.visible) || rings[ringHead++ % rings.length];
-    r.mesh.material.color.setHex(spec[0]); r.size = spec[1]; r.life = Math.min(.14,spec[2]); r.age = eventAge;
+    r.mesh.material.color.setHex(spec[0]); r.size = spec[1]; r.life = Math.min(.3,spec[2]); r.age = eventAge; r.mesh.material.opacity=.22*Math.pow(1-r.age/r.life,2);
     r.mesh.position.set(p.x, p.y + .06, p.z); r.mesh.visible = true; r.mesh.scale.setScalar(.2 * r.size);
   }
 
@@ -54,7 +54,7 @@ export function createArsenalFX(THREE, scene, { reducedMotion = () => false, gro
     for (let i = 0; i < count; i++) {
       const s = shards[shardHead]; shardHead = (shardHead + 1) % SHARDS;
       const a = i * 2.39996 + p.x * .37;
-      s.live = true; s.age = eventAge; s.life = Math.min(.14,life); s.size = size; s.color = color;
+      s.live = true; s.age = eventAge; s.life = Math.min(.55,life); s.size = size; s.color = color;
       s.p.set(p.x, p.y + .3, p.z); s.v.set(Math.cos(a) * speed * (.7 + (i % 3) * .2), up + (i % 4) * .6, Math.sin(a) * speed * (.7 + (i % 3) * .2));
     }
   }
@@ -184,7 +184,7 @@ export function createArsenalFX(THREE, scene, { reducedMotion = () => false, gro
       if (!r.mesh.visible) continue;
       r.age += elapsed; const f = r.age / r.life;
       if (f >= 1) { r.mesh.visible = false; continue; }
-      r.mesh.scale.setScalar((rm()?1:(.2 + .8 * Math.sqrt(f))) * r.size); r.mesh.material.opacity = .85 * (1 - f);
+      r.mesh.scale.setScalar((rm()?1:(.2 + .8 * Math.sqrt(f))) * r.size); r.mesh.material.opacity = .22 * (1 - f) * (1 - f);
     }
     let n = 0;
     for (const s of shards) {

@@ -72,12 +72,12 @@ for(const reduced of [false,true])for(const weapon of ['mine','missile','cannon'
  const scene=new THREE.Scene(),fx=createKartImpactFX(THREE,scene,{reducedMotion:reduced}),arsenal=createArsenalFX(THREE,scene,{reducedMotion:()=>reduced});
  fx.emit({id:'blast',type:'blast',weapon,position:{x:0,y:1,z:0}});arsenal.event({type:'blast',weapon,position:{x:0,y:1,z:0}});
  for(const mesh of scene.getObjectByName('KartImpactFX').children){const life=mesh.geometry.attributes.fxLife.array;for(let i=1;i<life.length;i+=4)check(life[i]<=(mesh.name==='KartImpactFireFlash'?BLAST_FX_BUDGETS.fire:BLAST_FX_BUDGETS.total)+1e-6,weapon+' every particle lifetime respects its layer budget');}
- fx.update(.351);check(!scene.getObjectByName('KartImpactFireFlash').visible,weapon+' final fireball retires by .35 seconds');
+ fx.update(BLAST_FX_BUDGETS.fire+.001);check(!scene.getObjectByName('KartImpactFireFlash').visible,weapon+' final flame retires within its authored budget');
  fx.update(.66);arsenal.update(1.011);check(scene.getObjectByName('KartImpactFX').children.every(m=>!m.visible)&&!arsenal.active(),weapon+' last explosion particle retires within one second');
  check(!fx.emit({id:'blast',type:'blast',weapon,position:{x:0,y:1,z:0}}),'same accepted blast does not replay');
- const shader=scene.getObjectByName('KartImpactSmoke').material.fragmentShader;check(shader.includes('vec3(0.52,0.49,0.45)'),'warm grey smoke shader');fx.dispose();arsenal.dispose();
+ const smoke=scene.getObjectByName('KartImpactSmoke').material;check(smoke.depthTest&&!smoke.depthWrite,'smoke respects solid cover and never occludes later geometry through depth writes');fx.dispose();arsenal.dispose();
 }
-check(blastSize('nuke')>5*blastSize('cannon'),'nuke fireball is much bigger than one-heart Cannon splash');
+check(blastSize('nuke')>blastSize('cannon')&&blastSize('nuke')<=4.5,'nuke reads larger than Cannon without copying its14m gameplay radius into the fireball');
 {
  const scene=new THREE.Scene(),fx=createKartImpactFX(THREE,scene),arsenal=createArsenalFX(THREE,scene),models=new Map(),camera=new THREE.PerspectiveCamera();
  for(const id of ['a','b']){const model=createKartModel(THREE,{assets});models.set(id,model);scene.add(model);arsenal.warmStatus(model);}arsenal.reset();

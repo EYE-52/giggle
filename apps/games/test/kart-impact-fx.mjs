@@ -2,7 +2,7 @@
 // ordinary match claim: root native review verifies shader visuals separately.
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
-import {createKartImpactFX,IMPACT_FX_LIMITS} from '../public/js/engines/kart-impact-fx.mjs';
+import {createKartImpactFX,IMPACT_FX_LIMITS,BLAST_FX_BUDGETS,blastSize} from '../public/js/engines/kart-impact-fx.mjs';
 let checks=0;const check=(ok,msg)=>{assert.ok(ok,msg);checks++;},eq=(a,b,msg)=>{assert.deepEqual(a,b,msg);checks++;};
 const scene=new THREE.Scene(),camera=new THREE.PerspectiveCamera();
 let allocations=0;
@@ -29,7 +29,11 @@ check(counts()[1]===7,'Hit never adds another fireball or smoke cloud');
 check(!fx.emit({id:'legacy',type:'blast',x:14,z:-9}),'Legacy planar-only blast cannot invent contact height');
 check(!fx.emit({id:'bad',type:'impact',position:{x:0,y:NaN,z:0}}),'Invalid xyz cannot contaminate GPU buffers');
 fx.update(.08);eq(counts(),[14,7,18,0],'Explosion and small hit sparks share the short initial flash');
-fx.update(.07);eq(counts(),[0,0,0,0],'All explosion layers retire within 150ms');
+fx.update(.07);eq(counts(),[12,7,18,0],'Fire expansion and smoke remain after the short initial flash');
+fx.update(.3);eq(counts(),[0,7,0,0],'Smoke outlasts fire and sparks, instead of vanishing with the flash');
+fx.update(.46);eq(counts(),[0,0,0,0],'Every blast layer retires within its900ms total budget');
+check(blastSize('nuke')>blastSize('missile')&&blastSize('nuke')<=4.5,'Large blasts read larger without filling the whole damage radius with opaque fire');
+check(fire.material.blending===THREE.NormalBlending,'Orange fire keeps its colour on bright daytime ground');
 fx.reset('new-life');eq(counts(),[0,0,0,0],'Explicit epoch/life reset clears all particle lifetimes');
 check(fx.emit({...rocket,id:'blast-first',type:'blast'}),'Blast-first order creates explosion');
 check(!fx.emit({...rocket,id:'impact-second'}),'Blast then impact is one main explosion');
@@ -45,6 +49,11 @@ check(!fx.emit({...rocket,id:'blast-pair-b',type:'blast'}),'Second complementary
 fx.reset();check(fx.emit(rocket),'Base shooter explosion accepted');
 check(fx.emit({...rocket,id:'other-owner',type:'blast',pid:'b'}),'Different known owners cannot suppress each other');
 check(fx.emit({...rocket,id:'other-tick',type:'blast',tick:5}),'Different known authority ticks cannot suppress each other');
+fx.reset();
+check(fx.emit({id:'standalone-ko',type:'ko',weapon:'machinegun',position:p}),'A knockout without a blast event is visible');
+eq(counts(),[9,5,40,0],'Standalone knockout has a bounded fire/smoke burst as well as sparks');
+fx.update(BLAST_FX_BUDGETS.total+.001);eq(counts(),[0,0,0,0],'Standalone knockout fully retires');
+check(!fx.emit({...rocket,id:'stale-contact'},.15),'Old queued events remain suppressed rather than restarting a complete explosion');
 fx.reset();
 const bullet={id:'bullet',kind:'impact',weapon:'machinegun',position:{x:2,y:8,z:4},from:{x:2,y:8,z:-10}};
 check(fx.emit(bullet),'Bullet contact emits directional small sparks');

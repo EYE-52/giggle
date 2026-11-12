@@ -5,7 +5,7 @@ import vm from 'node:vm';
 import * as THREE from 'three';
 import {createKartCombatArt,projectileContactInset} from '../public/js/engines/kart-combat-art.mjs';
 import {createProjectilePlayback,grenadePose} from '../public/js/engines/kart-flight.mjs';
-import {createKartImpactFX} from '../public/js/engines/kart-impact-fx.mjs';
+import {createKartImpactFX,BLAST_FX_BUDGETS} from '../public/js/engines/kart-impact-fx.mjs';
 import {createArsenalFX} from '../public/js/engines/kart-arsenal-fx.mjs';
 import {createKartDrivingFX} from '../public/js/engines/kart-driving-fx.mjs';
 import {WEAPON_IDS} from '../public/js/engines/kart-weapon-contract.mjs';
@@ -64,7 +64,7 @@ for(const kind of [...kinds,'nuke','frost','mine']){
 for(const weapon of WEAPON_IDS){
  const scene=new THREE.Scene(),art=createKartCombatArt(THREE),fx=createKartImpactFX(THREE,scene),arsenal=createArsenalFX(THREE,scene);
  const e={id:weapon,type:'impact',weapon,position:{x:0,y:1,z:2},from:{x:0,y:1,z:1.99},direction:{x:0,y:0,z:1}};fx.emit(e);arsenal.event({...e,type:'blast'});
- bound('impact/blast '+weapon,lastVisible(()=>{fx.update(.01);arsenal.update(.01);},()=>scene.getObjectByName('KartImpactFX').children.some(o=>o.visible)||arsenal.active()));
+ bound('impact/blast '+weapon,lastVisible(()=>{fx.update(.01);arsenal.update(.01);},()=>scene.getObjectByName('KartImpactFX').children.some(o=>o.visible)||arsenal.active()),BLAST_FX_BUDGETS.total*1000);
  fx.reset();arsenal.reset();fx.emit({...e,id:'fire',type:'fire'});arsenal.event({...e,type:'fire'});
  bound('unacknowledged local fire '+weapon,lastVisible(()=>{fx.update(.01);arsenal.update(.01);},()=>scene.getObjectByName('KartImpactFX').children.some(o=>o.visible)||arsenal.active()));
  const body=art.projectile(weapon);scene.add(body);body.visible=true;fx.trail(body,.03);body.visible=false;

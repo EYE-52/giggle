@@ -6,9 +6,10 @@ import {WEAPONS} from './kart-weapon-contract.mjs';
  * impact+blast pairs may arrive in either order. Existing history guards
  * remain the renderer's responsibility. */
 export const IMPACT_FX_LIMITS=Object.freeze({fire:156,smoke:84,embers:144,trails:128,history:96,pairs:24});
-export const BLAST_FX_BUDGETS=Object.freeze({fire:.14,smoke:.14,embers:.14,total:.14});
+export const BLAST_FX_BUDGETS=Object.freeze({fire:.42,smoke:.9,embers:.45,total:.9});
 export const TRAIL_FX_BUDGET=.12;
-export function blastSize(weapon){const w=WEAPONS[weapon];if(!w?.splashRadius)return weapon==='mine'?1.3:.65;return Math.max(.65,w.splashRadius*.8*((w.splashDamage??w.damage)===1?.7:1));}
+// Presentation volume, separate from the authority's damage/warning radius.
+export function blastSize(weapon){const r=WEAPONS[weapon]?.splashRadius;return r?Math.min(4.5,Math.max(1.3,Math.sqrt(r)*1.2)):1.3;}
 const VERTEX=`
 attribute vec3 fxOrigin;
 attribute vec3 fxVelocity;
@@ -32,6 +33,7 @@ void main(){
  vec4 eye=viewMatrix*modelMatrix*vec4(center,1.0);
  float size=mix(fxSize.x,fxSize.y,t);
  vec2 offset=position.xy*size;
+ if(fxLayer<0.5&&fxLife.w<0.5)offset.y*=1.4;
  if((fxLayer>1.5&&fxLayer<2.5)||tracer){
   vec2 travel=(viewMatrix*modelMatrix*vec4(fxVelocity,0.0)).xy;
   float len=length(travel);
@@ -55,15 +57,27 @@ void main(){
  float soft=1.0-smoothstep(0.25,1.0,r+ripple);
  vec3 color;float alpha;
  if(fxLayer<0.5){
-  float hot=pow(max(0.0,1.0-r),1.4)*(1.0-vAge*0.6);
-  color=mix(vec3(1.0,0.12,0.012),vec3(1.0,0.82,0.16),hot);
-  if(vFlash>0.5)color=vFlash>2.5?vec3(0.45,0.85,1.0):vec3(1.0,0.94,0.66);
-  alpha=soft*(1.0-vAge)*(vFlash>0.5?1.0:0.8);
+  // Connected flame feet and uneven tongues, with a narrow soft edge.
+  // The small procedural motion stays in these already pooled billboards.
+  float h=vUv.y;
+  float x=q.x+0.07*sin(h*10.0+vSeed+vAge*8.0);
+  float width=0.9-0.78*h;
+  float tip=0.74+0.12*sin(x*10.0+vSeed)+0.07*sin(x*21.0-vSeed);
+  float shape=(1.0-smoothstep(width-0.12,width,abs(x)))
+   *smoothstep(0.0,0.32,h)*(1.0-smoothstep(tip-0.09,tip,h))
+   *(1.0-smoothstep(0.72,1.0,abs(q.x)));
+  float hot=(1.0-smoothstep(0.08,0.6,abs(x)))*(1.0-smoothstep(0.25,0.72,h));
+  color=mix(vec3(1.0,0.27,0.025),vec3(1.0,0.93,0.5),hot);
+  alpha=shape*0.8*smoothstep(0.0,0.06,vAge)*(1.0-smoothstep(0.55,1.0,vAge));
+  if(vFlash>0.5){
+   color=vFlash>2.5?vec3(0.45,0.85,1.0):vec3(1.0,0.96,0.73);
+   alpha=soft*(1.0-vAge)*(1.0-vAge);
+  }
   if(vFlash>1.5&&vFlash<2.5)alpha*=0.35;
  }else if(fxLayer<1.5){
-  color=mix(vec3(0.52,0.49,0.45),vec3(0.72,0.68,0.62),soft);
+  color=mix(vec3(0.25,0.25,0.27),vec3(0.48,0.47,0.46),1.0-soft);
   if(vFlash>2.5)color=mix(vec3(0.4,0.72,0.9),vec3(0.8,0.95,1.0),soft);
-  alpha=soft*0.25*smoothstep(0.0,0.08,vAge)*(1.0-smoothstep(0.35,1.0,vAge));
+  alpha=soft*0.24*smoothstep(0.0,0.12,vAge)*(1.0-smoothstep(0.35,1.0,vAge));
  }else if(fxLayer<2.5){
   color=mix(vec3(1.0,0.9,0.53),vec3(1.0,0.28,0.025),vAge);
   alpha=soft*(1.0-vAge);
@@ -88,14 +102,15 @@ export function createKartImpactFX(THREE,scene,{reducedMotion=false}={}){
   const origin=new Float32Array(capacity*3),velocity=new Float32Array(capacity*3),life=new Float32Array(capacity*4),size=new Float32Array(capacity*2);
   for(const[key,array,width]of [['fxOrigin',origin,3],['fxVelocity',velocity,3],['fxLife',life,4],['fxSize',size,2]])geometry.setAttribute(key,new THREE.InstancedBufferAttribute(array,width).setUsage(THREE.DynamicDrawUsage));
   geometry.instanceCount=capacity;
-  const material=new THREE.ShaderMaterial({vertexShader:VERTEX,fragmentShader:FRAGMENT,uniforms:{fxTime:{value:0},fxLayer:{value:layer}},transparent:true,depthWrite:false,depthTest:true,blending:layer===1?THREE.NormalBlending:THREE.AdditiveBlending,toneMapped:false});
+  const material=new THREE.ShaderMaterial({vertexShader:VERTEX,fragmentShader:FRAGMENT,uniforms:{fxTime:{value:0},fxLayer:{value:layer}},transparent:true,depthWrite:false,depthTest:true,blending:layer<=1?THREE.NormalBlending:THREE.AdditiveBlending,toneMapped:false});
   const mesh=new THREE.Mesh(geometry,material);mesh.name=name;mesh.frustumCulled=false;mesh.visible=false;mesh.renderOrder=20+(layer===1?0:layer===0?1:2);root.add(mesh);
   return {mesh,geometry,material,origin,velocity,life,size,capacity,owners:Array(capacity).fill(null),head:0};
  }
  const bufferNames=['fxOrigin','fxVelocity','fxLife','fxSize'];
  const fire=pool('KartImpactFireFlash',IMPACT_FX_LIMITS.fire,0),smoke=pool('KartImpactSmoke',IMPACT_FX_LIMITS.smoke,1),embers=pool('KartImpactEmbers',IMPACT_FX_LIMITS.embers,2),trails=pool('KartWeaponTrails',IMPACT_FX_LIMITS.trails,3),pools=[fire,smoke,embers,trails];
  function particle(p,x,y,z,vx,vy,vz,duration,startSize,endSize,seed,flash=0,owner=null){
-  duration=Math.min(duration,.14);
+  const budget=p===fire?BLAST_FX_BUDGETS.fire:p===smoke?BLAST_FX_BUDGETS.smoke:p===embers?BLAST_FX_BUDGETS.embers:TRAIL_FX_BUDGET;
+  duration=Math.min(duration,budget);
   const n=p.head;p.head=(n+1)%p.capacity;const a=n*3,b=n*4,c=n*2;
   p.origin[a]=x;p.origin[a+1]=y;p.origin[a+2]=z;p.velocity[a]=vx;p.velocity[a+1]=vy;p.velocity[a+2]=vz;
   const age=owner?0:emissionAge;p.owners[n]=owner;p.life[b]=time-age;p.life[b+1]=duration;p.life[b+2]=seed;p.life[b+3]=flash;p.size[c]=startSize;p.size[c+1]=endSize;
@@ -113,7 +128,7 @@ export function createKartImpactFX(THREE,scene,{reducedMotion=false}={}){
    const d=e.direction||{x:0,y:0,z:1},heavy=e.weapon==='cannon';
    particle(fire,p.x,p.y,p.z,d.x*2,d.y*2,d.z*2,.10,heavy?1.8:e.weapon==='frost'?1.6:1,.1,0,e.weapon==='frost'?3:1);
    const reduce=typeof reducedMotion==='function'?reducedMotion():reducedMotion;
-   if(!reduce&&(e.weapon==='machinegun'||e.weapon==='trishot'))particle(embers,p.x,p.y,p.z,d.z*2,2.5,-d.x*2,.35,.07,.03,.8);
+   if(!reduce&&(e.weapon==='machinegun'||e.weapon==='trishot'))particle(embers,p.x,p.y,p.z,d.z*2,2.5,-d.x*2,.14,.07,.03,.8);
    return true;
   }
   if(type==='collision'){
@@ -143,9 +158,7 @@ export function createKartImpactFX(THREE,scene,{reducedMotion=false}={}){
   const ko=type==='ko';
   const explosion=!ko&&(type!=='hit'||e.weapon==='mine')&&(type==='blast'||['missile','cannon','supernova','rocket','seeker','nuke','proximity','mine'].includes(e.weapon));
   const icy=e.weapon==='frost';
-  // A Nuke blast reads at arena scale and a knockout bursts big and bright;
-  // particle lifetimes stay the same, so nothing lingers.
-  const big=explosion?blastSize(e.weapon):ko?.7:.35;
+  const big=explosion?blastSize(e.weapon):ko?2.15:.35;
   if(explosion||ko){
    for(const prior of pairs){
     if((prior.paired&&!ko)||prior.type===type||time-prior.at>.12||(prior.pid!=null&&e.pid!=null&&prior.pid!==e.pid)||(prior.weapon!=null&&e.weapon!=null&&prior.weapon!==e.weapon)||(prior.tick!=null&&e.tick!=null&&prior.tick!==e.tick))continue;
@@ -158,15 +171,15 @@ export function createKartImpactFX(THREE,scene,{reducedMotion=false}={}){
   const reduce=typeof reducedMotion==='function'?reducedMotion():reducedMotion;
   particle(fire,p.x,p.y,p.z,0,0,0,reduce?.12:.11,(reduce?.7:explosion?1:.55)*big,(reduce?.7:explosion?1.3:.2)*big,0,reduce?2:icy?3:1);
   if(!reduce){
-   if(e.weapon==='nuke'&&type==='blast')particle(fire,p.x,p.y,p.z,0,6,0,.3,big*.5,big*1.1,1,1);
-   if(explosion){
-    for(let i=0;i<12;i++){
-     const a=i*2.399963,up=(i%4-1.5)*.22,r=.18+(i%3)*.17;
-     particle(fire,p.x+Math.cos(a)*r*big,p.y+up,p.z+Math.sin(a)*r*big,Math.cos(a)*1.1*big,1.2+i%3*.35,Math.sin(a)*1.1*big,.20+(i%4)*.04,(.25+(i%3)*.04)*big,(.7+(i%3)*.15)*big,i*.71,icy?3:0);
+   if(e.weapon==='nuke'&&type==='blast')particle(fire,p.x,p.y,p.z,0,2.2,0,.4,big*.7,big*.9,1,0);
+   if(explosion||ko){
+    for(let i=0;i<(ko?8:12);i++){
+     const a=i*2.399963,up=(i%4)*.12+(ko?.55:0),r=.12+(i%3)*.07;
+     particle(fire,p.x+Math.cos(a)*r*big,p.y+up,p.z+Math.sin(a)*r*big,Math.cos(a)*.24*big,1.7+i%3*.35,Math.sin(a)*.24*big,.32+(i%4)*.025,(.48+(i%3)*.05)*big,(.65+(i%3)*.06)*big,i*.71,icy?3:0);
     }
-    for(let i=0;i<7;i++){
+    for(let i=0;i<(ko?5:7);i++){
      const a=i*2.399963;
-     particle(smoke,p.x+Math.cos(a)*.3*big,p.y+(i%3)*.18,p.z+Math.sin(a)*.3*big,Math.cos(a)*.7*big,1.2+i%3*.2,Math.sin(a)*.7*big,.38+(i%3)*.07,.3*big,(.7+i%3*.12)*big,i*.93,icy?3:0);
+     particle(smoke,p.x+Math.cos(a)*.3*big,p.y+.25+(i%3)*.22+(ko?.35:0),p.z+Math.sin(a)*.3*big,Math.cos(a)*.35*big,2.2+i%3*.35,Math.sin(a)*.35*big,.72+(i%3)*.08,.3*big,(.8+i%3*.12)*big,i*.93,icy?3:0);
     }
    }
    // Bullet ricochets point away from the accepted incoming segment/normal.
@@ -178,7 +191,7 @@ export function createKartImpactFX(THREE,scene,{reducedMotion=false}={}){
    for(let i=0;i<(ko?40:explosion?12:6);i++){
     const a=i*2.399963,speed=ko?6+(i%5)*1.4:explosion?4+(i%3):3+(i%3),side=explosion?1:.4;
     const dx=nx+side*(Math.cos(a)*bx+Math.sin(a)*cx),dy=ny+side*(Math.cos(a)*by+Math.sin(a)*cy),dz=nz+side*(Math.cos(a)*bz+Math.sin(a)*cz);
-    particle(embers,p.x,p.y,p.z,dx*speed,dy*speed+(ko?2.5:0),dz*speed,ko?.45:explosion?.3:.2,ko?.13:explosion?.09:.075,.02,i*.51);
+    particle(embers,p.x,p.y,p.z,dx*speed,dy*speed+(ko?2.5:0),dz*speed,ko?.45:explosion?.3:.14,ko?.13:explosion?.09:.075,.02,i*.51);
    }
   }
   return true;

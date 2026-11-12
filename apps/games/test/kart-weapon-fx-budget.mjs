@@ -50,10 +50,22 @@ assert.equal(trail.geometry.attributes.fxOrigin.array[0],3,'streak starts behind
 impact.update(.081);assert(!trail.visible,'bullet streak retires within 80 ms');
 for(const weapon of WEAPON_IDS){
  impact.reset();arsenal.reset();event.weapon=weapon;event.type='blast';impact.emit(event);arsenal.event(event);
- for(const layer of root.children){const a=layer.geometry.attributes.fxLife.array;for(let i=0;i<a.length;i+=4)assert(a[i+1]<=BLAST_FX_BUDGETS.total+1e-7,'particle lifetime bounded for '+weapon);}
+ for(const [index,layer] of root.children.entries()){
+  const a=layer.geometry.attributes.fxLife.array,budget=[BLAST_FX_BUDGETS.fire,BLAST_FX_BUDGETS.smoke,BLAST_FX_BUDGETS.embers,TRAIL_FX_BUDGET][index];
+  for(let i=0;i<a.length;i+=4)assert(a[i+1]<=budget+1e-7,'individual particle layer stays bounded for '+weapon);
+ }
  impact.update(BLAST_FX_BUDGETS.total+.001);arsenal.update(BLAST_FX_BUDGETS.total+.001);
  assert(root.children.every(o=>!o.visible)&&!arsenal.active(),weapon+' last particle and shockwave retire within budget');
 }
+// A large damage radius must not turn the cosmetic flash into a road-sized band.
+arsenal.reset();arsenal.event({type:'blast',weapon:'nuke',position:{x:0,y:1,z:0}});
+const shock=scene.getObjectByName('ArsenalFX').children.find(o=>o.name.startsWith('ArsenalRing')&&o.visible);
+assert(shock.material.opacity<=.22,'ground shock starts with subdued opacity');
+arsenal.update(.25);
+assert(shock.scale.x<=4.5&&shock.material.opacity<.01,'large blast ring stays compact and fades before the smoke');
+arsenal.update(.051);assert(!shock.visible,'ground band retires after 300 ms');
+arsenal.event({type:'blast',weapon:'mine',position:{x:0,y:1,z:0}});
+assert(shock.material.opacity>.2,'reused shock resets its peak opacity');
 event.weapon='machinegun';event.type='fire';arsenal.react(event,models);arsenal.status(model,{});
 const muzzle=model.getObjectByName('KartWeaponMuzzleFlash');
 assert(muzzle.visible,'a warm muzzle flash is attached to the firing kart');
