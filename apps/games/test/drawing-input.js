@@ -16,7 +16,8 @@ for (const [game,state,pid,strokes] of [[doodle,ds,ds.drawer,ds.strokes],[phone,
     assert.equal(strokes.length,0,'malformed strokes are rejected atomically');
   }
   game.onAction(state,ctx,pid,{stroke:{pts:[[-1,2],[0.2,0.3]],color:'#ffbe35',size:50},...meta()});
-  const {tool,gestureId,chunk,...normalized}=strokes[0];
+  const {tool,gestureId,chunk,id,...normalized}=strokes[0];
+  assert.equal(id, game === doodle ? `${gestureId}:${chunk}` : undefined, 'only Doodle publishes keyed chunks');
   assert.deepEqual(normalized,{pts:[[0,1],[0.2,0.3]],color:'#ffbe35',size:30});
   if(game===phone) assert.equal(tool,undefined,'Draw Phone format stays unchanged');
 }
