@@ -425,7 +425,7 @@ for(const missingDrivers of [['bunny'],['fox','bunny','panda','raccoon']]){
       const wire={...adapter.viewForTransport(state,viewer),instanceId:raw.instance,you:viewer},packetBefore=JSON.stringify(wire.mines);
       view=rig({graphics:true});view.render(wire);await view.settle();view.frame();
       const scene=view.loads.at(-1).handle.built.scene,traps=scene.children.filter(o=>o.visible&&o.userData.combat?.type==='mine');
-      check(mapId+' '+kind+' actual production sync displays every released loaded MineTrap',traps.length===3&&traps.every(t=>t.userData.combat.inner.children[0].name==='MineTrap'));
+      check(mapId+' '+kind+' actual production sync displays every released loaded trail round',traps.length===3&&traps.every(t=>t.getObjectByName('Mine0')?.isMesh));
       for(const [i,m]of wire.mines.entries()){
         const source=raw.mines[i],basePoint=new THREE.Vector3().copy(source.position).addScaledVector(new THREE.Vector3().copy(source.normal),-(source.radius+.015)),support=probe.supportAt({...basePoint,y:basePoint.y+.4},2),normal=new THREE.Vector3().copy(support.normal).normalize();
         check(mapId+' '+kind+' authority packet keeps its swept sphere above independently queried support',support.surfaceId===source.surfaceId&&new THREE.Vector3().copy(source.position).sub(new THREE.Vector3().copy(support.point)).distanceTo(normal.clone().multiplyScalar(source.radius+.015))<1e-5&&new THREE.Vector3().copy(source.normal).distanceTo(normal)<.0001);
