@@ -29,7 +29,7 @@ check(counts()[1]===7,'Hit never adds another fireball or smoke cloud');
 check(!fx.emit({id:'legacy',type:'blast',x:14,z:-9}),'Legacy planar-only blast cannot invent contact height');
 check(!fx.emit({id:'bad',type:'impact',position:{x:0,y:NaN,z:0}}),'Invalid xyz cannot contaminate GPU buffers');
 fx.update(.08);eq(counts(),[14,7,18,0],'Explosion and small hit sparks share the short initial flash');
-fx.update(.07);eq(counts(),[12,7,18,0],'Fire expansion and smoke remain after the short initial flash');
+fx.update(.07);eq(counts(),[12,7,12,0],'Fire expansion and smoke remain while short ricochet sparks retire');
 fx.update(.3);eq(counts(),[0,7,0,0],'Smoke outlasts fire and sparks, instead of vanishing with the flash');
 fx.update(.46);eq(counts(),[0,0,0,0],'Every blast layer retires within its900ms total budget');
 check(blastSize('nuke')>blastSize('missile')&&blastSize('nuke')<=4.5,'Large blasts read larger without filling the whole damage radius with opaque fire');
