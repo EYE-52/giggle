@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import {auditAssets} from './helpers/kart-raised-audit.mjs';
 import * as THREE from 'three';
 import {createKartPhysics} from '../public/js/engines/kart-physics-core.mjs';
 import {createKartCameraCollision} from '../public/js/engines/kart-camera-collision.mjs';
@@ -86,8 +87,19 @@ try{
  const collision=createKartCameraCollision(THREE,fixture.colliders),focus=new THREE.Vector3(20,.85,5),eye=new THREE.Vector3(20,12,5);
  assert(collision.constrain(eye,focus));assert(eye.y<6.2,'underside is finite and solid to the camera');collision.dispose();
 }finally{world.dispose();}
-const scene=new THREE.Scene(),pickups=createRaisedPickups(THREE,scene);
+const pickupAssets=await auditAssets();
+const scene=new THREE.Scene(),pickups=createRaisedPickups(THREE,scene,48,pickupAssets.pickupGear.getObjectByName('PickupCrateLOD'));
 const homes=Array.from({length:48},(_,i)=>({id:'c'+i,homeId:'home'+i,profile:i<4?'risk':'safe',position:{x:i*4,y:.6,z:0},available:true}));
 pickups.update(homes,0);assert.equal(pickups.mesh.count,48);assert.equal(pickups.homes.count,48);
-homes.forEach(c=>c.available=false);pickups.update(homes,1);assert.equal(pickups.mesh.count,0);assert.equal(pickups.homes.count,48);pickups.dispose();assert.equal(scene.children.length,0);
+assert.equal(scene.children.length,2,'48 live crates and homes retain exactly two batches');
+const triangles=pickups.mesh.geometry.attributes.position.count/3;
+assert(triangles>12&&triangles<=400,'actual moulded crate LOD stays within 400 triangles per instance');
+assert.equal(pickups.mesh.material.map,null,'raised source crate needs no new texture or request');
+assert.deepEqual([...new Set(pickups.mesh.geometry.attributes.pickupMark.array)],[0,1,2],'one geometry contains shell, ordinary question and rare star');
+assert.equal([...pickups.mesh.geometry.attributes.homeRisk.array].filter(Boolean).length,4,'risk choices are per instance');
+const instance=new THREE.Matrix4();pickups.mesh.getMatrixAt(0,instance);
+assert(Math.abs(instance.elements[13]-.9)<1e-6,'source LOD keeps the original pickup-center and bob offset');
+let borrowedDisposals=0;pickupAssets.pickupGear.traverse(part=>part.geometry?.addEventListener('dispose',()=>borrowedDisposals++));
+
+homes.forEach(c=>c.available=false);pickups.update(homes,1);assert.equal(pickups.mesh.count,0);assert.equal(pickups.homes.count,48);pickups.dispose();assert.equal(scene.children.length,0);assert.equal(borrowedDisposals,0,'retiring pickups retains borrowed shared library meshes');
 console.log('PASS ordinary route support, alternate-climb exclusion, camera underside, 48-box/48-outline batch disposal');

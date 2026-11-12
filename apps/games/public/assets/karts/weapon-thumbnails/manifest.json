@@ -72,5 +72,11 @@
       "sourceSha256": "9ab2652457a89218b8d5708e91800cc24c99ebeb3def6200bccb603892469cc0",
       "task": "01a1cfef-9e4e-71b0-b9fc-177d97e06724"
     }
+  },
+  "raisedPickupLOD": {
+    "node": "PickupCrateLOD",
+    "triangles": 327,
+    "capacity": 48,
+    "sourceSha256": "aa0cc8516562ae4c79f903eaa52a3095887a7ea939d1f8ce52609ad2937bb053"
   }
 }

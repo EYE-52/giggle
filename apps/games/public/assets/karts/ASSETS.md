@@ -46,4 +46,6 @@ npx --yes @gltf-transform/cli@4.5.0 meshopt "$gear_build/gear.glb" public/assets
 npm run vendor
 ```
 
+The same library includes `PickupCrateLOD`: a reduced version of the real Meshy shell, nested face pads and lid, with flattened source question marks and a rare star. Raised arenas combine its three surfaces once and draw all 48 crates in one instanced batch, plus the existing home-outline batch. The 327-triangle crate costs 15,696 triangles at full capacity, with no new asset request or runtime texture. Full equipped fake crates and classic pickup art retain their own detail.
+
 The Python step also renders the twelve transparent HUD images. The browser preloads them before the round. The compressed gear library shares materials and buffers across karts, including the small mesh used for a rocket in flight.

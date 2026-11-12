@@ -1,5 +1,5 @@
 # /// script
-# dependencies = ["trimesh>=4.8,<5","numpy","scipy","pillow","fast-simplification>=0.1.12,<0.2"]
+# dependencies = ["trimesh>=4.8,<5","numpy","scipy","pillow","fast-simplification>=0.1.12,<0.2","shapely>=2,<3","mapbox-earcut>=2,<3"]
 # ///
 """Build the editable Gear scene and its 96px HUD portraits. Pass an output GLB path."""
 from pathlib import Path
@@ -215,6 +215,40 @@ def models():
         # bumper, two curved horns and their braces for the snap-on accessory.
         ram=ram_bumper())
 
+def pickup_crate_lod():
+    from shapely.geometry import Polygon
+    from shapely.ops import unary_union
+    # This is the same moulded Meshy shell, nested face pads and lid used by
+    # classic pickups and the fake crate. Only this crowd LOD is simplified.
+    shell = []
+    for name,budget in [('CrateBody',56),('CrateTrim',72),('CrateInset',24)]:
+        mesh = asset('giggle-crate.glb',name)
+        mesh.merge_vertices(merge_norm=True,merge_tex=True)
+        pigment = mesh.visual.face_colors[0]
+        bounds = mesh.bounds.copy()
+        mesh = mesh.simplify_quadric_decimation(face_count=budget)
+        mesh.vertices=np.clip(mesh.vertices,bounds[0],bounds[1])
+        mesh.visual=tm.visual.ColorVisuals(mesh,vertex_colors=pigment)
+        mesh.apply_translation((0,-.75,0))
+        shell.append(mesh)
+    question = asset('giggle-crate.glb','CrateQuestion')
+    front = question.triangles[(question.face_normals[:,2]>.99)&(question.triangles_center[:,2]>.61)]
+    outline = unary_union([Polygon(t[:,:2]) for t in front]).simplify(.018,preserve_topology=True)
+    def sides(polygons,color):
+        marks=[]
+        for polygon in polygons:
+            v,f=tm.creation.triangulate_polygon(polygon,engine='earcut')
+            v=np.column_stack((v[:,0],v[:,1]-.75,np.full(len(v),.627)))
+            face=paint(tm.Trimesh(v,f,process=False),color)
+            if face.face_normals[:,2].mean()<0:face.invert()
+            marks.extend([turn(face.copy(),a*np.pi/2,(0,1,0)) for a in range(4)])
+        return together(marks)
+    question = sides(list(outline.geoms) if outline.geom_type=='MultiPolygon' else [outline],GOLD)
+    angles=np.arange(10)*np.pi/5+np.pi/2
+    radius=np.where(np.arange(10)%2==0,.42,.19)
+    star=sides([Polygon(np.column_stack((np.cos(angles)*radius,np.sin(angles)*radius+.79)))],CREAM)
+    return together(shell),question,star
+
 def standard_material(tree):
     tree['materials']=[{'name':'Toy enamel','pbrMetallicRoughness':{'metallicFactor':.15,'roughnessFactor':.53}}]
     for item in tree['meshes']:
@@ -261,5 +295,11 @@ if __name__ == '__main__':
                                parent_node_name='Gear_cannon',transform=pose)
         else:
             scene.graph.update(frame_to='Rocket'+str(i),frame_from='Gear_cannon',matrix=pose,geometry='ToyRound')
+    scene.graph.update(frame_to='PickupCrateLOD',frame_from='world',matrix=np.eye(4))
+    crate_lod=pickup_crate_lod()
+    manifest['raisedPickupLOD']={'node':'PickupCrateLOD','triangles':sum(len(mesh.faces) for mesh in crate_lod),'capacity':48,'sourceSha256':hashlib.sha256((ART/'giggle-crate.glb').read_bytes()).hexdigest()}
+    for label,mesh in zip(('Shell','Question','Star'),crate_lod):
+        scene.add_geometry(linear_colors(mesh),node_name='PickupCrate'+label,geom_name='PickupCrate'+label,
+                           parent_node_name='PickupCrateLOD')
     (ART / 'weapon-thumbnails' / 'manifest.json').write_text(json.dumps(manifest,indent=2)+'\n')
     Path(sys.argv[1]).write_bytes(tm.exchange.gltf.export_glb(scene,include_normals=True,tree_postprocessor=standard_material))

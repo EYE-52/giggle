@@ -14,7 +14,7 @@ import C from '../../public/js/engines/kart-physics-config.mjs';
 export async function auditAssets(){
   globalThis.self=globalThis;globalThis.createImageBitmap=async()=>({width:1,height:1,close(){}});await MeshoptDecoder.ready;
   const loader=new GLTFLoader().setMeshoptDecoder(MeshoptDecoder),assets={},load=async file=>{const b=await readFile(new URL('../../public/assets/karts/'+file+'.glb',import.meta.url));return(await loader.parseAsync(b.buffer.slice(b.byteOffset,b.byteOffset+b.byteLength),'')).scene;};
-  for(const key of['kart','crate'])assets[key]=await load(KART_ASSETS[key]);
+  for(const key of['kart','crate','pickupGear'])assets[key]=await load(KART_ASSETS[key]);
   const drivers=[];for(const name of KART_DRIVERS)drivers.push(await load('drivers/'+name));
   assets.kartVariants=buildKartDriverVariants(THREE,assets.kart,drivers,mergeGeometries);return assets;
 }
@@ -38,7 +38,7 @@ export function auditRaised({id,assets,tier='high',players=2,legacy=false,factor
   for(let i=0;i<players;i++){const k=createKartModel(THREE,{assets,driver:KART_DRIVERS[i%4],color:0x43acc4}),p=map.spawns[i%map.spawns.length];k.position.set(p.x,p.y+.645,p.z);scene.add(k);models.push(k);if(!legacy)shadow.add(k);if(i)entries.push({mesh:k,color:0x43acc4,visible:true});}
   const boxes=map.sockets.slice(0,map.complex?(players>8?12:9):6).map(p=>({position:{x:p.x,y:p.y+.6,z:p.z},available:true}));let pickups,lod;
   if(legacy)for(const box of boxes){const model=createCrateModel(THREE,assets);model.position.copy(box.position);model.position.y-=.6;scene.add(model);}
-  else{pickups=createRaisedPickups(THREE,scene);pickups.update(boxes,0);lod=createKartLod(THREE,{fullDetail:1,keepNear:1,far:0,originY:.55+C.chassis.modelOriginY});scene.add(lod.object);lod.update({position:models[0].position},entries,tier==='low'?0:1);lod.object.visible=lod.object.count>0;}
+  else{pickups=createRaisedPickups(THREE,scene,48,assets.pickupGear.getObjectByName('PickupCrateLOD'));pickups.update(boxes,0);lod=createKartLod(THREE,{fullDetail:1,keepNear:1,far:0,originY:.55+C.chassis.modelOriginY});scene.add(lod.object);lod.update({position:models[0].position},entries,tier==='low'?0:1);lod.object.visible=lod.object.count>0;}
   world.animate(0,0);const stats=census(scene,legacy||tier!=='low');
   return{scene,world,features,models,stats,dispose(){pickups?.dispose();lod?.dispose();shadow.dispose();features.dispose();world.dispose();}};
 }
