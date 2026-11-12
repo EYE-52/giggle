@@ -300,3 +300,25 @@ The whole entry now opens the game guide or setup. The Pocket Karts art, name, d
 The catalogue and guide checks passed in 18 desktop, tablet and phone layouts. In 12 additional WebKit and Chromium runs, two browser players joined a local room, opened the recommendations and full catalogue, and selected a game. The card art stayed inside its frame in both appearances. A separate Number Hunt check found zero clipped or covered elements across four viewport sizes in Day and Night.
 
 The full 259-command Games suite passed. Its container check measured 72 games in 1,224 layouts with zero failures or browser errors. The separate portrait and short-landscape board playtest passed 90 checks on the final board layout.
+
+## Pocket Karts practice, maps and pickups
+
+The practice toolbar used three heavy outlines on its player counter and stacked the number above its label. The revised controls keep the count on one line and use a single primary Play action. In the match, the pickup display also moves above the kart in a narrow keyboard window. The layout checker found zero cut or covered elements at 375, 390, 1024 and 1440 pixels. The checks included the night theme at 390 and 1440 pixels.
+
+All 18 battle arenas now allow 2–32 drivers. The recommended party size appears on the map card. The results screen lets the host change arenas. All 558 combinations started. Each of the 160 extra starting positions on smaller raised maps passed a six-metre departure test. On the older raised maps, 96 original starts also passed a 20-metre clearance check and a full-throttle drive. The original free-driving and touch measurements are in the Pocket Karts playtest report.
+
+The player used to disappear behind a low barrier or a decorative light post on Rookie Ring. On Neon Harbor, a nearby decorative light could fill the screen. The camera now checks visibility of the body and wheels near low walls; nearby decorative lights fade. A moving cannon entry also stays outside the kart. The visual checks covered all 18 map families; the full camera test included 22 desktop and phone shots. On older raised maps the ground outside the arena now meets the existing foothills.
+
+Meshy supplied eight new pickup models and the shared mystery-crate shell. Three earlier Meshy models remain in use. The fake crate borrows its appearance from the real pickup. The HUD portraits come from the equipped meshes. Controlled browser checks exercised all 12 pickups on a keyboard and on an emulated touch screen, including driving into an actual crate and triggering the item. The test selected the next reward so every item could be checked.
+
+## Practice, one-device setup and shared game controls
+
+Practice uses the original cover art, text tabs and a single Play action. At 390 pixels the selected game panel went from about 338 pixels high to 128. The setup bar fits in 56 pixels at both 375 and 390 pixels. At 320 pixels it wraps into two rows with full touch targets. Keyboard navigation follows the visible category, including Home and End. The browser checks selected all 72 titles in each theme and played Trivia, Chess and Pocket Karts.
+
+One-device setup now shows the selected game's rules summary and actual player range. On desktop, Start sits beneath the player names. On phones it stays within reach as the settings scroll. The Hide button previously split onto two lines even on desktop. It now holds its full label in a 44-pixel touch target. The round number stays together. Result colours, focus rings and pressed states are still visible with the thinner borders.
+
+A browser check followed 26 screens at 390 and 1280 pixels, including a private vote and a two-browser Four in a Row match. Neither width had page overflow or browser errors. Another check played a full three-person Truth or Dare round using both random cards and custom questions at all four sizes and in both themes, and mounted all 21 one-device games. The final Pocket Karts clipping check found zero clipped or covered elements in all eight viewport/theme combinations. The final Meshy assets held 60 fps on an Apple M5 during the keyboard and touch driving samples. A stock Practice preview also loaded the arena and two connected seats over the Wi-Fi address in Mac WebKit. Physical phone performance is unverified.
+
+Shared-device games now identify people by name through a handoff, reveal and final score. Online players keep their own seat marker. In a two-player Four in a Row match, the active seat moved from Ada to Bo after the move. The 390-pixel Would You Rather vote counter uses 58 pixels of its 89-pixel slot.
+
+The complete 262-command Games suite passed on the final application commit, including the new shared-seat regression, all 72 games in 1,224 layout measurements, the generated kart bundle check and the telemetry browser flow. The automated layout sweep reported zero failures and zero browser errors.

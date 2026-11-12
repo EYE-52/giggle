@@ -21,7 +21,7 @@ Tall Team’s screenshots show a readable side-mounted rocket cluster and a clea
 
 Generate the smallest useful piece in Meshy and keep the source GLB. Fit parts to the kart in game units. The generated rocket prop had five rockets. The shipped rack uses three copies of one cleaned round, with a separate visible count. Mount the spinner at wheel height and stow traps outside the rear spoiler. Keep the center above the driver's head open. One portrait and both viewing angles must agree about the item.
 
-Weld duplicate vertices, simplify the invisible or tiny detail, then compress the shipping GLB with Meshopt. Preserve the named rocket nodes so they can disappear independently. Load once and clone shared geometry for each kart. Check the decoded geometry, its mounts and the individual rounds again after compression. The first shipped mine stack and decoy exceeded the 3,000-triangle allowance. The final decoded mine stack has 2,306 triangles and the decoy has 2,310, each in one draw. The budget test loads the same compressed file as the browser. The final gear file is about 102 KB. All declared model preloads and their decoder use 956,216 bytes against the existing 1 MB budget. The art sources, task IDs and exact build commands are in the asset notes. [Pocket Karts asset notes](../apps/games/public/assets/karts/ASSETS.md) · [Meshoptimizer documentation](https://github.com/zeux/meshoptimizer/blob/master/gltf/README.md)
+Weld duplicate vertices, simplify the invisible or tiny detail, then compress the shipping GLB with Meshopt. Preserve the named rocket nodes so they can disappear independently. Load once and clone shared geometry for each kart. Check the decoded geometry, its mounts and the individual rounds again after compression. The equipped mine stack uses 2,694 triangles across its three visible rounds. The decoy uses 1,933. Both fit the 3,000-triangle allowance. The 327-triangle version of the pickup lets the raised arenas draw up to 48 crates together. The budget test loads the same compressed file as the browser. The final gear file is 103,132 bytes. All declared model preloads and their decoder use 976,932 bytes against the existing 1 MB budget. The art sources, task IDs and exact build commands are in the asset notes. [Pocket Karts asset notes](../apps/games/public/assets/karts/ASSETS.md) · [Meshoptimizer documentation](https://github.com/zeux/meshoptimizer/blob/master/gltf/README.md)
 
 ## Weapon design
 
@@ -75,4 +75,34 @@ Parking at the pickup’s original coordinates after spending the item produced 
 
 A controlled Rookie Ribbons circuit started at a known pose, climbed from 0.64 m to 6.65 m, crossed the bridge and came back down. The renderer replayed the recorded physics run with eight visible karts on an M4 Mac. The chase camera followed the recorded kart as a spectator so local driver prediction could not move it off the recorded path. Across 2,063 frames the kart stayed in view, the camera stayed outside the static scenery, and its largest step was 0.155 m. Frame p95 was 16.7 ms. Separately, one Chrome driver and seven ordinary WebSocket drivers shared a live room. In a 20-second sample it rendered at 60 fps, with a frame p95 of 16.8 ms. That driver used normal prediction on the lower floor. Driver prediction on the ramp and real internet delivery remain unmeasured in these runs.
 
-The USB iPhone was detected. Safari reported that Web Inspector was off. At the time of this report, the physical phone had not returned a completed match. The touch results above came from a Mac. A local, one-tap Safari test is available on the same Wi-Fi for the timed round and a separate seeded weapon check.
+The USB iPhone was detected. Safari reported that Web Inspector was off. As of the evening recheck, USB discovery listed no device and the saved results contained only Mac browser runs. The touch results above came from a Mac. A phone on the same Wi-Fi can open the regular Practice route on the local Games server and tap Play.
+
+## Handling and all 18 battle arenas
+
+Every arena accepts 2–32 drivers in Zap Battle. The picker shows the suggested group size and the host can open it again from the results screen. Small groups get the smallest layout of a large arena. A room that exceeds a map's suggested size gets the full layout. Extra drivers use spare start points first, then clear bays beside the original grid. The server checks the chassis, wheel support and space between drivers. Garage Battle and Star Rush still use their five compatible arenas.
+
+All 558 combinations of arena and room size started in the real room engine. Run `node apps/games/test/kart-complex-rooms.js --all-counts` to repeat the check. A second check connected 32 local WebSockets to each of the 13 raised arenas. Everyone received a driving seat. On desktop and at 390 px with touch input, all 18 previews could be selected. Two practice seats drove Skyport Split, finished the round and the host saved Harbor Fork for the rematch. Mid-round joiners watched, then took driving seats at the next start.
+
+Both older and newer raised worlds can use the same compact network updates. In a controlled 32-driver run, Alpine Courtyard sent about 46 KiB per second to a browser using compact updates, compared with 724 KiB for full JSON updates. Reconnect, item positions, health, driver positions and private input acknowledgements were checked. This measures a local simulation and wire format.
+
+### Driving on Rookie Ring
+
+| Browser input | Before | After |
+| --- | ---: | ---: |
+| Keyboard, rest to 54 km/h | 0.77 s | 0.67 s |
+| Touch stick, rest to 54 km/h | 0.89 s | 0.78 s |
+| Keyboard, high-speed turn radius | 13.82 m | 10.32 m |
+| Touch stick, high-speed turn radius | 14.51 m | 10.57 m |
+| Keyboard, moving forward to 14.4 km/h in reverse | 0.88 s | 0.77 s |
+| Maximum reverse speed, both inputs | 17.76 km/h | 28.39 km/h |
+
+The turn samples used the same part of a continuous turn in open space, at roughly 61–63 km/h. More grip helps the front wheels carry the kart through the turn. The extra pull tapers away at cruising speed. Partial stick movement gets a gentler launch. The browser and server both use these rules.
+
+On one downhill sample in Neon Yard the physical chassis touched the ground by 6.2 mm for one simulation step. The terrain check limits moving contact to 1 cm for at most two consecutive steps and checks positive clearance again afterward. Wall and kart collision checks run separately.
+
+
+### Frame timing
+
+Two separate one-minute practice matches finished on an Apple M5 in Chrome. The visible kart canvas submitted roughly 60 frames per second during a 46-second moving sample on Rookie Ring at 1280 × 800 and Rookie Ribbons at 390 × 844 with touch input. With the final Meshy assets and arena crates, 95% of frame intervals were under 18.6 ms on keyboard and 18.8 ms with touch. Neither sample contained a gap above 50 ms. The measurements used the Mac GPU with the other test browsers stopped.
+
+On Alpine Courtyard, one browser driver and 31 WebSocket drivers stayed connected. With hardware graphics, Chrome measured 60.1 fps during 21 seconds of driving and received 20.2 network updates per second. With SwiftShader software graphics, the same test averaged 13.8 fps. Software-only rendering of a crowded room remains slow.
