@@ -50,3 +50,29 @@ The integrated driving benchmark, taken before the last two model reductions and
 A second Chrome test ran the same drive three times over local delivery and three times through a WebSocket proxy with delay and jitter. Median measured round-trip delay rose from 0.5 to 103.7 ms. The first server update showing the turn arrived after 68.3 ms locally and 157.6 ms with the proxy. The visible local turn began within overlapping ranges of 61–80 ms in the two conditions, and the 95th-percentile frame interval stayed at 16.7–16.8 ms. This is evidence that local steering prediction works on this route. The test did not measure packet loss, the frequency of prediction corrections, or a real mobile network.
 
 For the next playtest, record two full matches on the affected phone or desktop and connection. Start with a cold load. Mark the first pickup, first shot, ramp, knockout and respawn. Compare the ten slowest frames and input-to-picture timings against the local build. If local frames are steady while an online kart jumps, investigate network delivery and correction before spending time on art. If frame time rises when scenery or several effects enter view, reduce that scene's graphics cost and rerun the same route.
+
+## Local playtest, 12 November 2026
+
+A two-driver Rookie Ribbons battle ran its full 60-second clock in a visible Chrome window at 1440 × 900 on an Apple M5. The keyboard driver travelled about 331 metres, reversed, turned beside walls and drove under the bridge. The game showed a 0–0 tie and awarded both drivers 150 points. The rival used ordinary game inputs. Neither kart was moved by the test.
+
+The browser presented about 118 frames per second. The 95th-percentile frame interval was 9.2 ms. Six frames took more than 50 ms. Five coincided with screenshots and one with starting the profiler. Outside those capture windows, the longest interval was 25.2 ms. The two-seat run showed no sustained driving or camera stall.
+
+A second two-driver battle ran for 90 seconds at a 390 × 844 touch viewport on a separate M4 Mac. Two simultaneous browser touch points operated the stick and Fire. The driver travelled 138 metres, picked up Trail Mines, Triple Rockets, Spinning Bumper and Proximity Trap from ordinary random boxes, and used all four. The results screen showed the tie. Frame intervals were 16.8 ms at the 95th percentile, with two intervals above 50 ms including screenshot collection. This checks the touch controls on a Mac GPU. It does not measure an iPhone.
+
+### Pickup and parking checks
+
+Each of the 12 battle items was collected and used through the desktop controls and through Chrome’s touch input at 390 pixels. For these 24 trials, the test placed the two karts and an actual crate on the course and selected its next reward. The driver started empty, drove into the crate, read the equipped item and pressed Fire. The game handled collisions, ammunition, shots, traps, contact effects and knockouts. The test observed the effect on the target and the inventory retiring for all 12 items. Releasing the Fire contact kept the other contact on the stick.
+
+| Item type | Items exercised |
+| --- | --- |
+| Tracking and aimed shots | Tracking Blaster, Burst Blaster, Homing Missile, Triple Rockets |
+| Placed traps | Trail Mines, Proximity Trap, Fake Crate |
+| Contact and area effects | Spinning Bumper, Turbo Ram, Supernova, Frost Bomb, Nuke |
+
+Parking at the pickup’s original coordinates after spending the item produced one pickup total over 8.4 seconds in each browser test. That covered four ordinary refill intervals on this Rookie Ribbons pad. An additional 14-second test of the game rules covered Classic, Garden and Rookie Ribbons. These cases now run in `apps/games/test/kart-classic-payloads.mjs` and `apps/games/test/kart-arena-policy.mjs`.
+
+### Chase camera and room size
+
+A controlled Rookie Ribbons circuit started at a known pose, climbed from 0.64 m to 6.65 m, crossed the bridge and came back down. The renderer replayed the recorded physics run with eight visible karts on an M4 Mac. The chase camera followed the recorded kart as a spectator so local driver prediction could not move it off the recorded path. Across 2,063 frames the kart stayed in view, the camera stayed outside the static scenery, and its largest step was 0.155 m. Frame p95 was 16.7 ms. Separately, one Chrome driver and seven ordinary WebSocket drivers shared a live room. In a 20-second sample it rendered at 60 fps, with a frame p95 of 16.8 ms. That driver used normal prediction on the lower floor. Driver prediction on the ramp and real internet delivery remain unmeasured in these runs.
+
+The USB iPhone was detected. Safari reported that Web Inspector was off. At the time of this report, the physical phone had not returned a completed match. The touch results above came from a Mac. A local, one-tap Safari test is available on the same Wi-Fi for the timed round and a separate seeded weapon check.
