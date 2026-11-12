@@ -154,21 +154,36 @@ function syncCount() {
   const number = document.createElement('span'), unit = document.createElement('span');
   number.className = 'practice-count-number'; number.textContent = Number.isFinite(n) && options.length ? String(n) : '–';
   unit.className = 'practice-count-unit'; unit.textContent = Number.isFinite(n) && options.length ? ` player${n === 1 ? '' : 's'}` : '';
-  $('practiceCountLabel').replaceChildren(number, unit);
+  const icon = document.createElement('span');
+  icon.className = 'practice-count-icon'; icon.setAttribute('aria-hidden', 'true');
+  icon.innerHTML = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/><circle cx="9" cy="7" r="4"/></svg>';
+  $('practiceCountLabel').replaceChildren(icon, number, unit);
+  const min = Math.min(...options), max = Math.max(...options), fixed = options.length === 1;
+  const output = $('practiceCountLabel'), disabled = countSelect.disabled || !options.length || fixed;
+  output.tabIndex = disabled ? -1 : 0;
+  output.setAttribute('aria-disabled', String(disabled));
+  output.title = fixed ? `This game uses ${n} players` : 'Use arrow keys to change players';
+  for (const [key, value] of Object.entries({ 'aria-valuemin': min, 'aria-valuemax': max, 'aria-valuenow': n })) {
+    if (options.length) output.setAttribute(key, String(value)); else output.removeAttribute(key);
+  }
+  output.setAttribute('aria-valuetext', options.length ? `${n} players${fixed ? ', fixed for this game' : ''}` : 'Loading players');
   $('practiceLess').disabled = countSelect.disabled || !options.length || n <= Math.min(...options);
   $('practiceMore').disabled = countSelect.disabled || !options.length || n >= Math.max(...options);
+  $('practiceLess').title = fixed ? output.title : n <= min ? `At least ${min} players` : 'Fewer players';
+  $('practiceMore').title = fixed ? output.title : n >= max ? `Up to ${max} players` : 'More players';
   paintSeats();
 }
-function stepCount(delta) {
-  const n = Number(countSelect.value) + delta;
+function setCount(n) {
+  if (countSelect.disabled) return;
   if ([...countSelect.options].some(o => Number(o.value) === n)) { countSelect.value = String(n); syncCount(); }
 }
+function stepCount(delta) { setCount(Number(countSelect.value) + delta); }
 function updateSeats() {
   const support = practiceSupport(chosen());
   countSelect.replaceChildren();
   if (!support) {
     $('practiceNote').textContent = 'Practice has not been reviewed for this game yet.';
-    countSelect.disabled = true; $('practiceStart').disabled = true; return;
+    countSelect.disabled = true; $('practiceStart').disabled = true; syncCount(); return;
   }
   for (let n = support.minSeats; n <= support.maxSeats; n++) countSelect.add(new Option(String(n), String(n)));
   countSelect.value = String(support.minSeats);
@@ -383,6 +398,13 @@ gameSelect.onchange = () => { updateSeats(); preview('You play every seat'); };
 countSelect.onchange = syncCount;
 $('practiceLess').onclick = () => stepCount(-1);
 $('practiceMore').onclick = () => stepCount(1);
+$('practiceCountLabel').onkeydown = event => {
+  if (countSelect.disabled) return;
+  const options = [...countSelect.options].map(o => Number(o.value)).filter(Number.isFinite);
+  const delta = { ArrowUp: 1, ArrowRight: 1, ArrowDown: -1, ArrowLeft: -1 }[event.key];
+  if (delta !== undefined) { event.preventDefault(); stepCount(delta); }
+  else if (event.key === 'Home' || event.key === 'End') { event.preventDefault(); setCount(event.key === 'Home' ? options[0] : options.at(-1)); }
+};
 $('practiceStop').onclick = stop;
 $('practiceReload').onclick = () => {
   const seat = seats.get(selected);

@@ -50,6 +50,14 @@ async function startGame(game, viewport) {
   page.on('pageerror', error => errors.push(error.message));
   page.on('console', message => { if (message.type() === 'error') errors.push(message.text()); });
   page.on('websocket', socket => socketTargets.push(socket.url()));
+  // Observe the native decoded state path, including rt1 binary kart frames.
+  // This callback records snapshots without changing messages or transport.
+  await context.route('**/js/app.js', async route => {
+    const response = await route.fetch();
+    const source = await response.text();
+    assert(source.includes("case 'state': {"), 'native state observer insertion point');
+    await route.fulfill({ response, body: source.replace("case 'state': {", "case 'state': { window.__practiceObserve?.(msg);") });
+  });
   await page.addInitScript(night => {
     localStorage.setItem('pb_name', 'Keep normal player');
     localStorage.setItem('seat1:pb_name', 'Keep legacy seat');
@@ -59,6 +67,13 @@ async function startGame(game, viewport) {
     window.__practiceClosed = [];
     window.__practiceMessages = [];
     window.__practiceReadiness = [];
+    window.__practiceObserve = message => {
+      window.__practiceState = message;
+      if (message.preparing !== window.__practiceLastPreparing) {
+        window.__practiceReadiness.push({ event: message.preparing ? 'preparing' : 'playing', atMs: performance.now() });
+        window.__practiceLastPreparing = message.preparing;
+      }
+    };
     window.addEventListener('message', event => {
       if (event.origin === location.origin && event.data?.t === 'giggle-practice-closed') window.__practiceClosed.push({ seat: event.data.seat, confirmed: event.data.confirmed });
     });
@@ -73,11 +88,6 @@ async function startGame(game, viewport) {
         this.addEventListener('message', event => {
           try {
             const message = JSON.parse(event.data);
-            if (message.t === 'state') window.__practiceState = message;
-            if (message.t === 'state' && message.preparing !== this.__lastPreparing) {
-              window.__practiceReadiness.push({ event: message.preparing ? 'preparing' : 'playing', atMs: performance.now() });
-              this.__lastPreparing = message.preparing;
-            }
             if (message.t === 'error') window.__practiceReadiness.push({ event: 'server-error', message: message.msg, atMs: performance.now() });
             window.__practiceMessages.push({ t: message.t, game: message.game || message.room?.game, phase: message.phase, preparing: message.preparing, error: message.t === 'error' ? message.msg : undefined });
             if (window.__practiceMessages.length > 12) window.__practiceMessages.shift();
@@ -91,8 +101,48 @@ async function startGame(game, viewport) {
     await page.waitForFunction(() => !document.getElementById('practiceStart').disabled);
     assert.equal(await page.locator('#practiceGame').inputValue(), game.id);
     assert.equal(Number(await page.locator('#practiceCount').inputValue()), game.minPlayers);
+    assert(await page.getByRole('heading', { name: 'Practice', exact: true }).isVisible());
+    if (viewport.width >= 360) assert((await page.locator('.practice-bar').boundingBox()).height <= 56, 'setup keeps a single compact row');
+    for (const selector of ['.practice-back', '#practiceLess', '#practiceCountLabel', '#practiceMore', '#practiceStart', '#practiceGuide summary']) {
+      const box = await page.locator(selector).boundingBox();
+      assert(box.width >= 44 && box.height >= 44, `${selector} keeps a44px target`);
+    }
+    const count = page.getByRole('spinbutton', { name: 'Players', exact: true });
+    const maxSeats = Math.min(8, game.maxPlayers, game.seats || game.maxPlayers);
+    assert.equal(await count.getAttribute('aria-valuemin'), String(game.minPlayers));
+    assert.equal(await count.getAttribute('aria-valuemax'), String(maxSeats));
+    assert(await page.locator('#practiceLess').isDisabled());
+    if (game.minPlayers === maxSeats) {
+      assert(await page.locator('#practiceMore').isDisabled());
+      assert.equal(await count.getAttribute('aria-disabled'), 'true');
+      assert.equal(await count.getAttribute('tabindex'), '-1');
+    } else {
+      await page.locator('#practiceMore').click();
+      assert.equal(await count.getAttribute('aria-valuenow'), String(game.minPlayers + 1));
+      await page.locator('#practiceLess').click();
+      await count.focus();
+      await page.keyboard.press('End');
+      await page.keyboard.press('ArrowUp');
+      assert.equal(await count.getAttribute('aria-valuenow'), String(maxSeats));
+      assert(await page.locator('#practiceMore').isDisabled());
+      await page.keyboard.press('Home');
+      await page.keyboard.press('ArrowDown');
+      assert.equal(await count.getAttribute('aria-valuenow'), String(game.minPlayers));
+      assert(await page.locator('#practiceLess').isDisabled());
+      await page.keyboard.press('ArrowRight');
+      assert.equal(await count.getAttribute('aria-valuenow'), String(game.minPlayers + 1));
+      await page.keyboard.press('ArrowLeft');
+      assert.equal(await count.getAttribute('aria-valuenow'), String(game.minPlayers));
+    }
+    await page.locator('#practiceGuide summary').click();
+    assert.equal(await page.locator('#practiceGuide').getAttribute('open'), '');
+    assert(await page.locator('#practiceNote').isVisible());
+    if (await page.locator('dialog[open]').count()) await page.keyboard.press('Escape');
+    else await page.keyboard.press('Enter');
+    assert.equal(await page.locator('#practiceGuide').getAttribute('open'), null);
     // Repeated submit cannot create two host rooms.
-    await page.evaluate(() => { document.getElementById('practiceSetup').requestSubmit(); document.getElementById('practiceSetup').requestSubmit(); });
+    await page.locator('#practiceStart').click();
+    await page.evaluate(() => document.getElementById('practiceSetup').requestSubmit());
     await page.waitForFunction(n => document.getElementById('practiceStatus').textContent.startsWith(`${n} seats ready`), game.minPlayers, { timeout: 20000 });
     assert.equal(await page.locator('#practiceTable > .practice-seat').count(), game.minPlayers);
     const frames = Array.from({ length: game.minPlayers }, (_, n) => frameFor(page, n + 1));
@@ -122,8 +172,10 @@ async function startGame(game, viewport) {
     let timerConfigured = false;
     if (game.id === 'pocket-karts') {
       await customize(host, game.id, async () => {
+        // Keep the driving assertions on one explicit, normal classic arena.
+        await host.getByRole('radio', { name: /^Rookie Ring, classic,/ }).click();
         const rounds = host.getByRole('radiogroup', { name: 'Round length', exact: true });
-        assert.deepEqual(await rounds.getByRole('radio').allTextContents(), ['1 min', '2 min', '3 min', '4 min', '5 min']);
+        assert.deepEqual(await rounds.getByRole('radio').allTextContents(), ['1 min', '2 min', '3 min', '5 min', '10 min', '15 min']);
         await rounds.getByRole('radio', { name: '5 min', exact: true }).click();
       });
       await customize(host, game.id, async () => {
@@ -143,10 +195,9 @@ async function startGame(game, viewport) {
       await frames[n - 1].locator('#gbody').waitFor({ state: 'visible' });
       assert.equal(await frames[n - 1].evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), true, `${game.id} seat${n}: horizontal overflow`);
     }
-    await page.locator('#practiceTab1').focus();
-    await page.keyboard.press('ArrowRight');
+    await page.locator('#practiceTab1').press('ArrowRight');
     assert.equal(await page.locator('#practiceTab2').getAttribute('aria-selected'), 'true');
-    await page.keyboard.press('Home');
+    await page.locator('#practiceTab2').press('Home');
     assert.equal(await page.locator('#practiceTab1').getAttribute('aria-selected'), 'true');
     await page.locator('#practiceAll').click();
     assert.equal(await page.locator('#practiceTable').evaluate(el => el.classList.contains('is-all')), true);
@@ -229,27 +280,28 @@ async function startGame(game, viewport) {
     if (timerConfigured) assert.equal(await host.evaluate(() => window.__practiceState.roundMs), 60000, 'real server acknowledged the selected1-minute kart timer');
     let drivingChecked = false, touchDrivingChecked = false;
     if (timerConfigured) {
-      await page.locator('#practiceTab1').click();
-      for (const frame of frames) {
-        assert.equal(await frame.locator('.pk-stage canvas').evaluate(canvas => !!canvas.getContext('webgl2')), true, 'each practice kart has a real WebGL2 renderer');
+      for (const [index, frame] of frames.entries()) {
+        await page.locator(`#practiceTab${index + 1}`).click();
+        assert.equal(await frame.locator('.pk-stage canvas, .pke-stage canvas').evaluate(canvas => !!canvas.getContext('webgl2')), true, 'each selected practice kart has a real WebGL2 renderer');
         await frame.waitForFunction(() => window.__practiceState?.phase === 'drive');
       }
+      await page.locator('#practiceTab1').click();
       const start = await host.evaluate(() => {
         const s = window.__practiceState, k = s.karts.find(k => k.pid === s.you); return { x: k.x, z: k.z };
       });
-      // Touch layouts put the HUD over the canvas centre. Exercise their real
-      // held throttle instead of assuming an arbitrary canvas click is exposed.
+      // Exercise the visible drive stick; touch layouts hide the legacy gas key.
       const touchSession = mobile ? await context.newCDPSession(page) : null;
+      let touchStarted = false;
       try {
         if (touchSession) {
-          const throttle = host.getByRole('button', { name: 'Throttle', exact: true });
-          await throttle.scrollIntoViewIfNeeded();
-          const box = await throttle.boundingBox();
-          assert(box && box.width >= 44 && box.height >= 44, 'touch throttle is a usable target');
-          await touchSession.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: box.x + box.width / 2, y: box.y + box.height / 2, id: 1, radiusX: 1, radiusY: 1, force: 1 }] });
-          await host.waitForFunction(() => document.getElementById('pk-tg').getAttribute('aria-pressed') === 'true');
+          const stick = host.locator('#pk-stick');
+          await stick.scrollIntoViewIfNeeded();
+          const box = await stick.boundingBox();
+          assert(box && box.width >= 44 && box.height >= 44, 'touch drive stick is a usable target');
+          await touchSession.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: box.x + box.width / 2, y: box.y + box.height * .15, id: 1, radiusX: 1, radiusY: 1, force: 1 }] });
+          touchStarted = true;
         } else {
-          await host.locator('.pk-stage canvas').click();
+          await host.locator('.pk-stage canvas, .pke-stage canvas').click();
           await page.keyboard.down('ArrowUp');
         }
         await host.waitForFunction(start => {
@@ -264,7 +316,7 @@ async function startGame(game, viewport) {
         touchDrivingChecked = mobile;
       } finally {
         if (touchSession) {
-          await touchSession.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+          if (touchStarted) await touchSession.send('Input.dispatchTouchEvent', { type: 'touchCancel', touchPoints: [] });
           await touchSession.detach();
         } else await page.keyboard.up('ArrowUp');
       }
@@ -318,7 +370,7 @@ async function startGame(game, viewport) {
     const diagnostics = [];
     for (let n = 1; n <= game.minPlayers; n++) {
       const frame = frameFor(page, n);
-      if (frame) diagnostics.push(await frame.evaluate(() => ({ messages: window.__practiceMessages, readiness: window.__practiceReadiness, busy: document.getElementById('gbody')?.getAttribute('aria-busy'), text: document.querySelector('.game-stage')?.textContent.slice(0, 300) })).catch(() => ({ unavailable: true })));
+      if (frame) diagnostics.push(await frame.evaluate(() => ({ messages: window.__practiceMessages, readiness: window.__practiceReadiness, busy: document.getElementById('gbody')?.getAttribute('aria-busy'), text: document.getElementById('gbody')?.textContent.slice(0, 300), stages: document.querySelectorAll('.pk-stage').length, canvases: [...document.querySelectorAll('canvas')].map(canvas => ({ parent: canvas.parentElement?.className, width: canvas.width, height: canvas.height })) })).catch(() => ({ unavailable: true })));
     }
     const result = { game: game.id, viewport, passed: false, error: error.stack, errors, diagnostics };
     rows.push(result); console.log(JSON.stringify(result)); throw error;
@@ -328,7 +380,8 @@ async function startGame(game, viewport) {
 async function edgeCases() {
   // Explicit HTTP failure and recovery use only this isolated browser route.
   {
-    const context = await browser.newContext({ permissions: [] });
+    // This width catches a Retry/Help overlap between phone and desktop bars.
+    const context = await browser.newContext({ permissions: [], viewport: { width: 481, height: 844 }, hasTouch: true });
     const page = await context.newPage(); const targets = [];
     const { errors, expected } = observeErrors(page, item => /\/config\.json$/.test(item.url) && /^Failed to load resource:.*503/.test(item.text));
     page.on('websocket', socket => targets.push(socket.url()));
@@ -341,7 +394,10 @@ async function edgeCases() {
     await page.unroute('**/config.json'); await page.locator('#practiceRetry').click();
     await page.waitForFunction(() => !document.getElementById('practiceStart').disabled);
     assert.equal(await page.locator('iframe').count(), 0, 'catalog retries do not create rooms');
-    assert.deepEqual(errors, []); assert.equal(expected.length, 1); edgeResults.push({ case: 'config failure and explicit retry', passed: true, expectedHttp503: true });
+    assert.deepEqual(errors, []);
+    // The early telemetry request can fail before Practice's own config fetch.
+    assert(expected.length >= 1 && expected.length <= 2);
+    edgeResults.push({ case: 'config failure and explicit retry', passed: true, expectedHttp503: true });
     await context.close();
   }
   {
@@ -374,8 +430,10 @@ async function edgeCases() {
     await page.clock.install();
     await page.route('**/js/app.js', route => route.abort());
     await page.goto(`http://127.0.0.1:${port}/`, { waitUntil: 'domcontentloaded' });
-    const animation = await page.locator('.boot-view--table .loading-mark i').first().evaluate(element => getComputedStyle(element).animationName);
-    assert.equal(animation, reducedMotion === 'reduce' ? 'none' : 'boot-deal-left');
+    const logo = page.locator('.boot-view--table .loading-mark.loading-logo');
+    assert(await logo.isVisible(), 'the pending loader shows the shared Giggle logo');
+    const animation = await logo.locator('i').first().evaluate(element => getComputedStyle(element).animationName);
+    assert.equal(animation, 'none', 'the shared logo loader is still in both motion modes');
     await page.screenshot({ path: path.join(artifacts, `loader-pending-${reducedMotion}.png`) });
     await page.clock.fastForward(13000);
     await page.getByRole('heading', { name: 'Taking longer than expected' }).waitFor();
@@ -400,7 +458,8 @@ async function edgeCases() {
   let logs = ''; server.stdout.on('data', data => { logs += data; }); server.stderr.on('data', data => { logs += data; });
   for (let n = 0; n < 200 && !logs.includes('PartyBox on'); n++) { if (server.exitCode !== null) throw new Error('Local fixture exited'); await wait(50); }
   assert(logs.includes('PartyBox on'), 'local fixture startup');
-  browser = await chromium.launch({ headless: true, args: ['--enable-unsafe-swiftshader'] });
+  browser = await chromium.launch({ executablePath: process.env.PRACTICE_BROWSER || undefined, headless: true,
+    args: process.env.PRACTICE_BROWSER ? ['--use-angle=metal', '--ignore-gpu-blocklist'] : ['--enable-unsafe-swiftshader'] });
   const selected = process.env.PRACTICE_GAMES ? process.env.PRACTICE_GAMES.split(',') : ['trivia', 'chess', 'pocket-karts'];
   const games = process.env.PRACTICE_ALL === '1' ? catalog : selected.map(id => catalog.find(game => game.id === id));
   assert(games.every(Boolean));

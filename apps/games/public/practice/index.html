@@ -21,19 +21,18 @@
 </head>
 <body class="practice-page" data-family="party">
   <header class="practice-bar">
-    <a href="/" class="practice-back" aria-label="Back to Game Night" title="Back to Game Night"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
-    <h1 class="practice-title">Practice</h1>
+    <a href="/" class="practice-back" aria-label="Back to Game Night" title="Back to Game Night"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><h1 class="practice-title">Practice</h1></a>
     <form id="practiceSetup" class="practice-setup" aria-label="Practice setup">
       <!-- The art picker and stepper drive these; they stay as the form's values. -->
       <select id="practiceGame" class="practice-native" aria-hidden="true" tabindex="-1" disabled><option>Loading…</option></select>
       <select id="practiceCount" class="practice-native" aria-hidden="true" tabindex="-1" disabled><option>—</option></select>
       <div class="practice-stepper" role="group" aria-label="Players">
-        <button type="button" id="practiceLess" aria-label="Fewer players" disabled>−</button>
-        <output id="practiceCountLabel" aria-live="polite"><span class="practice-count-number">–</span><span class="practice-count-unit"></span></output>
-        <button type="button" id="practiceMore" aria-label="More players" disabled>+</button>
+        <button type="button" id="practiceLess" aria-label="Fewer players" disabled><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M5 12h14"/></svg></button>
+        <output id="practiceCountLabel" role="spinbutton" aria-label="Players" aria-live="polite" aria-disabled="true" tabindex="-1"><span class="practice-count-number">–</span><span class="practice-count-unit"></span></output>
+        <button type="button" id="practiceMore" aria-label="More players" disabled><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M5 12h14M12 5v14"/></svg></button>
       </div>
-      <button class="btn tb-btn tb-primary" id="practiceStart" disabled>Play</button>
-      <button class="btn ghost tb-btn tb-chip" id="practiceRetry" type="button" hidden>Retry</button>
+      <button class="practice-start" id="practiceStart" disabled>Play</button>
+      <button class="practice-retry" id="practiceRetry" type="button" hidden>Retry</button>
     </form>
     <nav id="practiceControls" class="practice-controls" aria-label="Practice controls" hidden>
       <div id="practiceTabs" class="practice-tabs" role="tablist" aria-label="Choose a player"></div>
@@ -44,7 +43,7 @@
       </div>
     </nav>
     <details id="practiceGuide" class="practice-info">
-      <summary aria-label="About practice" title="About practice">?</summary>
+      <summary aria-label="About practice" title="About practice"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 2-3 4M12 17h.01"/></svg><span class="practice-info-label">Help</span></summary>
       <div class="practice-info-card">
         <p id="practiceNote">Play every seat yourself, in one window.</p>
         <p id="practicePlayingNote" hidden></p>
