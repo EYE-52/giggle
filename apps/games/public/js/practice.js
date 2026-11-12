@@ -60,7 +60,7 @@ function artImage(game, className) {
 }
 /* Idle table: the chosen game featured, and every practice-ready game as
  * an art tile to pick from (a radio group: arrows move, Space/Enter pick). */
-function preview(kicker) {
+function preview() {
   const game = chosen();
   if (!game || session) return;
   warmPracticeKart(game.id);
@@ -69,9 +69,9 @@ function preview(kicker) {
     section = document.createElement('section');
     section.className = 'practice-preview';
     const featured = document.createElement('div');
-    featured.className = 'practice-featured'; featured.setAttribute('role', 'status');
+    featured.className = 'practice-featured';
     const label = document.createElement('h2'); label.className = 'practice-pick-label'; label.id = 'practicePickLabel'; label.textContent = 'Pick a game';
-    // Category chips narrow the tiles; the chosen game stays chosen.
+    // Categories narrow the library without changing the selected game.
     const ready = games.filter(g => practiceSupport(g));
     const cats = [...new Set(ready.map(g => g.cat).filter(Boolean))];
     const chips = document.createElement('div');
@@ -84,6 +84,7 @@ function preview(kicker) {
       chip.onclick = () => {
         for (const c of chips.children) c.setAttribute('aria-pressed', String(c === chip));
         for (const tile of grid.children) tile.hidden = cat !== 'all' && tile.dataset.cat !== cat;
+        syncChoiceFocus(grid);
       };
       chips.append(chip);
     }
@@ -94,15 +95,18 @@ function preview(kicker) {
       const tile = document.createElement('button');
       tile.type = 'button'; tile.className = 'practice-tile'; tile.dataset.game = g.id; tile.dataset.cat = g.cat || '';
       tile.setAttribute('role', 'radio');
-      const name = document.createElement('span'); name.textContent = g.name;
-      tile.append(artImage(g, 'practice-tile-art'), name);
+      const name = document.createElement('span'); name.className = 'practice-tile-name'; name.textContent = g.name;
+      const players = document.createElement('span'); players.className = 'practice-tile-meta';
+      const support = practiceSupport(g);
+      players.textContent = `${support.minSeats}${support.maxSeats > support.minSeats ? `–${support.maxSeats}` : ''} players`;
+      tile.append(artImage(g, 'practice-tile-art'), name, players);
       tile.onclick = () => choose(g.id, true);
       tile.onkeydown = event => {
-        const tiles = [...grid.querySelectorAll('.practice-tile')], i = tiles.indexOf(tile);
+        const tiles = [...grid.querySelectorAll('.practice-tile:not([hidden])')], i = tiles.indexOf(tile);
         const step = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 }[event.key];
-        if (!step) return;
+        if (!step && event.key !== 'Home' && event.key !== 'End') return;
         event.preventDefault();
-        const next = tiles[(i + step + tiles.length) % tiles.length];
+        const next = event.key === 'Home' ? tiles[0] : event.key === 'End' ? tiles.at(-1) : tiles[(i + step + tiles.length) % tiles.length];
         choose(next.dataset.game, true); next.focus();
       };
       grid.append(tile);
@@ -112,40 +116,36 @@ function preview(kicker) {
   }
   const featured = section.querySelector('.practice-featured');
   featured.dataset.cat = game.cat || '';
-  const k = document.createElement('p'); k.className = 'practice-kicker'; k.textContent = kicker;
   const h = document.createElement('h2'); h.textContent = game.name;
-  const t = document.createElement('p'); t.textContent = game.tagline || '';
+  const t = document.createElement('p'); t.className = 'practice-description'; t.textContent = game.tagline || '';
   const text = document.createElement('div'); text.className = 'practice-featured-text';
-  text.append(k, h); if (t.textContent) text.append(t);
-  const seatRow = document.createElement('div'); seatRow.className = 'practice-seats'; seatRow.setAttribute('aria-hidden', 'true');
-  text.append(seatRow);
+  text.append(h); if (t.textContent) text.append(t);
+  const players = document.createElement('p'); players.className = 'practice-players';
+  text.append(players);
   featured.replaceChildren(artImage(game, 'practice-art'), text);
-  paintSeats();
+  paintPlayerCount();
   for (const tile of section.querySelectorAll('.practice-tile')) {
     const on = tile.dataset.game === game.id;
-    tile.setAttribute('aria-checked', String(on)); tile.tabIndex = on ? 0 : -1;
+    tile.setAttribute('aria-checked', String(on));
   }
+  syncChoiceFocus(section.querySelector('.practice-games'));
+}
+function syncChoiceFocus(grid) {
+  const tiles = [...grid.querySelectorAll('.practice-tile')];
+  const visible = tiles.filter(tile => !tile.hidden);
+  const first = visible.find(tile => tile.getAttribute('aria-checked') === 'true') || visible[0];
+  for (const tile of tiles) tile.tabIndex = tile === first ? 0 : -1;
 }
 function choose(id, fromTile) {
   if (session || gameSelect.disabled || gameSelect.value === id) return;
-  gameSelect.value = id; updateSeats(); preview('You play every seat');
+  gameSelect.value = id; updateSeats(); preview();
   if (fromTile) history.replaceState(null, '', `/practice/?game=${encodeURIComponent(id)}`);
 }
 const CAT_LABELS = { vote: 'Vote', bluff: 'Bluff', word: 'Word', speed: 'Speed', draw: 'Draw', social: 'Social', board: 'Board', '3d': '3D' };
-const SEAT_COLORS = ['#ff8fab', '#7cc6fe', '#ffd166', '#8ce99a', '#c3a6ff', '#ffa94d'];
-// One seat per player you will control, so the stepper has something to
-// show. Past eight the row says how many more.
-function paintSeats() {
-  const row = table.querySelector('.practice-seats');
+function paintPlayerCount() {
+  const row = table.querySelector('.practice-players');
   const n = Number(countSelect.value);
-  if (!row || !Number.isFinite(n) || countSelect.disabled) { row?.replaceChildren(); return; }
-  const shown = Math.min(n, 8);
-  row.replaceChildren(...Array.from({ length: shown }, (_, i) => {
-    const seat = document.createElement('i');
-    seat.textContent = `P${i + 1}`; seat.style.background = SEAT_COLORS[i % SEAT_COLORS.length];
-    return seat;
-  }));
-  if (n > shown) { const more = document.createElement('b'); more.textContent = `+${n - shown}`; row.append(more); }
+  if (row) row.textContent = Number.isFinite(n) && !countSelect.disabled ? `${n} players` : '';
 }
 // The stepper writes the hidden count select, which the form submits.
 function syncCount() {
@@ -171,7 +171,7 @@ function syncCount() {
   $('practiceMore').disabled = countSelect.disabled || !options.length || n >= Math.max(...options);
   $('practiceLess').title = fixed ? output.title : n <= min ? `At least ${min} players` : 'Fewer players';
   $('practiceMore').title = fixed ? output.title : n >= max ? `Up to ${max} players` : 'More players';
-  paintSeats();
+  paintPlayerCount();
 }
 function setCount(n) {
   if (countSelect.disabled) return;
@@ -244,7 +244,7 @@ async function loadCatalog() {
     gameSelect.value = games.some(game => game.id === requested && practiceSupport(game)) ? requested : games.find(game => practiceSupport(game))?.id || '';
     gameSelect.disabled = false; updateSeats();
     status(`${games.length} games · you control every seat`);
-    preview('You play every seat');
+    preview();
   } catch {
     if (attempt !== catalogAttempt) return;
     status('Games unavailable');
@@ -350,7 +350,7 @@ function cleanup(confirmed) {
   } catch { /* Never clear unrelated storage to recover practice. */ }
   gameSelect.disabled = false; updateSeats();
   status(confirmed ? 'Practice ended' : 'Practice ended; unconfirmed seats disconnected');
-  preview('Another round?');
+  preview();
   $('practiceStart').focus();
 }
 function stop() {
@@ -394,7 +394,7 @@ window.addEventListener('message', event => {
 });
 $('practiceSetup').onsubmit = start;
 $('practiceRetry').onclick = loadCatalog;
-gameSelect.onchange = () => { updateSeats(); preview('You play every seat'); };
+gameSelect.onchange = () => { updateSeats(); preview(); };
 countSelect.onchange = syncCount;
 $('practiceLess').onclick = () => stepCount(-1);
 $('practiceMore').onclick = () => stepCount(1);

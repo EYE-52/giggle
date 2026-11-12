@@ -99,6 +99,22 @@ async function startGame(game, viewport) {
   try {
     await page.goto(`http://127.0.0.1:${port}/practice/?game=${game.id}`);
     await page.waitForFunction(() => !document.getElementById('practiceStart').disabled);
+    if (game.id === 'trivia') {
+      await page.locator('.practice-cats [data-cat="board"]').click();
+      const visible = page.locator('.practice-tile:not([hidden])');
+      const ids = await visible.evaluateAll(tiles => tiles.map(tile => tile.dataset.game));
+      assert(ids.length > 1);
+      assert.equal(await visible.evaluateAll(tiles => tiles.every(tile => tile.dataset.cat === 'board')), true);
+      assert.equal(await visible.first().getAttribute('tabindex'), '0', 'a filtered library remains reachable by Tab');
+      await visible.first().press('End');
+      assert.equal(await page.locator('#practiceGame').inputValue(), ids.at(-1));
+      await visible.last().press('ArrowRight');
+      assert.equal(await page.locator('#practiceGame').inputValue(), ids[0], 'keyboard navigation stays in visible games');
+      await visible.first().press('Home');
+      assert.equal(await page.locator('#practiceGame').inputValue(), ids[0]);
+      await page.locator('.practice-cats [data-cat=""]').click();
+      await page.locator('.practice-tile[data-game="trivia"]').click();
+    }
     assert.equal(await page.locator('#practiceGame').inputValue(), game.id);
     assert.equal(Number(await page.locator('#practiceCount').inputValue()), game.minPlayers);
     assert(await page.getByRole('heading', { name: 'Practice', exact: true }).isVisible());
@@ -108,6 +124,7 @@ async function startGame(game, viewport) {
       assert(box.width >= 44 && box.height >= 44, `${selector} keeps a44px target`);
     }
     const count = page.getByRole('spinbutton', { name: 'Players', exact: true });
+    assert.equal(await page.locator('.practice-players').textContent(), `${game.minPlayers} players`);
     const maxSeats = Math.min(8, game.maxPlayers, game.seats || game.maxPlayers);
     assert.equal(await count.getAttribute('aria-valuemin'), String(game.minPlayers));
     assert.equal(await count.getAttribute('aria-valuemax'), String(maxSeats));
@@ -119,6 +136,7 @@ async function startGame(game, viewport) {
     } else {
       await page.locator('#practiceMore').click();
       assert.equal(await count.getAttribute('aria-valuenow'), String(game.minPlayers + 1));
+      assert.equal(await page.locator('.practice-players').textContent(), `${game.minPlayers + 1} players`);
       await page.locator('#practiceLess').click();
       await count.focus();
       await page.keyboard.press('End');
