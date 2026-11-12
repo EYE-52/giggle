@@ -1514,6 +1514,9 @@ export function createKartView(viewConfig) {
           const model=karts.get(me.pid);
           if(model)cameraFocus.copy(model.position);else cameraFocus.set(pose.x,chassisY,pose.z);
           let cramped=cameraCollision.constrain(tmpV,cameraFocus);
+          // Portrait needs more room for a side-on kart during launch recovery.
+          const flying=!!(pose.flight||me.flight),minimumCameraDistanceSq=flying?(portrait?64:36):25;
+          const orbitClearanceSq=flying?minimumCameraDistanceSq:36;
           // At a rear wall a simple pull-in can put the eye inside the kart.
           // Prefer a clear side of the same chase orbit, retaining that side
           // until the rear is clear so contact does not flicker left/right.
@@ -1523,14 +1526,14 @@ export function createKartView(viewConfig) {
           const lowCover=(S.map?.barriers||[]).some(b=>Math.abs(pose.x-b.x)<b.hw+3&&Math.abs(pose.z-b.z)<b.hd+3);
           if(lowCover&&!pose.flight&&!me.flight&&!cramped&&model)model.updateMatrixWorld(true);
           const hidden=lowCover&&!pose.flight&&!me.flight&&!cramped&&model&&!cameraCollision.visible(tmpV,model);
-          if(cramped&&tmpV.distanceToSquared(cameraFocus)<25||hidden){
+          if(cramped&&tmpV.distanceToSquared(cameraFocus)<minimumCameraDistanceSq||hidden){
             let chosen=0;
             for(let pass=0;pass<(cameraSide?2:1)&&!chosen;pass++)for(const angle of cameraAngles){
               if(cameraSide&&(pass===0?Math.sign(angle)!==cameraSide:Math.sign(angle)===cameraSide))continue;
               const sin=Math.sin(angle),cos=Math.cos(angle),x=-f.x*back,z=-f.z*back;
               cameraCandidate.set(cameraFocus.x+x*cos+z*sin,Math.max(chassisY+up-.75,cameraFocus.y+2),cameraFocus.z+z*cos-x*sin);
               cameraCollision.constrain(cameraCandidate,cameraFocus);
-              if(cameraCandidate.distanceToSquared(cameraFocus)>36&&(!hidden||cameraCollision.visible(cameraCandidate,model))){tmpV.copy(cameraCandidate);chosen=angle;break;}
+              if(cameraCandidate.distanceToSquared(cameraFocus)>orbitClearanceSq&&(!hidden||cameraCollision.visible(cameraCandidate,model))){tmpV.copy(cameraCandidate);chosen=angle;break;}
             }
             cameraSide=chosen?Math.sign(chosen):0;
           }else cameraSide=0;
@@ -1541,11 +1544,14 @@ export function createKartView(viewConfig) {
           cramped=cameraCollision.constrain(camera.position,cameraFocus)||cramped;
           // A straight blend between opposite clear orbits may cut through
           // the tube. Switch to the clear orbit before the eye enters the kart.
-          if(cameraSide&&tmpV.distanceToSquared(cameraFocus)>36&&(camera.position.distanceToSquared(cameraFocus)<25||hidden&&!cameraCollision.visible(camera.position,model)))camera.position.copy(tmpV);
+          // The desired eye can be clear before a launch's eased eye has
+          // left the tube. Recover even after the side-orbit flag clears.
+          if((cameraSide||flying)&&tmpV.distanceToSquared(cameraFocus)>orbitClearanceSq&&(camera.position.distanceToSquared(cameraFocus)<minimumCameraDistanceSq||hidden&&!cameraCollision.visible(camera.position,model)))camera.position.copy(tmpV);
           cameraEpoch = camLife;
           const lookX=pose.x+f.x*5,lookZ=pose.z+f.z*5;
           cameraLook.set(lookX,Math.max(chassisY+.85,(world.groundAt?.(lookX,lookZ)||0)+.8),lookZ);
-          if(cameraSide){cameraLook.copy(cameraFocus);cameraLook.y+=.6;}
+          const recoveringSide=flying&&Math.abs((camera.position.x-cameraFocus.x)*f.z-(camera.position.z-cameraFocus.z)*f.x)>back*.15;
+          if(cameraSide||recoveringSide){cameraLook.copy(cameraFocus);cameraLook.y+=.6;}
           else if(cramped)cameraLook.lerp(cameraFocus,Math.max(0,1-camera.position.distanceTo(cameraFocus)/5));
           camera.lookAt(cameraLook);
         } else {

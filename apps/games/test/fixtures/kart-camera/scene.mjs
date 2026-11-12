@@ -13,7 +13,8 @@ import {elevatedMap} from '/js/engines/kart-elevated-maps.mjs';
 const params=new URLSearchParams(location.search),id=params.get('map')||'garden',classic=params.get('raised')!=='1',driver=params.get('driver')||'fox';
 const map=classic?await(await fetch('/classic-map?id='+id)).json():elevatedMap(id),R=await loadClassicPhysics(),terrain=classic?createRoadTerrain(map):null;
 const solids=classic?classicStatics(map,terrain):elevatedStatics(map),query=createKartPhysics(R,config);for(const s of solids)query.addStatic(s);
-let input={steer:0,throttle:0},seq=0,epoch=0,viewReady=false,built,probeRenderer;
+let input={steer:0,throttle:0},seq=0,epoch=0,viewReady=false,built,probeRenderer,holdFlightAt=null,held=false;
+const entry=[];
 const k={pid:'p0',id:'p0',alive:true,connected:true,spawnSeq:1,controlEpoch:1,health:100,maxHealth:100,nitro:1,hits:0,deaths:0,shield:0,guard:false,weapon:null,ammo:0,respawn:0,speed:0,angle:0,x:0,z:0,input};
 const room={...map,map:id,mode:'battle',karts:[k],physicalEvents:[],physicalEventSeq:0,featureEvents:[],featureEventSeq:0};
 const physics=classic?createClassicMotion(R,config,room):createKartPhysics(R,config);
@@ -55,10 +56,24 @@ function sendSnapshot(){
   view.update(root,snapshot,api);
 }
 const api={now:()=>Date.now(),send(message){input={...(message.input||message)};seq=message.seq||seq;k.input=input;k._receivedSeq=seq;},name:()=>driver,announce(){},context:()=>({isHost:false,sound:false,connected:true,looks:{p0:{driver,paint:'bubblegum',color:0xca49b0}}})};
-globalThis.kartCameraProbe={built(value,renderer){built=value;probeRenderer=renderer;}};
+const modelBox=new THREE.Box3(),partBox=new THREE.Box3(),projected=new THREE.Vector3();let bodyParts;
+function recordEntry(){
+  if(holdFlightAt===null||held||!k.flight)return;
+  const model=built.scene.children.find(o=>o.name==='GiggleKart');if(!model)return;
+  if(!bodyParts){bodyParts=[];model.traverse(mesh=>{if(!mesh.isMesh||/^(KartContactShadow|KartShadowProxy|BoostFlame|RespawnShield|InvincibilityTrail)$/.test(mesh.name))return;for(let parent=mesh;parent;parent=parent.parent)if(!parent.visible)return;mesh.geometry.computeBoundingBox();bodyParts.push(mesh);});}
+  model.updateMatrixWorld(true);built.camera.updateMatrixWorld();modelBox.makeEmpty();let extent=0,worstPart='',inDepth=true;
+  for(const mesh of bodyParts){partBox.copy(mesh.geometry.boundingBox).applyMatrix4(mesh.matrixWorld);modelBox.union(partBox);const positions=mesh.geometry.attributes.position;for(let i=0;i<positions.count;i++){projected.fromBufferAttribute(positions,i).applyMatrix4(mesh.matrixWorld).project(built.camera);inDepth&&=projected.z>=-1&&projected.z<=1;const next=Math.max(Math.abs(projected.x),Math.abs(projected.y));if(next>extent){extent=next;worstPart=mesh.name;}}}
+  entry.push({phase:k.flight.t,distance:built.camera.position.distanceTo(model.position),eyeInKart:modelBox.containsPoint(built.camera.position),eyeOverlapsSolid:query.overlapsStatic(built.camera.position,{x:0,y:0,z:0,w:1},{x:.12,y:.12,z:.12}),extent,worstPart,inDepth});
+}
+globalThis.kartCameraProbe={
+  built(value,renderer){built=value;probeRenderer=renderer;const frame=built.frame;built.frame=(dt,time)=>{frame(dt,time);recordEntry();};},
+  prediction(value){const frame=value.frame;value.frame=(snapshot,intent,dt,...rest)=>frame(snapshot,intent,held?0:dt,...rest);}
+};
 view.mount(root,api);place(params.get('case')||'rear');await view.ready();viewReady=true;
-const timer=setInterval(()=>{if(classic)physics.advance(1/60,new Set([k.pid]));else{physics.applyIntent(k.id,input);physics.step();}sendSnapshot();},1000/60);
+const timer=setInterval(()=>{if(!held){if(classic)physics.advance(1/60,new Set([k.pid]));else{physics.applyIntent(k.id,input);physics.step();}if(holdFlightAt!==null&&k.flight?.t>=holdFlightAt-1e-9)held=true;}sendSnapshot();},1000/60);
 globalThis.kartCameraCheck={ready:true,place,
+  captureFlight(phase=.45){holdFlightAt=phase;held=false;entry.length=0;},
+  get held(){return held;},
   // Count actual visible kart pixels with the production world shaders still
   // active. The second pass gives its on-screen silhouette without obstacles.
   coverage(){
@@ -72,6 +87,6 @@ globalThis.kartCameraCheck={ready:true,place,
     children.forEach(([o,visible])=>o.visible=visible);built.scene.background=background;saved.forEach(([mesh,m])=>mesh.material=m);cosmetics.forEach(([mesh,visible])=>mesh.visible=visible);material.dispose();probeRenderer.render(built.scene,built.camera);
     return {visible,total,fraction:total?visible/total:0};
   },
-  result(){const model=built.scene.children.find(o=>o.name==='GiggleKart'),eye=built.camera.position;return{map:id,classic,driver,pose:classic?k.physicalPose:physics.pose(k.id),eye:eye.toArray(),direction:built.camera.getWorldDirection(new THREE.Vector3()).toArray(),model:model?.position.toArray(),eyeOverlapsSolid:query.overlapsStatic(eye,{x:0,y:0,z:0,w:1},{x:.12,y:.12,z:.12}),modelVisible:model?.visible,flight:k.flight,sceneObjects:built.scene.children.length};},
+  result(){const model=built.scene.children.find(o=>o.name==='GiggleKart'),eye=built.camera.position;return{map:id,classic,driver,pose:classic?k.physicalPose:physics.pose(k.id),eye:eye.toArray(),direction:built.camera.getWorldDirection(new THREE.Vector3()).toArray(),model:model?.position.toArray(),eyeOverlapsSolid:query.overlapsStatic(eye,{x:0,y:0,z:0,w:1},{x:.12,y:.12,z:.12}),modelVisible:model?.visible,flight:k.flight,entry,sceneObjects:built.scene.children.length};},
   dispose(){viewReady=false;clearInterval(timer);view.dispose();physics.dispose();query.dispose();}
 };
