@@ -12,21 +12,45 @@ function fixture(){
  Object.assign(map.spawnCandidates.find(p=>p.id===start.id),start);
  return combat.createElevatedCombat(R,C,map,Array.from({length:8},(_,i)=>({id:'p'+i})),{instance:'lip',seed:0,startAt:0,countdownMs:0,roundMs:12000});
 }
+// Stronger braking/reverse now saves the old approach before the front tyres
+// leave the deck. That successful escape must never become a recovery teleport.
+{
+ const w=fixture();let s=w.snapshot(),reverse=false,furthest=24;
+ try{
+  for(let at=0;at<2600;at+=50){
+   const k=s.karts[0],own=w.privateStatus(k.id);
+   reverse||=k.pose.position.z>27;furthest=Math.max(furthest,k.pose.position.z);
+   assert(w.input(k.id,{instance:'lip',life:own.life,controlEpoch:own.controlEpoch,seq:own.receivedSeq+1,steer:0,throttle:reverse?-.75:.12,brake:0,nitro:false,use:false},at).ok);
+   s=w.advance(at+50);
+   assert(!s.events.some(e=>e.type==='recover'||e.type==='recovery'),'an ordinary reverse escape stays physical');
+   assert.equal(s.karts[0].spawnSeq,0);assert.equal(s.karts[0].deaths,0);
+  }
+  assert(reverse&&furthest>27&&furthest<27.5&&s.karts[0].pose.position.z<24,'old approach brakes before the lip and drives back onto the deck');
+ }finally{w.dispose();}
+}
 for(const parked of [false,true]){
  const w=fixture();let s=w.snapshot(),reverse=false,jammed=false,event,coins;
  try{
   assert.equal(s.combat.maxHealth,100);assert.equal(s.combat.weaponOrder.length,12);
   for(let at=0;at<(parked?5500:8000);at+=50){
    const k=s.karts[0],p=k.pose,own=w.privateStatus(k.id);
-   reverse||=p.position.z>27;
+   // Creep beyond the old stopping point so the front tyres really leave
+   // support before reverse. The same strong reverse still catches the lip.
+   reverse||=p.position.z>27.4;
    if(at>2200&&reverse&&p.wheels.filter(t=>t.contact).length<=2&&1-2*(p.rotation.x**2+p.rotation.z**2)>.9){jammed=true;coins??=own.coins;}
-   const throttle=parked&&at>=3000?0:reverse?-.75:.12;
-   assert(w.input(k.id,{instance:'lip',life:own.life,controlEpoch:own.controlEpoch,seq:own.receivedSeq+1,steer:0,throttle,brake:0,nitro:false,use:false},at).ok,JSON.stringify({parked,at,alive:k.alive,position:p.position}));
+   const holding=parked&&at>=3000,throttle=holding?0:reverse?-.75:.03;
+   assert(w.input(k.id,{instance:'lip',life:own.life,controlEpoch:own.controlEpoch,seq:own.receivedSeq+1,steer:0,throttle,brake:holding?1:0,nitro:false,use:false},at).ok,JSON.stringify({parked,at,alive:k.alive,position:p.position}));
    s=w.advance(at+50);event=s.events.find(e=>e.type==='recover'&&e.pid===k.id);
    if(event)break;
   }
   assert(jammed,'ordinary driving reproduces the upright two-tyre deck-lip jam');
-  if(parked){assert(!event,'a driver who stops asking to move is not relocated');continue;}
+  if(parked){
+   assert(!event,'a driver who brakes and stops asking to move is not relocated');
+   const k=s.karts[0],p=k.pose;
+   assert(k.alive&&k.spawnSeq===0&&k.deaths===0,'parking preserves the same live body');
+   assert(p.wheels.filter(t=>t.contact).length===2&&1-2*(p.rotation.x**2+p.rotation.z**2)>.9,'parked denial still exercises the upright two-tyre catch');
+   continue;
+  }
   assert(event?.reason==='high-centred','failed reverse driving receives bounded production recovery');
   assert(event.tick*C.fixedDt*1000>3000,'recovery is not immediate');
   const k=s.karts[0],own=w.privateStatus(k.id);
@@ -41,4 +65,4 @@ for(const parked of [false,true]){
   assert(Math.hypot(s.karts[0].pose.position.x-from.x,s.karts[0].pose.position.z-from.z)>2,'fresh inputs drive away after recovery');
  }finally{w.dispose();}
 }
-console.log('PASS real upright deck-lip jam: normal inputs, bounded recovery, no awards/shield/HP grant, parked denial and drive-away');
+console.log('PASS deck lip: old approach reverses out without teleport; real upright two-tyre catch receives bounded recovery, no awards/shield/HP grant, parked denial and drive-away');
