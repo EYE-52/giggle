@@ -31,6 +31,26 @@ function fixture(weapon='machinegun'){
   close(){battle.cancelPayloads(s);physics.dispose();},
  };
 }
+// Collect normally, spend the whole pickup, then wait at its old position.
+// The empty slot must not turn a recycled box into a camping reward loop.
+{
+ let f;
+ for(let seed=0;seed<256;seed++){
+  const candidate=fixture('');candidate.s.rngState=seed;candidate.s.crateSeq=1;
+  candidate.s.spots=[[0,0],[20,0],[-20,0],[20,20]];
+  candidate.s.crates=[{id:'camping-box',x:0,z:0}];candidate.tick(0);
+  if(candidate.a.weapon==='trishot'){f=candidate;break;}candidate.close();
+ }
+ assert(f,'seeded normal crate roll supplies the camping test');
+ try{
+  const origin=f.physics.pose('a').position,pickups=new Set(f.s.events.filter(e=>e.type==='pickup'&&e.pid==='a').map(e=>e.id));
+  f.tap();for(let i=0;i<280;i++){f.tick(50);for(const e of f.s.events)if(e.type==='pickup'&&e.pid==='a')pickups.add(e.id);}
+  check(!f.a.weapon&&!f.firing(),'parked driver spent the complete pickup');
+  equal(pickups.size,1,'empty parked driver earns no additional pickup across seven 2s intervals');
+  check(Math.hypot(f.a.x-origin.x,f.a.z-origin.z)<.1,'camping driver stayed at the original pickup coordinates');
+  check(f.s.crates.every(c=>Math.hypot(c.x-origin.x,c.z-origin.z)>2.4),'classic crate recycles outside the parked pickup radius');
+ }finally{f.close();}
+}
 for(const weapon of ['machinegun','missile','trishot','cannon'])for(const pump of [50,100]){
  const f=fixture(weapon),rounds=combat.config.weapons[weapon].ammo/(weapon==='trishot'?3:1),events=new Map();
  try{

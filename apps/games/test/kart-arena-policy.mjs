@@ -25,6 +25,38 @@ for(const seats of [2,8,16,32]){
  assert.equal(contract.config.weapons[early.roll('risk',8000)].tier,'rare');
 }
 await RAPIER.init();
+// The legacy elevated map and launch policy both recycle away from an
+// empty driver who spent a real pickup and stayed on its original home.
+for(const id of ['rookie-ribbons','garden']){
+ const map=id==='rookie-ribbons'?selectArenaVariant(elevatedMap(id),2):elevatedMap(id);
+ const home=map.sockets.find(s=>s.y===0&&(id==='rookie-ribbons'?s.x===9&&s.z===2:s.x===-44&&s.z===-28));
+ const other=map.spawns.find(s=>Math.hypot(s.x-home.x,s.z-home.z)>15);
+ map.spawns=[{...home,id:'camp-start',z:home.z-6,angle:0},other];
+ let match;
+ const step=w=>w.advance(w.snapshot().serverAt+CONFIG.fixedDt*1000);
+ const input=(w,value)=>{const s=w.snapshot('a'),p=s.you;assert(w.input('a',{instance:s.instance,life:p.life,controlEpoch:p.controlEpoch,seq:p.receivedSeq+1,steer:0,throttle:0,brake:1,nitro:false,use:false,...value},s.serverAt).ok);};
+ for(let seed=0;seed<128;seed++){
+  const candidate=combat.createElevatedCombat(RAPIER,CONFIG,map,[{id:'a'},{id:'b'}],{instance:'camp-'+id,seed,startAt:0,countdownMs:0,roundMs:60000});
+  const available=candidate.snapshot().crates.find(c=>Math.hypot(c.position.x-home.x,c.position.z-home.z)<.1);
+  if(!available){candidate.dispose();continue;}
+  for(let tick=0;tick<240&&!candidate.snapshot().karts[0].weapon;tick++){if(tick%6===0)input(candidate,{throttle:.5,brake:0});step(candidate);}
+  if(candidate.snapshot().karts[0].weapon==='trishot'){match=candidate;break;}candidate.dispose();
+ }
+ assert(match,id+' camping fixture collects its seeded pickup through actual driving');
+ try{
+  input(match,{});for(let i=0;i<30;i++)step(match);
+  const origin=match.snapshot().karts[0].pose.position;
+  assert(Math.hypot(origin.x-home.x,origin.z-home.z)<2.4,'parked driver remains inside the original collection radius');
+  const pickups=new Set(match.snapshot().events.filter(e=>e.type==='pickup'&&e.pid==='a').map(e=>e.id));
+  input(match,{use:true});step(match);input(match,{});
+  for(let tick=0;tick<840;tick++){if(tick%6===0)input(match,{});step(match);for(const e of match.snapshot().events)if(e.type==='pickup'&&e.pid==='a')pickups.add(e.id);}
+  const last=match.snapshot(),kart=last.karts[0];
+  assert(!kart.weapon&&!kart.firing,id+' normal activation spent the complete pickup');
+  assert.equal(pickups.size,1,id+' parked empty driver receives no second pickup across seven 2s intervals');
+  assert(Math.hypot(kart.pose.position.x-origin.x,kart.pose.position.z-origin.z)<.1,id+' driver did not leave the original home');
+  assert(last.crates.every(c=>Math.hypot(c.position.x-origin.x,c.position.z-origin.z)>2.4),id+' boxes recycle clear of the parked driver');
+ }finally{match.dispose();}
+}
 for(const id of ['garden','skyport']){
  const base=elevatedMap(id);base.arenaVersion=1;base.maxPlayers=8;
  const heights=[...new Set(base.sockets.map(s=>s.y))].sort((a,b)=>a-b);
