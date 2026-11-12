@@ -1,6 +1,5 @@
-/* Game Night by Giggle — sticker-party arcade.
- * Rose actions, neutral surfaces, game-coloured art and small
- * offset shadows, white or black ground with rose light at the edges. Chunky Baloo 2 display
+/* Game Night by Giggle. Rose actions, neutral surfaces, game-coloured
+ * art, and soft page lighting in Day and Night. Baloo 2 display
  * type + readable Nunito body. Two coherent looks: Day (default) and Night
  * (charcoal and rose). Old stored ids (dark/light/
  * arcade/lounge) migrate to day/night in app.js.
@@ -67,16 +66,15 @@
   --font-display: "Baloo 2", "Nunito", system-ui, sans-serif;
   --font-body: "Nunito", system-ui, -apple-system, "Segoe UI", sans-serif;
 
-  /* ---- Toy box design tokens (apps/games/DESIGN_TOKENS.md,
-   * .claude/skills/giggle-design/SKILL.md). Only these values. ---- */
+  /* Shared app spacing, control sizes and surface styles. */
   /* Spacing: the only steps for padding, gap and margin. */
   --space-4: 4px; --space-8: 8px; --space-12: 12px; --space-16: 16px;
   --space-24: 24px; --space-32: 32px; --space-40: 40px; --space-48: 48px; --space-64: 64px;
   /* Radius. Nested: inner = outer − gap when the gap is under 32px. */
   --radius-sm: 8px; --radius-md: 12px; --radius-lg: 16px; --radius-xl: 24px; --radius-pill: 999px;
-  /* Sticker outline widths and lift heights (offset shadow y). */
-  --outline-w: 2px; --outline-w-lg: 3px;
-  --lift-sm: 2px; --lift: 4px; --lift-lg: 6px;
+  /* Preserve the shared sizing hooks used by existing game families. */
+  --outline-w: 1px; --outline-w-lg: 2px;
+  --lift-sm: 0px; --lift: 0px; --lift-lg: 0px;
   /* Control heights: 44px is the floor for anything tappable. */
   --game-paper-min: 180px; --game-board-min: 200px;
   --control-h-sm: 44px; --control-h: 48px; --control-h-lg: 56px;
@@ -90,9 +88,9 @@
   --text-heading: 800 clamp(26px, 3.2vw, 34px)/1.15 var(--font-display);
   --text-title: 800 20px/1.25 var(--font-display);
   --text-body: 600 17px/1.5 var(--font-body);
-  --text-button: 800 17px/1.2 var(--font-display);
+  --text-button: 700 16px/1.25 var(--font-body);
   --text-primary: 800 19px/1.2 var(--font-display);
-  --text-button-sm: 800 15px/1.2 var(--font-body);
+  --text-button-sm: 700 15px/1.25 var(--font-body);
   --text-caption: 700 13px/1.4 var(--font-body);
   /* Motion: one curve. Only transform and opacity animate. */
   --ease: cubic-bezier(0.22, 1, 0.36, 1);
@@ -163,9 +161,9 @@
  * colour; party (raspberry) is the default. */
 body, [data-family] {
   --fam-soft: color-mix(in srgb, var(--fam) 16%, var(--card));
-  --shadow-sticker-sm: 0 var(--lift-sm) 0 var(--outline);
-  --shadow-sticker: 0 var(--lift) 0 var(--outline);
-  --shadow-sticker-lg: 0 var(--lift-lg) 0 var(--outline);
+  --shadow-sticker-sm: 0 1px 2px rgb(25 16 29 / 5%);
+  --shadow-sticker: 0 2px 8px rgb(25 16 29 / 6%);
+  --shadow-sticker-lg: 0 6px 18px rgb(25 16 29 / 8%);
   --focus-ring: 3px solid var(--accent-deep);
   --focus-offset: 2px;
 }
@@ -175,29 +173,18 @@ body { --fam: var(--fam-party); --fam-deep: var(--fam-party-deep); --on-fam: var
 [data-family="create"] { --fam: var(--fam-create); --fam-deep: var(--fam-create-deep); --on-fam: var(--on-fam-create); }
 [data-family="arcade"] { --fam: var(--fam-arcade); --fam-deep: var(--fam-arcade-deep); --on-fam: var(--on-fam-arcade); }
 
-/* ---- Soft arcade base (2026-11 redesign) ----
- * No black ink outlines. Every rim and every lip under a card or button is
- * a soft tint of the ground, so the page reads calm and only colour carries
- * meaning. Coloured controls sit on a darker lip of their own colour
- * (--fam-lip), like a pressable candy button. Day and Night both define it;
- * games add their own skin on top in skins.css. */
+/* Neutral surfaces take their accents from the current game family. */
 :root { --outline: #dfdadd; --hard: #dfdadd; --outline-w-lg: 2px; }
 [data-theme="night"] { --outline: #07050a; --hard: #07050a; }
-/* Night rims and lips are a darker tint of the surface they sit on, never
- * black ink. Declared on body (and any [data-family] root) so each game's
- * skin, which sets --card on body[data-game], tints its own rims. */
 [data-theme="night"] body, [data-theme="night"] [data-family] { --outline: var(--edge); --hard: var(--outline); }
 body, [data-family] { --fam-lip: color-mix(in srgb, var(--fam) 74%, #000); }
 .tb-primary { --tb-rim: var(--fam-lip); }
 .tb-danger { --tb-rim: color-mix(in srgb, var(--danger) 74%, #000); }
 .tb-seg > button:is([aria-checked="true"], [aria-pressed="true"], .is-selected) { border-color: var(--fam-lip); box-shadow: 0 var(--lift-sm) 0 var(--fam-lip); }
-/* The site's own filled buttons (Create room, Start, Play) are candy
- * buttons too: a darker lip of the accent, pressed down onto it. */
+/* Room actions share one flat fill across standalone and embedded entry. */
 body .btn:not(.ghost, .sun, :disabled), body .home-welcome .hero-cta .btn.hero-create {
-  border-color: color-mix(in srgb, var(--accent) 74%, #000); box-shadow: 0 var(--lift) 0 color-mix(in srgb, var(--accent) 74%, #000);
+  border-color: transparent; box-shadow: none;
 }
-body .btn:not(.ghost, .sun, :disabled):active { transform: translateY(var(--lift)); box-shadow: none; }
-@media (hover: hover) { body .btn:not(.ghost, .sun, :disabled):hover { transform: translateY(-2px); box-shadow: 0 calc(var(--lift) + 2px) 0 color-mix(in srgb, var(--accent) 74%, #000); } }
 
 * { box-sizing: border-box; }
 /* Robust hidden: no authored display rule may ever reveal a [hidden]
@@ -382,29 +369,28 @@ body:not(.is-embed) .topbar::before {
 .band { padding: 30px 4px; }
 .band + .band { border-top: 1px solid var(--line); }
 
-/* ---- buttons: chunky sticker pills, level and readable ---- */
+/* Shared shell actions */
 .btn {
   display: inline-flex; align-items: center; justify-content: center; gap: var(--space-8);
-  font-family: var(--font-display); font-weight: 800; font-size: 17px;
+  font: var(--text-button);
   background: var(--accent); color: var(--accent-ink);
   border: 1px solid var(--edge); border-radius: var(--radius-lg);
   padding: var(--space-8) var(--space-24); cursor: pointer; min-height: var(--control-h);
   box-shadow: var(--shadow-btn);
   transition: transform var(--dur-quick) var(--ease);
 }
-/* Hover lift only where a real hover exists — touch taps must never
- * leave a stuck hover state. */
+/* Pointer hover feedback. */
 @media (hover: hover) {
-  .btn:hover { transform: translateY(-2px); box-shadow: 0 8px 22px #30284814; }
-  .chip:hover { color: var(--ink); border-color: var(--edge); background: var(--card); box-shadow: 0 2px 6px #3028480d; transform: translateY(-2px); }
+  .btn:hover:not(:disabled) { filter: brightness(1.04); }
+  .chip:hover { color: var(--ink); border-color: var(--edge); background: var(--card); box-shadow: none; }
   .chip.sel:hover { background: var(--accent-soft); color: var(--accent-deep); }
   .howto-btn:hover:not(:disabled) { color: var(--accent-deep); }
-  .dlg-packrow .howto-btn:hover, .preset-btns .howto-btn:hover { border-color: var(--edge); box-shadow: var(--shadow-sm); transform: translateY(-2px); }
+  .dlg-packrow .howto-btn:hover, .preset-btns .howto-btn:hover { border-color: var(--edge); background: var(--well); }
   input[type="text"]:hover, input[type="number"]:hover, select:hover, textarea:hover { border-color: var(--edge); }
 
 }
 .btn:active { transform: translateY(1px); box-shadow: none; }
-/* Quiet inner controls flatten when pressed; cards keep their lift. */
+/* Keep pointer targets steady while showing a press. */
 .chip:active, .dlg-packrow .howto-btn:active, .preset-btns .howto-btn:active { transform: translate(1px, 1px); box-shadow: none; }
 .btn.sun { background: var(--sun); color: var(--sun-ink); }
 .btn.ghost {
@@ -423,12 +409,7 @@ body:not(.is-embed) .topbar::before {
   outline: var(--focus-ring); outline-offset: var(--focus-offset);
 }
 
-/* ==========================================================================
- * Toy box components (DESIGN_TOKENS.md). Chunky stickers: a thick ink
- * outline, an offset shadow that the control sinks into when pressed, and
- * the family colour for the one primary action. They work on every page
- * and inside #gbody, in Day, Night and Inside Giggle.
- * ========================================================================== */
+/* Shared game controls and typography. */
 /* Text styles */
 .t-heading { font: var(--text-heading); letter-spacing: -0.01em; text-wrap: balance; margin: 0; }
 .t-title { font: var(--text-title); text-wrap: balance; margin: 0; }
@@ -446,16 +427,16 @@ body:not(.is-embed) .topbar::before {
   margin: 0; padding: var(--space-8) var(--space-16);
   font: var(--text-button); color: var(--tb-ink); text-align: center; text-decoration: none; overflow-wrap: anywhere;
   background: var(--tb-fill); border: var(--outline-w) solid var(--tb-rim); border-radius: var(--radius-lg);
-  box-shadow: 0 var(--tb-lift) 0 var(--tb-rim);
+  box-shadow: none;
   cursor: pointer; touch-action: manipulation; -webkit-tap-highlight-color: transparent;
   transition: transform var(--dur-quick) var(--ease);
 }
 .tb-btn > svg { flex: none; width: 22px; height: 22px; }
 @media (hover: hover) {
-  .tb-btn:hover:not(:disabled, [aria-disabled="true"], [aria-busy="true"]) { transform: translateY(-2px); }
+  .tb-btn:hover:not(:disabled, [aria-disabled="true"], [aria-busy="true"]) { filter: brightness(1.04); }
 }
-/* Pressed: the button sinks onto its own shadow. */
-.tb-btn:active:not(:disabled, [aria-disabled="true"], [aria-busy="true"]) { transform: translateY(var(--tb-lift)); box-shadow: none; }
+/* A small press keeps the target in place. */
+.tb-btn:active:not(:disabled, [aria-disabled="true"], [aria-busy="true"]) { transform: scale(.985); box-shadow: none; }
 .tb-btn:focus-visible { outline: var(--focus-ring); outline-offset: var(--focus-offset); }
 /* Disabled always comes with a reason in a .tb-reason line beside it. */
 .tb-btn:disabled, .tb-btn[aria-disabled="true"] {
@@ -515,8 +496,7 @@ body:not(.is-embed) .topbar::before {
 .tb-seg > button:focus-visible { outline: var(--focus-ring); outline-offset: var(--focus-offset); }
 .tb-seg > button:disabled { cursor: not-allowed; opacity: .5; }
 
-/* Sticker card: thick outline + offset shadow. .is-tint washes it in the
- * family colour; a button/link card lifts on hover and sinks on press. */
+/* Game and setting cards share spacing and focus treatment. */
 .tb-card {
   min-width: 0; padding: var(--space-24); color: var(--ink);
   background: var(--card); border: var(--outline-w-lg) solid var(--outline); border-radius: var(--radius-xl);
@@ -526,7 +506,7 @@ body:not(.is-embed) .topbar::before {
 .tb-card.is-compact { padding: var(--space-16); }
 :is(button, a).tb-card { display: block; width: 100%; font: inherit; text-align: left; text-decoration: none; cursor: pointer; transition: transform var(--dur-base) var(--ease); }
 @media (hover: hover) {
-  :is(button, a).tb-card:hover { transform: translateY(-3px) rotate(-0.4deg); }
+  :is(button, a).tb-card:hover { border-color: var(--line-strong); }
 }
 :is(button, a).tb-card:active { transform: translateY(var(--lift-lg)); box-shadow: none; }
 :is(button, a).tb-card:focus-visible { outline: var(--focus-ring); outline-offset: 4px; }
@@ -2194,15 +2174,14 @@ body {
   --danger-lip: color-mix(in srgb, var(--danger) 74%, #000);
 }
 
-/* ---- buttons: secondary on a soft lip, sun on its own lip ---- */
-body .btn.ghost { border: 2px solid var(--outline); box-shadow: 0 var(--lift-sm) 0 var(--outline); }
+/* Secondary and high-contrast actions */
+body .btn.ghost { border: 1px solid var(--line); box-shadow: none; }
 body .btn.ghost:active:not(:disabled) { transform: translateY(var(--lift-sm)); box-shadow: none; }
-body .btn.sun { border: 2px solid var(--sun-lip); box-shadow: 0 var(--lift) 0 var(--sun-lip); }
+body .btn.sun { border: 1px solid transparent; box-shadow: none; }
 body .btn.sun:active:not(:disabled) { transform: translateY(var(--lift)); box-shadow: none; }
-body .btn:disabled { opacity: 1; background: var(--well); color: var(--ink-dim); border: 2px solid var(--outline); box-shadow: none; }
+body .btn:disabled { opacity: 1; background: var(--well); color: var(--ink-dim); border: 1px solid var(--line); box-shadow: none; }
 @media (hover: hover) {
-  body .btn.ghost:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 calc(var(--lift-sm) + 2px) 0 var(--outline); }
-  body .btn.sun:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 calc(var(--lift) + 2px) 0 var(--sun-lip); }
+  body .btn.ghost:hover:not(:disabled) { background: var(--well); box-shadow: none; }
 }
 .chip { border-width: 2px; border-color: var(--outline); background: var(--card); }
 .chip.sel { border-color: var(--accent); }

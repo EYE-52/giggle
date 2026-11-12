@@ -3,7 +3,8 @@
 Day starts with white and Night starts with neutral black. A soft rose gradient
 lights the page edges. Cards, fields and menus use neutral surfaces. Rose marks
 the main action. Game art, board squares, player markers and result colours
-keep their meaning. Use the shared components and existing fonts.
+keep their meaning. Headings use Baloo 2. Controls use Nunito and stay level on hover.
+Use a thin border or a quiet fill and keep a visible keyboard focus ring.
 
 ## One workspace pattern
 

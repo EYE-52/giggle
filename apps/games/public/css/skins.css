@@ -12,7 +12,7 @@ body:not(.is-embed) #gbody :is(.gk-btn.gk-primary,.bk-primary) {
   --fam-lip:color-mix(in srgb,var(--shell-action) 72%,black);
 }
 body #gbody .gk-btn.gk-primary:not(:disabled), body #gbody .bk-primary:not(:disabled) {
-  background: var(--fam); color: var(--on-fam); border-color: var(--fam-lip); box-shadow: 0 var(--lift) 0 var(--fam-lip);
+  background: var(--fam); color: var(--on-fam); border-color: transparent; box-shadow: none;
 }
 body #gbody .gk-btn.gk-primary:not(:disabled):active, body #gbody .bk-primary:not(:disabled):active { transform: translateY(var(--lift)); box-shadow: none; }
 /* Display faces. Each game below sets --font-display to its own face
@@ -25,7 +25,7 @@ body[data-game] {
   --font-ui: "Baloo 2", "Nunito", system-ui, sans-serif;
   --text-heading: 800 clamp(26px, 3.2vw, 34px)/1.15 var(--font-display);
   --text-title: 800 20px/1.25 var(--font-display);
-  --text-button: 800 17px/1.2 var(--font-ui);
+  --text-button: 700 16px/1.25 var(--font-body);
 }
 body[data-game] :is(.topbar, .btn, .avatar, .roomchip, .pl-seat, .pl-face, .ck-ava, .dg-roster i, .dp-player-mark, dialog, .room-menu-panel) { --font-display: var(--font-ui); }
 /* The game's name in the play bar is its title: set it in the game face. */

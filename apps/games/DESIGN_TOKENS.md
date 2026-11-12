@@ -1,8 +1,6 @@
-# Design tokens: the toy box
+# Game Night design tokens
 
-The reference for restyling Giggle screens. Rules and reasons live in
-`.claude/skills/giggle-design/SKILL.md`. Screenshot grading lives in
-`.claude/skills/giggle-design/review-rubric.md`.
+Use these shared controls for the game library, room setup and game screens. Layout conventions and browser checks are in [Design consistency](DESIGN_CONSISTENCY.md).
 
 Tokens are defined in `public/css/style.css` (`:root`, with Night values
 under `[data-theme="night"]` and Inside Giggle values under
@@ -25,10 +23,10 @@ and margin.
 ### Outline, lift, shadow
 | Token | Value | Use |
 |---|---|---|
-| `--outline` | Day `#321829`, Night `#000`, embed `#0b0c11` | Sticker outline and offset shadow colour. Not turned off in `#gbody` (unlike `--hard`). |
-| `--outline-w` / `--outline-w-lg` | 2px / 3px | Buttons and badges / cards |
-| `--lift-sm` / `--lift` / `--lift-lg` | 2 / 4 / 6px | Offset shadow height |
-| `--shadow-sticker-sm` / `--shadow-sticker` / `--shadow-sticker-lg` | `0 <lift> 0 var(--outline)` | Sticker shadows |
+| `--outline` | Surface-dependent | Quiet edges on controls and cards. |
+| `--outline-w` / `--outline-w-lg` | 1px / 2px | Controls and cards |
+| `--lift-sm` / `--lift` / `--lift-lg` | 0px | Existing game styles can reference these tokens without raising controls |
+| `--shadow-sticker-sm` / `--shadow-sticker` / `--shadow-sticker-lg` | Soft shadows | Subtle separation for layered cards |
 | `--shadow-card`, `--shadow-sm`, `--shadow-btn` | existing soft shadows | Floating layers only (dialogs, toasts) |
 
 ### Controls
@@ -51,9 +49,9 @@ Use as `font: var(--text-title)` or the class.
 | `--text-heading` | `.t-heading` | Baloo 2 800, clamp(26px, 3.2vw, 34px) / 1.15 |
 | `--text-title` | `.t-title` | Baloo 2 800, 20px / 1.25 |
 | `--text-body` | `.t-body` | Nunito 600, 17px / 1.5 |
-| `--text-button` | `.t-button` | Baloo 2 800, 17px / 1.2 |
+| `--text-button` | `.t-button` | Nunito 700, 16px / 1.25 |
 | `--text-primary` | | Baloo 2 800, 19px / 1.2 (primary actions) |
-| `--text-button-sm` | | Nunito 800, 15px / 1.2 (chips, segments) |
+| `--text-button-sm` | | Nunito 700, 15px / 1.25 (chips, segments) |
 | `--text-caption` | `.t-caption` | Nunito 700, 13px / 1.4, `--ink-dim` |
 
 Fonts: `--font-display` (Baloo 2), `--font-body` (Nunito).
@@ -96,21 +94,21 @@ use `arcade`.
 
 | Class | What |
 |---|---|
-| `.tb-btn` | Base button: 48px, 2px outline, 16px radius, 2px lift it sinks into on press |
-| `.tb-btn.tb-primary` | Family fill, 56px, 4px lift. One per panel |
+| `.tb-btn` | 48px, thin outline, body type, subtle press feedback |
+| `.tb-btn.tb-primary` | Family fill, 56px, one primary action per panel |
 | `.tb-btn.tb-secondary` | Card fill |
 | `.tb-btn.tb-chip` | 44px pill, no lift. Selected: `aria-pressed="true"` / `aria-checked="true"` / `.is-selected` |
 | `.tb-btn.tb-icon` | 48px square icon button (add `.tb-chip` for 44px round). Needs `aria-label` |
 | `.tb-btn.tb-danger` | `--danger` fill |
 | `.tb-reason` | Caption that says why a control is disabled |
 | `.tb-seg` | Segmented toggle; child `<button>`s with `aria-checked` or `aria-pressed` |
-| `.tb-card` | Sticker card: 3px outline, 24px radius, 6px shadow, 24px padding. `.is-tint`, `.is-compact`. As `<button>`/`<a>` it lifts and sinks |
+| `.tb-card` | 24px radius and padding with a soft surface shadow. Use the artwork and title to identify the game. `.is-tint` and `.is-compact` are available |
 | `.tb-badge` | Status pill. `.is-turn` `.is-live` `.is-wait` `.is-done` `.is-alert` |
 | `.tb-skeleton` | Loading placeholder. `.is-text` `.is-btn` `.is-card` |
 | `.tb-empty` | Composed empty state: dashed panel with a line of what to do next |
 | `.t-heading` `.t-title` `.t-body` `.t-button` `.t-caption` | Text styles |
 
-States on every `.tb-btn`: hover lift (hover devices only), active sink,
+Shared buttons have hover feedback on pointing devices, a subtle press, a
 `:focus-visible` ring, `:disabled` / `aria-disabled="true"` grey and flat,
 `aria-busy="true"` loading bar.
 
