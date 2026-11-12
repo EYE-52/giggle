@@ -25,7 +25,7 @@ const decoder=deferred(),asset=create(decoder.promise);let settled=false;
 const scene=new THREE.Scene();const preparing=asset.loadKartAssets(THREE,scene).then(x=>{settled=true;return x;});
 await ticks();assert.equal(asset.pending.size,0,'No GLB request or usable asset before decoder initializes');decoder.resolve();await new Promise(resolve=>setImmediate(resolve));await ticks();const expectedURLs=[...Object.entries(KART_ASSETS).map(([key,file])=>kartMatchAssetURL(key,file)),...KART_DRIVERS.map(name=>'/assets/karts/drivers/'+name+'.glb')];
 assert.deepEqual([...asset.pending.keys()].sort(),expectedURLs.sort(),'all declared GLBs and drivers start after decoder readiness');
-assert(asset.pending.has('/assets/karts/combat/pickup-gear.glb?v=meshy-20261112'),'required mounted gear is in the actual loader');
+assert([...asset.pending.keys()].some(url=>url.startsWith('/assets/karts/combat/pickup-gear.glb?v=') && url.split('=')[1]),'required mounted gear uses a versioned URL');
 const delayed=[...asset.pending].find(([url])=>url.includes('pulse-mounted'));
 await Promise.all([...asset.pending].filter(([url])=>url!==delayed[0]).map(([url,gate])=>finish(gate,url)));
 await ticks();assert.equal(settled,false,'An unresolved required compressed weapon blocks loader completion');await finish(delayed[1],delayed[0]);const assets=await preparing;assert(assets.pulse.getObjectByName('Pulse'),'Real mounted weapon exists when prepare resolves');

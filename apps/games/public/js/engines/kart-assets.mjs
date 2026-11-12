@@ -27,7 +27,7 @@ export const KART_ASSETS = {
 // batching so it merges and leans with KartBody. Every driver gets its own
 // batched kart variant; the view picks one per player.
 // Shared raised-arena library; environment files remain selected by map.
-const pickupArtRevision = 'meshy-20261112';
+const pickupArtRevision = 'meshy-20261112-lod';
 export function kartMatchAssetURL(key, file) {
   const updatedPickup = key === 'crate' || key === 'pickupGear';
   return '/assets/karts/' + file + '.glb' + (updatedPickup ? '?v=' + pickupArtRevision : '');
