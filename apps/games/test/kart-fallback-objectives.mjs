@@ -1,0 +1,40 @@
+// Execute the actual production 2D draw path. The canvas recorder checks
+// visible objective/team symbols and carrier placement, not source strings.
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import vm from 'node:vm';
+const source=fs.readFileSync(new URL('../public/js/engines/kart-view.js',import.meta.url),'utf8');
+const start=source.indexOf('  function drawFallback() {');
+const end=source.indexOf('\n  return { ownsTimer: true,',start);
+const calls=[];
+const ctx=new Proxy({fillStyle:'',strokeStyle:'',font:'',textAlign:''},{get(object,key){if(key in object)return object[key];return(...args)=>calls.push({type:key,args,fill:object.fillStyle,stroke:object.strokeStyle});}});
+const canvas={width:390,height:700,getContext:()=>ctx};
+const palette={bg:0,floor:1,track:2,wall:3,line:4};
+const context=vm.createContext({fbCanvas:canvas,S:null,fbLastT:0,flushPhysical(){},shotPlayback:{setDelay(){}},physicalPrediction:null,framePoses:()=>context.poses,poses:new Map(),poseStore:{},intentForPrediction:()=>({}),nowMs:()=>1000,serverNow:()=>1000,reducedMotion:()=>true,updateAudio(){},paletteFor:()=>palette,skyPhase:()=>null,LEGACY_PALETTES:{},PALETTES:{Daybreak:palette,Sunset:palette,Starlight:palette},drawArenaRoads2d(){},drawArenaFeatures2d(){},drawArenaStructures2d(){},ordnanceFresh:()=>true,ordnanceNow:()=>1000,localFlash:null,feedback:{current:()=>[]},colorFor:()=>0xabcdef,canvasNoseRotation:()=>0,Math,Number});
+vm.runInContext(source.slice(start,end)+'\nglobalThis.draw=drawFallback;',context);
+let checks=0;
+const check=(value,message)=>{assert.ok(value,message);checks++;};
+const teams=[{id:'blue',label:'Blue',color:0x489fff},{id:'coral',label:'Coral',color:0xff7e8d}];
+const karts=[{pid:'a',x:-5,z:0,angle:0,connected:true},{pid:'b',x:5,z:0,angle:0,connected:true}];
+const state={phase:'drive',mode:'battle',modeLabel:'Capture the Flag',teamMode:'ctf',teamByPlayer:{a:'blue',b:'coral'},teams,bases:[{id:'base-blue',teamId:'blue',position:{x:-20,y:0,z:0}},{id:'base-coral',teamId:'coral',position:{x:20,y:0,z:0}}],flags:[{id:'flag-blue',teamId:'blue',state:'home',position:{x:-20,y:0,z:0}},{id:'flag-coral',teamId:'coral',state:'carried',carrierId:'a',position:{x:-5,y:2,z:0}}],karts,you:'a',youDrive:true,map:{half:30,blocks:[]},palette:'Daybreak'};
+function draw(snapshot,poses=new Map()){calls.length=0;context.S=structuredClone(snapshot);context.poses=poses;context.draw();return calls.slice();}
+const text=events=>events.filter(call=>call.type==='fillText');
+const shapes=events=>events.filter(call=>call.type==='fillRect');
+let events=draw(state,new Map([['a',{x:10,z:2,angle:0}]]));
+check(text(events).some(call=>call.args[0]==='A base')&&text(events).some(call=>call.args[0]==='B base'),'both bases are visible without WebGL');
+check(text(events).filter(call=>call.args[0]==='A').length===2&&text(events).filter(call=>call.args[0]==='B').length===2,'both team badges and both flags use A/B symbols');
+const scale=390/66,expectedFlagX=390/2+10*scale+1.6*scale+Math.max(10,2*scale)*.65;
+check(text(events).some(call=>call.args[0]==='B'&&Math.abs(call.args[1]-expectedFlagX)<1e-6),'carried flag follows the same rendered predicted kart pose');
+check(shapes(events).some(call=>call.fill==='#489fff')&&shapes(events).some(call=>call.fill==='#ff7e8d'),'flag colours match authority team colours');
+const spectator={...state,you:'watcher',youDrive:false};
+events=draw(spectator);check(text(events).some(call=>call.args[0]==='A base')&&text(events).filter(call=>call.args[0]==='B').length===2,'spectators retain the complete objective view');
+const returned={...spectator,flags:state.flags.map(flag=>({...flag,state:'dropped',carrierId:null,position:{x:0,y:0,z:8}}))};
+events=draw(returned);check(events.filter(call=>call.type==='setLineDash'&&call.args[0]?.length===2).length===2,'dropped flags have a distinct outline');
+const reconnected={...state,flags:state.flags.map(flag=>({...flag,state:'home',carrierId:null})),karts:[{...karts[0],connected:false},{...karts[1],out:true}]};
+events=draw(reconnected);check(!shapes(events).some(call=>call.fill==='#abcdef'),'disconnected/left karts cannot leave ghost bodies or badges');check(text(events).some(call=>call.args[0]==='A base'),'objective state remains visible through reconnect roster changes');
+const teamBattle={...state,teamMode:'teambattle',modeLabel:'Team Battle',bases:[],flags:[]};
+events=draw(teamBattle);check(text(events).filter(call=>['A','B'].includes(call.args[0])).length===2,'Team Battle shows ally/rival identity without extra flag objects');
+const ordinary={...state,teamMode:undefined,teams:undefined,bases:undefined,flags:undefined};
+events=draw(ordinary);check(!text(events).some(call=>/base|^[AB]$/.test(call.args[0])),'free-for-all fallback has no stale team objectives');check(shapes(events).filter(call=>call.fill==='#abcdef').length===2,'ordinary drivers still draw');
+events=draw({...ordinary,mode:'starrush',stars:[{id:'s',x:7,z:8}]});check(events.some(call=>call.type==='fill'&&call.fill==='#ffd54a'),'Star Rush still draws its collectible stars');
+console.log(JSON.stringify({pass:true,checks,scope:'production classic fallback drawing, carrier pose, spectators/reconnects, Team/CTF plus FFA/Star Rush; no GPU pixel claim'}));

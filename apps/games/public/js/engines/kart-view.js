@@ -958,11 +958,7 @@ export function createKartView(viewConfig) {
       const reason = (handle && handle.reason) || 'webgl-unavailable';
       startFallback(reason === 'forced'
         ? 'Top-down view (3D disabled for this session).'
-        : 'Top-down view — 3D is unavailable on this device.');
-      if (reason !== 'forced') {
-        showGlNote(`<span>3D did not start.</span>
-        <span class="row"><button class="btn ghost" data-glaction="retry3d">Retry 3D</button></span>`);
-      }
+        : 'Top-down view · Retry 3D in controls.', reason !== 'forced');
       return;
     }
     gl = handle;
@@ -1527,9 +1523,26 @@ export function createKartView(viewConfig) {
 
 /* ---------------- 2D fallback (same snapshots, top-down) ---------------- */
 
-  function startFallback(note) {
+  function startFallback(note, canRetry = true) {
     stopFallback(); // drop any previous fallback loop/listeners first
     disposeGl();
+    showGlNote('');
+    const roomMenu = document.getElementById('roomMenu');
+    if (canRetry) {
+      const retry = document.createElement('button');
+      retry.id = 'pk-retry3d'; retry.type = 'button'; retry.className = 'btn ghost';
+      retry.textContent = 'Retry 3D';
+      const menuPanel = roomMenu?.querySelector('.room-menu-panel') || rootEl.querySelector('.pk-helpbody');
+      menuPanel?.appendChild(retry);
+      const retryAction = () => {
+        if (roomMenu) roomMenu.open = false;
+        const help = rootEl?.querySelector('#pk-help');
+        if (help) help.open = false;
+        glAction('retry3d');
+      };
+      retry.addEventListener('click', retryAction);
+      fbBound.push([retry, 'click', retryAction]);
+    }
     const stage = rootEl && rootEl.querySelector('.pk-stage');
     if (!stage) return;
     stage.innerHTML = '';
@@ -1540,7 +1553,7 @@ export function createKartView(viewConfig) {
     stage.appendChild(fbCanvas);
     const note2 = document.createElement('div');
     note2.className = 'muted small pk-fbnote';
-    note2.textContent = note;
+    note2.textContent = canRetry ? `Top-down view · Retry 3D in ${roomMenu ? 'menu' : 'controls'}.` : note;
     stage.appendChild(note2);
     const myGen = mountGen;
     const loop = () => {
@@ -1574,6 +1587,7 @@ export function createKartView(viewConfig) {
       try { t.removeEventListener(type, fn); } catch { /* noop */ }
     }
     fbBound = [];
+    document.querySelector('#pk-retry3d')?.remove();
     if (fbCanvas) { try { fbCanvas.remove(); } catch { /* noop */ } fbCanvas = null; }
   }
 
@@ -1647,6 +1661,17 @@ export function createKartView(viewConfig) {
       ctx.lineWidth = 2;
       ctx.strokeRect(px(b.x - b.hw), pz(b.z - b.hd), b.hw * 2 * scale, b.hd * 2 * scale);
     }
+    // Objective locations stay visible when WebGL is unavailable, including
+    // for spectators. Use the same authority colours and A/B team symbols.
+    if (S.teamMode) for (const base of S.bases || []) {
+      const team = (S.teams || []).find(team => team.id === base.teamId);
+      if (!team) continue;
+      const x = px(base.position.x), z = pz(base.position.z);
+      ctx.strokeStyle = css(team.color); ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.arc(x, z, Math.max(9, 2.8 * scale), 0, Math.PI * 2); ctx.stroke();
+      ctx.fillStyle = css(team.color); ctx.font = 'bold 11px sans-serif'; ctx.textAlign = 'center';
+      ctx.fillText(`${team.id === 'blue' ? 'A' : 'B'} base`, x, z + Math.max(19, 4.3 * scale));
+    }
     for (const s of S.stars || []) {
       ctx.fillStyle = '#ffd54a';
       ctx.beginPath();
@@ -1699,6 +1724,7 @@ export function createKartView(viewConfig) {
       ctx.beginPath();ctx.arc(px(e.x),pz(e.z),Math.max(1,(e.kind==='blast'?4*(BLAST_SCALE[e.weapon]||1):1+age*5))*scale,0,Math.PI*2);ctx.stroke();
     }
     for (const k of S.karts || []) {
+      if (k.out || k.connected === false) continue;
       const wreck=acceptedEffects.find(e=>e.kind==='ko'&&e.pid===k.pid);
       const age=wreck?(now-wreck.at)/1000:1;
       if (k.respawn > 0 && (!wreck||age>=.8)) continue;
@@ -1714,6 +1740,15 @@ export function createKartView(viewConfig) {
       ctx.fillStyle = '#14101f';
       ctx.fillRect(-0.45 * scale, -1.9 * scale, 0.9 * scale, 0.7 * scale);
       ctx.restore();
+      const team = S.teamMode && (S.teams || []).find(team => team.id === S.teamByPlayer?.[k.pid]);
+      if (team && !(k.respawn > 0)) {
+        const x = px(pose.x) + Math.max(9, 2.4 * scale), z = pz(pose.z) - Math.max(8, 2.2 * scale);
+        ctx.fillStyle = css(team.color);
+        if (team.id === 'blue') {ctx.beginPath(); ctx.arc(x, z, 7, 0, Math.PI * 2); ctx.fill();}
+        else ctx.fillRect(x - 7, z - 7, 14, 14);
+        ctx.fillStyle = '#102132'; ctx.font = 'bold 10px sans-serif'; ctx.textAlign = 'center';
+        ctx.fillText(team.id === 'blue' ? 'A' : 'B', x, z + 3);
+      }
       if ((k.shield || 0) > 0) {
         ctx.strokeStyle = '#7fd4ff';
         ctx.lineWidth = 2;
@@ -1727,6 +1762,24 @@ export function createKartView(viewConfig) {
         ctx.beginPath();
         ctx.arc(px(pose.x), pz(pose.z), 1.9 * scale, 0, Math.PI * 2);
         ctx.stroke();
+      }
+    }
+    if (S.teamMode) for (const flag of S.flags || []) {
+      const team = (S.teams || []).find(team => team.id === flag.teamId);
+      if (!team) continue;
+      const carrier = flag.state === 'carried' && (S.karts || []).find(kart => kart.pid === flag.carrierId && !kart.out && kart.connected !== false && !(kart.respawn > 0));
+      const point = carrier ? poseOf(carrier) : flag.position;
+      if (!point || !Number.isFinite(point.x) || !Number.isFinite(point.z)) continue;
+      const x = px(point.x) + (carrier ? Math.max(6, 1.6 * scale) : 0), z = pz(point.z);
+      const size = Math.max(10, 2 * scale);
+      ctx.strokeStyle = '#fff4e3'; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(x, z + size * .6); ctx.lineTo(x, z - size); ctx.stroke();
+      ctx.fillStyle = css(team.color); ctx.fillRect(x, z - size, size * 1.3, size * .9);
+      ctx.fillStyle = '#102132'; ctx.font = 'bold 9px sans-serif'; ctx.textAlign = 'center';
+      ctx.fillText(team.id === 'blue' ? 'A' : 'B', x + size * .65, z - size * .3);
+      if (flag.state === 'dropped') {
+        ctx.strokeStyle = css(team.color); ctx.setLineDash([3, 2]);
+        ctx.beginPath(); ctx.arc(x, z, size * 1.5, 0, Math.PI * 2); ctx.stroke(); ctx.setLineDash([]);
       }
     }
   }
