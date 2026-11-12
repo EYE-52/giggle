@@ -1,4 +1,5 @@
 import {createCuratedArt,CURATED_KINDS} from './kart-curated-art.mjs';
+import {WEAPONS} from './kart-weapon-contract.mjs';
 /* Shared combat factory. New canonical rigs/projectiles are authored in
  * kart-curated-art.mjs; kept secondary props use kart-arsenal-art.mjs.
  * The GLB/fallback factories below also retain historical names for source
@@ -582,6 +583,30 @@ export function createKartCombatArt(THREE, opts) {
     return clone;
   }
 
+  // Borrow the mounted art without touching its shared buffers/materials.
+  // Thrown bodies fit the smallest grenade sphere used by either authority;
+  // planted bodies fit the horizontal collider and start at ground level.
+  const deployedFits=new WeakMap();
+  function deployedModel(source,radius,grounded=false){
+    const model=cloneLib(source);model.position.set(0,0,0);
+    let fit=deployedFits.get(source);
+    if(!fit){
+      const bounds=new THREE.Box3().setFromObject(model),center=bounds.getCenter(new THREE.Vector3()),half=bounds.getSize(new THREE.Vector3()).multiplyScalar(.5),point=new THREE.Vector3();
+      let envelope=0;
+      model.traverse(node=>{if(!node.isMesh)return;const positions=node.geometry.attributes.position;
+        for(let i=0;i<positions.count;i++){
+          point.fromBufferAttribute(positions,i).applyMatrix4(node.matrixWorld).sub(center);
+          envelope=Math.max(envelope,grounded?Math.hypot(point.x,point.z):point.length());
+        }
+      });
+      const scale=Math.min(1,radius/Math.max(.001,envelope));
+      fit={scale,x:-center.x*scale,y:-(grounded?bounds.min.y:center.y)*scale,z:-center.z*scale,tipZ:half.z*scale};
+      deployedFits.set(source,fit);
+    }
+    model.scale.multiplyScalar(fit.scale);model.position.set(fit.x,fit.y,fit.z);
+    return {model,tipZ:fit.tipZ};
+  }
+
   function overrideOf(clone, meshName, material) {
     const mesh = clone.getObjectByName(meshName);
     if (mesh && mesh.isMesh) mesh.material = material;
@@ -712,7 +737,13 @@ export function createKartCombatArt(THREE, opts) {
   function projectile(kind) {
     if(['machinegun','trishot','missile','cannon'].includes(kind))return curated.projectile(kind);
     if (ARSENAL_SHOT_KINDS.includes(kind)) {
-      const shot = arsenal.projectile(kind), c = shot.userData.combat, spec = ARSENAL_SHOT_GLOW[kind];
+      const source=kind==='frost'&&libBranch('Gear_frost',null);
+      let shot;
+      if(source){
+        const {outer,inner,c}=base('projectile',kind,'FrostBomb'),fit=deployedModel(source,.43);
+        inner.add(fit.model);c.arsenal=true;c.tipZ=fit.tipZ;c.tailZ=-fit.tipZ;shot=outer;
+      }else shot=arsenal.projectile(kind);
+      const c = shot.userData.combat, spec = ARSENAL_SHOT_GLOW[kind];
       if (!glowTex) glowTex = glowTexture(THREE);
       let material = glowMats.get(kind);
       if (!material) {
@@ -729,11 +760,18 @@ export function createKartCombatArt(THREE, opts) {
     const branch = libBranch(spec[0], spec[1]);
     // Slugs keep their authored metallic materials on both paths; only the
     // narrow tracer behind is a factory-owned override (white/amber/ember).
-    const shot = branch ? projectileFromLib(k, branch, spec[2]) : projectileFallback(k);
+    const source=k==='nuke'&&libBranch('Gear_nuke',null);
+    let shot;
+    if(source){
+      const {outer,inner,c}=base('projectile',k,SHOT_NAMES[k]),fit=deployedModel(source,.43);
+      inner.add(fit.model);c.tipZ=fit.tipZ;c.tailZ=-fit.tipZ;shot=outer;
+    }else shot=branch ? projectileFromLib(k, branch, spec[2]) : projectileFallback(k);
     const c = shot.userData.combat, profile = SHOT_PROFILES[k];
-    c.inner.scale.set(profile.radius, profile.radius, profile.length);
-    c.tipZ *= profile.length;
-    c.tailZ *= profile.length;
+    if(!source){
+      c.inner.scale.set(profile.radius, profile.radius, profile.length);
+      c.tipZ *= profile.length;
+      c.tailZ *= profile.length;
+    }
     const spec2 = SHOT_GLOW[k];
     if (spec2) {
       if (!glowTex) glowTex = glowTexture(THREE);
@@ -788,15 +826,18 @@ export function createKartCombatArt(THREE, opts) {
     const {outer,inner,c}=base('mine',kind,kind==='fakecrate'?'FakeCrateTrap':'ProximityTrap');
     const source=libBranch('Gear_'+kind,null);
     if(source){
-      const model=cloneLib(source);
-      model.position.set(0,0,0);
-      let fit=trapSizes.get(kind);
-      if(!fit){
-        const bounds=new THREE.Box3().setFromObject(model);
-        const scale=(kind==='fakecrate'?1.48:.95)/Math.max(.01,bounds.max.x-bounds.min.x,bounds.max.z-bounds.min.z);
-        fit={scale,y:-bounds.min.y*scale};trapSizes.set(kind,fit);
+      const model=kind==='proximity'?deployedModel(source,WEAPONS.proximity.bodyRadius-.02,true).model:cloneLib(source);
+      if(kind==='proximity')inner.add(model);
+      else{
+        model.position.set(0,0,0);
+        let fit=trapSizes.get(kind);
+        if(!fit){
+          const bounds=new THREE.Box3().setFromObject(model);
+          const scale=1.48/Math.max(.01,bounds.max.x-bounds.min.x,bounds.max.z-bounds.min.z);
+          fit={scale,y:-bounds.min.y*scale};trapSizes.set(kind,fit);
+        }
+        model.scale.multiplyScalar(fit.scale);model.position.y=fit.y;inner.add(model);
       }
-      model.scale.multiplyScalar(fit.scale);model.position.y=fit.y;inner.add(model);
     }else{
       const {M,G}=ensurePool();
       if(kind==='fakecrate'){
@@ -817,7 +858,15 @@ export function createKartCombatArt(THREE, opts) {
     const isOwn = own !== false;
     if(kind==='fakecrate')return specialTrap(kind,isOwn);
     const branch = libBranch('MineTrap', null)||libBranch('Mine', null);
-    const object=kind==='proximity'?specialTrap(kind,isOwn):branch?mineFromLib(isOwn,branch):mineFallback(isOwn),c=object.userData.combat;
+    const round=libBranch('Gear_mine',null)?.getObjectByName('Mine0');
+    let object;
+    if(kind==='proximity')object=specialTrap(kind,isOwn);
+    else if(round){
+      const {outer,inner,c}=base('mine','mine','CombatMine');
+      inner.add(deployedModel(round,WEAPONS.mine.bodyRadius-.02,true).model);
+      c.own=isOwn;c.armed=true;object=outer;
+    }else object=branch?mineFromLib(isOwn,branch):mineFallback(isOwn);
+    const c=object.userData.combat;
     if(!mineWarningGeometry){mineWarningGeometry=poolGeo(reg,new THREE.RingGeometry(.78,.94,32),'MineWarningRing');mineWarningGeometry.rotateX(-Math.PI/2);mineWarningMaterial=trackMat(reg,new THREE.MeshBasicMaterial({color:0xffcb55,transparent:true,opacity:.7,depthWrite:false,side:THREE.DoubleSide,toneMapped:false}));}
     const warning=new THREE.Mesh(mineWarningGeometry,mineWarningMaterial);warning.name='MineWarningRing';warning.position.y=.09;warning.userData.groundDecoration=true;object.add(warning);c.warning=warning;
     return object;

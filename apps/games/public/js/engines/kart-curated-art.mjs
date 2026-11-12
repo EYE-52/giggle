@@ -21,6 +21,15 @@ export function createCuratedArt(THREE, lookup = () => null){
  function mesh(parent,geo,mat,x=0,y=0,z=0,sx=1,sy=sx,sz=sx){const o=new THREE.Mesh(geo,mat);o.position.set(x,y,z);o.scale.set(sx,sy,sz);o.castShadow=true;parent.add(o);return o;}
  function base(type,kind){const outer=new THREE.Group(),inner=new THREE.Group();outer.add(inner);outer.name='Curated'+kind;outer.userData.combat={type,kind,inner,curated:true,spin:0,seed:++seq,tail:null};return {outer,inner,c:outer.userData.combat};}
  function projectile(kind){const K=build(),{outer,inner,c}=base('projectile',kind);
+  if(kind==='missile'){
+   const model=lookup('Gear_missile');
+   if(model){
+    const clone=model.clone(true);clone.position.set(0,0,0);inner.add(clone);
+    c.tail=mesh(inner,K.nose,K.orange,0,0,-.70,.43,.43,-.68);
+    c.tipZ=.57;c.tailZ=-.84;c.tailBase=-.68;
+    return outer;
+   }
+  }
   if(kind==='cannon'){
    const round=lookup('Gear_cannon')?.getObjectByName('Rocket0');
    if(round){

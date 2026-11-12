@@ -91,7 +91,7 @@ for(const kind of ['scatter','rocket','seeker','proximity','nuke']){
   const glow=shot.getObjectByName('ShotGlow');check(glow?.isSprite&&glow.material.depthWrite===false,kind+' shot carries one additive glow');shot.remove(glow);
   const box=new THREE.Box3().setFromObject(shot),size=box.getSize(new THREE.Vector3());shot.add(glow);
   check(size.toArray().every(n=>Number.isFinite(n)&&n>0)&&size.length()<3,kind+' actual shot has bounded physical art');
-  if(['rocket','seeker','nuke'].includes(kind)){
+  if(['rocket','seeker'].includes(kind)){
     const c=shot.userData.combat,tail=c.tail;check(!!tail&&tail.material.isMeshBasicMaterial,kind+' exhaust is an unlit cosmetic mesh');
     // Keep the unchanged whole-object size limit above: decorative art still
     // shares the player's visual/clearance envelope, even without collision.
@@ -103,8 +103,12 @@ for(const kind of ['scatter','rocket','seeker','proximity','nuke']){
     const hull=new THREE.Box3().setFromObject(c.inner.children[0]);
     check(box.max.z===hull.max.z,kind+' exhaust does not extend the solid forward nose');
     check(Math.abs(c.tipZ-hull.max.z)<1e-6&&Math.abs(c.tailZ-box.min.z)<1e-6,kind+' calibrated metadata follows its actual solid nose and compact exhaust');
-    if(kind==='nuke')check(c.inner.children[0].name==='RocketShot','Nuke calibration follows its actual reused RocketShot branch');
     check(box.min.z<hull.min.z&&hull.min.z-box.min.z<.6,kind+' compact exhaust is attached directly behind the source hull');
+  }
+  if(kind==='nuke'){
+    const body=shot.getObjectByName('Gear_nuke');
+    check(body?.isMesh,'Thrown nuke keeps the equipped capsule silhouette');
+    check(body.geometry===gear.getObjectByName('Gear_nuke').geometry,'Thrown nuke borrows the mounted geometry');
   }
   if(kind==='scatter')check(shot.userData.combat.inner.children[0].name==='BoltScatter','Scatter keeps its compact metal slug; foam dart candidate is not used');
   if(kind==='proximity'){
@@ -122,8 +126,10 @@ for(const own of [true,false])for(const angle of [0,.25]){
   let min=Infinity,max=-Infinity;const v=new THREE.Vector3();
   trap.traverse(o=>{if(!o.isMesh)return;const p=o.geometry.attributes.position;for(let i=0;i<p.count;i++){const height=v.fromBufferAttribute(p,i).applyMatrix4(o.matrixWorld).dot(normal);min=Math.min(min,height);max=Math.max(max,height);}});
   check(Math.abs(min)<1e-5&&max<.3,'Trap sits on actual support plane without floating or clipping');
-  check(trap.userData.combat.inner.children[0].name==='MineTrap','Ground hardware uses independently authored trap');
-  trap.userData.combat.armed=false;art.animate(trap,.02,1,false);check(!trap.userData.combat.glow.visible,'Unarmed trap status lamp stays off');
+  const round=trap.getObjectByName('Mine0');
+  check(round?.geometry===gear.getObjectByName('Mine0').geometry,'Ground hardware shares the equipped trail round');
+  trap.userData.combat.armed=false;art.animate(trap,.02,1,true);
+  check(trap.userData.combat.warning.scale.x===.8,'Unarmed trap warning keeps its existing state cue');
 }
 check(!('spikes'in art)&&!('sentry'in art),'retired Spikes and Sentry have no art factories');
 art.dispose();art.dispose();check(borrowedDisposals===0,'Factory retirement never destroys borrowed GLB resources');

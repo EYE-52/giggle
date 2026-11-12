@@ -24,7 +24,9 @@ for(const[key,file]of Object.entries({combat:'combat',pulse:'pulse-mounted',arse
  const b=fs.readFileSync(new URL('../public/assets/karts/combat/'+file+'.meshopt.glb',import.meta.url));
  libs[key]=(await new GLTFLoader().setMeshoptDecoder(MeshoptDecoder).parseAsync(b.buffer.slice(b.byteOffset,b.byteOffset+b.byteLength),'')).scene;
 }
-const get=name=>libs.pulse.getObjectByName(name)||libs.arsenal.getObjectByName(name)||(name!=='ScatterShot'&&libs.secondary.getObjectByName(name))||libs.combat.getObjectByName(name);
+const gearBytes=fs.readFileSync(new URL('../public/assets/karts/combat/pickup-gear.glb',import.meta.url));
+libs.gear=(await new GLTFLoader().setMeshoptDecoder(MeshoptDecoder).parseAsync(gearBytes.buffer.slice(gearBytes.byteOffset,gearBytes.byteOffset+gearBytes.byteLength),'')).scene;
+const get=name=>libs.gear.getObjectByName(name)||libs.pulse.getObjectByName(name)||libs.arsenal.getObjectByName(name)||(name!=='ScatterShot'&&libs.secondary.getObjectByName(name))||libs.combat.getObjectByName(name);
 const source=fs.readFileSync(new URL('../public/js/engines/kart-view.js',import.meta.url),'utf8');
 const preparation=source.slice(source.indexOf('function prepareShotContact('),source.indexOf('const cueBounds='));
 const placement=source.slice(source.indexOf('liveZ.clear();'),source.indexOf('for (const [zid, mesh] of zaps)'));
