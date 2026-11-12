@@ -68,7 +68,8 @@ export function createKartLaunchWorld(THREE,{scene,map,palette='Daybreak',lighti
    const alongX=d.half.x>d.half.z,length=2*(alongX?d.half.x:d.half.z),cross=2*(alongX?d.half.z:d.half.x),v=(a,b,c)=>alongX?[a,b,c]:[c,b,a];
    body.scale.y=.28;body.position.y=-d.half.y*.72;
    add(g,unit,M.edge,v(0,d.half.y*.72,0),v(length,.14,cross));
-   for(let t=-length/2+.18;t<length/2;t+=(map.artId==='ring'?3:4.5)){add(g,unit,M.blue,v(t,0,0),v(.14,d.half.y*1.8,cross));add(g,unit,glow,v(t,d.half.y*.72,0),v(.4,.16,cross+.005));}
+   // Seat the posts inside the rails so their side faces cannot fight at a joint.
+   for(let t=-length/2+.18;t<length/2;t+=(map.artId==='ring'?3:4.5)){add(g,unit,M.blue,v(t,0,0),v(.14,d.half.y*1.8,cross*.82));add(g,unit,glow,v(t,d.half.y*.72,0),v(.4,.16,cross+.005));}
    for(let t=-length/2+.5;t<length/2;t+=(map.artId==='ring'?2:3))add(g,unit,M.yellow,v(t,-d.half.y*.65,0),v(.6,.18,cross+.006));
   }
   if(d.role==='pillar'){
