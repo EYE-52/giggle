@@ -17,6 +17,8 @@ const fs = require('node:fs');
 const vm = require('node:vm');
 (async () => {
 const hudWrites=await import('../public/js/engines/kart-hud-write.mjs');
+const modeUI=await import('../public/js/engines/kart-mode-ui.mjs');
+const {createKartObjectives}=await import('../public/js/engines/kart-objectives.mjs');
 const {createKartPickupPool}=await import('../public/js/engines/kart-pickup-pool.mjs');
 const {waitKartPreparation}=await import('../public/js/engines/kart-warmup-scheduler.mjs');
 const { intentFromKeys } = await import('../public/js/engines/kart-pose.mjs');
@@ -94,7 +96,7 @@ window.screen = {orientation: new Node()};
 const audios=[];
 const {createSurfaceIndex,surfaceTuning}=require('../public/js/engines/kart-surface.mjs');
 const {driftTier,DRIFT_TIERS}=require('../public/js/engines/kart-drift.mjs');
-const context = vm.createContext({...hudWrites,createKartPickupPool,...require('../public/js/engines/kart-weapon-contract.mjs'),...require('../public/js/engines/kart-flight.mjs'),document, window, console, Date,createSurfaceIndex,surfaceTuning,driftTier,DRIFT_TIERS,
+const context = vm.createContext({...modeUI,createKartObjectives,...hudWrites,createKartPickupPool,...require('../public/js/engines/kart-weapon-contract.mjs'),...require('../public/js/engines/kart-flight.mjs'),document, window, console, Date,createSurfaceIndex,surfaceTuning,driftTier,DRIFT_TIERS,
   performance: {now: () => clock},
   setTimeout: fn => { const id=++seq; analogTimeouts.set(id,fn); return id; },
   clearTimeout: id => analogTimeouts.delete(id),
@@ -829,19 +831,19 @@ const nitro=main.querySelector('#pk-tn');
   assert.equal(calls.length,1,'host arena pick calls configure once');
   assert.equal(calls[0].map,'Frosty Pass','configure carries the label for the next rematch');
   assert.ok(res.innerHTML.includes('Saving Frosty Pass'),'queued configuration stays visibly pending');
-  assert.ok(!notices.some(t=>t.includes('Next arena: Frosty')),'queued request is not called saved');
+  assert.ok(!notices.some(t=>t.includes('Next match: Frosty')),'queued request is not called saved');
   res.fire('click',{target:{closest:(s)=>s==='[data-arena]'?btn:null}});
   assert.equal(calls.length,1,'pending map request cannot enqueue duplicates');
   savedMap='Frosty Pass'; view.update(main,done,hostApi);
-  assert.ok(res.innerHTML.includes('Next: Frosty Pass'),'validated settings acknowledge next arena');
-  assert.equal(notices.filter(t=>t.includes('Next arena: Frosty')).length,1,'save acknowledgement announced once');
+  assert.ok(res.innerHTML.includes('Frosty Pass — applies on rematch'),'validated settings acknowledge next arena');
+  assert.equal(notices.filter(t=>t.includes('Next match: Frosty')).length,1,'save acknowledgement announced once');
   view.update(main,done,hostApi);
-  assert.equal(notices.filter(t=>t.includes('Next arena: Frosty')).length,1,'repeated snapshots do not repeat acknowledgement');
+  assert.equal(notices.filter(t=>t.includes('Next match: Frosty')).length,1,'repeated snapshots do not repeat acknowledgement');
   const neon={...btn,getAttribute:()=>'legacy-neon'};
   res.fire('click',{target:{closest:(s)=>s==='[data-arena]'?neon:null}});
   clock+=5001;view.update(main,done,hostApi);
   assert.ok(res.innerHTML.includes('Arena was not saved'),'missing acknowledgement times out with retry feedback');
-  assert.ok(!notices.some(t=>t.includes('Next arena: Neon')),'timeout never pretends saved');
+  assert.ok(!notices.some(t=>t.includes('Next match: Neon')),'timeout never pretends saved');
   const before=calls.length;
   const watchApi={...api,context:()=>({isHost:false,settings:{}}),configure:(s)=>{calls.push(s);return true;},announce(){}};
   view.update(main,done,watchApi);

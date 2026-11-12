@@ -9,6 +9,8 @@ import {paintKartWeapon,kartWeaponArt} from './kart-weapon-hud.mjs';
 import {paintKartHearts,createKartHitFeedback,landedText,kartEventCue} from './kart-hearts.mjs';
 import {kartResultView} from './kart-results.mjs';
 import {createKartArenaPicker} from './kart-next-arena.mjs';
+import {kartModeInfo,kartScore,kartScoreText,kartGoalText,kartTeam,kartTeamTag,paintKartObjectiveHud} from './kart-mode-ui.mjs';
+import {createKartObjectives} from './kart-objectives.mjs';
 import {kartGarageHtml,createKartGarageUI,garagePreviewKey} from './kart-garage-ui.mjs';
 import {createGarageThumbnail} from './kart-garage-thumbnail.mjs';
 import physicsConfig from './kart-physics-config.mjs';
@@ -273,7 +275,7 @@ export function createKartView(viewConfig) {
   }
 
   function scoreOf(k) {
-    return isBattle() ? (k.hits || 0) : (k.stars || 0);
+    return kartScore(k,S);
   }
 
   function countLabel(n, noun) {
@@ -537,8 +539,8 @@ export function createKartView(viewConfig) {
       <details class="pk-board" id="pk-board">
       <summary class="pk-lead" id="pk-lead" aria-label="Leaderboard standings, expand for full timing"></summary>
       <div class="pk-standpanel"><span class="pk-goal" id="pk-goal">–</span><div class="pk-stand" id="pk-stand" aria-label="Standings"></div></div>
-      </details><span id="pk-health" class="pk-health kart-hp" role="img" aria-label="100 of 100 HP"></span></div>
-    </div>
+      </details></div>
+    </div><span id="pk-health" class="pk-health kart-hp" role="img" aria-label="100 of 100 HP"></span>
     <div class="pk-count" id="pk-count" hidden></div>
     <div class="pk-tip" id="pk-tip" role="status" hidden></div>
     <div class="pk-readout" role="group" aria-label="Weapon, speed and nitro">
@@ -551,6 +553,7 @@ export function createKartView(viewConfig) {
       <details class="pk-help" id="pk-help"><summary aria-label="Driving controls help">?</summary>
       <div class="pk-helpbody"><button type="button" id="pk-resume" class="pk-resume">Resume</button>${controlsPickerHtml('pk-controls',controlsPreference)}<button type="button" id="pk-auto" class="pk-auto" aria-pressed="false" hidden>Auto gas · off</button><p class="pk-helpkeys"><b>Drive</b> WASD / arrows or left stick: up for gas, down to brake / reverse · <b>Drift</b> hold Shift / tyre button in a turn, release blue, orange or purple sparks for a growing turbo · <b>Nitro</b> hold N / bottle button with gas for a rechargeable boost · <b>Item</b> Space / action button · Ice is slippery, mint strips boost.</p><a href="/assets/karts/audio/CREDITS.txt" target="_blank" rel="noopener">Sound credits</a></div></details></div></div>
     <canvas id="pk-radar" class="pk-radar" width="240" height="240" role="img" aria-label="Arena map: players, cover and glowing pickups"></canvas>
+    <section class="kart-objective-hud" id="pk-objective" aria-label="Team objective" aria-live="polite" hidden></section>
     <div class="pk-respawn" id="pk-respawn" hidden></div>
     <div class="pk-result" id="pk-result" hidden></div>
     <div class="pk-glnote" id="pk-glnote" hidden></div>`;
@@ -597,7 +600,8 @@ export function createKartView(viewConfig) {
       setKartText(timer, 'Finished');
       setKartFlag(count,'hidden',true);
     }
-    setKartText(goal, S.winRule === 'Time limit' ? (battle ? 'Most KOs wins' : 'Most stars wins') : battle ? `${S.targetHits || 0} KOs to win` : `★ ${S.targetStars || 0} to win`);
+    setKartText(goal,kartGoalText(S));
+    paintKartObjectiveHud(rootEl.querySelector('#pk-objective'),S,nameOf);
     drawRadar();
     const respawn = rootEl.querySelector('#pk-respawn');
     if (respawn) {
@@ -609,7 +613,7 @@ export function createKartView(viewConfig) {
 
     const me = myKart();
     const health=rootEl.querySelector('#pk-health');
-    if(health){setKartFlag(health,'hidden',!battle||!me);if(me)paintKartHearts(health,me);}
+    if(health){setKartFlag(health,'hidden',!battle||!me||!S.youDrive||S.phase==='done');if(me)paintKartHearts(health,me);}
     const mapLabel = rootEl.querySelector('#pk-map');
     const handling = rootEl.querySelector('#pk-handling');
     const speedDigits = rootEl.querySelector('#pk-speed');
@@ -671,18 +675,20 @@ export function createKartView(viewConfig) {
     }
     const readout = rootEl.querySelector('.pk-readout');
     if (readout) {
+      setKartFlag(readout,'hidden',!S.youDrive);
       readout.classList.toggle('pk-drifting', !!(me && me.drifting));
       readout.classList.toggle('pk-charged', !!(me && me.drifting && charge >= 1));
       readout.classList.toggle('pk-nitroing', nitroActive);
     }
     rootEl.querySelector('.pk')?.classList.toggle('pk-battle', battle);
+    rootEl.querySelector('.pk')?.classList.toggle('kart-has-teams',!!S.teamMode);
     if (battle) {
-      setKartText(mine, me ? `You · ${me.hits || 0} KO${me.hits === 1 ? '' : 's'}` : 'Watching');
-      setKartFlag(boost,'hidden',!me);
+      setKartText(mine, me&&S.youDrive ? `You · ${kartScoreText(scoreOf(me),S)}` : 'Watching');
+      setKartFlag(boost,'hidden',!me||!S.youDrive);
       const hint=S.phase==='drive'&&!touchControlsFor(controlsPreference,readInputCapabilities());
       paintKartWeapon(boost,me,{hint});
     } else {
-      setKartText(mine, me ? `You ★ ${me.stars}` : (S.youDrive ? 'You ★ 0' : 'Watching'));
+      setKartText(mine, me&&S.youDrive ? `You ★ ${me.stars}` : (S.youDrive ? 'You ★ 0' : 'Watching'));
       setKartFlag(boost,'hidden',true);
     }
 
@@ -701,13 +707,13 @@ export function createKartView(viewConfig) {
     const myIndex = S.you ? rows.findIndex((k) => k.pid === S.you) : -1;
     const myRank = myIndex >= 0 ? ranks[myIndex] : 0;
     const standKey = (battle ? 'b' : 'r') + '|' + (S.you || '') + '|' + hiddenCount + '|' +
-      rows.map((k) => k.pid + ':' + scoreOf(k) + (k.out ? ':out' : '')).join(',');
+      rows.map((k) => k.pid + ':' + scoreOf(k) + ':' + S.teamByPlayer?.[k.pid] + (k.out ? ':out' : '')).join(',');
     if (standKey !== lastStandKey) {
       lastStandKey = standKey;
       const lead = rootEl.querySelector('#pk-lead');
       if (lead) {
         const top = rows[0];
-        const scoreTxt = (k) => (battle ? `${countLabel(scoreOf(k), 'KO')}` : `★ ${scoreOf(k)}`);
+        const scoreTxt = k=>kartScoreText(scoreOf(k),S);
         // Folded: rank and score only. Full names stay in the standings.
         const self = myIndex >= 0 ? rows[myIndex] : null;
         const leader = self || top;
@@ -716,7 +722,7 @@ export function createKartView(viewConfig) {
           const rank = self ? myRank : 1;
           setKartAttribute(lead,'aria-label', `${fullName}, rank ${rank}, ${scoreTxt(leader)}. Expand standings.`);
           lead.innerHTML = `<span class="pk-leadrank">P${rank}</span>` +
-            `<span class="pk-leadscore">${scoreOf(leader)}${battle ? '<small> KO</small>' : ' ★'}</span>` +
+            `<span class="pk-leadscore">${scoreOf(leader)}<small> ${kartModeInfo(S).unit}${scoreOf(leader)===1?'':'s'}</small></span>` +
             `<span class="pk-chev" aria-hidden="true">▾</span>`;
         } else {
           setKartAttribute(lead,'aria-label', 'Expand standings');
@@ -727,8 +733,8 @@ export function createKartView(viewConfig) {
         `<div class="pk-row${k.pid === S.you ? ' pk-self' : ''}${k.out ? ' pk-out' : ''}">` +
         `<span class="pk-rank">${ranks[i]}</span>` +
         `<span class="pk-dot" style="background:#${colorFor(k.pid).toString(16).padStart(6, '0')}"></span>` +
-        `<span class="pk-name">${esc(nameOf(k.pid))}${k.out ? ' <small>Left</small>' : ''}</span>` +
-        `<span class="pk-score">${battle ? `${countLabel(scoreOf(k), 'KO')}` : `★ ${scoreOf(k)}`}</span></div>`
+        `<span class="pk-name">${esc(nameOf(k.pid))}${kartTeamTag(S,k.pid)}${k.out ? ' <small>Left</small>' : ''}</span>` +
+        `<span class="pk-score">${kartScoreText(scoreOf(k),S)}</span></div>`
       ).join('') + (hiddenCount > 0 ? `<div class="pk-row pk-more"><span class="pk-rank"></span><span class="pk-name"><small>+${hiddenCount} more</small></span></div>` : '');
     }
 
@@ -740,19 +746,20 @@ export function createKartView(viewConfig) {
       const reason = (S.result && S.result.endReason) || 'timeout';
       const resKey = (battle ? 'b' : 'r') + '|' + reason + '|' + wins.join(',') + '|' +
         (S.result.standings || []).map((r) => r.pid + ':' + r.score + ':' + r.points + ':' + (r.out ? 1 : 0)).join(',') + '|' + S.you + '|' +
-        JSON.stringify([S.coins,S.upgrades?.[S.you],S.garageResult,arenaKey,S.map?.id,garagePending,lookOf(S.you)]);
+        JSON.stringify([S.coins,S.upgrades?.[S.you],S.garageResult,arenaKey,S.map?.id,garagePending,lookOf(S.you),S.teamResult,S.modeLabel]);
       if (resKey !== lastResultKey) {
         lastResultKey = resKey;
-        const unit = (n) => (battle ? `${n} KO${n === 1 ? '' : 's'}` : `${n} star${n === 1 ? '' : 's'}`);
-        const target = battle ? (S.targetHits || 0) : (S.targetStars || 0);
+        const unit=n=>kartScoreText(n,S),mode=kartModeInfo(S);
+        const target=S[mode.target] || 0;
         const final = kartResultView({ result: S.result, you: S.you, nameOf, unit, target,
-          targetUnit: battle ? (target === 1 ? 'KO' : 'KOs') : (target === 1 ? 'star' : 'stars') });
+          targetUnit:mode.unit+(target===1?'':'s'),teams:S.teams,teamResult:S.teamResult,teamByPlayer:S.teamByPlayer });
         const scrollTop = result.scrollTop || 0;
         const focused = result.contains?.(document.activeElement) ? document.activeElement : null;
-        const focusArena = focused?.getAttribute?.('data-arena'), focusPart = focused?.getAttribute?.('data-upgrade') || focused?.getAttribute?.('data-part');
+        const focusArena = focused?.getAttribute?.('data-arena'),focusMode=focused?.getAttribute?.('data-next-mode'), focusPart = focused?.getAttribute?.('data-upgrade') || focused?.getAttribute?.('data-part');
         result.innerHTML = final.html + garageHtml() + arenaPicker.html(S, apiRef);
         garageUI.paint(result,S,{bought,reducedMotion:reducedMotion(),key:garagePreviewKey(garagePreviewSpec())},apiRef);
         result.scrollTop = scrollTop;
+        if (focusMode) result.querySelector(`[data-next-mode="${focusMode}"]`)?.focus?.({preventScroll:true});
         if (focusArena) result.querySelector(`[data-arena="${focusArena}"]`)?.focus?.({ preventScroll: true });
         if (focusPart) {
           const button=result.querySelector(`[data-upgrade="${focusPart}"]`);
@@ -981,7 +988,7 @@ export function createKartView(viewConfig) {
     let disposeLighting,warmup;
     let disposeCombat;
     let healthBars;
-    let world,impactFX,skids,drivingFX,threats,arsenalFX,arena,structures,garageThumbnail,cameraCollision;
+    let world,impactFX,skids,drivingFX,threats,arsenalFX,arena,structures,garageThumbnail,cameraCollision,objectives;
     try {
       const assets = await loadKartAssets(THREE, scene, {map:S.map,drivers:matchKartDrivers(S.karts,hostContext().looks)});
       if (gen !== mountGen) throw new Error('Retired kart scene');
@@ -1011,6 +1018,7 @@ export function createKartView(viewConfig) {
       },pickupAsset:assets.crate});
       disposeCombat=combat.dispose;
       healthBars=createKartHealthBars(THREE,scene);
+      objectives=createKartObjectives(THREE,scene,{state:S});
       impactFX=createKartImpactFX(THREE,scene,{reducedMotion:()=>rm});
       arsenalFX=createArsenalFX(THREE,scene,{reducedMotion:()=>rm,groundAt:(x,z)=>world.groundAt?.(x,z)||0});
       arena=createKartArenaFeatures(THREE,scene,{groundAt:(x,z)=>world.groundAt?.(x,z)||0,reducedMotion:()=>reducedMotion()});
@@ -1127,7 +1135,7 @@ export function createKartView(viewConfig) {
       // Scope required GPU preparation to its generation. Then allow six
       // seconds for other bindings; no queue resumes after scene handoff.
       warmup=await warmKartRenderer(THREE,renderer,scene,camera,{isAlive:()=>gen===mountGen,
-        requiredRoots:[warm,reserve,warmLibrary,pops,scene.getObjectByName('KartImpactFX')],
+        requiredRoots:[warm,reserve,warmLibrary,pops,objectives.root,scene.getObjectByName('KartImpactFX')],
         budgetMs:6000,priorityRoots:[world.group,...karts.values(),starPool.objects[0],cratePool.objects[0],warmLibrary.children[0],drivingFX.particles,drivingFX.speedLines],
         onProgress:({completed,total})=>{if(gen===mountGen){const loading=rootEl?.querySelector('.pk-loading'),text=`Preparing graphics… ${Math.round(completed/total*100)}%`;if(loading&&loading.textContent!==text)loading.textContent=text;}},
         roots:[warm,reserve,warmLibrary,pops,kartLod.object,drivingFX.particles,drivingFX.speedLines,
@@ -1331,7 +1339,7 @@ export function createKartView(viewConfig) {
             const zone = takeMarker('star');
             placeGroundMarker(zone,s.x,s.z,groundAt);
             scene.add(zone);group.userData.zone=zone;
-            group.position.set(s.x, s.groundY??world.groundAt?.(s.x,s.z)??0, s.z);
+            group.position.set(s.x, s.groundY??s.y??world.groundAt?.(s.x,s.z)??0, s.z);
             scene.add(group);
             stars.set(s.id, group);
           }
@@ -1502,11 +1510,12 @@ export function createKartView(viewConfig) {
         const ownKart=me&&S.youDrive&&!(me.respawn>0)?karts.get(me.pid):null;
         threats.update(ordnanceFresh()&&S.phase==='drive'?S:null,S.you,ownKart?.position,camera,nowMs());
         healthBars.face(camera);
+        objectives.update(S,karts,camera,t,rm);
         if (typeof hooks.sceneExtra === 'function') {
           try { hooks.sceneExtra(THREE, { scene, camera, poses, S, dt }); } catch { /* game-owned extra must not break frames */ }
         }
       };
-      return { scene, camera, frame, dispose: () => {warmup?.cancel();if(rendererWarmup===warmup)rendererWarmup=null;cameraCollision.dispose();garageThumbnail?.dispose();world.dispose();disposeLighting?.();disposeCombat?.();healthBars.dispose();impactFX.dispose();arsenalFX.dispose();arsenalEvents.length=0;arena.dispose();structures.dispose();skids.dispose();drivingFX.dispose();threats.dispose();} };
+      return { scene, camera, frame, dispose: () => {warmup?.cancel();if(rendererWarmup===warmup)rendererWarmup=null;cameraCollision.dispose();garageThumbnail?.dispose();objectives.dispose();world.dispose();disposeLighting?.();disposeCombat?.();healthBars.dispose();impactFX.dispose();arsenalFX.dispose();arsenalEvents.length=0;arena.dispose();structures.dispose();skids.dispose();drivingFX.dispose();threats.dispose();} };
     } catch (error) {
       warmup?.cancel();if(rendererWarmup===warmup)rendererWarmup=null;
       cameraCollision?.dispose();
@@ -1514,7 +1523,7 @@ export function createKartView(viewConfig) {
       world?.dispose();
       if (disposeLighting) disposeLighting();
       if (disposeCombat) disposeCombat();
-      healthBars?.dispose();
+      healthBars?.dispose();objectives?.dispose();
       impactFX?.dispose();structures?.dispose();skids?.dispose();drivingFX?.dispose();threats?.dispose();
       helper.disposeObject(scene);
       throw error;

@@ -328,8 +328,8 @@ export function openCustomizer({ game, config, host, opener, initialField, onSav
     <div class="dlg gm-setup ${kart ? 'kart-setup' : ''}" data-family="${familyOf(g.id)}" role="dialog" aria-modal="true" aria-labelledby="dlgTitle">
       <div class="dlg-head gm-head">
         ${artHtml(g)}
-        <div class="gm-titles"><span class="ticket-stub gm-kicker" id="dlgTag">${esc(hostTag(host))}</span><h2 id="dlgTitle">${kart ? 'Pocket Karts setup' : `${esc(g.name)} setup`}</h2>
-        <p class="muted small" id="dlgNote">${esc(kart ? host ? 'Choose the arena and rules for your next match.' : 'The host chooses the arena and rules.' : hostNote(host))}</p></div>
+        <div class="gm-titles">${kart ? '' : `<span class="ticket-stub gm-kicker" id="dlgTag">${esc(hostTag(host))}</span>`}<h2 id="dlgTitle">${kart ? 'Pocket Karts setup' : `${esc(g.name)} setup`}</h2>
+        ${kart ? '' : `<p class="muted small" id="dlgNote">${esc(hostNote(host))}</p>`}</div>
         <button class="btn ghost dlg-x gm-x" id="dlgClose" aria-label="Close setup"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg></button>
       </div>
       <div class="conf-err" id="dlgErr" role="alert" hidden></div>

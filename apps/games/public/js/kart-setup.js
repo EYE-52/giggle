@@ -2,12 +2,7 @@ import { esc, uiIcon } from './util.js';
 
 import { KART_ARENAS } from './engines/kart-arena-catalog.mjs';
 export { KART_ARENAS };
-const MODES = {
-  'Zap Battle': ['Battle', 'Collect weapons and score knockouts.'],
-  'Garage Battle': ['Garage', 'Earn coins in battles and upgrade your kart between rounds.'],
-  'Star Rush': ['Star Rush', 'Collect stars around the arena.'],
-};
-const elevated = map => KART_ARENAS.some(a => a.label === map && a.elevated);
+import { KART_MODES } from './engines/kart-mode-ui.mjs';
 // Round length is offered in whole minutes (1 to 5, default 3) and stored
 // in seconds under the existing roundSeconds key.
 export const ROUND_MINUTES = [1, 2, 3, 5, 10, 15];
@@ -22,9 +17,8 @@ export function kartSetupSummary(g, current) {
   const settings = Object.fromEntries(g.schema.settings.map(s => [s.key, current[s.key] ?? s.def]));
   const timed = settings.winRule !== 'Score target';
   const duration = `${roundMinutes(settings.roundSeconds)} min`;
-  const bits = [MODES[settings.mode]?.[0] || settings.mode, settings.map];
-  if (!timed) bits.push(settings.mode === 'Star Rush'
-    ? `First to ${settings.targetStars} stars` : `First to ${settings.targetHits} KOs`);
+  const bits = [KART_MODES[settings.mode]?.label || settings.mode, settings.map];
+  if (!timed) { const mode=KART_MODES[settings.mode] || KART_MODES['Zap Battle'],target=settings[mode.target] ?? 3;bits.push(`First to ${target} ${mode.unit}${target===1?'':'s'}`); }
   bits.push(duration + (timed ? '' : ' max'));
   bits.push(settings.lightCycle === 'Live sunset' ? 'Live sunset'
     : ({ Daybreak: 'Day', Sunset: 'Sunset', Starlight: 'Night' }[settings.palette] || settings.palette));
@@ -35,23 +29,18 @@ export function kartSetupSummary(g, current) {
 // settings object, and switching modes must not discard a host's draft.
 const snapRound = v => typeof v === 'string' ? String(roundMinutes(v) * 60) : roundMinutes(v) * 60;
 
-// Elevated arenas play Zap Battle only; either win rule works everywhere.
-export function resolveKartSetup(settings, changedKey) {
+// Modes and arenas are independent: every mode runs on every arena.
+export function resolveKartSetup(settings) {
   const next = { ...settings };
   if (next.roundSeconds !== undefined) next.roundSeconds = snapRound(next.roundSeconds);
-  if (elevated(next.map) && next.mode !== 'Zap Battle') {
-    if (changedKey === 'mode') next.map = 'Garden Circuit';
-    else next.mode = 'Zap Battle';
-  }
   return next;
 }
 
-const MODE_ICONS = { 'Zap Battle': 'lightning', 'Garage Battle': 'wrench', 'Star Rush': 'star' };
 function choices(g, key, values, selected, host, labels = {}, cards = false) {
   return `<input type="hidden" id="df-${g.id}-${key}" value="${esc(selected)}" data-hostonly ${host ? '' : 'disabled'}>
     <div class="ks-choices${cards ? ' ks-cards' : ''}" role="radiogroup" aria-label="${esc({ winRule: 'Win rule', mode: 'Mode', palette: 'Lighting', roundSeconds: 'Round length' }[key] || 'Light cycle')}">
-    ${values.map(value => `<button type="button" class="ks-choice" role="radio" aria-checked="${value === selected}" tabindex="${value === selected ? 0 : -1}" data-kart-key="${key}" data-kart-value="${esc(value)}" data-hostonly ${host ? '' : 'disabled'}>${cards
-      ? `<span class="ks-card-ico" aria-hidden="true">${uiIcon(MODE_ICONS[value] || 'flag-checkered', 30)}</span><b>${esc(labels[value] || value)}</b><span class="ks-card-note">${esc(MODES[value]?.[1] || '')}</span>`
+    ${values.map(value => `<button type="button" class="ks-choice" role="radio" aria-checked="${value === selected}" ${cards ? 'aria-describedby="kartModeNote"' : ''} tabindex="${value === selected ? 0 : -1}" data-kart-key="${key}" data-kart-value="${esc(value)}" data-hostonly ${host ? '' : 'disabled'}>${cards
+      ? `<span class="ks-card-ico" aria-hidden="true">${uiIcon(KART_MODES[value]?.icon || 'flag-checkered', 30)}</span><b>${esc(labels[value] || value)}</b><span class="ks-card-note">${esc(KART_MODES[value]?.note || '')}</span>`
       : esc(labels[value] || value)}</button>`).join('')}</div>`;
 }
 
@@ -69,21 +58,21 @@ export function kartSetupHtml(g, current, host) {
       <button type="button" data-kart-step="${key}" data-delta="${step}" aria-label="Increase ${label.toLowerCase()}" data-hostonly ${dis}>+</button></div></div>`;
   };
   return `<section class="ks-mode"><h3>How are we playing?</h3>
-    ${choices(g, 'mode', field('mode').options, settings.mode, host, Object.fromEntries(Object.entries(MODES).map(([k,v]) => [k,v[0]])), true)}
-    <p class="ks-mode-note" id="kartModeNote">${esc(MODES[settings.mode]?.[1] || '')}</p></section>
+    ${choices(g, 'mode', Object.keys(KART_MODES).filter(value=>field('mode').options.includes(value)), settings.mode, host, Object.fromEntries(Object.entries(KART_MODES).map(([key,mode]) => [key,mode.label])), true)}
+    <p class="ks-mode-note" id="kartModeNote">${esc(KART_MODES[settings.mode]?.note || '')}</p></section>
     <section class="ks-arena"><div class="ks-section-head"><h3>Choose your arena</h3><span class="ks-arena-name" id="kartArenaName">${esc(arena.label)}</span></div>
       <figure class="ks-preview"><img id="kartArenaPreview" src="/assets/karts/previews/${arena.key}.webp" width="480" height="270" alt="${esc(arena.label)} arena overview"><figcaption id="kartArenaDescription">${esc(arena.description)}</figcaption></figure>
       <input type="hidden" id="df-${g.id}-map" value="${esc(settings.map)}">
       <p class="ks-capacity">Every arena supports 2–32 drivers.</p>
       <div class="ks-map-nav"><button type="button" class="ks-map-arrow" data-kart-scroll="-1" aria-label="Previous arenas">‹</button>
-        <div class="ks-map-list" role="radiogroup" aria-label="Arena">${arenas.map(a => `<button type="button" class="ks-map" data-kart-elevated="${Boolean(a.elevated)}" ${a.elevated && settings.mode !== 'Zap Battle' ? 'hidden' : ''} role="radio" aria-label="${esc(a.label + (a.complex ? ", three levels" : a.elevated ? ", elevated" : ", classic") + ", suggested for " + a.players + " drivers. " + a.description)}" aria-checked="${a.label === settings.map}" tabindex="${a.label === settings.map ? 0 : -1}" data-kart-key="map" data-kart-value="${esc(a.label)}" data-hostonly ${dis}>
+        <div class="ks-map-list" role="radiogroup" aria-label="Arena">${arenas.map(a => `<button type="button" class="ks-map" data-kart-elevated="${Boolean(a.elevated)}" role="radio" aria-label="${esc(a.label + (a.complex ? ", three levels" : a.elevated ? ", elevated" : ", classic") + ", suggested for " + a.players + " drivers. " + a.description)}" aria-checked="${a.label === settings.map}" tabindex="${a.label === settings.map ? 0 : -1}" data-kart-key="map" data-kart-value="${esc(a.label)}" data-hostonly ${dis}>
           <img src="/assets/karts/previews/${a.key}.webp" width="480" height="270" alt=""><span>${esc(a.label)}</span><small>Best with ${a.players} drivers</small></button>`).join('')}</div>
         <button type="button" class="ks-map-arrow" data-kart-scroll="1" aria-label="More arenas">›</button></div>
       <p class="ks-change-note" id="kartSetupNotice" role="status"></p></section>
     <section class="ks-rules"><h3>Match rules</h3><div class="ks-rule-row">
       <div class="ks-rule ks-rule-wide"><span class="ks-rule-label">Round length</span>${choices(g, 'roundSeconds', ROUND_MINUTES.map(m => String(m * 60)), String(roundMinutes(settings.roundSeconds) * 60), host, Object.fromEntries(ROUND_MINUTES.map(m => [String(m * 60), `${m} min`])))}</div>
       <div class="ks-rule"><span class="ks-rule-label">Finish at</span>${choices(g, 'winRule', field('winRule').options, settings.winRule, host, { 'Time limit': 'Time limit', 'Score target': 'Score target' })}</div>
-      <div class="ks-rule-slot">${number('targetHits', 'Knockouts to win', 1)}${number('targetStars', 'Stars to win', 1)}</div></div>
+      <div class="ks-rule-slot">${number('targetHits', 'Knockouts to win', 1)}${number('targetStars', 'Stars to win', 1)}${field('targetFlags')?number('targetFlags', 'Flags to win', 1):''}</div></div>
       <p class="ks-rule-note" id="kartRuleNote"></p>
 </section>
     <details class="ks-extra"><summary>Lighting</summary><div class="ks-extra-content">
@@ -101,7 +90,6 @@ export function syncKartSetup(g, { repair = false, changedKey, announce = false 
     const selected = next[b.dataset.kartKey] === b.dataset.kartValue;
     b.setAttribute('aria-checked', String(selected));
     b.tabIndex = selected ? 0 : -1;
-    if(b.dataset.kartKey === 'map') b.hidden = b.dataset.kartElevated === 'true' && next.mode !== 'Zap Battle';
   }
   const arena = KART_ARENAS.find(a => a.label === next.map);
   if (arena) {
@@ -116,23 +104,25 @@ export function syncKartSetup(g, { repair = false, changedKey, announce = false 
   if (selectedMap && mapList && (changedKey === 'map' || repair)) {
     mapList.scrollLeft = selectedMap.offsetLeft - mapList.offsetLeft - (mapList.clientWidth - selectedMap.offsetWidth) / 2;
   }
-  document.getElementById('kartModeNote').textContent = MODES[next.mode]?.[1] || '';
+  document.getElementById('kartModeNote').textContent = KART_MODES[next.mode]?.note || '';
   const target = next.winRule === 'Score target';
   // The target stepper keeps its slot when hidden, so the dialog never jumps.
-  root.querySelector('[data-kart-rule="targetHits"]').hidden = next.mode === 'Star Rush';
-  root.querySelector('[data-kart-rule="targetStars"]').hidden = next.mode !== 'Star Rush';
+  const activeTarget=KART_MODES[next.mode]?.target || 'targetHits';
+  for (const key of ['targetHits','targetStars','targetFlags']) {
+    const row=root.querySelector(`[data-kart-rule="${key}"]`);
+    if(row)row.hidden=key!==activeTarget;
+  }
   root.querySelector('.ks-rule-slot')?.classList.toggle('ks-off', !target);
   for (const input of root.querySelectorAll('.ks-rule-slot input, .ks-rule-slot button')) {
     if (!target) input.disabled = true;
     else input.disabled = root.querySelector('#dlgSave')?.disabled ?? false;
   }
   const minutes = roundMinutes(next.roundSeconds);
+  const unit=KART_MODES[next.mode]?.unit || 'KO';
   document.getElementById('kartRuleNote').textContent = target
     ? `The first to reach the target wins. Otherwise the round ends after ${minutes} min.`
-    : `Most ${next.mode === 'Star Rush' ? 'stars' : 'knockouts'} after ${minutes} min wins.`;
-  const changed = next.map !== values.map || next.mode !== values.mode;
-  document.getElementById('kartSetupNotice').textContent = announce && changed
-    ? elevated(next.map) ? `${next.map} plays Zap Battle.` : `${next.mode} uses a classic arena.` : '';
+    : `Most ${unit}s after ${minutes} min wins.`;
+  document.getElementById('kartSetupNotice').textContent = '';
 }
 
 export function wireKartSetup(g) {

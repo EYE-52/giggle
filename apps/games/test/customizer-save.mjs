@@ -7,7 +7,7 @@ import GAME from '../games/pocket-karts/server.js';
 const read=name=>fs.readFileSync(new URL('../public/js/'+name,import.meta.url),'utf8');
 const util='data:text/javascript;base64,'+Buffer.from(read('util.js')).toString('base64');
 const {settingIcon,uiIcon}=await import(util);
-const setup=await import('data:text/javascript;base64,'+Buffer.from(read('kart-setup.js').replace("'./util.js'",JSON.stringify(util)).replace("'./engines/kart-arena-catalog.mjs'",JSON.stringify(new URL('../public/js/engines/kart-arena-catalog.mjs',import.meta.url).href))).toString('base64'));
+const setup=await import('data:text/javascript;base64,'+Buffer.from(read('kart-setup.js').replace("'./util.js'",JSON.stringify(util)).replace("'./engines/kart-arena-catalog.mjs'",JSON.stringify(new URL('../public/js/engines/kart-arena-catalog.mjs',import.meta.url).href)).replace("'./engines/kart-mode-ui.mjs'",JSON.stringify(new URL('../public/js/engines/kart-mode-ui.mjs',import.meta.url).href))).toString('base64'));
 const source=read('customize.js').replace(/^import .*;\n/gm,'').replace(/^export /gm,'');
 const g={id:'pocket-karts',name:'Pocket Karts',schema:{settings:GAME.manifest.settings,packs:[]}};
 const defaults=Object.fromEntries(g.schema.settings.map(s=>[s.key,s.def]));

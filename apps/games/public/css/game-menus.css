@@ -154,7 +154,8 @@
   transition: transform var(--dur-quick) var(--ease);
 }
 .kart-setup .ks-cards .ks-choice b { font: var(--text-button); }
-.ks-card-ico { font-size: 26px; line-height: 1; }
+.ks-card-ico { display:flex;align-items:center;color:var(--fam-deep);line-height:1; }
+.ks-card-ico .game-ui-icon { display:block;flex:none; }
 .ks-card-note { font: var(--text-caption); color: var(--ink-dim); }
 .kart-setup .ks-cards .ks-choice[aria-checked="true"] { background: var(--fam-soft); border-color: var(--fam); box-shadow: 0 var(--lift-sm) 0 var(--fam-lip); }
 .kart-setup .ks-cards .ks-choice[aria-checked="true"] .ks-card-note { color: var(--ink); }
@@ -355,3 +356,17 @@ body .gm-setup .btn.gm-reset { border-color: transparent; box-shadow: none; back
 }
 .seat-av { position: relative; }
 .seat-av .kart-badge { position: absolute; right: -6px; bottom: -4px; margin: 0; }
+
+/* Five kart modes keep readable labels and notes on a phone. */
+@media (max-width:560px) { .kart-setup .ks-cards { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+
+.kart-setup .ks-cards .ks-choice { position:relative; }
+.kart-setup .ks-cards .ks-choice[aria-checked="true"]::after { content:'✓';position:absolute;top:var(--space-8);right:var(--space-8);display:grid;place-items:center;width:var(--space-24);height:var(--space-24);border-radius:50%;background:var(--fam);color:var(--on-fam);font:var(--text-caption); }
+
+@media (max-width:560px) {
+ .kart-setup .ks-cards .ks-choice { flex-direction:row;align-items:center;gap:var(--space-8);min-height:var(--space-64);padding:var(--space-8);padding-right:var(--space-24); }
+ .kart-setup .ks-cards .ks-choice b { min-width:0;font:var(--text-button-sm);line-height:1.2; }
+ .kart-setup .ks-card-ico .game-ui-icon { width:var(--space-24);height:var(--space-24); }
+ .kart-setup .ks-cards .ks-choice[aria-checked="true"]::after { width:var(--space-16);height:var(--space-16); }
+ .kart-setup .ks-cards + .ks-mode-note { display:block;min-height:var(--space-40);font:var(--text-caption);margin-top:var(--space-8); }
+}

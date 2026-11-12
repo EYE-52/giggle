@@ -34,14 +34,14 @@ fs.mkdirSync(out,{recursive:true});
    await host.locator('.ks-map[aria-checked="true"]').focus();await host.locator('.ks-map[aria-checked="true"]').press('End');
    const lastSetup=await clear(host.locator('.ks-map[data-kart-value="Neon Yard"]'));assert(lastSetup.unobscured,'last setup tile is not under Save');assert.equal(lastSetup.overflow,0);
    await page.screenshot({path:`${out}/${width}-setup-final-row.png`});
-   for(const mode of ['Star Rush','Garage Battle','Zap Battle']){await activate(host.locator(`[data-kart-key="mode"][data-kart-value="${mode}"]`),width);assert.equal(await host.locator('.ks-map:not([hidden])').count(),mode==='Zap Battle'?18:5);}
+   for(const mode of ['Zap Battle','Team Battle','Capture the Flag','Star Rush','Garage Battle']){await activate(host.locator(`[data-kart-key="mode"][data-kart-value="${mode}"]`),width);assert.equal(await host.locator('.ks-map:not([hidden])').count(),18);}
    await activate(host.locator('[data-kart-key="mode"][data-kart-value="Garage Battle"]'),width);await activate(host.locator('[data-kart-key="roundSeconds"][data-kart-value="60"]'),width);await host.locator('#dlgSave').click();await host.locator('#howtoGo').waitFor();await activate(host.locator('#howtoGo'),width);console.log(width+' starting classic');
    const first=await live(host,peer,'neon');assert.equal(first.karts,2);await end(host,width);
    assert.equal(await host.locator('button[data-arena]').count(),18);assert.equal(await peer.locator('button[data-arena]:disabled').count(),18);
-   assert(await host.locator('.pk-arena-compat').isVisible(),'Garage→Battle switch explained before selection');
+   assert.equal(await host.locator('[data-next-mode]').count(),5,'results offer five modes');assert.equal(await host.locator('[data-next-mode="Garage Battle"]').getAttribute('aria-pressed'),'true','Garage stays selected');
    if(width===1280){await host.locator('button[data-arena]').first().focus();for(let i=1;i<18;i++)await host.locator(':focus').press('Tab');assert.equal(await host.evaluate(()=>document.activeElement.dataset.arena),'legacy-neon','all18maps reachable by native Tab');}
    const lastResult=await clear(host.locator('button[data-arena="legacy-neon"]'));assert(lastResult.unobscured);await page.screenshot({path:`${out}/${width}-classic-results-final-row.png`});
-   await next(host,width,'arena-skyport-split','Skyport Split');await host.waitForFunction(()=>window.__pickerRoom.config['pocket-karts'].settings.mode==='Zap Battle');await page.screenshot({path:`${out}/${width}-classic-next-skyport.png`});
+   await next(host,width,'arena-skyport-split','Skyport Split');await host.waitForFunction(()=>window.__pickerRoom.config['pocket-karts'].settings.mode==='Garage Battle');await page.screenshot({path:`${out}/${width}-classic-next-skyport.png`});
    await activate(host.locator('#bRematch'),width);const raised=await live(host,peer,'skyport-split');assert.equal(raised.profile,'elevated-combat-v1');await end(host,width);assert.equal(await host.locator('button[data-arena]').count(),18);
    const raisedLast=await next(host,width,'legacy-frost','Frosty Pass');await page.screenshot({path:`${out}/${width}-raised-next-legacy.png`});
    // Shared Arenas opens the full editor from results without inventing a card.

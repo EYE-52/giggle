@@ -1,0 +1,85 @@
+/* One parts bench for both classic and raised Garage Battle. */
+:is(.pk,.pke) .pk-garage { margin-top:var(--space-24); padding:var(--space-16); background:var(--well); border:var(--outline-w) solid var(--outline); border-radius:var(--radius-xl); box-shadow:var(--shadow-sticker-lg); text-align:left; color:var(--ink); }
+:is(.pk,.pke) .pk-garage *, :is(.pk,.pke) .pk-garage *::before, :is(.pk,.pke) .pk-garage *::after { box-sizing:border-box; min-width:0; }
+:is(.pk,.pke) .pk-garage svg { display:block; width:var(--space-24); height:var(--space-24); flex-shrink:0; }
+:is(.pk,.pke) .pk-garage-header { display:flex; align-items:center; justify-content:space-between; gap:var(--space-12); }
+:is(.pk,.pke) .pk-garage h4 { margin:0; font:var(--text-heading); text-wrap:balance; }
+:is(.pk,.pke) .pk-garage-kicker { display:block; font:var(--text-caption); color:var(--ink-dim); }
+:is(.pk,.pke) .pk-wallet { display:flex; align-items:center; gap:var(--space-8); padding:var(--space-8) var(--space-12); background:var(--sun-soft); color:var(--ink); border:var(--outline-w) solid var(--outline); border-radius:var(--radius-lg); box-shadow:0 var(--lift) 0 var(--outline); flex-shrink:0; }
+:is(.pk,.pke) .pk-wallet > svg { width:var(--space-32); height:var(--space-32); }
+:is(.pk,.pke) .pk-wallet > span { display:grid; text-align:right; }
+:is(.pk,.pke) .pk-wallet-digits { display:block; min-width:4ch; font:var(--text-heading); font-variant-numeric:tabular-nums; }
+:is(.pk,.pke) .pk-wallet small { font:var(--text-caption); }
+:is(.pk,.pke) .pk-garage-note { margin:var(--space-12) 0 var(--space-16); color:var(--ink-dim); font:var(--text-caption); text-wrap:pretty; }
+:is(.pk,.pke) .pk-garage-body { display:grid; grid-template-columns:var(--kart-garage-preview-w) minmax(0,1fr); align-items:stretch; gap:var(--space-16); }
+:is(.pk,.pke) .pk-garage-display { margin:0; display:flex; flex-direction:column; justify-content:center; background:radial-gradient(ellipse at 50% 40%,var(--fam-soft),transparent 70%); border-radius:var(--radius-sm); }
+:is(.pk,.pke) .pk-garage-kart { position:relative; height:var(--kart-garage-preview-h); flex-shrink:0; }
+:is(.pk,.pke) .pk-garage-kart::before { content:''; position:absolute; inset:auto var(--space-8) var(--space-24); height:var(--space-48); background:var(--card); border:var(--outline-w) solid var(--outline); border-radius:50%; box-shadow:0 var(--space-8) 0 var(--outline); }
+:is(.pk,.pke) .pk-garage-thumbnail { position:relative; display:block; width:100%; height:100%; object-fit:contain; }
+:is(.pk,.pke) .pk-garage-thumbnail[hidden],:is(.pk,.pke) .pk-garage-fallback[hidden] { display:none; }
+:is(.pk,.pke) .pk-garage-fallback { position:absolute; inset:0; display:grid; place-items:center; }
+:is(.pk,.pke) .pk-garage-fallback svg { width:100%; height:100%; }
+:is(.pk,.pke) .pk-garage-fallback > span { position:absolute; top:var(--space-40); font:var(--text-heading); }
+:is(.pk,.pke) .pk-garage-display figcaption { display:grid; justify-items:center; gap:var(--space-12); padding:var(--space-8) 0 var(--space-16); font:var(--text-button-sm); }
+:is(.pk,.pke) .pk-garage-installed { display:flex; gap:var(--space-8); }
+:is(.pk,.pke) .pk-garage-installed > span { display:flex; align-items:center; gap:var(--space-4); padding:var(--space-4) var(--space-8); background:var(--card); color:var(--ink-dim); border:var(--outline-w) solid var(--outline); border-radius:var(--radius-sm); font:var(--text-caption); font-variant-numeric:tabular-nums; }
+:is(.pk,.pke) .pk-garage-installed svg { width:var(--space-16); height:var(--space-16); }
+:is(.pk,.pke) .pk-garage-installed .is-installed { color:var(--fam-deep); background:var(--fam-soft); }
+:is(.pk,.pke) .pk-upgrades { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:var(--space-12); }
+:is(.pk,.pke) .pk-upgrade { display:flex; flex-direction:column; gap:var(--space-12); background:var(--card); border:var(--outline-w) solid var(--outline); padding:var(--space-12); border-radius:var(--radius-lg); box-shadow:0 var(--lift) 0 var(--outline); }
+:is(.pk,.pke) .pk-upgrade-heading { display:grid; gap:var(--space-8); }
+:is(.pk,.pke) .pk-upgrade-icon { display:grid; place-items:center; width:var(--space-40); height:var(--space-40); color:var(--fam-deep); background:var(--fam-soft); border-radius:var(--radius-sm); }
+:is(.pk,.pke) .pk-upgrade h5 { margin:0; min-height:1lh; font:var(--text-title); text-wrap:balance; }
+:is(.pk,.pke) .pk-upgrade-desc { display:block; min-height:2lh; color:var(--ink-dim); font:var(--text-caption); text-wrap:pretty; }
+:is(.pk,.pke) .pk-upgrade-level { display:flex; align-items:center; gap:var(--space-8); font:var(--text-caption); font-variant-numeric:tabular-nums; }
+:is(.pk,.pke) .pk-upgrade-pips { display:flex; gap:var(--space-4); flex:1; }
+:is(.pk,.pke) .pk-upgrade-pips i { height:var(--space-12); flex:1; background:var(--well); border:var(--outline-w) solid var(--outline); border-radius:var(--space-4); }
+:is(.pk,.pke) .pk-upgrade-pips .is-filled { background:var(--fam); border-color:var(--fam-lip); }
+:is(.pk,.pke) .pk-upgrade-stat { display:grid; gap:var(--space-4); font:var(--text-caption); color:var(--ink-dim); }
+:is(.pk,.pke) .pk-upgrade-stat b { color:var(--ink); font-variant-numeric:tabular-nums; min-width:12ch; }
+:is(.pk,.pke) .pk-upgrade-stat b span { color:var(--ink-dim); }
+:is(.pk,.pke) .pk-upgrade-track { position:relative; height:var(--space-8); overflow:hidden; border-radius:var(--space-4); background:var(--well); }
+:is(.pk,.pke) .pk-upgrade-track i { position:absolute; inset:0; transform-origin:left; }
+:is(.pk,.pke) .pk-stat-next { background:var(--fam-soft); border:var(--outline-w) dashed var(--fam-deep); border-radius:inherit; }
+:is(.pk,.pke) .pk-stat-current { background:var(--fam); border-radius:inherit; }
+:is(.pk,.pke) .pk-upgrade button { margin-top:auto; display:flex; justify-content:center; align-items:center; gap:var(--space-8); min-height:var(--control-h); padding:var(--space-8); width:100%; color:var(--on-fam); background:var(--fam); border:var(--outline-w) solid var(--fam-lip); border-radius:var(--radius-sm); box-shadow:0 var(--lift) 0 var(--fam-lip); font:var(--text-button); cursor:pointer; touch-action:manipulation; transition:transform var(--dur-quick) var(--ease); }
+:is(.pk,.pke) .pk-upgrade button b { display:inline-block; min-width:2ch; text-align:right; font-variant-numeric:tabular-nums; }
+:is(.pk,.pke) .pk-upgrade button:disabled { background:var(--well); border-color:var(--outline); color:var(--ink-dim); box-shadow:none; cursor:not-allowed; }
+:is(.pk,.pke) .pk-upgrade button:focus-visible { outline:var(--focus-ring); outline-offset:var(--focus-offset); }
+:is(.pk,.pke) .pk-upgrade button:not(:disabled):active { transform:translateY(var(--lift)); box-shadow:none; }
+:is(.pk,.pke) .pk-upgrade-reason { min-height:2lh; display:block; text-align:center; font:var(--text-caption); color:var(--ink-dim); text-wrap:pretty; }
+:is(.pk,.pke) .pk-upgrade[data-state="maxed"] .pk-upgrade-reason { color:var(--fam-deep); }
+:is(.pk,.pke) .pk-garage-feedback { margin:var(--space-16) 0 var(--space-12); min-height:2lh; font:var(--text-caption); color:var(--fam-deep); text-align:center; text-wrap:pretty; }
+:is(.pk,.pke) .pk-garage-earnings { display:flex; flex-wrap:wrap; justify-content:center; gap:var(--space-8); margin:0; padding:0; list-style:none; }
+:is(.pk,.pke) .pk-garage-earnings li { display:flex; align-items:center; gap:var(--space-4); padding:var(--space-4) var(--space-8); background:var(--card); border-radius:var(--radius-sm); color:var(--ink-dim); font:var(--text-caption); }
+:is(.pk,.pke) .pk-garage-earnings svg { width:var(--space-16); height:var(--space-16); }
+:is(.pk,.pke) .pk-garage-earnings b { color:var(--ink); font-variant-numeric:tabular-nums; }
+@media (hover:hover) { :is(.pk,.pke) .pk-upgrade button:not(:disabled):hover { transform:translateY(calc(-1 * var(--lift-sm))); } }
+@container game (max-width:1000px) { :is(.pk,.pke) .pk-garage-body { grid-template-columns:minmax(0,1fr); } :is(.pk,.pke) .pk-garage-display { flex-direction:row; align-items:center; } :is(.pk,.pke) .pk-garage-kart { width:var(--kart-garage-preview-w); } :is(.pk,.pke) .pk-garage-display figcaption { padding:var(--space-16) 0; } :is(.pk,.pke) .pk-upgrade h5 { min-height:1lh; } :is(.pk,.pke) .pk-upgrade-desc,:is(.pk,.pke) .pk-upgrade-reason { min-height:2lh; } }
+@container game (max-width:600px) {
+  :is(.pk,.pke) .pk-garage { padding:var(--space-12); border-radius:var(--radius-lg); }
+  :is(.pk,.pke) .pk-garage-header { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:var(--space-8); }
+  :is(.pk,.pke) .pk-garage h4 { font:var(--text-title); }
+  :is(.pk,.pke) .pk-garage-kicker { max-width:none; }
+  :is(.pk,.pke) .pk-wallet { padding:var(--space-8); }
+  :is(.pk,.pke) .pk-wallet > svg { width:var(--space-24); height:var(--space-24); }
+  :is(.pk,.pke) .pk-wallet-digits { font:var(--text-title); }
+  :is(.pk,.pke) .pk-garage-display { flex-direction:column; }
+  :is(.pk,.pke) .pk-garage-display figcaption { padding:0 0 var(--space-16); }
+  :is(.pk,.pke) .pk-garage-kart { height:calc(var(--kart-garage-preview-h) - var(--space-48)); }
+  :is(.pk,.pke) .pk-upgrades { grid-template-columns:minmax(0,1fr); }
+  :is(.pk,.pke) .pk-upgrade { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:var(--space-8) var(--space-12); }
+  :is(.pk,.pke) .pk-upgrade-heading { grid-column:1/-1; display:flex; align-items:center; gap:var(--space-12); }
+  :is(.pk,.pke) .pk-upgrade-icon { flex-shrink:0; }
+  :is(.pk,.pke) .pk-upgrade h5 { min-height:0; }
+  :is(.pk,.pke) .pk-upgrade-desc { min-height:0; }
+  :is(.pk,.pke) .pk-upgrade-level { grid-column:1/-1; }
+  :is(.pk,.pke) .pk-upgrade-stat { grid-column:1/-1; grid-row:3; display:flex; align-items:center; justify-content:space-between; gap:var(--space-8); min-height:2lh; }
+  :is(.pk,.pke) .pk-upgrade-stat b { min-width:0; white-space:nowrap; flex-shrink:0; }
+  :is(.pk,.pke) .pk-upgrade-track { grid-column:1/-1; grid-row:4; align-self:center; }
+  :is(.pk,.pke) .pk-upgrade button { grid-column:2; grid-row:5; align-self:center; margin:0; min-height:var(--space-64); }
+  :is(.pk,.pke) .pk-upgrade button svg { width:var(--space-16); height:var(--space-16); }
+  :is(.pk,.pke) .pk-upgrade-reason { grid-column:1; grid-row:5; min-height:var(--space-64); display:flex; align-items:center; justify-content:center; }
+}
+
+:is(.pk .pk-result,.pke .pke-result):has(.pk-garage) { width:min(var(--kart-garage-w),calc(100% - var(--space-32)));box-sizing:border-box; }

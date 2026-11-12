@@ -1,3 +1,4 @@
+@import url("./kart-objectives.css");
 /* Shared results picker. The result card owns scrolling, including the final row. */
 #gbody[data-layout="immersive"] :is(.pk .pk-result,.pke .pke-result):has(.pk-arenas) {
   --kart-result-top:max(60px,calc(52px + env(safe-area-inset-top,0px)));
@@ -27,3 +28,9 @@
 :is(.pk,.pke) .pk-tag.pk-next { background:var(--fam-soft,var(--accent-soft)); color:var(--ink); border-color:var(--fam,var(--accent)); }
 :is(.pk,.pke) .pk-arena-compat { font:var(--text-caption,600 13px/1.45 var(--font-body)); color:var(--ink-dim); margin:0 0 12px; }
 :is(.pk,.pke) .pk-arena-mode { font:700 12px/1.2 var(--font-body); color:var(--ink-dim); }
+
+:is(.pk,.pke) .pk-next-modes { display:flex;flex-wrap:wrap;gap:var(--space-8);margin-bottom:var(--space-16); }
+:is(.pk,.pke) .pk-next-modes button { min-height:var(--control-h-sm);padding:var(--space-8) var(--space-12);border:var(--outline-w) solid var(--line-strong);border-radius:var(--radius-md);background:var(--card);color:var(--ink);font:var(--text-button-sm);cursor:pointer; }
+:is(.pk,.pke) .pk-next-modes button[aria-pressed="true"] { background:var(--fam-soft);border-color:var(--fam);color:var(--fam-deep); }
+:is(.pk,.pke) .pk-next-modes button:focus-visible { outline:var(--focus-ring);outline-offset:var(--focus-offset); }
+:is(.pk,.pke) .pk-next-modes button:disabled { cursor:default; }

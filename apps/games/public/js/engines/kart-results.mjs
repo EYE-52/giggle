@@ -23,7 +23,7 @@ export function rankedRows(result) {
 }
 
 /* opts: { result, you, nameOf(pid), unit(n) -> '3 KOs', target, targetUnit } */
-export function kartResultView({ result, you, nameOf, unit, target, targetUnit }) {
+export function kartResultView({ result, you, nameOf, unit, target, targetUnit, teams=[],teamResult,teamByPlayer={} }) {
   const rows = rankedRows(result);
   const active = rows.filter((r) => !r.out);
   const winners = result?.winners || (result?.winner ? [result.winner] : []);
@@ -44,19 +44,27 @@ export function kartResultView({ result, you, nameOf, unit, target, targetUnit }
   } else {
     title = 'Match over';
   }
+  const teamData=teamResult || result,teamRows=teamData?.teamStandings || [],winningTeams=teamData?.winningTeams || [];
+  if(teamRows.length){
+    title=winningTeams.length===1?`${teamRows.find(t=>t.id===winningTeams[0])?.label || winningTeams[0]} wins`:winningTeams.length>1?"It's a tie":'Match over';
+    line=reason==='goal'?`First team to ${target} ${targetUnit}.`:`Team scores: ${teamRows.map(t=>`${t.label} ${unit(t.score)}`).join(' · ')}.`;
+  }
+  const teamHtml=teamRows.length?`<div class="kart-final-teams" role="list" aria-label="Team scores">${teamRows.map(t=>`<div role="listitem" data-team="${escape(t.id)}"><b>${t.id==='blue'?'A':'B'} · ${escape(t.label)}</b><strong>${escape(unit(t.score))}</strong></div>`).join('')}</div>`:'';
   const items = rows.map((r) => {
     const self = r.pid === you;
+    const team=teams.find(t=>t.id===teamByPlayer[r.pid]);
+    const tag=team?` <small class="kart-team-tag" data-team="${escape(team.id)}">${escape(team.label)}</small>`:'';
     const points = Number.isFinite(r.points) ? `<span class="pk-final-points">${r.points > 0 ? '+' : ''}${r.points} pts</span>` : '';
     return `<li class="pk-final-row${self ? ' pk-final-self' : ''}${r.out ? ' pk-final-out' : ''}"${self ? ' aria-current="true"' : ''}>` +
       `<span class="pk-final-rank" aria-label="Rank ${r.rank}">${r.rank}</span>` +
-      `<span class="pk-final-name">${escape(nameOf(r.pid))}${self ? ' <small>(you)</small>' : ''}${r.out ? ' <small class="pk-final-left">Left</small>' : ''}</span>` +
+      `<span class="pk-final-name">${escape(nameOf(r.pid))}${tag}${self ? ' <small>(you)</small>' : ''}${r.out ? ' <small class="pk-final-left">Left</small>' : ''}</span>` +
       `<span class="pk-final-score">${escape(unit(r.score))}</span>${points}</li>`;
   }).join('');
   return {
     title,
     line,
     html: `<h3 class="pk-final-title">${escape(title)}</h3>` +
-      `<p class="pk-final-line">${escape(line)}</p>` +
+      `<p class="pk-final-line">${escape(line)}</p>` + teamHtml +
       `<p class="pk-final-head">Final scores</p><ol class="pk-final-list">${items}</ol>`,
   };
 }

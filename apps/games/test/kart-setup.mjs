@@ -1,3 +1,4 @@
+import {KART_MODES} from '../public/js/engines/kart-mode-ui.mjs';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
@@ -7,7 +8,7 @@ const require = createRequire(import.meta.url);
 const game = require('../games/pocket-karts/server');
 const { MAP_LABELS, preflightElevated } = require('../games/engines/kart-elevated-adapter');
 const util = 'data:text/javascript;base64,' + Buffer.from(fs.readFileSync(new URL('../public/js/util.js', import.meta.url))).toString('base64');
-const source = fs.readFileSync(new URL('../public/js/kart-setup.js', import.meta.url), 'utf8').replace("'./util.js'", JSON.stringify(util)).replace("'./engines/kart-arena-catalog.mjs'", JSON.stringify(new URL('../public/js/engines/kart-arena-catalog.mjs', import.meta.url).href));
+const source = fs.readFileSync(new URL('../public/js/kart-setup.js', import.meta.url), 'utf8').replace("'./util.js'", JSON.stringify(util)).replace("'./engines/kart-arena-catalog.mjs'", JSON.stringify(new URL('../public/js/engines/kart-arena-catalog.mjs', import.meta.url).href)).replace("'./engines/kart-mode-ui.mjs'",JSON.stringify(new URL('../public/js/engines/kart-mode-ui.mjs',import.meta.url).href));
 const { KART_ARENAS, ROUND_MINUTES, roundMinutes, resolveKartSetup, kartSetupHtml, kartSetupSummary } = await import('data:text/javascript;base64,' + Buffer.from(source).toString('base64'));
 const g = { id: 'pocket-karts', schema: { settings: game.manifest.settings, packs: [] } };
 const defaults = Object.fromEntries(g.schema.settings.map(s => [s.key, s.def]));
@@ -27,11 +28,11 @@ for (const a of KART_ARENAS) {
   check(capture?.label === a.label && capture.bytes === data.length && capture.sha256 === crypto.createHash('sha256').update(data).digest('hex'), 'manifest verifies the actual image and correct canonical map');
   check(capture.framing && Object.values(capture.framing).every(n => Number.isFinite(n) && Math.abs(n) < .95), 'entire authored footprint including its highest floor retains a visible border');
   if (a.launch) check(Math.max(capture.framing.maxX-capture.framing.minX,capture.framing.maxY-capture.framing.minY)>1.85,'authored launch shape fills its thumbnail with a small gutter');
-  for (const mode of ['Zap Battle', 'Garage Battle', 'Star Rush']) {
+  for (const mode of Object.keys(KART_MODES)) {
     const settings = { ...defaults, mode, map: a.label, winRule: 'Score target', targetStars: 23, targetHits: 17 };
     const next = resolveKartSetup(settings, 'map');
-    if (a.elevated) check(preflightElevated(next).ok, 'selecting elevated map repairs unsupported combination');
-    else check(JSON.stringify(next) === JSON.stringify(settings), 'classic maps preserve mode and finish choice');
+    check(JSON.stringify(next) === JSON.stringify(settings), 'every arena preserves every chosen mode and finish choice');
+    if(a.elevated)check(preflightElevated(next).ok,'all five modes are allowed on raised maps');
     check(next.targetStars === 23 && next.targetHits === 17, 'switching preserves inactive score targets');
     check(JSON.stringify(settings) === JSON.stringify({ ...defaults, mode, map: a.label, winRule: 'Score target', targetStars: 23, targetHits: 17 }), 'resolver does not mutate saved configuration');
   }
@@ -39,14 +40,9 @@ for (const a of KART_ARENAS) {
   check(html.includes(`value="${a.label}"`), 'read-only chooser retains actual selected label');
   check(!/data-hostonly(?! disabled)/.test(html), 'guests cannot edit controls');
 }
-for (const a of KART_ARENAS.filter(a => a.elevated)) {
-  for (const mode of ['Garage Battle', 'Star Rush']) {
-    const next = resolveKartSetup({ ...defaults, map: a.label, mode }, 'mode');
-    check(next.map === 'Garden Circuit' && next.mode === mode, 'mode change selects compatible classic arena');
-  }
-  const target = resolveKartSetup({ ...defaults, map: a.label, winRule: 'Score target' }, 'winRule');
-  check(target.map === a.label && target.winRule === 'Score target' && preflightElevated(target).ok, 'a score target keeps the elevated arena');
-}
+const flagTarget=g.schema.settings.find(s=>s.key==='targetFlags');
+check(flagTarget?.def===3&&flagTarget.min===1&&flagTarget.max===10,'CTF flag target is3 by default and1–10');
+check(kartSetupSummary(g,{...defaults,mode:'Capture the Flag',map:'Skyport Split',winRule:'Score target',targetFlags:3}).includes('First to 3 captures'),'CTF summary uses flag target instead of KOs');
 check(Object.keys(resolveKartSetup(defaults)).length === g.schema.settings.length, 'save keeps entire replacement settings object');
 check(!('garage' in resolveKartSetup(defaults)), 'no unknown garage key is transmitted');
 const config = { ...defaults, map: 'Alpine Courtyard', targetStars: 23, targetHits: 17 };
@@ -54,11 +50,11 @@ const app = fs.readFileSync(new URL('../public/js/app.js', import.meta.url), 'ut
 const context = { room: { config: { 'pocket-karts': { settings: config } } }, kartSetupSummary };
 vm.createContext(context);
 vm.runInContext(app.slice(app.indexOf('function configNoteText(g)'), app.indexOf('\nfunction cardHtml(g)')), context);
-check(context.configNoteText(g) === 'Battle · Alpine Courtyard · 3 min · Live sunset', 'shipping Play summary omits inactive targets and uses player-facing mode name');
-check(kartSetupSummary(g, { ...config, map: 'Rookie Ring', winRule: 'Score target', lightCycle: 'Fixed light', palette: 'Starlight' }) === 'Battle · Rookie Ring · First to 17 KOs · 3 min max · Night', 'battle target summary shows active knockouts and fallback time only');
+check(context.configNoteText(g) === 'Free-for-all · Alpine Courtyard · 3 min · Live sunset', 'shipping Play summary omits inactive targets and uses player-facing mode name');
+check(kartSetupSummary(g, { ...config, map: 'Rookie Ring', winRule: 'Score target', lightCycle: 'Fixed light', palette: 'Starlight' }) === 'Free-for-all · Rookie Ring · First to 17 KOs · 3 min max · Night', 'battle target summary shows active knockouts and fallback time only');
 check(kartSetupSummary(g, { ...config, mode: 'Star Rush', map: 'Garden Circuit', winRule: 'Score target', roundSeconds: 90 }) === 'Star Rush · Garden Circuit · First to 23 stars · 2 min max · Live sunset', 'star target summary shows active stars without knockout target');
-check(kartSetupSummary(g, { ...config, mode: 'Garage Battle', map: 'Garden Circuit', lightCycle: 'Fixed light', palette: 'Sunset' }) === 'Garage · Garden Circuit · 3 min · Sunset', 'garage and fixed lighting use concise player-facing names');
-check(kartSetupSummary(g, { map: 'Alpine Courtyard' }) === 'Battle · Alpine Courtyard · 3 min · Live sunset', 'partial saved configurations use the actual schema defaults');
+check(kartSetupSummary(g, { ...config, mode: 'Garage Battle', map: 'Garden Circuit', lightCycle: 'Fixed light', palette: 'Sunset' }) === 'Garage Battle · Garden Circuit · 3 min · Sunset', 'garage and fixed lighting use concise player-facing names');
+check(kartSetupSummary(g, { map: 'Alpine Courtyard' }) === 'Free-for-all · Alpine Courtyard · 3 min · Live sunset', 'partial saved configurations use the actual schema defaults');
 check(JSON.stringify(config) === JSON.stringify({ ...defaults, map: 'Alpine Courtyard', targetStars: 23, targetHits: 17 }), 'summary preserves inactive values for later mode switches');
 // Round length: 1 to 5 whole minutes, 3 by default, stored as seconds.
 const round = g.schema.settings.find(s => s.key === 'roundSeconds');
@@ -70,10 +66,11 @@ const roundHtml = kartSetupHtml(g, defaults, true);
 check((roundHtml.match(/data-kart-key="roundSeconds"/g) || []).length === ROUND_MINUTES.length, 'one round-length choice per offered length');
 check(/aria-checked="true"[^>]*data-kart-key="roundSeconds" data-kart-value="180"/.test(roundHtml), 'three minutes is selected by default');
 check(roundHtml.includes('>3 min</button>') && !roundHtml.includes('Seconds per round'), 'lengths read as minutes');
-check(kartSetupSummary(g, { ...config, map: 'Alpine Courtyard', winRule: 'Score target' }) === 'Battle · Alpine Courtyard · First to 17 KOs · 3 min max · Live sunset', 'elevated arenas summarise a score target');
-for(const mode of ['Zap Battle','Star Rush','Garage Battle']){
+check(kartSetupSummary(g, { ...config, map: 'Alpine Courtyard', winRule: 'Score target' }) === 'Free-for-all · Alpine Courtyard · First to 17 KOs · 3 min max · Live sunset', 'elevated arenas summarise a score target');
+for(const mode of Object.keys(KART_MODES)){
  const html=kartSetupHtml(g,{...defaults,mode,map:mode==='Zap Battle'?'Rookie Ribbons':'Garden Circuit'},true),buttons=[...html.matchAll(/<button[^>]*class="ks-map"[^>]*>/g)].map(m=>m[0]),visible=buttons.filter(b=>!b.includes(' hidden'));
- check(visible.length===(mode==='Zap Battle'?18:5),'all battle maps or compatible classic maps are visible');
+ check(visible.length===18,'all18 arenas stay visible in every mode');
+ check(resolveKartSetup({...defaults,mode,map:'Skyport Split'},'mode').map==='Skyport Split','mode changes preserve raised arena');
  check(buttons.every(b => b.includes("suggested for")),'every arena labels its recommended room size');
 }
 check(resolveKartSetup({...defaults,mode:'Zap Battle',map:'Garden Circuit'},'mode').map==='Garden Circuit','switching back to Battle keeps the selected compatible map');

@@ -15,6 +15,7 @@ const read = (p) => fs.readFileSync(path.join(root, p), 'utf8');
 const chainRenderer = read('public/js/games/chain-reaction.js');
 const chainFrameCss = read('games/chain-reaction/browser/play.css');
 const kartCss = read('public/css/kart-arena.css');
+const garageCss=read('public/css/kart-garage.css');
 const kartView = read('public/js/engines/kart-view.js');
 const kartShared = read('public/css/style.css'); // read-only evidence, never edited here
 const castleInline = read('public/js/games/castle-clash.js');
@@ -80,8 +81,11 @@ const castleImmersive = read('public/css/castle-immersive.css');
   const shortStick = kartCss.slice(kartCss.indexOf('@container game (max-height:360px)'))
     .match(/\.pk \.pk-stick \{[^}]*width:(\d+)px/);
   assert(shortStick && Number(shortStick[1]) >= 88, 'stick keeps at least 88px at 320px height');
-  assert(kartCss.includes('.pk .pk-upgrade button') && kartCss.includes('min-height:44px'),
-    'garage upgrade buttons keep 44px targets');
+  const garageButton=(garageCss.match(/:is\(\.pk,\.pke\) \.pk-upgrade button\s*\{([^}]*)\}/)||[])[1]||'';
+  const heightToken=garageButton.match(/min-height:\s*var\((--[\w-]+)\)/)?.[1];
+  const height=heightToken?Number(kartShared.match(new RegExp(heightToken+':\\s*(\\d+)px'))?.[1]):0;
+  assert(kartCss.includes('kart-garage.css')&&read('public/css/kart-elevated.css').includes('kart-garage.css')&&height>=44,
+    'shared garage upgrade buttons keep44px targets in both renderers');
   assert(kartCss.includes('100cqh - var(--pk-result-top) - 104px - env(safe-area-inset-bottom,0px)'),
     'short-landscape results reserve the Rematch bar, bottom inset and a gap');
   assert(kartCss.includes('.pk .pk-helpbody { left:108px; max-height:calc(100cqh - 212px'),
