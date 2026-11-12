@@ -43,13 +43,17 @@ export function customizerGame() {
 export function closeCustomizer(opts = {}) {
   if (!dlg) return;
   clearTimeout(dlg.pending?.timer);
-  const { opener, game } = dlg;
+  const { opener, game, onClose } = dlg;
   dlg = null;
   document.getElementById('dlg-root').innerHTML = '';
   document.removeEventListener('keydown', escCloser);
+  if (opts.returnFocus === false) return;
+  // Nested setup callers restore their parent after the editor is removed.
+  // Programmatic teardown (navigation, a new game or another panel) is silent.
+  if (onClose) { onClose({ saved: opts.saved === true }); return; }
   const target = opener && document.contains(opener) ? opener
     : document.querySelector(`[data-how="${game.id}"]`);
-  if (opts.returnFocus !== false && target) {
+  if (target) {
     try { target.focus({ preventScroll: true }); } catch { target.focus(); }
   }
 }
@@ -132,7 +136,7 @@ export function customizerResult({ game, requestId, msg }) {
   clearTimeout(dlg.pending.timer); dlg.pending = null;
   if (kind === 'save') {
     const toast = dlg.toast;
-    closeCustomizer();
+    closeCustomizer({ saved: true });
     toast?.('Settings saved');
     return;
   }
@@ -310,9 +314,9 @@ function artHtml(g) {
 }
 
 /* extra: optional { html, wire(root) } shown above the rules (the kart garage). */
-export function openCustomizer({ game, config, host, opener, initialField, onSave, onReset, onClearPack, toast, extra = {} }) {
+export function openCustomizer({ game, config, host, opener, initialField, onSave, onReset, onClearPack, onClose, toast, extra = {} }) {
   closeCustomizer({ returnFocus: false });
-  dlg = { game: game, opener: opener || null, onSave, onReset, onClearPack, host, toast };
+  dlg = { game: game, opener: opener || null, onSave, onReset, onClearPack, onClose, host, toast };
   const g = game;
   const meta = (config && config[g.id]) || { settings: {}, packs: {} };
   const current = meta.settings || {};
@@ -535,6 +539,7 @@ export function openCustomizer({ game, config, host, opener, initialField, onSav
 
 function escCloser(e) {
   if (e.key === 'Escape' && dlg) {
+    e.preventDefault(); // A restored native parent must not consume this Escape again.
     e.stopPropagation();
     closeCustomizer();
     document.removeEventListener('keydown', escCloser);

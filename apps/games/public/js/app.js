@@ -11,7 +11,7 @@ import {
   refreshCustomizer, customizerError, customizerResult,
 } from './customize.js';
 import { segPickerHtml, wirePickers, syncPickers } from './pickers.js';
-import { openHowto, openControls, closeHowto, refreshHowto, isHowtoOpen, controlFamily } from './howto.js';
+import { openHowto, openControls, closeHowto, refreshHowto, isHowtoOpen, howtoGameId, controlFamily } from './howto.js';
 import { decideCustomizeIntent, setPendingCustomize, takePendingCustomize } from './pending-customize.js';
 import {
   parseEmbedParams, createChildBridge, validThemeId, isTrustedParentOrigin, isValidNonce,
@@ -2094,7 +2094,7 @@ function consumeGameEntry() {
   customOnly = false;
   render();
   const opener = document.querySelector(`[data-how="${g.id}"]`);
-  if (decision.open === 'customizer') openCustomizerFor(g.id, opener);
+  if (decision.open === 'customizer') openCustomizerFor(g.id, opener, { returnToHowto: pending.returnToHowto === true });
   else openHowtoDialog(g.id, opener);
 }
 
@@ -2172,12 +2172,13 @@ function consumePendingCustomize() {
   openCustomizerFor(pending, document.querySelector(`[data-how="${pending}"]`));
 }
 
-/* One customizer entry for cards AND the howto dialog's Customize action —
- * the panels never stack (each open closes the other). */
-function openCustomizerFor(gameId, opener) {
+/* One editor at a time. A nested editor returns to its game card; direct
+ * settings links and the results arena picker return to their own opener. */
+function openCustomizerFor(gameId, opener, { returnToHowto = howtoGameId() === gameId } = {}) {
   warmGameCard(gameId);
   const g = gameById(gameId);
   if (!g || !room) return;
+  const ownerRoom = room.code;
   closeHowto({ returnFocus: false });
   openCustomizer({
     game: g,
@@ -2186,6 +2187,13 @@ function openCustomizerFor(gameId, opener) {
     initialField: g.schema?.settings?.some((s) => s.key === 'map') ? 'map' : undefined,
     opener,
     toast,
+    onClose: returnToHowto ? ({ saved }) => {
+      if (room?.code !== ownerRoom) return;
+      openHowtoDialog(gameId, opener);
+      const play = document.getElementById('howtoGo');
+      const target = saved && play && !play.disabled ? play : document.getElementById('howtoCustom');
+      if (target) api.focus(target);
+    } : undefined,
     extra: g.id === 'pocket-karts' ? {
       html: kartGarageCardHtml(myKartLook(), 'bKartGarageSetup'),
       wire: (root) => { const b = root.querySelector('#bKartGarageSetup'); if (b) b.onclick = () => openGarage(b); },
@@ -2239,7 +2247,7 @@ function howtoFooter(game) {
           }
 
           myName = name.slice(0, 16);
-          setPendingGameEntry({ gameId: game.id, name: myName, wantSetup });
+          setPendingGameEntry({ gameId: game.id, name: myName, wantSetup, returnToHowto: wantSetup });
           closeHowto({ returnFocus: false });
           send({ t: 'create', name: myName });
         };

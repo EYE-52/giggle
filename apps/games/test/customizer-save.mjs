@@ -12,8 +12,8 @@ const source=read('customize.js').replace(/^import .*;\n/gm,'').replace(/^export
 const g={id:'pocket-karts',name:'Pocket Karts',schema:{settings:GAME.manifest.settings,packs:[]}};
 const defaults=Object.fromEntries(g.schema.settings.map(s=>[s.key,s.def]));
 let checks=0;const eq=(a,b,label)=>{assert.deepEqual(a,b,label);checks++;},ok=(v,label)=>{assert.ok(v,label);checks++;};
-function rig({detached=false,connected=true}={}){
- const nodes=new Map(),timers=new Map(),requests=[],toasts=[],sync=[],listeners=new Map();let sequence=0;
+function rig({detached=false,connected=true,nested=false}={}){
+ const nodes=new Map(),timers=new Map(),requests=[],toasts=[],sync=[],listeners=new Map(),returns=[];let sequence=0;
  const document={activeElement:null,html:{tagName:'HTML'},getElementById:id=>nodes.get(id),contains:node=>!!node?.connected,
   querySelector:selector=>selector===`[data-how="${g.id}"]`?card:null,addEventListener:(name,fn)=>listeners.set(name,fn),removeEventListener:name=>listeners.delete(name)};
  function node(id,attributes={}){
@@ -39,11 +39,30 @@ function rig({detached=false,connected=true}={}){
  const context={document,Date,settingIcon,uiIcon,esc:String,store:{get:()=>null,set(){}},kartSetupHtml:setup.kartSetupHtml,wireKartSetup(){},syncKartSetup:(...args)=>sync.push(args),segPickerHtml:()=>"",stepperHtml:(id,input)=>input,wirePickers(){},syncPickers(){},
   setTimeout:fn=>{const id=++sequence;timers.set(id,fn);return id;},clearTimeout:id=>timers.delete(id)};
  vm.createContext(context);vm.runInContext(source+'\nglobalThis.qa={openCustomizer,closeCustomizer,customizerResult,refreshCustomizer,isCustomizerOpen};',context);
- context.qa.openCustomizer({game:g,config:{},host:true,opener,toast:m=>toasts.push(m),onSave:(game,settings,pack,requestId)=>{requests.push({game,settings,pack,requestId});return connected;},onReset:(game,requestId)=>{requests.push({game,requestId});return connected;},onClearPack(){}});
+ context.qa.openCustomizer({game:g,config:{},host:true,opener,toast:m=>toasts.push(m),onClose:nested?result=>returns.push({...result,editorOpen:context.qa.isCustomizerOpen()}):undefined,onSave:(game,settings,pack,requestId)=>{requests.push({game,settings,pack,requestId});return connected;},onReset:(game,requestId)=>{requests.push({game,requestId});return connected;},onClearPack(){}});
  const save=()=>{const b=nodes.get('dlgSave');b.focus();b.onclick();return requests.at(-1);};
  const reset=()=>{nodes.get('dlgReset').onclick();return requests.at(-1);};
  const ack=request=>context.qa.customizerResult({game:request.game,requestId:request.requestId});
- return {...context.qa,document,nodes,timers,requests,toasts,sync,opener,card,root,save,reset,ack};
+ const escape=()=>{let prevented=false;listeners.get('keydown')({key:'Escape',preventDefault(){prevented=true;},stopPropagation(){}});return prevented;};
+ return {...context.qa,document,nodes,timers,requests,toasts,sync,returns,opener,card,root,save,reset,ack,escape};
+}
+{
+ const r=rig({nested:true}),request=r.save();
+ eq(r.returns,[],'nested Save waits for its matching server confirmation');
+ r.ack(request);eq(r.returns,[{saved:true,editorOpen:false}],'confirmed nested Save restores parent only after editor teardown');
+ r.ack(request);r.closeCustomizer();eq(r.returns.length,1,'parent is restored exactly once');
+}
+{
+ const r=rig({nested:true});ok(r.escape(),'Escape is consumed before restoring a native parent dialog');
+ eq(r.returns,[{saved:false,editorOpen:false}],'Cancel, Escape and backdrop dismissal can return to the nested opener');
+}
+{
+ const r=rig({nested:true}),request=r.save();r.closeCustomizer({returnFocus:false});r.ack(request);
+ eq(r.returns,[],'navigation and late acknowledgements never reopen a retired parent');eq(r.timers.size,0,'silent teardown cancels pending confirmation');
+}
+{
+ const r=rig({nested:true}),request=r.save();r.customizerResult({...request,msg:'Only the host can change settings.'});
+ eq(r.returns,[],'rejected nested Save keeps the editor open');ok(r.isCustomizerOpen(),'nested error remains editable');
 }
 for(const detached of [false,true]){
  const r=rig({detached});r.nodes.get('df-pocket-karts-map').value='Alpine Courtyard';const request=r.save();

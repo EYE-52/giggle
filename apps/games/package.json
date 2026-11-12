@@ -76,6 +76,7 @@
     "test:ludo-shared-browser": "node test/ludo-shared-browser.cjs",
     "test:socket-boundaries": "node test/socket-boundaries.js",
     "test:howto-browser": "node test/howto-browser.cjs",
+    "test:customizer-return-browser": "node test/customizer-return-browser.cjs",
     "test:table-browser": "node test/test-table-browser.cjs",
     "test:kart-physics-combat": "node test/kart-classic-rapier.mjs && node test/kart-collision-response.mjs && node test/kart-classic-prediction.mjs && node test/kart-classic-handling.mjs && node test/kart-driving-feel.mjs && node test/kart-driving-response.mjs && node test/kart-physical-fire.mjs && node test/kart-weapon-thumbnails.mjs && node test/kart-deployed-gear.mjs",
     "test:kart-road": "node test/kart-road-terrain.mjs && node test/kart-road-world.mjs && node test/kart-garden-ground-combat.mjs && node test/kart-alpine-world.mjs && node test/kart-all-map-terrain.mjs && node test/kart-boundary-recovery.mjs && node test/kart-all-map-combat.mjs && node test/kart-wheel-suspension.mjs && node test/kart-ground-markers.mjs && node test/kart-classic-projectile-alignment.mjs",
