@@ -77,7 +77,11 @@ for(const [style,templates] of [['GLB',assets],['fallback',{}]])for(const id of 
   const afterBuffers=[];arena.scene.traverse(o=>{if(o.isMesh)afterBuffers.push(o.geometry.attributes.position.array);});
   for(let i=0;i<buffers.length;i++)assert.strictEqual(afterBuffers[i],buffers[i],'animation retains geometry buffers');
   const portal=arena.features.root.getObjectByName('arena-portal-0-0');
-  ok(portal.children.slice(0,4).every(o=>o.visible),'animated portal rings, membranes and swirls keep their own meshes');
+  const membrane=portal.getObjectByName('portal-depth');
+  ok(membrane?.visible && membrane.material.isShaderMaterial,'portal depth stays visible after static parts are batched');
+  const elapsed=membrane.material.uniforms.time.value;
+  arena.features.animate(1/60,elapsed+1/60,{karts:[]},new Map());
+  ok(Number.isFinite(elapsed)&&membrane.material.uniforms.time.value>elapsed,'the portal swirl still advances on the batched arena');
   const owned=[];arena.features.root.traverse(o=>{if(o.name.endsWith(':merged'))owned.push(o.geometry);});
   const disposed=new Map(owned.map(g=>[g,0]));for(const g of owned)g.addEventListener('dispose',()=>disposed.set(g,disposed.get(g)+1));
   arena.features.sync({id:'empty',features:{}});
