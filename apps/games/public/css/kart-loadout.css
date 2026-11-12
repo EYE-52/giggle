@@ -66,11 +66,18 @@
   :is(.pk,.pke) .kart-item.kart-item .kart-item-key { grid-column:3; align-self:start; }
   :is(.pk,.pke) .kart-item.kart-item .kart-item-count { grid-column:4; align-self:start; justify-self:end; }
 }
-/* Portrait chase framing places the rear wheels beside the steering stick.
-   Keep the equipped item in the left status column, below the clock. */
+/* On a portrait screen the kart fills the lower centre, regardless of
+   input type. Keep its item beside the top HUD and its gauges at the foot. */
 @container game (max-width:650px) and (orientation:portrait) {
-  .pk.pk.pk-touch-enabled .pk-readout, .pke.pke.pke-touch-mode .pke-bottom {
+  .pk.pk .pk-readout, .pke.pke .pke-bottom {
     top: calc(112px + env(safe-area-inset-top, 0px));
+    pointer-events: none;
+  }
+  .pk .pk-readout .pk-instruments, .pke .pke-bottom .pke-instruments {
+    margin-top: auto;
+    pointer-events: auto;
+  }
+  .pk.pk.pk-touch-enabled .pk-readout, .pke.pke.pke-touch-mode .pke-bottom {
     bottom: auto;
   }
 }
