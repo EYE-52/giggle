@@ -1519,14 +1519,18 @@ export function createKartView(viewConfig) {
           // until the rear is clear so contact does not flicker left/right.
           // At a cannon muzzle only the forward half of the orbit may clear
           // the lip; use it briefly rather than pulling inside the kart.
-          if(cramped&&tmpV.distanceToSquared(cameraFocus)<25){
+          // Low cover can hide the wheels/body while the centre ray is clear.
+          const lowCover=(S.map?.barriers||[]).some(b=>Math.abs(pose.x-b.x)<b.hw+3&&Math.abs(pose.z-b.z)<b.hd+3);
+          if(lowCover&&!pose.flight&&!me.flight&&!cramped&&model)model.updateMatrixWorld(true);
+          const hidden=lowCover&&!pose.flight&&!me.flight&&!cramped&&model&&!cameraCollision.visible(tmpV,model);
+          if(cramped&&tmpV.distanceToSquared(cameraFocus)<25||hidden){
             let chosen=0;
             for(let pass=0;pass<(cameraSide?2:1)&&!chosen;pass++)for(const angle of cameraAngles){
               if(cameraSide&&(pass===0?Math.sign(angle)!==cameraSide:Math.sign(angle)===cameraSide))continue;
               const sin=Math.sin(angle),cos=Math.cos(angle),x=-f.x*back,z=-f.z*back;
               cameraCandidate.set(cameraFocus.x+x*cos+z*sin,Math.max(chassisY+up-.75,cameraFocus.y+2),cameraFocus.z+z*cos-x*sin);
               cameraCollision.constrain(cameraCandidate,cameraFocus);
-              if(cameraCandidate.distanceToSquared(cameraFocus)>36){tmpV.copy(cameraCandidate);chosen=angle;break;}
+              if(cameraCandidate.distanceToSquared(cameraFocus)>36&&(!hidden||cameraCollision.visible(cameraCandidate,model))){tmpV.copy(cameraCandidate);chosen=angle;break;}
             }
             cameraSide=chosen?Math.sign(chosen):0;
           }else cameraSide=0;
@@ -1537,7 +1541,7 @@ export function createKartView(viewConfig) {
           cramped=cameraCollision.constrain(camera.position,cameraFocus)||cramped;
           // A straight blend between opposite clear orbits may cut through
           // the tube. Switch to the clear orbit before the eye enters the kart.
-          if(cameraSide&&camera.position.distanceToSquared(cameraFocus)<25&&tmpV.distanceToSquared(cameraFocus)>36)camera.position.copy(tmpV);
+          if(cameraSide&&tmpV.distanceToSquared(cameraFocus)>36&&(camera.position.distanceToSquared(cameraFocus)<25||hidden&&!cameraCollision.visible(camera.position,model)))camera.position.copy(tmpV);
           cameraEpoch = camLife;
           const lookX=pose.x+f.x*5,lookZ=pose.z+f.z*5;
           cameraLook.set(lookX,Math.max(chassisY+.85,(world.groundAt?.(lookX,lookZ)||0)+.8),lookZ);

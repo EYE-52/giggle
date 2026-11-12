@@ -92,3 +92,22 @@ for(const id of elevatedMapIds){
   assert.equal(allocations,prepared,'camera queries allocate no Three objects');collision.dispose();
 }
 console.log(JSON.stringify({pass:true,samples,reports,scope:'Camera volumes checked against independent real Rapier colliders on every map; tube side collisions in authority and prediction; open bores and allocation checks.'}));
+// A centre ray over low cover is insufficient: the actual wheel/body samples
+// need a clear view too. This is the real Rookie Ring rear-barrier pose.
+{
+  let allocations=0;const counted={...THREE,Vector3:class extends THREE.Vector3{constructor(...args){super(...args);allocations++;}}};
+  const collision=createKartCameraCollision(counted,[{shape:'box',half:{x:4,y:.45,z:1},position:{x:0,y:.45,z:14}}]);
+  const model=new THREE.Group(),inner=new THREE.Group();model.add(inner);model.position.set(1.8581,.65,16.75364);model.rotation.y=.18384;inner.position.y=-.70;
+  const wheels=[-1.05,1.05].map(x=>{const node=new THREE.Object3D();node.position.set(x,.52,-.92);inner.add(node);return {node}});
+  const body=new THREE.Mesh(new THREE.BoxGeometry(1.8,.12,2.4));body.name='ChassisFloor';body.position.y=.35;inner.add(body);model.userData.kart={inner,wheels};
+  model.updateMatrixWorld(true);
+  const eye=new THREE.Vector3(.03,4.10,6.92),side=new THREE.Vector3(-8.12,4.10,16.08);
+  assert(!collision.constrain(eye.clone(),model.position),'the original centre ray is clear over low cover');
+  assert(!collision.visible(eye,model),'low cover still hides the wheels/body');
+  assert(collision.visible(side,model),'a clear side orbit reveals the same body');
+  const prepared=allocations;
+  for(let i=0;i<240;i++)assert(collision.visible(side,model));
+  assert.equal(allocations,prepared,'cached body visibility allocates no Three objects per frame');
+  body.geometry.dispose();body.material.dispose();collision.dispose();
+  console.log('ok   low-cover body visibility catches the clear-centre-ray blind spot without per-frame Three allocations');
+}

@@ -36,6 +36,7 @@ export function createKartCameraCollision(THREE,solids){
   let root=tree(triangles),best=0,radius=0;
   const ray=new THREE.Ray(),bounds=new THREE.Box3(),point=new THREE.Vector3(),closest=new THREE.Vector3();
   const edge=new THREE.Vector3(),offset=new THREE.Vector3(),perp=new THREE.Vector3(),velocity=new THREE.Vector3();
+  const models=new WeakMap(),samplePoint=new THREE.Vector3(),sampleEye=new THREE.Vector3();
   function sphere(center){
     offset.subVectors(ray.origin,center);const b=offset.dot(ray.direction),c=offset.lengthSq()-radius*radius;
     if(c<=0){best=0;return;}
@@ -84,5 +85,23 @@ export function createKartCameraCollision(THREE,solids){
     if(best>=length)return false;
     position.copy(focus).addScaledVector(ray.direction,Math.max(0,best-.015));return true;
   }
-  return{constrain,dispose(){root=null;triangles.length=0;}};
+  function visible(position,model){
+    // The caller updates this model once before testing a frame's orbits.
+    if(!model?.userData.kart)return true;
+    let samples=models.get(model);
+    if(!samples){
+      const kart=model.userData.kart;samples=kart.wheels.map(w=>({node:w.node,local:new THREE.Vector3()}));
+      kart.inner.traverse(node=>{
+        if(!node.isMesh||!/^(ChassisFloor|RearBumper|FrontBumper)/.test(node.name))return;
+        node.geometry.computeBoundingBox();samples.push({node,local:node.geometry.boundingBox.getCenter(new THREE.Vector3())});
+      });
+      models.set(model,samples);
+    }
+    for(const sample of samples){
+      samplePoint.copy(sample.local).applyMatrix4(sample.node.matrixWorld);sampleEye.copy(position);
+      if(constrain(sampleEye,samplePoint,.03))return false;
+    }
+    return true;
+  }
+  return{constrain,visible,dispose(){root=null;triangles.length=0;}};
 }

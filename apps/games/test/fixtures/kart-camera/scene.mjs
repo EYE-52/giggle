@@ -13,7 +13,7 @@ import {elevatedMap} from '/js/engines/kart-elevated-maps.mjs';
 const params=new URLSearchParams(location.search),id=params.get('map')||'garden',classic=params.get('raised')!=='1',driver=params.get('driver')||'fox';
 const map=classic?await(await fetch('/classic-map?id='+id)).json():elevatedMap(id),R=await loadClassicPhysics(),terrain=classic?createRoadTerrain(map):null;
 const solids=classic?classicStatics(map,terrain):elevatedStatics(map),query=createKartPhysics(R,config);for(const s of solids)query.addStatic(s);
-let input={steer:0,throttle:0},seq=0,epoch=0,viewReady=false,built;
+let input={steer:0,throttle:0},seq=0,epoch=0,viewReady=false,built,probeRenderer;
 const k={pid:'p0',id:'p0',alive:true,connected:true,spawnSeq:1,controlEpoch:1,health:100,maxHealth:100,nitro:1,hits:0,deaths:0,shield:0,guard:false,weapon:null,ammo:0,respawn:0,speed:0,angle:0,x:0,z:0,input};
 const room={...map,map:id,mode:'battle',karts:[k],physicalEvents:[],physicalEventSeq:0,featureEvents:[],featureEventSeq:0};
 const physics=classic?createClassicMotion(R,config,room):createKartPhysics(R,config);
@@ -27,6 +27,10 @@ function place(name){
     const c=map.features.cannons[0],s=Math.sin(c.angle),co=Math.cos(c.angle);p=poseAt(c.x+s+co*3.8,c.z+co-s*3.8,c.angle+Math.PI/2);
   }else if(classic&&name==='mouth'){
     const c=map.features.cannons[0];p=poseAt(c.x-Math.sin(c.angle)*6,c.z-Math.cos(c.angle)*6,c.angle);
+  }else if(classic&&name==='barrier'){
+    p=poseAt(1.8581,16.75364,.18384);
+  }else if(!classic&&name==='neon-near'){
+    p=poseAt(29,21,0,6.8);
   }else if(!classic&&name==='wall'){
     outer:for(const d of solids){if(d.shape!=='box'||d.half.y<1.5||d.half.y>10)continue;
       for(const side of [-1,1]){
@@ -51,10 +55,23 @@ function sendSnapshot(){
   view.update(root,snapshot,api);
 }
 const api={now:()=>Date.now(),send(message){input={...(message.input||message)};seq=message.seq||seq;k.input=input;k._receivedSeq=seq;},name:()=>driver,announce(){},context:()=>({isHost:false,sound:false,connected:true,looks:{p0:{driver,paint:'bubblegum',color:0xca49b0}}})};
-globalThis.kartCameraProbe={built(value){built=value;}};
+globalThis.kartCameraProbe={built(value,renderer){built=value;probeRenderer=renderer;}};
 view.mount(root,api);place(params.get('case')||'rear');await view.ready();viewReady=true;
 const timer=setInterval(()=>{if(classic)physics.advance(1/60,new Set([k.pid]));else{physics.applyIntent(k.id,input);physics.step();}sendSnapshot();},1000/60);
 globalThis.kartCameraCheck={ready:true,place,
+  // Count actual visible kart pixels with the production world shaders still
+  // active. The second pass gives its on-screen silhouette without obstacles.
+  coverage(){
+    const model=built.scene.children.find(o=>o.name==='GiggleKart'),material=new THREE.MeshBasicMaterial({color:0xff00ff,toneMapped:false}),saved=[],cosmetics=[];
+    model.traverse(mesh=>{if(/^(KartContactShadow|KartShadowProxy|BoostFlame|RespawnShield|InvincibilityTrail)$/.test(mesh.name)){cosmetics.push([mesh,mesh.visible]);mesh.visible=false;}else if(mesh.isMesh){saved.push([mesh,mesh.material]);mesh.material=material;}});
+    const canvas=probeRenderer.domElement,gl=probeRenderer.getContext(),pixels=new Uint8Array(canvas.width*canvas.height*4);
+    function count(){probeRenderer.render(built.scene,built.camera);gl.readPixels(0,0,canvas.width,canvas.height,gl.RGBA,gl.UNSIGNED_BYTE,pixels);let n=0;for(let i=0;i<pixels.length;i+=4)if(pixels[i]>250&&pixels[i+1]<5&&pixels[i+2]>250)n++;return n;}
+    count();const actual=pixels.slice(),children=built.scene.children.filter(o=>o!==model).map(o=>[o,o.visible]),background=built.scene.background;
+    children.forEach(([o])=>o.visible=false);built.scene.background=new THREE.Color(0);const total=count();let visible=0;
+    for(let i=0;i<pixels.length;i+=4)if(pixels[i]>250&&pixels[i+1]<5&&pixels[i+2]>250&&actual[i]>250&&actual[i+1]<5&&actual[i+2]>250)visible++;
+    children.forEach(([o,visible])=>o.visible=visible);built.scene.background=background;saved.forEach(([mesh,m])=>mesh.material=m);cosmetics.forEach(([mesh,visible])=>mesh.visible=visible);material.dispose();probeRenderer.render(built.scene,built.camera);
+    return {visible,total,fraction:total?visible/total:0};
+  },
   result(){const model=built.scene.children.find(o=>o.name==='GiggleKart'),eye=built.camera.position;return{map:id,classic,driver,pose:classic?k.physicalPose:physics.pose(k.id),eye:eye.toArray(),direction:built.camera.getWorldDirection(new THREE.Vector3()).toArray(),model:model?.position.toArray(),eyeOverlapsSolid:query.overlapsStatic(eye,{x:0,y:0,z:0,w:1},{x:.12,y:.12,z:.12}),modelVisible:model?.visible,flight:k.flight,sceneObjects:built.scene.children.length};},
   dispose(){viewReady=false;clearInterval(timer);view.dispose();physics.dispose();query.dispose();}
 };

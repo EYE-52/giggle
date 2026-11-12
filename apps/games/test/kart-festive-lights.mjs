@@ -19,7 +19,7 @@ function checkWorld(world,id,mode){
   assert.equal(f.bulbs.geometry.index.count,6,tag+' two-triangle round bulb impostors');
   assert.equal(f.bulbs.material.type,'ShaderMaterial');
   assert.equal(f.bulbs.material.toneMapped,false,tag+' clean unlit colour');
-  assert.equal(f.bulbs.material.transparent,false,tag+' opaque depth-tested bulb cores');
+  assert(f.bulbs.material.transparent&&!f.bulbs.material.depthWrite,tag+' smooth near-camera fade cannot leave an invisible depth wall');
   assert.equal(f.bulbs.material.depthTest,true);
   assert.equal(f.halos.material.blending,THREE.AdditiveBlending,tag+' cheap additive glow');
   assert(f.halos.material.transparent&&!f.halos.material.depthWrite&&f.halos.material.depthTest,tag+' glow is occluded by solids without writing depth');

@@ -1,4 +1,4 @@
-/* Decoration only: opaque bulb cores, wires/tubes and additive halos in three
+/* Decoration only: bright bulb cores, wires/tubes and additive halos in three
  * instanced draws. Animation uses uniforms; no CPU bulb loop, lights or shadows.
  * Dense local fixtures take priority over distant skyline strings. */
 import {flightPose,RIDE_HEIGHT} from './kart-map-features.mjs';
@@ -161,6 +161,7 @@ uniform float uHaloScale;
 varying vec3 vFestiveColor;
 varying vec2 vBulbUv;
 varying float vPhase;
+varying vec3 vFestiveViewPosition;
 #include <fog_pars_vertex>
 void main(){
   vFestiveColor=festiveColor;
@@ -178,6 +179,7 @@ void main(){
     mvPosition=modelViewMatrix*instanceMatrix*vec4(position,1.0);
     if(festivePhase>=0.0)vPhase+=(position.y+.5)*length(instanceMatrix[1].xyz)*1.0;
   #endif
+  vFestiveViewPosition=mvPosition.xyz;
   gl_Position=projectionMatrix*mvPosition;
   #include <fog_vertex>
 }`;
@@ -188,8 +190,12 @@ uniform float uChase;
 varying vec3 vFestiveColor;
 varying vec2 vBulbUv;
 varying float vPhase;
+varying vec3 vFestiveViewPosition;
 #include <fog_pars_fragment>
 void main(){
+  // Decorative gantries can cross a chase orbit. Keep their nearby faces
+  // from becoming an opaque slab over the kart; gameplay solids stay intact.
+  float nearFade=smoothstep(2.5,4.5,length(vFestiveViewPosition));
   float wave=sin(uTime*(uChase>.5?5.5:1.5)-vPhase);
   float intensity=vPhase<0.0?1.0:mix(1.0,uChase>.5?.32+1.05*pow(.5+.5*wave,3.0):.85+.15*wave,uMotion);
   vec3 color=vFestiveColor*intensity;
@@ -198,7 +204,7 @@ void main(){
     if(r>1.0)discard;
   #endif
   #ifdef FESTIVE_HALO
-    gl_FragColor=vec4(color,.55*pow(1.0-r,3.0));
+    gl_FragColor=vec4(color,.55*pow(1.0-r,3.0)*nearFade);
     // Additive glow fades out in fog; it must never add the fog colour.
     #ifdef USE_FOG
       #ifdef FOG_EXP2
@@ -213,7 +219,7 @@ void main(){
       color*=.85+.15*sqrt(1.0-r);
       color=mix(color,vec3(1.0,.98,.85),.55*pow(max(0.0,1.0-length(vBulbUv-vec2(-.3,.3))*2.5),2.0));
     #endif
-    gl_FragColor=vec4(color,1.0);
+    gl_FragColor=vec4(color,nearFade);
     #include <fog_fragment>
   #endif
   #include <colorspace_fragment>
@@ -222,7 +228,9 @@ void main(){
 export function createKartFestiveLights(THREE,{parent,map,groundAt,quality='high',reducedMotion=false,mediumDensity=.5}={}){
   const layout=festiveLightLayout(map,{groundAt}),group=new THREE.Group();group.name='festive-'+layout.theme;group.userData.dynamic=true;parent.add(group);
   const uniforms=THREE.UniformsUtils.merge([THREE.UniformsLib.fog,{uTime:{value:0},uMotion:{value:1},uChase:{value:layout.theme==='neon'||layout.theme==='arcade'?1:0},uHaloScale:{value:4}}]);
-  const material=kind=>new THREE.ShaderMaterial({name:'festive-'+kind,uniforms,vertexShader:vertex,fragmentShader:fragment,defines:kind==='core'?{FESTIVE_BULB:1}:kind==='halo'?{FESTIVE_HALO:1}:{},fog:true,toneMapped:false,...(kind==='halo'?{transparent:true,depthWrite:false,blending:THREE.AdditiveBlending}:{})});
+  // Near-camera decoration fades smoothly without leaving an invisible depth
+  // wall over the kart. Far cores remain fully opaque in the fragment output.
+  const material=kind=>new THREE.ShaderMaterial({name:'festive-'+kind,uniforms,vertexShader:vertex,fragmentShader:fragment,defines:kind==='core'?{FESTIVE_BULB:1}:kind==='halo'?{FESTIVE_HALO:1}:{},fog:true,toneMapped:false,transparent:true,depthWrite:false,...(kind==='halo'?{blending:THREE.AdditiveBlending}:{})});
   const bulbGeo=new THREE.PlaneGeometry(1,1),barGeo=new THREE.BoxGeometry(1,1,1),bulbMat=material('core'),barMat=material('tube'),haloMat=material('halo');
   const bulbs=new THREE.InstancedMesh(bulbGeo,bulbMat,layout.bulbs.length),bars=new THREE.InstancedMesh(barGeo,barMat,layout.bars.length),halos=new THREE.InstancedMesh(bulbGeo,haloMat,layout.bulbs.length);
   bulbs.name='festive-bulb-batch';bars.name='festive-wire-tube-batch';halos.name='festive-halo-batch';halos.renderOrder=2;group.add(bulbs,bars,halos);
