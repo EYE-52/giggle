@@ -37,6 +37,13 @@ export function activeKartPower(kart){
   if(kart?.rammingT>0)return 'ram';
   return null;
 }
+// Shot events can arrive after the slot has changed. Only inventory and
+// running contact powers determine what is physically mounted on the kart.
+export function equippedKartWeapon(kart){
+  if(!kart||kart.alive===false||kart.respawn>0)return null;
+  const kind=activeKartPower(kart)||(kart.ammo>0?normalizeWeapon(kart.weapon):null);
+  return Object.hasOwn(WEAPONS,kind)?kind:null;
+}
 export const TRI_FAN=Object.freeze([-2.5*Math.PI/180,0,2.5*Math.PI/180]);
 export const CURATED_MUZZLE=Object.freeze({x:1.03,y:0.47,z:1.63});
 // Rotation comes from the physical body, never the eased visual pose or slip.

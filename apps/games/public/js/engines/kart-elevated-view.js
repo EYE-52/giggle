@@ -8,7 +8,7 @@ import {createRaisedCameraQuery} from './kart-raised-camera.mjs';
 import {createRaisedShadows,disableRaisedStaticShadows} from './kart-raised-shadows.mjs';
 import {kartLightTier} from './kart-festive-lights.mjs';
 import {controlsPickerHtml,wirePickers,syncPickers} from '../pickers.js';
-import {WEAPON_DISPLAY,WEAPON_IDS,CURATED_MUZZLE,activeKartPower,weaponForward} from './kart-weapon-contract.mjs';
+import {WEAPON_DISPLAY,WEAPON_IDS,CURATED_MUZZLE,equippedKartWeapon,weaponForward} from './kart-weapon-contract.mjs';
 import {paintKartWeapon,kartWeaponArt} from './kart-weapon-hud.mjs';
 import {paintKartHearts,createKartHitFeedback,landedText,kartEventCue} from './kart-hearts.mjs';
 import {createKartImpactFX} from './kart-impact-fx.mjs';
@@ -317,7 +317,7 @@ export function createElevatedKartView() {
             cue.age=age;direction.multiplyScalar(1/length);const visibleLength=Math.min(length,1.25);cue.object.position.copy(e.position).addScaledVector(direction,-visibleLength*.5);cue.object.quaternion.setFromUnitVectors(forward,direction);cue.object.scale.set(1,1,visibleLength/cue.length);cue.object.visible=age<.09;
           }
         }
-        if(e.type==='fire'){if(e.weapon==='machinegun')art.aim(rigs.get(e.pid)?.object,e.direction);const model=models.get(e.pid);if(model){model.userData.fireKind=e.weapon;model.userData.fireUntil=performance.now()+160;}art.recoil(rigs.get(e.pid)?.object);}
+        if(e.type==='fire'){if(e.weapon==='machinegun')art.aim(rigs.get(e.pid)?.object,e.direction);art.recoil(rigs.get(e.pid)?.object);}
         if(e.type==='fire'&&e.direction&&['machinegun','trishot','missile','cannon','nuke','frost'].includes(e.weapon)){
           const f=flashes.find(f=>!f.mesh.visible)||flashes[0];f.mesh.visible=age<.09;f.age=age;f.mesh.position.copy(e.position);f.mesh.quaternion.setFromUnitVectors(forward,direction.copy(e.direction).normalize());f.mesh.scale.setScalar(e.weapon==='cannon'||e.weapon==='missile'||e.weapon==='nuke'?1.6:1);return;
         }
@@ -368,7 +368,7 @@ export function createElevatedKartView() {
           statusOptions.time=time;statusOptions.elapsed=Math.max(0,(performance.now()-(lastSnapshotArrival??performance.now()))/1000);arsenalFX.status(model,k.alive?k:null,statusOptions);
           const featureKart=model.userData.featureKart||(model.userData.featureKart={pid:k.id});featureKart.respawn=k.respawn;featureKart.out=k.out;featureKart.spawnSeq=k.spawnSeq;
           arena.dressKart(featureKart,model,moving.flight);
-          const equipped=k.alive?(activeKartPower(k)||(k.ammo>0?k.weapon:performance.now()<(model.userData.fireUntil||0)?model.userData.fireKind:null)):null;const rig=rigs.get(k.id);if(rig?.kind!==equipped){if(rig){rig.object.removeFromParent();rigPools.get(rig.kind)?.push(rig.object);}rigs.delete(k.id);if(equipped){const object=rigPools.get(equipped)?.pop();if(!object)continue;object.position.set(...object.userData.combat.mount);model.userData.kart.inner.add(object);rigs.set(k.id,{kind:equipped,object});}}
+          const equipped=equippedKartWeapon(k);const rig=rigs.get(k.id);if(rig?.kind!==equipped){if(rig){rig.object.removeFromParent();rigPools.get(rig.kind)?.push(rig.object);}rigs.delete(k.id);if(equipped){const object=rigPools.get(equipped)?.pop();if(!object)continue;object.position.set(...object.userData.combat.mount);model.userData.kart.inner.add(object);rigs.set(k.id,{kind:equipped,object});}}
           const equipment=rigs.get(k.id)?.object.userData.combat;
           if(equipment){equipment.ammo=k.ammo;equipment.active=k.bladesT>0;equipment.firing=k.firing;}
         }

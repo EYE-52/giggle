@@ -65,3 +65,24 @@ for(const [weapon,x,expected] of [['nuke',-4,'nuke'],['nuke',-7,undefined],['mis
   assert.equal(ko.length,1,`${weapon} at ${x}: missing KO record is inferred once`);
   assert.equal(ko[0].weapon,expected,`${weapon} blast ${Math.abs(8-x)}u away tags the inferred KO as ${expected}`);
 }
+
+// A quiet weapon history remains in full snapshots while wheel contacts
+// continue to roll. Replaying any old shot used to remount its weapon.
+{
+  const feedback=createKartFeedback();
+  const shots=[];
+  let contacts=[];
+  const played=[];
+  for(let frame=0;frame<160;frame++){
+    if(frame<16 && frame%4===0){
+      const weapon=['missile','blades','trishot','cannon'][frame/4];
+      shots.push({id:'e'+frame,type:'fire',pid:'a',weapon,position:{x:0,y:1,z:0}});
+    }
+    for(let j=0;j<4;j++)contacts.push({id:'floor-'+frame+'-'+j,kind:'contact',ids:['a']});
+    contacts=contacts.slice(-24);
+    const now=frame*50;
+    feedback.ingest({phase:'drive',instanceId:'busy-floor',simAt:now,karts:[],events:shots,physicalEvents:contacts},now);
+    for(const e of feedback.current(now))if(e.kind==='fire'&&e.at===now)played.push(e.weapon);
+  }
+  assert.deepEqual(played,['blades','trishot','cannon'],'retained shots play once even as new collision events arrive');
+}

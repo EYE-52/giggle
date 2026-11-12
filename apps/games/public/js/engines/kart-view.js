@@ -4,7 +4,7 @@ import {createKartPickupPool} from './kart-pickup-pool.mjs';
 import {waitKartPreparation} from './kart-warmup-scheduler.mjs';
 import {kartLightTier} from './kart-festive-lights.mjs';
 import {controlsPickerHtml,wirePickers,syncPickers} from '../pickers.js';
-import {WEAPON_IDS,WEAPON_DISPLAY,CURATED_MUZZLE,activeKartPower,weaponForward,normalizeWeapon} from './kart-weapon-contract.mjs';
+import {WEAPON_IDS,WEAPON_DISPLAY,CURATED_MUZZLE,equippedKartWeapon,weaponForward,normalizeWeapon} from './kart-weapon-contract.mjs';
 import {paintKartWeapon,kartWeaponArt} from './kart-weapon-hud.mjs';
 import {paintKartHearts,createKartHitFeedback,landedText,kartEventCue} from './kart-hearts.mjs';
 import {kartResultView} from './kart-results.mjs';
@@ -1202,7 +1202,6 @@ export function createKartView(viewConfig) {
         for(const cue of shotCues)if(cue.until<=nowMs())cue.object.visible=false;
         for(const e of acceptedEffects){if(effectSeen.has(e.id))continue;effectSeen.add(e.id);if(nowMs()-e.at>=140)continue;
           if(e.at>=impactSince&&e.position&&!(e.kind==='fire'&&e.pid===S.you&&echoedFireIds.has(e.sourceId))){impactFX.emit(e,(nowMs()-e.at)/1000);if(e.kind==='blast'&&e.weapon==='nuke'){const own=S.karts.find(k=>k.pid===S.you),p=own?.physicalPose?.position;if(own&&Math.hypot((p?.x??own.x)-e.position.x,(p?.y??0)-e.position.y,(p?.z??own.z)-e.position.z)<14)hitFx?.rumble?.();}}
-          if(e.kind==='fire'){const model=karts.get(e.pid);if(model){model.userData.fireKind=e.weapon;model.userData.fireUntil=e.at+160;}}
           if(e.kind==='fire'&&!(e.pid===S.you&&echoedFireIds.has(e.sourceId)))combat.recoil(karts.get(e.pid)?.userData.rig);
           if((e.kind==='fire'||e.kind==='impact')&&e.position){
             let cue=null;
@@ -1276,7 +1275,7 @@ export function createKartView(viewConfig) {
           if(mesh.visible&&S.phase==='drive')drivingFX.track(k.pid,mesh.position.x,mesh.position.y,mesh.position.z,pose.angle,pose.speed??k.speed,sliding,pose.driftCharge??k.driftCharge,surface,(pose.physicalPose||k.physicalPose)?.grounded!==false);
           healthBars.update(k.pid,k,mesh.position,(!S.youDrive||k.pid!==S.you)&&(S.players||S.participants||[]).find(p=>p.id===k.pid)?.connected!==false);
           if(!mesh.visible)healthBars.add(k.pid).visible=false;
-          const equipped=k.respawn>0?null:activeKartPower(k)||(k.ammo>0?k.weapon:nowMs()<(mesh.userData.fireUntil||0)?mesh.userData.fireKind:null);
+          const equipped=equippedKartWeapon(k);
           if(mesh.userData.equipped!==equipped) {
             if(mesh.userData.rig){const old=mesh.userData.rig;old.removeFromParent();rigPools.get(old.userData.combat.kind)?.push(old);}
             mesh.userData.rig=equipped?rigPools.get(equipped)?.pop():null;

@@ -1,5 +1,5 @@
 import {weaponThumbnailArt} from './kart-assets.mjs';
-import {activeKartPower,normalizeWeapon,WEAPON_DISPLAY} from './kart-weapon-contract.mjs';
+import {activeKartPower,equippedKartWeapon,WEAPON_DISPLAY} from './kart-weapon-contract.mjs';
 
 const WEAPON_ART = {
   pulse: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="10" width="9" height="5" rx="1.5" fill="#1b2433"/><rect x="11" y="11.2" width="11" height="2.6" rx="1" fill="#5a6b84"/><rect x="19.5" y="10.4" width="2.5" height="4.2" rx="1" fill="#5a6b84"/><rect x="4" y="6.3" width="3" height="3.7" rx="1" fill="#5a6b84"/><circle cx="7" cy="17.2" r="3.1" fill="#e8b73a"/><circle cx="7" cy="17.2" r="1.2" fill="#7a5b17"/></svg>',
@@ -34,7 +34,7 @@ export function kartWeaponDisplay(kart){
   if(active==='supernova')return {kind:'supernova',label:WEAPON_DISPLAY.supernova.label,detail:'Protected',count:`${Math.ceil(kart.supernovaT)}s`,state:'active'};
   if(active==='blades')return {kind:'blades',label:WEAPON_DISPLAY.blades.label,detail:'Active',count:`${Math.ceil(kart.bladesT)}s`,state:'active'};
   if(active==='ram')return {kind:'ram',label:WEAPON_DISPLAY.ram.label,detail:'Contact = KO',count:`${Math.ceil(kart.rammingT)}s`,state:'active'};
-  const kind=normalizeWeapon(kart.weapon),ammo=Math.max(0,Math.floor(kart.ammo||0));
+  const kind=equippedKartWeapon(kart),ammo=Math.max(0,Math.floor(kart.ammo||0));
   if(WEAPON_DISPLAY[kind]&&ammo>0){
     const deploying=kind==='mine';
     const remaining=kind==='trishot'?Math.ceil(ammo/3):ammo;
