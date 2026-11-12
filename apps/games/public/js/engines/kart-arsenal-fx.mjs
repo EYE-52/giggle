@@ -1,4 +1,4 @@
-import {WEAPON_FEEL,CURATED_MUZZLE} from './kart-weapon-contract.mjs';
+import {WEAPON_FEEL,CURATED_MUZZLE,WEAPONS} from './kart-weapon-contract.mjs';
 /* Pooled weapon effects and timed attachments, shared by both kart views.
  * Reads authoritative events and kart status only; never touches gameplay.
  *
@@ -107,9 +107,11 @@ export function createArsenalFX(THREE, scene, { reducedMotion = () => false, gro
   const domeGeo = keepG(new THREE.SphereGeometry(1, 20, 10, 0, TAU, 0, Math.PI / 2)); domeGeo.rotateX(Math.PI / 2);
   const shellGeo = keepG(new THREE.IcosahedronGeometry(1, 1));
   const ramMat = additive(0xffb347, .5), frostMat = additive(0x9fe8ff, .32);
-  const bladeGeo=keepG(new THREE.TorusGeometry(2.2,.021,4,12,.39)),bladeMat=additive(0x6bffda,.95),novaMat=additive(0x73ffe0,.25);
-  const novaRimGeo=keepG(new THREE.TorusGeometry(1,.035,4,40));novaRimGeo.rotateX(Math.PI/2);
-  const novaRimMat=additive(0x9affde,.9);
+  const bladeGeo=keepG(new THREE.TorusGeometry(2.2,.021,4,12,.39)),bladeMat=additive(0x6bffda,.95),novaMat=additive(0x73ffe0,.8);
+  const novaGeo=keepG(new THREE.TorusGeometry(WEAPONS.supernova.contactRadius,.028,4,56));novaGeo.rotateX(Math.PI/2);
+  const novaRimGeo=keepG(new THREE.TorusGeometry(1.82,.045,4,36,TAU*.75));novaRimGeo.rotateX(Math.PI/2);
+  const novaRimMat=additive(0xffe795,.9);
+  novaMat.side=novaRimMat.side=THREE.FrontSide;
   const starShape=new THREE.Shape();for(let i=0;i<16;i++){const a=i*Math.PI/8,r=i%2?.24:.75;if(i)starShape.lineTo(Math.cos(a)*r,Math.sin(a)*r);else starShape.moveTo(r,0);}starShape.closePath();
   const muzzleGeo=keepG(new THREE.ShapeGeometry(starShape)),muzzleMat=additive(0xffe587,.95);
   function attach(model) {
@@ -120,7 +122,7 @@ export function createArsenalFX(THREE, scene, { reducedMotion = () => false, gro
     const frost = new THREE.Mesh(shellGeo, frostMat); frost.name = 'FrostShell'; frost.scale.set(1.65, 1.2, 2.1);
     const muzzle=new THREE.Group();muzzle.name='KartWeaponMuzzleFlash';for(let i=0;i<2;i++){const face=new THREE.Mesh(muzzleGeo,muzzleMat);face.rotation.y=i*Math.PI/2;muzzle.add(face);}muzzle.position.set(CURATED_MUZZLE.x,CURATED_MUZZLE.y,CURATED_MUZZLE.z+.06);
     const blades=new THREE.Group();blades.name='SpinningBlades';for(let i=0;i<3;i++){const b=new THREE.Mesh(bladeGeo,bladeMat);b.name='OrbitBlade';blades.add(b);}
-    const nova=new THREE.Mesh(shellGeo,novaMat);nova.name='SupernovaBubble';nova.scale.set(2.3,1.7,2.6);
+    const nova=new THREE.Mesh(novaGeo,novaMat);nova.name='SupernovaBoundary';
     const rim=new THREE.Mesh(novaRimGeo,novaRimMat);rim.name='SupernovaRim';nova.add(rim);
     for (const o of [ram, frost,blades,nova,muzzle]) { o.visible = false; group.add(o); }
     group.traverse(o => { o.castShadow = false; o.receiveShadow = false; });
@@ -147,8 +149,13 @@ export function createArsenalFX(THREE, scene, { reducedMotion = () => false, gro
     if(s.muzzle.visible)s.muzzle.scale.setScalar(s.muzzlePower*(still?.65:1.15-s.fireAge*3));
     s.nova.visible=connected&&kart?.supernovaT>elapsed;s.blades.visible=connected&&kart?.bladesT>elapsed;
     if(s.blades.visible){s.blades.position.set(0,.35,0);s.blades.quaternion.copy(model.quaternion).invert();for(let i=0;i<3;i++){const b=s.blades.children[i],a=((kart.bladesAge||0)+elapsed)*7+i*TAU/3;b.rotation.set(Math.PI/2,0,a);}}
-    s.nova.position.y=.35;
-    if(s.nova.visible)s.nova.rotation.y=still?0:time*.6;
+    s.nova.position.y=.12;
+    if(s.nova.visible){
+      // The thin world-horizontal perimeter shows the real contact reach.
+      // Its short inner accent turns slowly; the driver is never veiled.
+      s.nova.quaternion.copy(model.quaternion).invert();
+      s.nova.children[0].rotation.y=still?0:time*.6;
+    }
     s.ram.visible = !!ramOn; s.frost.visible = !!frostOn;
     if (ramOn) { s.ram.position.set(0, -.05, 1.55); const p = still ? 1 : 1 + .07 * Math.sin(time * 18); s.ram.scale.set(1.35 * p, .75 * p, .9 * p); }
     if (frostOn) { s.frost.position.set(0, .05, 0); s.frost.rotation.y = still ? 0 : time * .4; }

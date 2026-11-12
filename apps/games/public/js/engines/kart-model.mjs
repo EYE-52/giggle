@@ -35,7 +35,7 @@ const MAX_STEER = 0.45; // radians at full lock
 const STEER_EASE = 10; // per-second smoothing rate
 const MAX_DT = 0.05; // clamp tab-away ticks
 
-/* Process-wide shared cosmetics: one flame cone, one shield shell, reused
+/* Process-wide shared cosmetics: one flame cone, one shield contour, reused
  * by every kart instance. Never disposed per kart (see disposeKartModel). */
 let sharedCosmetics = null;
 
@@ -46,10 +46,11 @@ function cosmetics(THREE) {
     color: 0xff9f1a, transparent: true, opacity: 0.9,
     blending: THREE.AdditiveBlending, depthWrite: false,
   });
-  const shieldGeo = new THREE.SphereGeometry(1, 24, 16);
+  const shieldGeo = new THREE.TorusGeometry(1, .022, 4, 48);
+  shieldGeo.rotateX(-Math.PI / 2);
   const shieldMat = new THREE.MeshBasicMaterial({
-    color: 0x7bedff, transparent: true, opacity: 0.25,
-    depthWrite: false, side: THREE.DoubleSide,
+    color: 0x7bedff, transparent: true, opacity: 0.85,
+    depthWrite: false, toneMapped: false,
   });
   const invincibilityTrailGeo=new THREE.BoxGeometry(.06,.07,1);
   const invincibilityTrailMats=[0xffd36a,0x6cf3ff].map(color=>new THREE.MeshBasicMaterial({color,transparent:true,opacity:.75,depthWrite:false}));
@@ -206,11 +207,11 @@ export function createKartModel(THREE, { assets, color, number = 1, driver } = {
   flame.frustumCulled = false;
   (body || inner).add(flame);
 
-  // Fixed-bounded respawn shield shell around the whole kart.
+  // Spawn protection hugs the bumper line; no surface covers the driver.
   const shield = new THREE.Mesh(shared.shieldGeo, shared.shieldMat);
   shield.name = 'RespawnShield';
-  shield.position.set(0, 1.05, 0);
-  shield.scale.set(1.55, 1.35, 1.95);
+  shield.position.set(0, .45, 0);
+  shield.scale.set(1.68, 1, 2.08);
   shield.visible = false;
   shield.castShadow = false;
   shield.receiveShadow = false;
@@ -323,15 +324,8 @@ export function animateKartModel(group, {
 
   for(const trail of u.invincibilityTrails||[]){trail.visible=!!invincible&&!reducedMotion&&Math.abs(v)>1;trail.scale.z=clamp(Math.abs(v)/20,.2,1.3);}
 
-  const bubble = u.shield;
-  if (bubble) {
-    bubble.visible = !!shield;
-    if (bubble.visible && !reducedMotion) {
-      bubble.rotation.y += step * 0.8;
-      const pulse = 1 + 0.02 * Math.sin(u.time * 3);
-      bubble.scale.set(1.55 * pulse, 1.35 * pulse, 1.95 * pulse);
-    }
-  }
+  // A steady outline remains readable at rest and with reduced motion.
+  if (u.shield) u.shield.visible = !!shield;
 }
 
 /* Release ONLY this kart's owned resources: the cloned KartPaint

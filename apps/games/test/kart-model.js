@@ -106,6 +106,16 @@ async function main() {
   assert.equal(k1.userData.shield.geometry, k2.userData.shield.geometry, 'shield geo shared');
   assert.equal(k1.userData.shield.material, k2.userData.shield.material, 'shield mat shared');
 
+  const contour=k1.userData.shield;
+  contour.geometry.computeBoundingBox();
+  assert.ok(contour.geometry.boundingBox.max.y-contour.geometry.boundingBox.min.y<.05,'spawn contour has no face over the kart or driver');
+  assert.equal(contour.material.depthWrite,false,'spawn contour cannot veil later geometry');
+  assert.equal(contour.material.side,THREE.FrontSide,'closed contour uses one face pass');
+  const contourPose={position:contour.position.toArray(),scale:contour.scale.toArray(),rotation:contour.quaternion.toArray()};
+  for(let i=0;i<120;i++)animateKartModel(k1,{shield:true,dt:1/60,reducedMotion:i%2===0});
+  assert.deepEqual({position:contour.position.toArray(),scale:contour.scale.toArray(),rotation:contour.quaternion.toArray()},contourPose,'shield keeps a steady readable boundary in both motion modes');
+  animateKartModel(k1,{shield:false,dt:1/60});assert.equal(contour.visible,false,'spawn contour clears on the first unprotected frame');
+
   // Shadows: opaque meshes cast, transparent cosmetics do not.
   for (const m of meshes1) assert.equal(m.castShadow, true, `${m.name || 'mesh'} casts`);
   assert.equal(k1.userData.flame.castShadow, false);
@@ -114,7 +124,7 @@ async function main() {
   const paint=k1.userData.kart.paint[0];
   const originalEmission=paint.emissive.clone(),originalIntensity=paint.emissiveIntensity;
   animateKartModel(k1,{invincible:true,shield:false,dt:1/60});
-  assert.equal(k1.userData.shield.visible,false,'Activated invincibility never shows respawn bubble');
+  assert.equal(k1.userData.shield.visible,false,'Activated invincibility never shows spawn contour');
   assert.equal(paint.emissiveIntensity,.55,'Invincibility uses bounded model-owned emission');
   assert.notDeepEqual(paint.emissive.toArray(),originalEmission.toArray(),'Invincibility is visible on body material');
   animateKartModel(k1,{invincible:false,shield:true,dt:1/60});
@@ -151,7 +161,7 @@ async function main() {
   assert.equal(k1.rotation.y, 0, 'root yaw untouched');
   assert.equal(k1.rotation.z, 0);
   assert.equal(k1.userData.flame.visible, true, 'boost shows flame');
-  assert.equal(k1.userData.shield.visible, true, 'shield shows bubble');
+  assert.equal(k1.userData.shield.visible, true, 'shield shows the bumper contour');
   animateKartModel(k1, { speed: 10, steer: 1, boost: false, shield: false, dt: 1 / 60 });
   assert.equal(k1.userData.flame.visible, false);
   assert.equal(k1.userData.shield.visible, false);

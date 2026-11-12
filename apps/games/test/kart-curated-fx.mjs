@@ -57,8 +57,26 @@ for(const reduced of [false,true])for(let i=0;i<360;i++){
  const center=model.localToWorld(new THREE.Vector3(0,.35,0));
  for(const blade of model.userData.arsenalStatus.blades.children){const p=blade.localToWorld(new THREE.Vector3(2.2,0,0));check(Math.abs(p.y-center.y)<1e-7&&Math.abs(Math.hypot(p.x-center.x,p.z-center.z)-2.2)<1e-7,'pitched kart orbit follows the authority world plane');}
 }
+// Protection is a thin boundary at the real reach, not a full shell.
+const nova=model.userData.arsenalStatus.nova;
+check(nova.name==='SupernovaBoundary'&&nova.geometry.type==='TorusGeometry','Supernova has no enclosing faces over the driver');
+check(nova.geometry.parameters.radius===WEAPONS.supernova.contactRadius,'boundary radius matches authoritative contact reach');
+check(nova.material.side===THREE.FrontSide&&nova.children[0].material.side===THREE.FrontSide,'closed rings need one face pass');
+check(nova.geometry.index.count/3+nova.children[0].geometry.index.count/3<=800,'protection remains below the former double-sided shell/rim triangle budget');
+const other=new THREE.Group();fx.warmStatus(other);check(other.userData.arsenalStatus.nova.geometry===nova.geometry&&other.userData.arsenalStatus.nova.material===nova.material,'all drivers share protection geometry and materials');
+fx.status(model,{supernovaT:3},{time:1,elapsed:.02});model.updateMatrixWorld(true);
+const boundaryCenter=nova.getWorldPosition(new THREE.Vector3());
+for(const a of [0,.5,1.5,3]){const p=nova.localToWorld(new THREE.Vector3(Math.cos(a)*WEAPONS.supernova.contactRadius,0,Math.sin(a)*WEAPONS.supernova.contactRadius));check(Math.abs(p.y-boundaryCenter.y)<1e-7&&Math.abs(Math.hypot(p.x-boundaryCenter.x,p.z-boundaryCenter.z)-WEAPONS.supernova.contactRadius)<1e-7,'pitched kart keeps contact boundary in the world plane');}
+fx.status(model,{supernovaT:.02},{elapsed:.02});check(!nova.visible,'boundary expires at the accepted remaining timer');
+fx.status(model,{supernovaT:3,connected:false});check(!nova.visible,'disconnected driver has no lingering boundary');
 fx.status(model,{bladesT:1,bladesAge:5,supernovaT:1},{elapsed:1.1});check(!model.userData.arsenalStatus.blades.visible&&!model.userData.arsenalStatus.nova.visible,'stale status packet cannot leave protection or blades behind');
 fx.status(model,null);check(!model.userData.arsenalStatus.blades.visible&&!model.userData.arsenalStatus.nova.visible,'expired attachments hide immediately');
+const quietProtection=createArsenalFX(THREE,new THREE.Scene(),{reducedMotion:true}),quietModel=new THREE.Group();
+quietProtection.status(quietModel,{supernovaT:3},{time:0});
+const quietNova=quietModel.userData.arsenalStatus.nova,quietPose=quietNova.children[0].quaternion.toArray();
+quietProtection.status(quietModel,{supernovaT:2},{time:1});check(quietNova.visible,'reduced motion retains the protection boundary');
+assert.deepEqual(quietNova.children[0].quaternion.toArray(),quietPose);checks++;
+quietProtection.status(quietModel,{supernovaT:0},{time:3});check(!quietNova.visible,'reduced motion keeps immediate expiry');quietProtection.dispose();
 for(const weapon of ['machinegun','trishot','missile','cannon']){
  const event={id:'fire-'+weapon,type:'fire',weapon,position:{x:0,y:1,z:0},direction:{x:0,y:0,z:1}};impact.emit(event);fx.event(event);
  impact.update(2);fx.update(2);check(scene.getObjectByName('MachineGunCasings').count===0&&scene.getObjectByName('KartImpactFX').children.every(o=>!o.visible),weapon+' muzzle/casing particles retire');
