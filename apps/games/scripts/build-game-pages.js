@@ -19,6 +19,7 @@ const path = require('path');
 
 const ROOT = path.join(__dirname, '..');
 const { LIMITS } = require('../games/_validate');
+const { KART_MODES } = require('../public/js/engines/kart-mode-ui.mjs');
 
 /* Same id rule as the registry: traversal-safe by construction. */
 const ID_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
@@ -89,15 +90,17 @@ function pills(g) {
   return out;
 }
 
-function settingDetail(s) {
+function settingDetail(s, gameId) {
   if (s.type === 'int') {
     const range = (s.min !== undefined && s.max !== undefined) ? `${s.min}–${s.max}` : '';
     const d = s.def === null ? `default ${s.autoLabel || 'auto'}` : `default ${s.def}`;
     return [range, d].filter(Boolean).join(', ');
   }
   if (s.type === 'enum') {
-    const opts = Array.isArray(s.options) ? s.options.join(' · ') : '';
-    return `Options: ${opts}. Default: ${s.def}`;
+    const kartMode = gameId === 'pocket-karts' && s.key === 'mode';
+    const label = value => kartMode && Object.hasOwn(KART_MODES, value) ? KART_MODES[value].label : value;
+    const opts = Array.isArray(s.options) ? s.options.map(label).join(' · ') : '';
+    return `Options: ${opts}. Default: ${label(s.def)}`;
   }
   return `Default: ${s.def ? 'on' : 'off'}`;
 }
@@ -135,7 +138,7 @@ function renderPage(g, publicDir) {
   let customSection;
   if (g.customizable) {
     const settings = (g.schema.settings || [])
-      .map((s) => `          <li><strong>${esc(s.label || s.key)}</strong> <span>${esc(settingDetail(s))}</span></li>`)
+      .map((s) => `          <li><strong>${esc(s.label || s.key)}</strong> <span>${esc(settingDetail(s, id))}</span></li>`)
       .join('\n');
     const packs = (g.schema.packs || [])
       .map((p) => `          <li><strong>${esc(p.label || p.key)}</strong> <span>${esc(packDetail(p))}</span></li>`)
