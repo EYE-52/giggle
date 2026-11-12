@@ -97,13 +97,18 @@ async function main() {
   Date.now = () => now;
   try {
     for (const label of ['Alpine Courtyard', 'Frost Quarry', 'Neon Harbor', 'Harbor Heights']) {
-      const t = room(def, 24), { r, clients } = t;
+      const t = room(def, 8), { r, clients } = t;
       for (const key of ['initialHealth', 'health', 'maxHealth']) {
         ok(t.start({ ...settings(label), [key]: 1 }).error.includes('Unknown setting'), 'production Room rejects diagnostic health settings');
         eq(r.game, null, 'rejected diagnostic health never creates a game');
         eq(r.config['pocket-karts'], undefined, 'rejected diagnostic health never persists in configuration');
       }
       eq(t.start(settings(label)), { ok: true }, label + ' real authored map starts synchronously');
+      for (let n = 8; n < 24; n++) {
+        const ws = socket();
+        clients.push({ ws, p:r.addPlayer('Watcher '+n, ws).player });
+      }
+      r.broadcastState();
       const s = latest(clients[0].ws), i = s.instanceId, ctx = r.ctx();
       ok(r.game.state && typeof r.game.state.then !== 'function', 'create returns state, not a Promise');
       eq(s.map.label, label); eq(s.map.half, label==='Harbor Heights'?86:60, 'injected map remains immutable');
@@ -114,7 +119,7 @@ async function main() {
       ok(s.inputAck && !('coins' in s.inputAck) && !('you' in def.view(r.game.state, s.you)), 'ACK cannot overwrite envelope');
       ok(s.karts.every(k => !('name' in k) && !('coins' in k) && !('contact' in k.pose.wheels[0]) && !('surfaceId' in k.pose.wheels[0])), 'compact poses strip duplicated names and diagnostics');
       ok(s.karts.every((k,index) => k.pose.position.y-base.maps[s.mapId].spawns[index].y > 0.5 && k.pose.position.y-base.maps[s.mapId].spawns[index].y < 0.9 && k.pose.rotation.w !== undefined && k.pose.linearVelocity.y !== undefined), 'full supported pose survives projection');
-      eq(latest(clients[23].ws).inputAck, null, 'seat-cap watcher has no ACK');
+      eq(latest(clients[23].ws).inputAck, null, 'mid-game watcher has no ACK');
       eq(latest(clients[23].ws).coins, 0, 'watcher has no wallet');
       eq(ctx.instanceId, i); assert.throws(() => { ctx.instanceId = 'forged'; }); checks++;
       const before = advances.get(i), snapshot = JSON.stringify(def.view(r.game.state, s.you));
@@ -179,6 +184,7 @@ async function main() {
       const oldState = r.game.state;
       eq(t.start(settings(label)), { ok: true }, 'normal Room start rematches');
       eq(frees, originalFrees + 1, 'rematch frees old World once');
+      eq(latest(slow).youDrive, true, 'a watcher joins the grid at rematch');
       ok(r.game.instanceId !== i && latest(replacement).inputAck.receivedSeq === 0, 'rematch starts fresh instance/ACK');
       send(r, clients[0], action, { i, w: done.w }); now += 50; r.onTick(); eq(latest(replacement).inputAck.receivedSeq, 0, 'old instance cannot inject rematch controls');
       def.onTick(oldState, ctx); eq(def.onAction(oldState, ctx, clients[0].p.id, action), false);

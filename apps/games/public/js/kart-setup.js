@@ -10,17 +10,17 @@ export const KART_ARENAS = [
   { label: 'Harbor Fork', key: 'arena-harbor-fork', elevated: true, complex: true, launch: true, players: '8–32', levels: 3, description: 'Three cargo fingers, two cross-dock bridges and a high harbor lookout.' },
   { label: 'Skyport Split', key: 'arena-skyport-split', elevated: true, complex: true, launch: true, players: '8–32', levels: 3, description: 'Twin parking towers, a two-turn helix and a roof gap with a safe bridge around it.' },
   { label: 'Foundry Wheel', key: 'arena-foundry-wheel', elevated: true, complex: true, launch: true, players: '8–32', levels: 3, description: 'Three furnace rings, opposing belt lanes, service tunnels and a high sorter.' },
-  { label: 'Skyport', key: 'elevated-skyport', elevated: true, complex: true, description: 'Three floors, a spiral car park, roof jumps and sky bridges.' },
-  { label: 'Foundry', key: 'elevated-foundry', elevated: true, complex: true, description: 'Three floors, furnace tunnels, moving belts and a high gantry.' },
-  { label: 'Alpine Courtyard', key: 'elevated-garden', elevated: true, description: 'Two climbs, a raised courtyard and an underpass.' },
-  { label: 'Frost Quarry', key: 'elevated-frost', elevated: true, description: 'Ice shortcuts, a high bridge and a marked quarry shaft.' },
-  { label: 'Neon Harbor', key: 'elevated-neon', elevated: true, description: 'Cargo cover, two climbs and a marked dock basin.' },
-  { label: 'Harbor Heights', key: 'elevated-harbor', elevated: true, description: 'A larger arena with bridges, balconies and four climbs.' },
-  { label: 'Rookie Ring', key: 'legacy-ring', description: 'A small, open arena for close battles.' },
-  { label: 'Bumper Blocks', key: 'legacy-blocks', description: 'A small arena with four solid cover blocks.' },
-  { label: 'Garden Circuit', key: 'legacy-garden', description: 'Rolling roads, hedge cover and boost strips.' },
-  { label: 'Frosty Pass', key: 'legacy-frost', description: 'Snowy ridges and slippery ice shortcuts.' },
-  { label: 'Neon Yard', key: 'legacy-neon', description: 'Raised cargo lanes, cover and boost strips.' },
+  { label: 'Skyport', players: '8–32', key: 'elevated-skyport', elevated: true, complex: true, description: 'Three floors, a spiral car park, roof jumps and sky bridges.' },
+  { label: 'Foundry', players: '8–32', key: 'elevated-foundry', elevated: true, complex: true, description: 'Three floors, furnace tunnels, moving belts and a high gantry.' },
+  { label: 'Alpine Courtyard', players: '2–8', key: 'elevated-garden', elevated: true, description: 'Two climbs, a raised courtyard and an underpass.' },
+  { label: 'Frost Quarry', players: '2–8', key: 'elevated-frost', elevated: true, description: 'Ice shortcuts, a high bridge and a marked quarry shaft.' },
+  { label: 'Neon Harbor', players: '2–8', key: 'elevated-neon', elevated: true, description: 'Cargo cover, two climbs and a marked dock basin.' },
+  { label: 'Harbor Heights', players: '4–12', key: 'elevated-harbor', elevated: true, description: 'A larger arena with bridges, balconies and four climbs.' },
+  { label: 'Rookie Ring', players: '2–8', key: 'legacy-ring', description: 'A small, open arena for close battles.' },
+  { label: 'Bumper Blocks', players: '2–8', key: 'legacy-blocks', description: 'A small arena with four solid cover blocks.' },
+  { label: 'Garden Circuit', players: '4–16', key: 'legacy-garden', description: 'Rolling roads, hedge cover and boost strips.' },
+  { label: 'Frosty Pass', players: '4–16', key: 'legacy-frost', description: 'Snowy ridges and slippery ice shortcuts.' },
+  { label: 'Neon Yard', players: '6–24', key: 'legacy-neon', description: 'Raised cargo lanes, cover and boost strips.' },
 ];
 const MODES = {
   'Zap Battle': ['Battle', 'Collect weapons and score knockouts.'],
@@ -59,7 +59,6 @@ const snapRound = v => typeof v === 'string' ? String(roundMinutes(v) * 60) : ro
 export function resolveKartSetup(settings, changedKey) {
   const next = { ...settings };
   if (next.roundSeconds !== undefined) next.roundSeconds = snapRound(next.roundSeconds);
-  if(changedKey === 'mode' && next.mode === 'Zap Battle' && !KART_ARENAS.some(a => a.label === next.map && a.launch)) next.map = 'Rookie Ribbons';
   if (elevated(next.map) && next.mode !== 'Zap Battle') {
     if (changedKey === 'mode') next.map = 'Garden Circuit';
     else next.mode = 'Zap Battle';
@@ -79,7 +78,7 @@ function choices(g, key, values, selected, host, labels = {}, cards = false) {
 export function kartSetupHtml(g, current, host) {
   const settings = Object.fromEntries(g.schema.settings.map(s => [s.key, current[s.key] ?? s.def]));
   const field = key => g.schema.settings.find(s => s.key === key);
-  const arenas = KART_ARENAS.filter(a => (a.launch || !a.elevated) && field('map').options.includes(a.label));
+  const arenas = KART_ARENAS.filter(a => field('map').options.includes(a.label));
   const arena = KART_ARENAS.find(a => a.label === settings.map) || arenas.find(a => a.launch);
   const dis = host ? '' : 'disabled';
   const number = (key, label, step) => {
@@ -95,9 +94,10 @@ export function kartSetupHtml(g, current, host) {
     <section class="ks-arena"><div class="ks-section-head"><h3>Choose your arena</h3><span class="ks-arena-name" id="kartArenaName">${esc(arena.label)}</span></div>
       <figure class="ks-preview"><img id="kartArenaPreview" src="/assets/karts/previews/${arena.key}.webp" width="480" height="270" alt="${esc(arena.label)} arena overview"><figcaption id="kartArenaDescription">${esc(arena.description)}</figcaption></figure>
       <input type="hidden" id="df-${g.id}-map" value="${esc(settings.map)}">
+      <p class="ks-capacity">Every arena supports 2–32 drivers.</p>
       <div class="ks-map-nav"><button type="button" class="ks-map-arrow" data-kart-scroll="-1" aria-label="Previous arenas">‹</button>
-        <div class="ks-map-list" role="radiogroup" aria-label="Arena">${arenas.map(a => `<button type="button" class="ks-map" data-kart-launch="${Boolean(a.launch)}" ${Boolean(a.launch) !== (settings.mode === 'Zap Battle') ? 'hidden' : ''} role="radio" aria-label="${esc(a.label + (a.complex ? ", three levels" : a.elevated ? ", elevated" : ", classic") + ": " + a.description)}" aria-checked="${a.label === settings.map}" tabindex="${a.label === settings.map ? 0 : -1}" data-kart-key="map" data-kart-value="${esc(a.label)}" data-hostonly ${dis}>
-          <img src="/assets/karts/previews/${a.key}.webp" width="480" height="270" alt=""><span>${esc(a.label)}</span><small>${a.players ? `${a.levels} levels · ${a.players} players` : a.complex ? '3 levels · 2–32 players' : a.elevated ? 'Elevated · 2–8 players' : 'Classic · 2–32 players'}</small></button>`).join('')}</div>
+        <div class="ks-map-list" role="radiogroup" aria-label="Arena">${arenas.map(a => `<button type="button" class="ks-map" data-kart-elevated="${Boolean(a.elevated)}" ${a.elevated && settings.mode !== 'Zap Battle' ? 'hidden' : ''} role="radio" aria-label="${esc(a.label + (a.complex ? ", three levels" : a.elevated ? ", elevated" : ", classic") + ", suggested for " + a.players + " drivers. " + a.description)}" aria-checked="${a.label === settings.map}" tabindex="${a.label === settings.map ? 0 : -1}" data-kart-key="map" data-kart-value="${esc(a.label)}" data-hostonly ${dis}>
+          <img src="/assets/karts/previews/${a.key}.webp" width="480" height="270" alt=""><span>${esc(a.label)}</span><small>Best with ${a.players} drivers</small></button>`).join('')}</div>
         <button type="button" class="ks-map-arrow" data-kart-scroll="1" aria-label="More arenas">›</button></div>
       <p class="ks-change-note" id="kartSetupNotice" role="status"></p></section>
     <section class="ks-rules"><h3>Match rules</h3><div class="ks-rule-row">
@@ -121,7 +121,7 @@ export function syncKartSetup(g, { repair = false, changedKey, announce = false 
     const selected = next[b.dataset.kartKey] === b.dataset.kartValue;
     b.setAttribute('aria-checked', String(selected));
     b.tabIndex = selected ? 0 : -1;
-    if(b.dataset.kartKey === 'map') b.hidden = (b.dataset.kartLaunch === 'true') !== (next.mode === 'Zap Battle');
+    if(b.dataset.kartKey === 'map') b.hidden = b.dataset.kartElevated === 'true' && next.mode !== 'Zap Battle';
   }
   const arena = KART_ARENAS.find(a => a.label === next.map);
   if (arena) {

@@ -72,10 +72,16 @@ const finiteWire = v => typeof v === 'number' ? Number.isFinite(v) : v && typeof
 async function main() {
   const server = await boot(), sockets = [], metrics = {};
   try {
-    const legacy = await createRoom(server, 2), clients = await createRoom(server, 24);
+    const legacy = await createRoom(server, 2), clients = await createRoom(server, 8);
     sockets.push(...legacy, ...clients);
     await start(legacy, { roundSeconds: 60, map: 'Garden Circuit', mode: 'Zap Battle', winRule: 'Time limit' });
     await start(clients, params('Alpine Courtyard'));
+    for(let i=8;i<24;i++){
+      const c=await connect(server);clients.push(c);sockets.push(c);
+      send(c,{t:'join',code:clients[0].hello.code,name:'Watcher '+i});
+      await until(()=>c.state?.spectator,'mid-game watcher '+i);
+    }
+    await until(()=>clients[0].state?.spectators.length===16,'watcher roster');
     const first = clients[0], other = clients[1], watcher = clients[23], initial = first.state;
     eq(first.state.profile, 'elevated-combat-v1'); eq(first.state.map.label, 'Alpine Courtyard');
     eq(first.state.configVersion, 1); eq(first.state.physicsVersion, 2); eq(first.state.mapRevision, 'combat-elevation-2-routes-2');

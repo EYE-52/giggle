@@ -4,7 +4,7 @@ import {createRequire} from 'node:module';
 import {decodeFrame} from '../public/js/toolkit/realtime/client.mjs';
 const require=createRequire(import.meta.url),{Room}=require('../server/room'),def=require('../games/pocket-karts/server');
 await def.initialize();const realNow=Date.now;let now=1000000;Date.now=()=>now;const reports=[];
-try{for(const [label,players]of[['Rookie Ribbons',8],['Skyport Split',8],['Skyport Split',16],['Skyport Split',32]]){
+try{for(const [label,players]of[['Rookie Ribbons',8],['Skyport Split',8],['Skyport Split',16],['Skyport Split',32],['Rookie Ribbons',32],['Alpine Courtyard',32],['Harbor Heights',32]]){
  const room=new Room('AREN',{}),clients=[];
  try{
   for(let i=0;i<players;i++){const ws={readyState:1,bufferedAmount:0,realtime:i===1?undefined:'rt1',frames:[],send(v){this.frames.push(v);},close(){}},player=room.addPlayer('Driver '+i,ws).player,pid=player.id;clients.push({ws,pid,player,decoder:decodeFrame(),state:null,bytes:0});}
@@ -22,7 +22,7 @@ try{for(const [label,players]of[['Rookie Ribbons',8],['Skyport Split',8],['Skypo
   }
   assert(comparisons>300);
   const elapsed=(400-81)*.05,sorted=steps.sort((a,b)=>a-b),report={label,players,variant:clients[0].state.variantId,comparisons,binaryKiBs:binaryBytes/elapsed/1024,jsonKiBs:jsonBytes/elapsed/1024,updateP95:sorted[Math.floor(sorted.length*.95)],updateP99:sorted[Math.floor(sorted.length*.99)]};
-  assert(report.binaryKiBs<100,'launch transport under 100KiB/s per seat');assert(binaryBytes<jsonBytes*.5);reports.push(report);console.log('PASS launch transport',JSON.stringify(report));
+  assert(report.binaryKiBs<100,'elevated transport under 100KiB/s per seat');assert(binaryBytes<jsonBytes*.5);reports.push(report);console.log('PASS launch transport',JSON.stringify(report));
  }finally{room.destroy();}
 }}finally{Date.now=realNow;}
 fs.writeFileSync(new URL('../../../artifacts/kart-arenas/launch-transport.json',import.meta.url),JSON.stringify({reports,scope:'Mixed real Room binary/JSON clients, 20s, motion, ACKs, reconnect and current pickup pads; not a 5-minute active-combat bandwidth claim.'},null,2));

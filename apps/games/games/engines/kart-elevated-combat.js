@@ -80,7 +80,7 @@ function guidedVelocity(velocity,delta,maxTurn) {
 }
 
 function createElevatedCombat(RAPIER,config,map,seats,options={}) {
-  if (!Array.isArray(seats) || seats.length < 2 || seats.length > Math.min(config.maxKarts, map.maxPlayers || 8) || seats.some(s => !validId(s?.id)) || new Set(seats.map(s=>s.id)).size !== seats.length) throw new TypeError('2..map capacity unique seats required');
+  if (!Array.isArray(seats) || seats.length < 2 || seats.length > config.maxKarts || seats.some(s => !validId(s?.id)) || new Set(seats.map(s=>s.id)).size !== seats.length) throw new TypeError('2..kart capacity unique seats required');
   const instance = options.instance;
   if (!validId(instance) || !Number.isInteger(options.seed) || options.seed < 0 || options.seed > 0xffffffff) throw new TypeError('server instance and uint32 seed required');
   const startAt = options.startAt ?? 0, countdownMs = options.countdownMs ?? H.COUNTDOWN_MS, roundMs = options.roundMs ?? 90000;
@@ -94,7 +94,7 @@ function createElevatedCombat(RAPIER,config,map,seats,options={}) {
   if (!boundedTime(startAt) || !finite(countdownMs) || countdownMs < 0 || countdownMs > 10000 || !finite(roundMs) || roundMs < 1000 || roundMs > 600000) throw new RangeError('invalid round timing');
   const M = map.arenaVersion && map.variants ? selectArenaVariant(map,seats.length) : structuredClone(map), C = structuredClone(config);
   if(M.arenaVersion)validateArenaContract(M);
-  if (!validId(M?.id) || typeof M.revision !== 'string' || !M.revision.length || M.revision.length > 64 || !finite(M.half) || M.half < 10 || M.half > 500 || !Array.isArray(M.colliders) || !Array.isArray(M.spawns) || M.spawns.length < seats.length || M.spawns.length > 32 || !Array.isArray(M.sockets) || M.sockets.length < 2 || M.sockets.length > (M.arenaVersion?96:64) || new Set(M.spawns.map(s=>s.id)).size!==M.spawns.length || new Set(M.sockets.map(s=>s.id)).size!==M.sockets.length) throw new TypeError('bounded authored map required');
+  if (!validId(M?.id) || typeof M.revision !== 'string' || !M.revision.length || M.revision.length > 64 || !finite(M.half) || M.half < 10 || M.half > 500 || !Array.isArray(M.colliders) || !Array.isArray(M.spawns) || !M.spawns.length || M.spawns.length > 32 || !Array.isArray(M.sockets) || M.sockets.length < 2 || M.sockets.length > (M.arenaVersion?96:64) || new Set(M.spawns.map(s=>s.id)).size!==M.spawns.length || new Set(M.sockets.map(s=>s.id)).size!==M.sockets.length) throw new TypeError('bounded authored map required');
   const physics = createKartPhysics(RAPIER,C), dt=C.fixedDt, stepMs=dt*1000;
   const karts = new Map(), events=[], shots=[], mines=[], grenades=[], crates=[], collisionAt=new Map(), volleyHits=new Map();
   let targetReached=false, rng=options.seed, eventSeq=0, entitySeq=0, phase='countdown', simTick=0, simAt=startAt, wallAt=startAt, accumulator=0, resultData=null, disposed=false, droppedMs=0;
@@ -127,6 +127,28 @@ function createElevatedCombat(RAPIER,config,map,seats,options={}) {
       const support=physics.supportAt(v,0.8);
       return support && Math.abs(support.point.y-s.y)<0.15 && support.normal.y>0.65;
     });
+  }
+  // Keep the authored grid. For a crowded room, use spare starts first,
+  // then form rows beside them on the same driveable surface.
+  function fillStartingGrid(starts, reserves) {
+    const grid = starts.slice();
+    const gridSize = seats.length + 4; // Leave spare clear bays for respawns.
+    const separated = s => grid.every(other =>
+      Math.abs(other.y-s.y) > 3 || Math.hypot(other.x-s.x, other.z-s.z) >= 5);
+    for (const s of reserves) {
+      if (grid.length >= gridSize) return grid;
+      if (separated(s)) grid.push(s);
+    }
+    for (const radius of [6, 12, 18]) {
+      for (const [dx,dz] of [[1,0],[-1,0],[0,1],[0,-1],[1,1],[-1,-1],[1,-1],[-1,1]]) {
+        for (const origin of reserves) {
+          if (grid.length >= gridSize) return grid;
+          const s = {...origin, id: 'grid-'+grid.length, x: origin.x+radius*dx, z: origin.z+radius*dz};
+          if (separated(s) && !elevatedFallZone(M,s) && legalSpawn(s)) grid.push(s);
+        }
+      }
+    }
+    return grid;
   }
   let spawns,sockets,motion,respawnCandidates,travel;
   const rewardPolicy=M.arenaVersion?createArenaRewardPolicy(W,seats.length,rand):null,spawnUsed=new Map();
@@ -175,6 +197,12 @@ function createElevatedCombat(RAPIER,config,map,seats,options={}) {
     spawns=M.spawns.filter(legalSpawn);
     respawnCandidates=M.arenaVersion?M.spawnCandidates.filter(legalSpawn):spawns;
     sockets=M.sockets.filter(s=>supported(s) && !physics.sweepStatic({x:s.x,y:s.y+0.65,z:s.z},{x:s.x,y:s.y+0.65,z:s.z},0.45));
+    if (M.arenaVersion && (sockets.length !== M.sockets.length || spawns.length !== M.spawns.length || respawnCandidates.length !== M.spawnCandidates.length)) throw new Error('Arena has unsupported authored poses');
+    if (seats.length > M.spawns.length) {
+      spawns = fillStartingGrid(spawns, respawnCandidates);
+      const authoredIds = new Set(respawnCandidates.map(s => s.id));
+      respawnCandidates = [...respawnCandidates, ...spawns.filter(s => !authoredIds.has(s.id))];
+    }
     if(spawns.length < seats.length || sockets.length < 2) throw new Error('map lacks supported clear spawns/sockets');
     for(let i=0;i<seats.length;i++) for(let j=0;j<i;j++) if(hullsOverlap(spawnPose(spawns[i]),spawnPose(spawns[j]))) throw new Error('initial spawn hulls overlap');
     for(let i=0;i<seats.length;i++) {
@@ -187,7 +215,6 @@ function createElevatedCombat(RAPIER,config,map,seats,options={}) {
     physics.step(15); physics.step(15); physics.step(15); physics.step(15); physics.step(15); physics.step(15);
     for(const k of karts.values()) physics.freezeKart(k.id,true);
     if(M.arenaVersion){
-      if(sockets.length!==M.sockets.length||spawns.length!==M.spawns.length||respawnCandidates.length!==M.spawnCandidates.length)throw new Error('Arena has unsupported authored poses');
       const homes=selectArenaHomes({...M,sockets},seats.length,rand,spawns.slice(0,seats.length));
       for(const home of homes)crates.push(crateAt(home));
     }else{

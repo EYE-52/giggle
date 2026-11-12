@@ -6,7 +6,7 @@
 const { createKartGame } = require('../engines/kart-engine');
 const { WEAPON_DISPLAY } = require('../../public/js/engines/kart-weapon-contract.mjs');
 const { defaultSettings } = require('../_validate');
-const { MAP_LABELS, LAUNCH_ARENA_CAPS, preflightElevated, loadElevatedDependencies, createElevatedKartAdapter } = require('../engines/kart-elevated-adapter');
+const { MAP_LABELS, preflightElevated, loadElevatedDependencies, createElevatedKartAdapter } = require('../engines/kart-elevated-adapter');
 
 let classicDependencies;
 const { KART_STREAM, ELEVATED_KART_STREAM } = require('../engines/kart-realtime');
@@ -59,7 +59,6 @@ const legacy = createKartGame({
 const DEFAULT_ARENA = 'Garden Circuit';
 const defaults = Object.freeze({ ...defaultSettings(legacy), map: DEFAULT_ARENA });
 let elevated = null, initialization = null;
-const ELEVATED_SEATS = 8;
 const opted = settings => Object.hasOwn(MAP_LABELS, settings.map);
 const owns = state => elevated && elevated.owns(state);
 const def = {
@@ -74,14 +73,10 @@ const def = {
     });
     return initialization;
   },
-  // Complex arenas and classic arenas take 32; smaller elevated arenas take 8.
-  seatsFor: settings => { const s = resolveSettings(settings); return LAUNCH_ARENA_CAPS[s.map]?.max || (['Skyport', 'Foundry'].includes(s.map) ? 32 : opted(s) ? ELEVATED_SEATS : 32); },
-  preflight(settings,players) {
+  preflight(settings) {
     const resolved = resolveSettings(settings);
     if (!classicDependencies) return { error: 'Kart arenas are unavailable right now. Try another game.' };
     if (!opted(resolved)) return { ok: true };
-    const cap=LAUNCH_ARENA_CAPS[resolved.map];
-    if(cap&&Array.isArray(players)&&(players.length<cap.min||players.length>cap.max))return {error:`${resolved.map} needs ${cap.min}–${cap.max} drivers. Choose an arena that fits your room.`};
     const check = preflightElevated(resolved);
     if (check.error) return check;
     return elevated ? elevated.preflight(resolved) : { error: 'Elevated arenas are unavailable right now. Choose an existing arena.' };
@@ -102,10 +97,10 @@ const def = {
   onPlayerGone: (state, ctx, pid) => owns(state) ? elevated.onPlayerGone(state, ctx, pid) : legacy.onPlayerGone(state, ctx, pid),
   requiresActionTokens: state => !!owns(state) || !!state.motionProfile || !!classicDependencies,
   // Classic arenas: adaptive 30 Hz (the room's governor slows a busy room to
-  // 25, 20 or 15 Hz). Elevated arenas keep their fixed 20 Hz JSON cadence.
+  // 25, 20 or 15 Hz). Elevated arenas keep their fixed 20 Hz cadence.
   tickRate: state => owns(state) ? null : CLASSIC_RATE,
   tickInterval: () => 50,
-  realtime: state => owns(state) ? (state.arenaVersion ? LAUNCH_REALTIME : null) : CLASSIC_REALTIME,
+  realtime: state => owns(state) ? ELEVATED_REALTIME : CLASSIC_REALTIME,
 };
 
 // Preserve prototype/private context methods while overriding only settings.
@@ -120,7 +115,7 @@ function contextWithSettings(ctx, settings) {
 const resolveSettings = settings => ({ ...defaults, ...defaultSettings(def), ...settings });
 
 const CLASSIC_RATE = Object.freeze({ target: 33, max: 66 });
-const LAUNCH_REALTIME = Object.freeze({streams:[ELEVATED_KART_STREAM],tiers:[{rank:Infinity,radius:Infinity,period:1}],publicView:state=>elevated.publicView(state),privateView:(state,pid)=>elevated.privateView(state,pid)});
+const ELEVATED_REALTIME = Object.freeze({streams:[ELEVATED_KART_STREAM],tiers:[{rank:Infinity,radius:Infinity,period:1}],publicView:state=>elevated.publicView(state),privateView:(state,pid)=>elevated.privateView(state,pid)});
 // Classic arenas: karts stream as binary records, the rest is a JSON delta.
 const CLASSIC_REALTIME = Object.freeze({
   streams: [KART_STREAM],

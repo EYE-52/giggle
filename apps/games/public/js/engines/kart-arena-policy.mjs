@@ -11,14 +11,17 @@ export function arenaBoxCount(area, players, sockets) {
 export function selectArenaVariant(source, players, requested) {
   if(!source.arenaVersion)return structuredClone(source);
   const variants=source.variants||[];
-  const variant=requested?variants.find(v=>v.id===requested):variants.find(v=>players<=v.maxPlayers&&players>=v.minPlayers);
-  if(!variant||players<variant.minPlayers||players>variant.maxPlayers)throw new RangeError('Arena player count or variant is unavailable');
+  if (!Number.isInteger(players) || players < 2 || players > ARENA_LIMITS.starts) throw new RangeError('Arena player count is unavailable');
+  // Below or above the suggested range, keep the nearest authored layout.
+  const layoutPlayers = Math.min(source.maxPlayers, Math.max(source.minPlayers ?? 2, players));
+  const variant = variants.find(v => layoutPlayers >= v.minPlayers && layoutPlayers <= v.maxPlayers && (!requested || v.id === requested));
+  if (!variant) throw new RangeError('Arena variant is unavailable');
   const map=Object.assign(structuredClone(source),structuredClone(variant.layout||{})),enabled=new Set(variant.districts);
   map.variantId=variant.id;map.mapRevision=source.revision;map.enabledDistricts=[...enabled];
   map.colliders=map.colliders.filter(d=>(!d.district||enabled.has(d.district))&&!variant.disabledColliders?.includes(d.id));
   map.sockets=map.sockets.filter(s=>!s.district||enabled.has(s.district));
   map.spawnCandidates=map.spawnCandidates.filter(s=>!s.district||enabled.has(s.district));
-  const starts=variant.starts?.[players]||variant.startIds;
+  const starts=variant.starts?.[layoutPlayers]||variant.startIds;
   map.spawns=starts?starts.map(id=>map.spawnCandidates.find(s=>s.id===id)):map.spawnCandidates.slice(0,variant.maxPlayers);
   if(map.spawns.some(s=>!s))throw new Error('Missing arena start');
   map.maxPlayers=variant.maxPlayers;map.minPlayers=variant.minPlayers;

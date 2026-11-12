@@ -154,8 +154,11 @@ async function main(){
   fs.writeFileSync(preload,preloadSource(seeds));let server;const clients=[],metrics={seeds};
   try{
     server=await boot(preload);clients.push(await connect(server));send(clients[0],{t:'create',name:'Transport 0'});await until(()=>clients[0].hello,'actual room create');
-    for(let i=1;i<9;i++){const c=await connect(server);clients.push(c);send(c,{t:'join',code:clients[0].hello.code,name:'Transport '+i});await until(()=>c.hello,'actual seat '+i);}
+    const join=async i=>{const c=await connect(server);clients.push(c);send(c,{t:'join',code:clients[0].hello.code,name:'Transport '+i});await until(()=>c.hello,'actual seat '+i);};
+    for(let i=1;i<8;i++)await join(i);
     await start(clients,{map:'Harbor Heights',mode:'Zap Battle',winRule:'Time limit',roundSeconds:60});
+    await join(8);
+    await until(()=>clients[8].state?.spectator && clients[0].state?.spectators.length===1,'late watcher joins the live grid');
     const a=clients[0],target=clients[6],watcher=clients[8],first=a.state;
     eq(first.mapId,'harbor','normal production settings select authored Harbor');eq(first.map.half,86,'full arena dimension survives transport');eq(first.players.length,8);eq(first.spectators.length,1);eq(watcher.state.inputAck,null);eq(watcher.state.youDrive,false);
     ok(first.karts.every(k=>typeof k.firing==='boolean'&&!('sequence'in k)&&!('itemSeq'in k)),'public firing is present without exposing private scheduler state');

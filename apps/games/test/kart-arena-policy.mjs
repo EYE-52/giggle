@@ -64,7 +64,7 @@ for(const id of ['garden','skyport']){
  base.sockets.forEach((s,i)=>Object.assign(s,{level:'L'+heights.indexOf(s.y),district:'core',profile:i%5?'safe':'exposed'}));
  base.spawnCandidates=structuredClone(base.spawns);base.variants=[{id:'test',minPlayers:2,maxPlayers:8,usableArea:3600,districts:['core'],startIds:base.spawns.slice(0,8).map(s=>s.id)}];
  const map=selectArenaVariant(base,8);assert(validateArenaContract(map));
- assert.throws(()=>selectArenaVariant(base,9),/unavailable/);assert.throws(()=>selectArenaVariant(base,8,'missing'),/unavailable/);
+ assert.equal(selectArenaVariant(base,32).variantId,'test');assert.throws(()=>selectArenaVariant(base,33),/unavailable/);assert.throws(()=>selectArenaVariant(base,8,'missing'),/unavailable/);
  const expectedCount=arenaBoxCount(map.usableArea,8,map.sockets.length),homes=selectArenaHomes(map,8,()=>.5);assert.equal(homes.length,expectedCount);assert.equal(new Set(homes.map(s=>s.id)).size,expectedCount);
  const quotas=arenaFloorQuotas(expectedCount,map.levels,map.sockets);for(let i=0;i<heights.length;i++)assert.equal(homes.filter(s=>s.level==='L'+i).length,quotas[i]);
  const match=combat.createElevatedCombat(RAPIER,CONFIG,map,Array.from({length:8},(_,i)=>({id:'p'+i})),{instance:'test',seed:42,startAt:0,countdownMs:0,roundMs:10000});

@@ -12,8 +12,10 @@ const settings=map=>({map,mode:'Zap Battle',winRule:'Time limit',roundSeconds:60
 const sink=()=>({readyState:1,bufferedAmount:0,raw:[],send(text){this.raw.push(text);},close(){}});
 function makeRoom(def,map,count=24){
   const room=new Room('FRZN',{}),clients=[];
-  for(let i=0;i<count;i++){const socket=sink();clients.push({socket,p:room.addPlayer('Seat '+i,socket).player});}
+  const join=i=>{const socket=sink();clients.push({socket,p:room.addPlayer('Seat '+i,socket).player});};
+  for(let i=0;i<Math.min(8,count);i++)join(i);
   eq(room.startGame(def,{ready:true,settings:settings(map)},room.hostId),{ok:true},'start actual authority');
+  for(let i=8;i<count;i++)join(i);
   return{room,clients};
 }
 function acknowledge(room,clients){for(const c of clients.slice(0,8)){const s=JSON.parse(c.socket.raw.at(-1));room.onReady(c.socket,{i:s.instanceId,w:s.w});}}

@@ -174,7 +174,6 @@ class Room {
    * cap keep the whole roster active — exact legacy behavior. */
   activeRosterIds() {
     if (!this.game) return [];
-    // Per-instance cap (def.seatsFor): e.g. 32 karts on classic arenas, 8 elevated.
     if (Number.isInteger(this.game.seats)) return this.game.roster.slice(0, this.game.seats);
     return activeIds(this.game.roster, this.game.def);
   }

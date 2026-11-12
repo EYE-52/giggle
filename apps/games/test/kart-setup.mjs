@@ -65,8 +65,8 @@ check(roundHtml.includes('>3 min</button>') && !roundHtml.includes('Seconds per 
 check(kartSetupSummary(g, { ...config, map: 'Alpine Courtyard', winRule: 'Score target' }) === 'Battle · Alpine Courtyard · First to 17 KOs · 3 min max · Live sunset', 'elevated arenas summarise a score target');
 for(const mode of ['Zap Battle','Star Rush','Garage Battle']){
  const html=kartSetupHtml(g,{...defaults,mode,map:mode==='Zap Battle'?'Rookie Ribbons':'Garden Circuit'},true),buttons=[...html.matchAll(/<button[^>]*class="ks-map"[^>]*>/g)].map(m=>m[0]),visible=buttons.filter(b=>!b.includes(' hidden'));
- check(visible.length===(mode==='Zap Battle'?7:5),'only launch battle maps or compatible classic modes are visible');
- check(!html.includes('data-kart-value="Alpine Courtyard"')&&!html.includes('data-kart-value="Skyport"'),'old raised maps leave the picker');
+ check(visible.length===(mode==='Zap Battle'?18:5),'all battle maps or compatible classic maps are visible');
+ check(buttons.every(b => b.includes("suggested for")),'every arena labels its recommended room size');
 }
-check(resolveKartSetup({...defaults,mode:'Zap Battle',map:'Garden Circuit'},'mode').map==='Rookie Ribbons','switching back to Battle selects the launch rotation');
+check(resolveKartSetup({...defaults,mode:'Zap Battle',map:'Garden Circuit'},'mode').map==='Garden Circuit','switching back to Battle keeps the selected compatible map');
 console.log(`KART_SETUP ${checks} checks passed: all arena labels/assets, compatibility, inactive drafts and read-only choices`);

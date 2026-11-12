@@ -874,8 +874,8 @@ export function createKartView(viewConfig) {
     }).join('');
     const note = arenaPending ? `Saving ${arenaPending.label}…` : arenaNotice ? arenaNotice : !apiRef || typeof apiRef.configure !== 'function'
       ? 'Arena preview — host rematch settings unavailable here.'
-      : isHost ? (next.id === active.id ? 'Pick next arena for rematch — current shown.' : `Next: ${next.label} — applies on rematch.`) : `Host picks next arena — showing ${next.label} next.`;
-    return `<section class="pk-arenas" aria-label="Next arena"><header><h4>Next arena</h4><span class="pk-arena-note" role="status">${esc(note)}</span></header><div class="pk-arenagrid">${buttons}</div></section>`;
+      : isHost ? (next.id === active.id ? 'Quick picks for your next match.' : `Next: ${next.label} — applies on rematch.`) : `Host picks next arena — showing ${next.label} next.`;
+    return `<section class="pk-arenas" aria-label="Next arena"><header><h4>Classic arenas</h4><span class="pk-arena-note" role="status">${esc(note)}</span></header><div class="pk-arenagrid">${buttons}</div></section>`;
   }
 
   function buyUpgrade(event) {

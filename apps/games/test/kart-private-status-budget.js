@@ -20,8 +20,10 @@ async function run(base,legacy,workload){
   global.structuredClone=(value,...args)=>{if(value?.karts&&value.inputAck!==undefined)viewClones++;return realClone(value,...args);};
   const room=new Room('BUDG',{}),clients=[];
   try{
-    for(let i=0;i<24;i++){const socket={readyState:1,bufferedAmount:0,kartEventDeltas:process.env.KART_EVENT_DELTAS==='1',bytes:0,count:0,last:null,send(text){this.bytes+=Buffer.byteLength(text);this.count++;this.last=text;},close(){}};clients.push({socket,p:room.addPlayer('Seat '+i,socket).player});}
+    const join=i=>{const socket={readyState:1,bufferedAmount:0,kartEventDeltas:process.env.KART_EVENT_DELTAS==='1',bytes:0,count:0,last:null,send(text){this.bytes+=Buffer.byteLength(text);this.count++;this.last=text;},close(){}};clients.push({socket,p:room.addPlayer('Seat '+i,socket).player});};
+    for(let i=0;i<8;i++)join(i);
     assert(room.startGame(def,{ready:true,settings:{map:'Harbor Heights',mode:'Zap Battle',winRule:'Time limit',roundSeconds:ROUND_SECONDS}},room.hostId).ok);
+    for(let i=8;i<24;i++)join(i);
     for(const c of clients.slice(0,8)){const s=JSON.parse(c.socket.last);room.onReady(c.socket,{i:s.instanceId,w:s.w});}
     assert(!room.game.preparing);
     const samples=[],fields={};let frames=0;

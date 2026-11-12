@@ -2393,7 +2393,7 @@ function withKartGarage(game, footer) {
  * button states without rebuilding the running view. */
 function renderHostStates() {
   const hostSeat = isHost();
-  for (const id of ['bLobby', 'bRematch', 'bChange', 'bEndConfirm']) {
+  for (const id of ['bLobby', 'bRematch', 'bKartArenas', 'bChange', 'bEndConfirm']) {
     const b = document.getElementById(id);
     if (b) {
       updateProperty(b, 'disabled', !hostSeat || !!pendingRoomAction);
@@ -2403,6 +2403,7 @@ function renderHostStates() {
         updateProperty(b, 'textContent', pendingRoomAction?.kind === 'lobby' ? 'Changing…' : pendingRoomAction?.kind === 'end' ? 'Ending…' : matchOver() ? 'Change game' : 'End game');
       }
       if (id === 'bRematch') { updateProperty(b, 'hidden', !hostSeat); updateProperty(b, 'textContent', pendingRoomAction?.kind === 'rematch' ? 'Starting…' : 'Rematch'); }
+      if (id === 'bKartArenas') updateProperty(b, 'hidden', !hostSeat);
       if (id === 'bChange') { updateProperty(b, 'hidden', !hostSeat); updateProperty(b, 'textContent', pendingRoomAction?.kind === 'lobby' ? 'Changing…' : 'Change game'); }
     }
   }
@@ -3005,8 +3006,9 @@ function ensureRematchFooter(el) {
     const foot = document.createElement('div');
     foot.id = 'rematch';
     foot.className = 'row mt';
-    // Guests see only the calm waiting line; the host sees the two choices.
+    // Guests wait for the host to pick the next match.
     foot.innerHTML = `<button class="btn" id="bRematch" ${isHost() ? '' : 'hidden disabled'}>Rematch</button>
+      ${gameId === 'pocket-karts' ? `<button class="btn ghost" id="bKartArenas" ${isHost() ? '' : 'hidden disabled'}>Arenas</button>` : ''}
       <button class="btn ghost" id="bChange" ${isHost() ? '' : 'hidden disabled'}>Change game</button>
       <p class="muted gk-wait" id="hostWait" role="status" ${isHost() ? 'hidden' : ''}></p>`;
     el.appendChild(foot);
@@ -3016,6 +3018,8 @@ function ensureRematchFooter(el) {
       // and a rejected restart leaves this done screen visible.
       api.rematch();
     };
+    const arenas = document.getElementById('bKartArenas');
+    if (arenas) arenas.onclick = () => { if (isHost() && matchOver()) openCustomizerFor(gameId, arenas); };
     document.getElementById('bChange').onclick = () => {
       if (!isHost()) return toast('Only the host can change games.');
       api.lobby();
