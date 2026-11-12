@@ -4,6 +4,25 @@ import {complexSurfaceTexture} from './kart-complex-surfaces.mjs';
 import {mergeStaticMeshes} from './kart-instancing.mjs';
 import {createRaisedReadability,applyRaisedLighting} from './kart-raised-readability.mjs';
 import {createKartSky,createKartBackdrop} from './kart-backdrop.mjs';
+// The driving school has a low crossing. Bake the two ceiling lights into
+// the floor once, so driving through it costs no dynamic lights or shadows.
+function floorGeometry(THREE,d,lampPositions){
+ const {x,y,z}=d.half;
+ const underLights=lampPositions.some(lamp=>Math.abs(lamp.x-d.position.x)<x && Math.abs(lamp.z-d.position.z)<z);
+ const mesh=new THREE.BoxGeometry(2*x,2*y,2*z,underLights?Math.ceil(x):1,1,underLights?Math.ceil(z):1);
+ if(!lampPositions.length)return mesh;
+ const {position,normal}=mesh.attributes,colors=new Float32Array(position.count*3).fill(1);
+ for(let i=0;underLights&&i<position.count;i++){
+  if(normal.getY(i)<.99)continue;
+  const px=position.getX(i)+d.position.x,pz=position.getZ(i)+d.position.z;
+  for(const lamp of lampPositions){
+   const falloff=Math.max(0,1-((px-lamp.x)/5.4)**2-((pz-lamp.z)/4.3)**2)**2;
+   colors[3*i]+=.9*falloff;colors[3*i+1]+=1.55*falloff;colors[3*i+2]+=1.45*falloff;
+  }
+ }
+ mesh.setAttribute('color',new THREE.BufferAttribute(colors,3));
+ return mesh;
+}
 // The launch arenas reuse the raised solid skin and readability system. The
 // art ID is independent of the immutable layout ID and its selected variant.
 export function createKartLaunchWorld(THREE,{scene,map,palette='Daybreak',lighting=true,solidGeometry}={}){
@@ -18,6 +37,9 @@ export function createKartLaunchWorld(THREE,{scene,map,palette='Daybreak',lighti
  const roadTexture=texture(complexSurfaceTexture(THREE,map.artId==='garden'?'pavers':'asphalt')),deckTexture=texture(complexSurfaceTexture(THREE,['ring','garden','frost'].includes(map.artId)?'pavers':'steel'));
  M.fountain=material('fountain-stone',0xe4dfc4);M.fountain.map=deckTexture;
  M.ice=mat(new THREE.MeshStandardMaterial({color:0x9fd9ed,roughness:.24,metalness:.12,map:deckTexture}));
+ const arch=map.artId==='ring'&&map.colliders.find(d=>d.id==='arch');
+ const lamps=arch?[-.44,.44].map(side=>({x:arch.position.x,z:arch.position.z+side*arch.half.z})):[];
+ M.road.vertexColors=lamps.length>0;
  M.road.map=roadTexture;M.deck.map=deckTexture;M.cover.map=deckTexture;
  const tierMaterials=map.levels.slice(1).map(l=>{if(map.artId==='ring')return M.deck;const m=material('deck-'+l.id,new THREE.Color(colors.deck).lerp(new THREE.Color(l.color),.48));m.map=deckTexture;return m;});
  M.pink=material('pink',0xf387c8);
@@ -28,12 +50,16 @@ export function createKartLaunchWorld(THREE,{scene,map,palette='Daybreak',lighti
   const g=new THREE.Group();g.name=d.id;g.position.copy(d.position);if(d.rotation)g.quaternion.copy(d.rotation);solids.add(g);
   const m=d.material==='market-pink'?M.pink:d.material==='market-cyan'?M.blue:d.material==='ice'?M.ice:d.material==='fountain'?M.fountain:d.material==='fountain-core'?M.yellow:d.material==='hedge'?M.green:d.material==='pillar'?(map.artId==='garden'?M.fountain:M.dark):d.material==='barrier'?M.dark:d.material==='toy-blue'?M.blue:d.shape==='deck'||d.shape==='wedge'||d.surfaceY>0?tierMaterials[Math.max(0,map.levels.slice(1).findIndex(l=>l.y>=(d.surfaceY??d.position.y+d.half.y)-.1))]||M.deck:d.id.startsWith('floor')?M.road:M.cover;
   let skin;if(d.shape==='trimesh'){skin=new THREE.BufferGeometry();skin.setAttribute('position',new THREE.BufferAttribute(d.vertices,3));skin.setIndex(new THREE.BufferAttribute(d.indices,1));skin=skin.toNonIndexed();skin.computeVertexNormals();skin.setAttribute('uv',new THREE.BufferAttribute(new Float32Array(skin.attributes.position.count*2),2));}
-  const geometry=geo(skin||(d.id.startsWith('floor')?new THREE.BoxGeometry(d.half.x*2,d.half.y*2,d.half.z*2):solidGeometry(THREE,d)));
+  const geometry=geo(skin||(d.id.startsWith('floor')?floorGeometry(THREE,d,lamps):solidGeometry(THREE,d)));
   // Bake metre-scale UVs before merging. No per-mesh shader or draw call.
   if(m.map){const p=geometry.attributes.position,n=geometry.attributes.normal,uv=geometry.attributes.uv;
    for(let i=0;i<p.count;i++){const nx=Math.abs(n.getX(i)),ny=Math.abs(n.getY(i)),nz=Math.abs(n.getZ(i));const u=ny>nx&&ny>nz?p.getX(i):nx>nz?p.getZ(i):p.getX(i),v=ny>nx&&ny>nz?p.getZ(i):p.getY(i);uv.setXY(i,(u+d.position.x)/4,(v+(ny>nx&&ny>nz?d.position.z:d.position.y))/4);}
   }
   const body=add(g,geometry,m);body.name=d.id+'-body';body.castShadow=!d.id.startsWith('floor');if(['fountain-core','furnace-core'].includes(d.role))body.visible=false;
+  if(d===arch)for(const lamp of lamps){
+   add(g,unit,M.blue,[0,-d.half.y,lamp.z-d.position.z],[3.8,.035,.56]);
+   add(g,unit,glow,[0,-d.half.y-.025,lamp.z-d.position.z],[3.5,.025,.39]);
+  }
   if(map.artId==='ring'&&d.id==='arch')for(let x=-d.half.x+4;x<d.half.x;x+=8)add(g,geo(new THREE.BoxGeometry(6.8,.4,.04)),x<0?M.blue:M.cover,[x,0,d.half.z-.03]);
   const cameraBody=new THREE.Mesh(d.shape==='wedge'||d.shape==='trimesh'?geometry:geo(new THREE.BoxGeometry(d.half.x*2,d.half.y*2,d.half.z*2)),m);cameraBody.visible=false;cameraBody.userData.cameraCollider=true;g.add(cameraBody);
   colliderMeshes.set(d.id,{group:g,body,cameraBody,descriptor:structuredClone(d)});

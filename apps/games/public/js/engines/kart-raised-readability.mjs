@@ -1,4 +1,4 @@
-import {obstacleStyle,createObstaclePanelTexture,createObstacleContactTexture} from './kart-obstacle-style.mjs';
+import {obstacleStyle,createObstaclePanelTexture,createObstacleContactTexture,applyCourseLampEmission} from './kart-obstacle-style.mjs';
 
 // Six static instance batches: shaded warning faces, bright caps, contact
 // shadows, level washes, drop paint and ramp chevrons. No per-frame work.
@@ -6,13 +6,14 @@ export function createRaisedReadability(THREE,{parent,map,geometry,material,text
   const root=new THREE.Group();root.name='raised-readability';parent.add(root);
   const theme=['garden','frost','neon'].includes(map.id)?map.id:map.id==='foundry'?'quarry':'neon',style=obstacleStyle(theme);
   const panel=texture(createObstaclePanelTexture(THREE,style,{hazard:true}));
-  const contact=texture(createObstacleContactTexture(THREE));
-  const faceMat=material(new THREE.MeshStandardMaterial({map:panel,emissiveMap:panel,emissive:0xffffff,emissiveIntensity:.14,roughness:.8}));
-  faceMat.onBeforeCompile=shader=>{shader.vertexShader=shader.vertexShader.replace('#include <uv_vertex>',`#include <uv_vertex>
+  const contact=texture(createObstacleContactTexture(THREE,{lit:true}));
+  const faceMat=material(new THREE.MeshStandardMaterial({map:panel,emissive:0xffffff,emissiveIntensity:.14,roughness:.8}));
+  faceMat.onBeforeCompile=shader=>{
+    applyCourseLampEmission(shader);
+    shader.vertexShader=shader.vertexShader.replace('#include <uv_vertex>',`#include <uv_vertex>
     #ifdef USE_INSTANCING
       float span=length(instanceMatrix[0].xyz)/4.0;
       vMapUv.x*=span;
-      vEmissiveMapUv.x*=span;
     #endif`);};
   const bright=material(new THREE.MeshBasicMaterial({color:0xffffff}));
   // The coloured caps sit flush on the collision mesh. Give only their

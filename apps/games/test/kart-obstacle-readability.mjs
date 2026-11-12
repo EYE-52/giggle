@@ -10,16 +10,24 @@ for(const [theme,style]of Object.entries(OBSTACLE_STYLES)){
   const t=createObstaclePanelTexture(THREE,style,{hazard:true});
   ok(luminance(pixel(t,4,30))>luminance(pixel(t,70,30))*3,theme+' broad hazard stripes contrast at distance');
   ok(luminance(pixel(t,20,105))>luminance(pixel(t,20,60)),theme+' faces shade towards their base');
-  ok(luminance(pixel(t,20,115))>luminance(pixel(t,20,105)),theme+' bright upper face edge');t.dispose();
+  ok(luminance(pixel(t,20,115))>luminance(pixel(t,20,105)),theme+' bright upper face edge');
+  const emission=(x,y)=>t.image.data[(y*t.image.width+x)*4+3];
+  ok(emission(64,92)===255&&emission(64,82)>emission(64,68)&&emission(64,60)<2,theme+' recessed lens has a short falloff on the metal');
+  ok(emission(8,92)===0,theme+' unlit paint does not emit light');
+  t.dispose();
 }
 const shadow=createObstacleContactTexture(THREE);
 ok(shadow.image.data[3]===0&&shadow.image.data[(32*64+32)*4+3]>150,'soft contact fades to transparent outside');shadow.dispose();
+const litFoot=createObstacleContactTexture(THREE,{lit:true});
+ok(pixel(litFoot,4,32)[0]>100 && pixel(litFoot,32,32)[0]===8,'warm reflected light stays beside the obstacle');
+ok(litFoot.image.data[3]===0,'road light fades out before the quad boundary');
+litFoot.dispose();
 const matrix=new THREE.Matrix4(),position=new THREE.Vector3(),rotation=new THREE.Quaternion(),scale=new THREE.Vector3();
 const reports=[];
 for(const id of ['ring','blocks','garden','frost','neon']){
   const arena=buildClassicArena(id),{map,world,structures}=arena,snapshot=JSON.stringify(map),bodies=structures.root.getObjectByName('arena-barrier-bodies');
   const caps=structures.root.getObjectByName('arena-barrier-caps'),contacts=structures.root.getObjectByName('arena-barrier-contact');
-  ok(bodies.material.map?.isDataTexture&&bodies.material.map===bodies.material.emissiveMap,id+' one shared hazard texture');
+  ok(bodies.material.map?.isDataTexture&&!bodies.material.emissiveMap,id+' lamp emission uses the existing panel sample');
   ok(caps.material.isMeshBasicMaterial&&contacts.count===map.barriers.length,id+' unlit caps and one instanced contact batch');
   for(let i=0;i<map.barriers.length;i++){
     const b=map.barriers[i];bodies.getMatrixAt(i,matrix);matrix.decompose(position,rotation,scale);

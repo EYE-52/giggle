@@ -1,6 +1,6 @@
 // Static arena structure dressing: five draws regardless of wall count.
 // Unit geometry and instance buffers live until dispose; frames do no work.
-import {obstacleStyle,createObstaclePanelTexture,createObstacleContactTexture} from './kart-obstacle-style.mjs';
+import {obstacleStyle,createObstaclePanelTexture,createObstacleContactTexture,applyCourseLampEmission} from './kart-obstacle-style.mjs';
 const EMPTY=Object.freeze([]);
 const styleFor=map=>obstacleStyle(map?.id==='blocks'||map?.theme==='blocks'?'quarry':map?.theme);
 export function createKartArenaStructures(THREE,scene,{groundAt=()=>0}={}) {
@@ -15,18 +15,16 @@ export function createKartArenaStructures(THREE,scene,{groundAt=()=>0}={}) {
   // Tile faces in metres using the existing instance scale. Long walls keep
   // diagonal caution stripes instead of stretching them into horizontal lines.
   bodyMat.onBeforeCompile=shader=>{
+    applyCourseLampEmission(shader);
     shader.vertexShader=shader.vertexShader.replace('#include <uv_vertex>',`#include <uv_vertex>
       #ifdef USE_INSTANCING
         float obstacleSpan=abs(normal.z)>.5?length(instanceMatrix[0].xyz):length(instanceMatrix[2].xyz);
         #ifdef USE_MAP
           vMapUv.x*=obstacleSpan;
         #endif
-        #ifdef USE_EMISSIVEMAP
-          vEmissiveMapUv.x*=obstacleSpan;
-        #endif
       #endif`);
   };
-  const contactTex=createObstacleContactTexture(THREE),contactGeo=new THREE.PlaneGeometry(1,1);
+  const contactTex=createObstacleContactTexture(THREE,{lit:true}),contactGeo=new THREE.PlaneGeometry(1,1);
   const contactMat=new THREE.MeshBasicMaterial({map:contactTex,transparent:true,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-2});
   const panels=new Map();
   const rampMat=new THREE.MeshStandardMaterial({color:0x435769,roughness:.7}),arrowMat=new THREE.MeshBasicMaterial({color:0xffed83,side:THREE.DoubleSide});
@@ -42,7 +40,7 @@ export function createKartArenaStructures(THREE,scene,{groundAt=()=>0}={}) {
     identity=map?.id;theme=map?.theme;wallCount=walls.length;rampCount=lips.length;
     const style=styleFor(map);
     if(!panels.has(style))panels.set(style,createObstaclePanelTexture(THREE,style,{hazard:true}));
-    bodyMat.map=bodyMat.emissiveMap=panels.get(style);bodyMat.emissive.setHex(0xffffff);bodyMat.emissiveIntensity=theme==='neon'?.25:.12;
+    bodyMat.map=panels.get(style);bodyMat.emissive.setHex(0xffffff);bodyMat.emissiveIntensity=theme==='neon'?.25:.12;
     bodyMat.needsUpdate=true;
     bodyMat.roughness=theme==='neon'?.5:.8;bodyMat.metalness=theme==='neon'?.25:0;
     bodies.count=caps.count=contacts.count=wallCount;ramps.count=arrows.count=rampCount;
