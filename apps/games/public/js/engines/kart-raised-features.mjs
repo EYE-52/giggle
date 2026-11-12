@@ -4,7 +4,7 @@
 const point=(surface,x,y,z,angle=0)=>({surface,x,y,z,angle});
 const cannon=(start,land,apex=14)=>({...start,angle:Math.atan2(land.x-start.x,land.z-start.z),land,apex,flight:1.6});
 const FEATURES={
-  garden:{cannons:[cannon(point('floor',-42,0,-8),point('courtyard',18,7,0))],portals:[[point('floor',-40,0,32,Math.PI/2),point('courtyard',30,7,14.5,Math.PI)]]},
+  garden:{cannons:[cannon(point('floor',-42,0,-8),point('courtyard',18,7,0))],portals:[[point('floor',-40,0,24,Math.PI/2),point('courtyard',30,7,14.5,Math.PI)]]},
   frost:{cannons:[cannon(point('floor-west',-44,0,-10),point('quarry-shelf',-27,8,0))],portals:[[point('floor-south',4,0,-42,Math.PI/2),point('east-landing',17,8,13.25,-Math.PI/2)]]},
   neon:{cannons:[cannon(point('floor',-26,0,-6),point('loading-deck',28,6,4))],portals:[[point('floor',-40,0,40,Math.PI/2),point('loading-deck',12,6,22,Math.PI)]]},
   harbor:{cannons:[cannon(point('floor',-76,0,-42),point('west-balcony',-61,7,12))],portals:[[point('floor',70,0,-62),point('upper-dock',10,7,24,-Math.PI/2)]]},
