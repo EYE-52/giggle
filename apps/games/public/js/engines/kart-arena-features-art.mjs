@@ -8,7 +8,7 @@
  * createKartArenaFeatures(THREE, scene, { groundAt, reducedMotion }) -> {
  *   sync(map), ingest(events, karts), animate(dt, t, S, poses),
  *   dressKart(k, mesh, predictedFlight = k.flight) -> bool, dispose() } */
-import {portalExit,cannonFlightTime,cannonTube,CANNON_ENTRY_TIME,CANNON_REVEAL_TIME,CANNON_MOUTH_HEIGHT} from './kart-map-features.mjs';
+import {PORTAL_FRAME,portalExit,cannonFlightTime,cannonTube,CANNON_ENTRY_TIME,CANNON_REVEAL_TIME,CANNON_MOUTH_HEIGHT} from './kart-map-features.mjs';
 export {CANNON_ENTRY_TIME,CANNON_REVEAL_TIME,CANNON_MOUTH_HEIGHT} from './kart-map-features.mjs';
 import {mergeStaticMeshes} from './kart-instancing.mjs';
 
@@ -36,10 +36,11 @@ export function createKartArenaFeatures(THREE, scene, { groundAt = () => 0, redu
     chevron: new THREE.BufferGeometry(),
     target: new THREE.RingGeometry(2.0, 2.6, 36).rotateX(-Math.PI / 2),
     targetDot: new THREE.CircleGeometry(.7, 18).rotateX(-Math.PI / 2),
-    ring: new THREE.TorusGeometry(2.15, .3, 12, 40),
-    membrane: new THREE.CircleGeometry(1.9, 32),
-    swirl: new THREE.RingGeometry(.35, 1.75, 24, 1, 0, Math.PI * .55),
-    foot: new THREE.BoxGeometry(.55, .5, .9),
+    ring: new THREE.TorusGeometry(PORTAL_FRAME.radius, PORTAL_FRAME.tube, PORTAL_FRAME.radialSegments, PORTAL_FRAME.segments, Math.PI),
+    membrane: new THREE.PlaneGeometry((PORTAL_FRAME.radius-PORTAL_FRAME.tube)*2, PORTAL_FRAME.shoulder+PORTAL_FRAME.radius-PORTAL_FRAME.tube),
+    portalEdge: new THREE.TorusGeometry(PORTAL_FRAME.radius-PORTAL_FRAME.tube*.8,.025,6,PORTAL_FRAME.segments,Math.PI),
+    portalEdgeLeg: new THREE.CylinderGeometry(.025,.025,PORTAL_FRAME.shoulder,6),
+    portalLeg: new THREE.CylinderGeometry(PORTAL_FRAME.tube,PORTAL_FRAME.tube,PORTAL_FRAME.shoulder,PORTAL_FRAME.radialSegments),
     pool: new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2),
     rim: new THREE.BoxGeometry(1, .16, 1),
     ripple: new THREE.RingGeometry(.86, 1, 28).rotateX(-Math.PI / 2),
@@ -71,8 +72,30 @@ export function createKartArenaFeatures(THREE, scene, { groundAt = () => 0, redu
   const bodyMat = (theme) => { const c = CANNON_BODY[theme] || CANNON_BODY.garden; if (!bodyMats.has(c)) bodyMats.set(c, lit(c, { roughness:.38,metalness:.25,vertexColors:true,envMapIntensity:.55 })); return bodyMats.get(c); };
   const portalMat = (color) => {
     if (!portalMats.has(color)) portalMats.set(color, {
-      ring: basic(color), membrane: basic(color, { transparent: true, opacity: .32, side: THREE.DoubleSide, depthWrite: false }),
-      swirl: basic(0xffffff, { transparent: true, opacity: .55, side: THREE.DoubleSide, depthWrite: false }),
+      ring: lit(0x243447,{metalness:.35,roughness:.4}),edge:basic(color),
+      // One small plane per opening, no texture, scene copy or light. Thin
+      // curved wisps over a deep centre read as a passage instead of blades.
+      membrane: new THREE.ShaderMaterial({
+        uniforms:{portalColor:{value:new THREE.Color(color)},time:{value:0},aperture:{value:new THREE.Vector2(PORTAL_FRAME.radius-PORTAL_FRAME.tube,PORTAL_FRAME.shoulder)}},
+        transparent:true,side:THREE.DoubleSide,depthWrite:false,
+        vertexShader:'varying vec2 portalUV; void main(){portalUV=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}',
+        fragmentShader:`
+          uniform vec3 portalColor; uniform float time; uniform vec2 aperture; varying vec2 portalUV;
+          void main(){
+            vec2 p=vec2((portalUV.x-.5)*aperture.x*2.0,portalUV.y*(aperture.x+aperture.y));
+            if(p.y>aperture.y && length(vec2(p.x,p.y-aperture.y))>aperture.x)discard;
+            vec2 v=vec2(p.x,(p.y-aperture.y)*1.12)/aperture.x;
+            float radius=length(v),angle=atan(v.y,v.x);
+            float spiral=pow(.5+.5*sin(angle*2.0+radius*11.0-time*.45),26.0);
+            float edge=smoothstep(.48,1.05,radius);
+            float wisps=spiral*smoothstep(.12,.4,radius)*(1.0-smoothstep(.9,1.15,radius));
+            vec3 deep=vec3(.006,.014,.038);
+            vec3 glow=deep+portalColor*(.025+.26*edge+wisps*.42);
+            gl_FragColor=vec4(glow,.88-.12*edge);
+            #include <tonemapping_fragment>
+            #include <colorspace_fragment>
+          }`,
+      }),
     });
     return portalMats.get(color);
   };
@@ -146,14 +169,19 @@ export function createKartArenaFeatures(THREE, scene, { groundAt = () => 0, redu
     const group = new THREE.Group(); group.name = 'arena-portal-' + pair + '-' + side;
     const mats = portalMat(PORTAL_COLORS[pair % PORTAL_COLORS.length][side]);
     group.position.set(p.x, (p.y??groundAt(p.x,p.z)), p.z); group.rotation.y = p.angle;
-    const ring = new THREE.Mesh(G.ring, mats.ring); ring.position.y = 2.45; group.add(ring);
-    const membrane = new THREE.Mesh(G.membrane, mats.membrane); membrane.position.y = 2.45; group.add(membrane);
-    const swirls = [];
-    for (let i = 0; i < 2; i++) { const s = new THREE.Mesh(G.swirl, mats.swirl); s.position.set(0, 2.45, (i - .5) * .05); s.rotation.z = i * Math.PI; group.add(s); swirls.push(s); }
-    for (const v of [-1, 1]) { const foot = new THREE.Mesh(G.foot, M.foot); foot.position.set(v * 1.75, .25, 0); foot.castShadow = true; group.add(foot); }
+    const {radius,shoulder,tube}=PORTAL_FRAME;
+    const ring = new THREE.Mesh(G.ring, mats.ring); ring.name='portal-open-arch'; ring.position.y=shoulder; ring.castShadow=true; group.add(ring);
+    for(const side of [-1,1]){const leg=new THREE.Mesh(G.portalLeg,mats.ring);leg.name='portal-upright';leg.position.set(side*radius,shoulder/2,0);leg.castShadow=true;group.add(leg);}
+    for(const z of [-tube*.75,tube*.75]){
+      const edge=new THREE.Mesh(G.portalEdge,mats.edge);edge.name='portal-luminous-edge';edge.position.set(0,shoulder,z);group.add(edge);
+      for(const side of [-1,1]){const leg=new THREE.Mesh(G.portalEdgeLeg,mats.edge);leg.position.set(side*(radius-tube*.8),shoulder/2,z);group.add(leg);}
+    }
+    const membrane = new THREE.Mesh(G.membrane, mats.membrane); membrane.name='portal-depth'; membrane.position.y=(shoulder+radius-tube)/2; group.add(membrane);
+    for(const z of [-3.3,3.3]){const ch=new THREE.Mesh(G.chevron,M.chevron);ch.name='portal-path-chevron';ch.position.set(0,.055,z);group.add(ch);}
     root.add(group);
-    return { group, ring, membrane, swirls, p, pair, side, color: PORTAL_COLORS[pair % PORTAL_COLORS.length][side] };
+    return { group, membrane, p, pair, side, color: PORTAL_COLORS[pair % PORTAL_COLORS.length][side] };
   }
+
   function buildFall(f, index) {
     const kind = FALL_STYLE[f.kind] ? f.kind : 'water', mats = fallMat(kind);
     const group = new THREE.Group(); group.name = 'arena-fall-' + index;
@@ -197,7 +225,7 @@ export function createKartArenaFeatures(THREE, scene, { groundAt = () => 0, redu
     // Static parts (bases, wheels, ramps, chevrons, targets, rims, feet)
     // share one draw per material/shadow setting, including different target
     // geometries. Animated parts and transparent surfaces keep their own.
-    const skip = new Set([particles, ...portals.flatMap(p => [p.ring, p.membrane, ...p.swirls]),
+    const skip = new Set([particles, ...portals.map(p => p.membrane),
       ...falls.flatMap(f => [f.surface, ...f.ripples])]);
     batches = mergeStaticMeshes(THREE, root, {skip});
   }
@@ -256,11 +284,8 @@ export function createKartArenaFeatures(THREE, scene, { groundAt = () => 0, redu
     pendingLaunches.forEach(retireLaunch);
     const quiet = reduce();
     if(!quiet)M.target.color.setRGB(1,.85+.1*Math.sin(t*3),.35+.2*Math.sin(t*3));
-    for (const item of portals) {
-      if (quiet) continue;
-      for (let i = 0; i < item.swirls.length; i++) item.swirls[i].rotation.z = i * Math.PI + t * (2.2 + i * .9) * (item.side ? -1 : 1);
-      item.ring.scale.setScalar(1 + Math.sin(t * 3 + item.pair) * .025);
-    }
+    // Reset to the same still image when reduced motion is enabled mid-game.
+    for (const mats of portalMats.values()) mats.membrane.uniforms.time.value=quiet?0:t;
     for (const item of falls) {
       if (quiet) continue;
       for (let i = 0; i < item.ripples.length; i++) { const phase = (t * .45 + i * .5) % 1, s = .4 + phase * Math.min(item.f.hw, item.f.hd) * 1.2; item.ripples[i].scale.set(s, 1, s); item.ripples[i].material.opacity = .45 * (1 - phase); }

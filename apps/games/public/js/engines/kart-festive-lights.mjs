@@ -1,7 +1,7 @@
 /* Decoration only: bright bulb cores, wires/tubes and additive halos in three
  * instanced draws. Animation uses uniforms; no CPU bulb loop, lights or shadows.
  * Dense local fixtures take priority over distant skyline strings. */
-import {flightPose,RIDE_HEIGHT} from './kart-map-features.mjs';
+import {flightPose,RIDE_HEIGHT,PORTAL_FRAME,PORTAL_HALF_DEPTH} from './kart-map-features.mjs';
 
 const COLOURS={christmas:[0xff271b,0x19ee57,0xffc21d,0x2186ff,0xf23ba9],neon:[0xff23c3,0x00eaff,0x983dff,0x9cff12],festoon:[0xffc55b,0xffe5a0,0xffa338],arcade:[0xffbc24,0x12e0f2,0xff386f]};
 export const festiveTheme=id=>id==='frost'?'christmas':id==='neon'?'neon':id==='garden'?'festoon':'arcade';
@@ -43,7 +43,20 @@ export function festiveLightLayout(map,{groundAt=()=>0}={}){
   }
   function arch(name,x,z,width,base,angle=0){
     const c=Math.cos(angle),s=Math.sin(angle),y=base+4.3;
-    const a=[x-width/2*c,y,z+width/2*s],b=[x+width/2*c,y,z-width/2*s];
+    let ends;
+    // Spawn gantries are cosmetic. Keep their posts out of the actual portal
+    // lane; Alpine's former post stood half a metre from its aperture centre.
+    for(const shift of [0,6,-6,12,-12]){
+      const cx=x+Math.sin(angle)*shift,cz=z+Math.cos(angle)*shift;
+      const candidate=[[cx-width/2*c,y,cz+width/2*s],[cx+width/2*c,y,cz-width/2*s]];
+      const blocked=(map.features?.portals||[]).flat().some(p=>Math.abs((p.y??groundAt(p.x,p.z))-base)<.5&&candidate.some(([px,,pz])=>{
+        const dx=px-p.x,dz=pz-p.z,ps=Math.sin(p.angle||0),pc=Math.cos(p.angle||0);
+        return Math.abs(dx*ps+dz*pc)<PORTAL_HALF_DEPTH+1.8&&Math.abs(dx*pc-dz*ps)<PORTAL_FRAME.radius+.5;
+      }));
+      if(!blocked){ends=candidate;break;}
+    }
+    if(!ends)return;
+    const [a,b]=ends;
     string(name,a,b,{sag:theme==='festoon'||theme==='christmas'?.3:0});
     for(const p of[a,b])bar([p[0],base,p[2]],p,theme==='neon'?colors[sequence++%colors.length]:0x688795,theme==='neon'?.32:.085,theme==='neon'?sequence*.7:-1);
   }
@@ -143,14 +156,8 @@ export function festiveLightLayout(map,{groundAt=()=>0}={}){
       bulb([muzzle.x+u*co-v*Math.sin(pitch)*s,cy+v*Math.cos(pitch),muzzle.z-u*s-v*Math.sin(pitch)*co],j*.7);
     }
   }
-  for(const[pair,ends]of(map.features?.portals||[]).entries())for(const[side,p]of ends.entries()){
-    const y=(p.y??groundAt(p.x,p.z))+2.45;
-    runs.push({name:`portal ${pair}/${side} frame`,center:[p.x,y,p.z],first:bulbs.length,bulbs:24});
-    for(let j=0;j<24;j++){
-      const a=j/24*Math.PI*2,u=Math.cos(a)*2.58;
-      bulb([p.x+u*Math.cos(p.angle||0),y+Math.sin(a)*2.58,p.z-u*Math.sin(p.angle||0)],j*.7);
-    }
-  }
+  // Portals own their quiet, colour-matched inner light. Festive bulbs on
+  // the aperture overpower the opening and suggest a closed fairground prop.
   return {theme,raised,runs,bulbs,bars,diameter};
 }
 

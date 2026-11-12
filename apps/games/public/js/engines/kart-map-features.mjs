@@ -25,7 +25,10 @@ export const CANNON_HALF_WIDTH = .55; // centred in the open rear mouth
 export const CANNON_HALF_LENGTH = 1.2;
 // Trigger when the front bumper reaches the ring, before the chassis hits
 // its now-solid frame. Only the open centre admits a kart, not the uprights.
-export const PORTAL_HALF_WIDTH = .55;
+// Open-bottom arch dimensions also build the art and solid shell. A kart
+// can use the full lane without crossing either upright (1.22 m half hull).
+export const PORTAL_FRAME = Object.freeze({ radius: 2.5, shoulder: 1.9, tube: .16, segments: 32, radialSegments: 8 });
+export const PORTAL_HALF_WIDTH = 1.05;
 export const PORTAL_HALF_DEPTH = 2.7;
 export const PORTAL_EXIT = 3.6;        // exit point ahead of the partner ring
 export const PORTAL_GRACE = 1.2;       // seconds no ring can trigger again

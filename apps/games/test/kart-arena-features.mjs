@@ -137,6 +137,23 @@ for(const id of MAP_IDS){
  w.dispose();
 }
 
+// Real moving approaches from either face, with ordinary steering headings
+// and low/high entry speeds. Before the wider opening, every .8 m offset
+// missed the 1.1 m trigger and hit the lower solid rim instead.
+for(const id of MAP_IDS)for(const side of [0,1])for(const sign of [-1,1])for(const spec of [{offset:.8,turn:0},{offset:0,turn:.4},{offset:0,turn:-.4}])for(const speed of [3,26]){
+ const p=maps.mapDef(id).features.portals[0][side],angle=p.angle+(sign>0?Math.PI:0)+spec.turn;
+ const k=kart('a',p.x-Math.sin(angle)*4+Math.cos(p.angle)*spec.offset,p.z-Math.cos(angle)*4-Math.sin(p.angle)*spec.offset,angle,{steer:0,throttle:speed<5?.12:1});
+ const s=room(id,[k]),w=createClassicMotion(RAPIER,config,s);
+ w.restore(k,{...k.physicalPose,linearVelocity:{x:Math.sin(angle)*speed,y:0,z:Math.cos(angle)*speed}});
+ let exitSpeed;
+ for(let n=0;n<180;n++){w.advance(1/60,new Set(['a']));if(s.featureEvents.some(e=>e.type==='warp')){exitSpeed=Math.hypot(k.physicalPose.linearVelocity.x,k.physicalPose.linearVelocity.z);break;}}
+ const label=JSON.stringify({id,side,sign,...spec,speed});
+ ok(exitSpeed>0,'angled/off-centre approach warps '+label);
+ ok(s.featureEvents.filter(e=>e.type==='warp').length===1&&k.portalCd>1.1,'one warp with exit grace '+label);
+ ok(exitSpeed>=F.PORTAL_MIN_EXIT_SPEED-.1&&exitSpeed<35,'safe preserved exit speed '+label);
+ w.dispose();
+}
+
 // The exit grace stops any re-trigger, even when the exit point is nudged
 // back into the partner ring by a bump.
 {

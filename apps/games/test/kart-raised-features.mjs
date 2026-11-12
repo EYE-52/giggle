@@ -5,7 +5,7 @@ import C from '../public/js/engines/kart-physics-config.mjs';
 import {createKartPhysics} from '../public/js/engines/kart-physics-core.mjs';
 import {createElevatedMotion} from '../public/js/engines/kart-elevated-motion.mjs';
 import {elevatedMap,elevatedMapIds} from '../public/js/engines/kart-elevated-maps.mjs';
-import {flightPose,portalExit,CANNON_COOLDOWN,PORTAL_GRACE} from '../public/js/engines/kart-map-features.mjs';
+import {flightPose,portalExit,CANNON_COOLDOWN,PORTAL_GRACE,PORTAL_FRAME,PORTAL_HALF_WIDTH} from '../public/js/engines/kart-map-features.mjs';
 import {createKartArenaFeatures} from '../public/js/engines/kart-arena-features-art.mjs';
 import {createKartElevatedWorld} from '../public/js/engines/kart-elevated-world.mjs';
 import COMBAT from '../games/engines/kart-elevated-combat.js';
@@ -26,10 +26,15 @@ for(const id of elevatedMapIds){
   assert.equal(solidProbe.sweepStatic(point(-4.2),point(4.2),.22)?.surfaceId,'cannon-solid-'+i,id+' raised cannon sides are solid');
  }
  for(const [pair,rings]of map.features.portals.entries())for(const [side,f]of rings.entries()){
-  const s=Math.sin(f.angle),co=Math.cos(f.angle),point=(u)=>({x:f.x+s*u+co*2.15,y:f.y+2.45,z:f.z+co*u-s*2.15});
+  const s=Math.sin(f.angle),co=Math.cos(f.angle),point=(u)=>({x:f.x+s*u+co*PORTAL_FRAME.radius,y:f.y+PORTAL_FRAME.shoulder/2,z:f.z+co*u-s*PORTAL_FRAME.radius});
   assert.equal(solidProbe.sweepStatic(point(-2),point(2),.22)?.surfaceId,`portal-solid-${pair}-${side}`,id+' portal upright is solid on its authored storey');
  }
  for(const d of map.colliders)solidProbe.addStatic(d);
+ // The entire usable lane stays physically open even during cooldown.
+ for(const f of map.features.portals.flat())for(const offset of [-PORTAL_HALF_WIDTH,0,PORTAL_HALF_WIDTH])for(let u=-3;u<=3;u+=.25){
+  const position={x:f.x+Math.sin(f.angle)*u+Math.cos(f.angle)*offset,y:f.y+.75,z:f.z+Math.cos(f.angle)*u-Math.sin(f.angle)*offset};
+  assert(!solidProbe.overlapsStatic(position,yaw(f.angle)),id+' open portal hull lane '+JSON.stringify({u,offset}));
+ }
  for(const s of map.spawns)assert(!solidProbe.overlapsStatic({x:s.x,y:s.y+1,z:s.z},yaw(s.angle)),id+'/'+s.id+' starts clear of every solid feature');
  solidProbe.dispose();
  const checkPoint=(f,label,lane=0)=>{
@@ -49,6 +54,7 @@ for(const id of elevatedMapIds){
   for(let i=0;i<=192;i++){const a=flightPose(c,f,i/120);assert(!p.overlapsStatic(a.position,a.rotation),id+' cannon arc clears all actual solids at '+i);}
  }
  for(const ring of map.features.portals.flat()){checkPoint(ring,'ring');checkPoint(portalExit(ring),'portal exit',10);}
+ for(const ring of map.features.portals.flat())checkPoint({...ring,x:ring.x-Math.sin(ring.angle)*3,z:ring.z-Math.cos(ring.angle)*3},'rear approach',6);
  // Exercise the same runner as authority/prediction, including repeat entry
  // fixture teleports, wrong-floor triggers and an actual suspended arc.
  const c=map.features.cannons[0],k={id:'bot',pid:'bot',alive:true,connected:true,spawnSeq:0,input:{throttle:1,steer:0,brake:0},nitro:1},events=[];
@@ -71,6 +77,24 @@ for(const id of elevatedMapIds){
  const upper=pair[1],below={...upper,y:0,surface:'floor'};
  if(!p.overlapsStatic({...below,y:1},yaw(below.angle))&&p.supportAt({...below,y:.4},.8)?.point.y<.1){k.portalCd=0;place(below);motion.afterStep(C.fixedDt);assert.equal(events.filter(e=>e.type==='warp').length,2,id+' ring cannot trigger through its deck');}
  p.dispose();
+ // Both ends, both faces: low/high speeds and oblique approaches use the
+ // same solid envelope and height gate as real authority and prediction.
+ for(const [side,ring]of map.features.portals[0].entries())for(const sign of [-1,1])for(const spec of [{offset:.8,turn:0},{offset:0,turn:.4},{offset:0,turn:-.4}])for(const speed of [3,26]){
+  const physics=createKartPhysics(R,C);for(const d of elevatedStatics(map))physics.addStatic(d);
+  const a=ring.angle+(sign>0?Math.PI:0)+spec.turn,distance=3;
+  const position={x:ring.x-Math.sin(a)*distance+Math.cos(ring.angle)*spec.offset,y:ring.y+.75,z:ring.z-Math.cos(a)*distance-Math.sin(ring.angle)*spec.offset};
+  const driver={id:'approach',pid:'approach',alive:true,connected:true,nitro:1,input:{throttle:speed<5?.12:1,steer:0,brake:0}},ev=[];
+  physics.addKart(driver.id,{position,rotation:yaw(a)});for(let n=0;n<30;n++)physics.step();
+  physics.restoreKart(driver.id,{...physics.pose(driver.id),linearVelocity:{x:Math.sin(a)*speed,y:0,z:Math.cos(a)*speed}});
+  const route=createElevatedMotion({physics,map,karts:[driver],emit:(type,pid,e)=>ev.push({type,pid,...e})});
+  for(let n=0;n<180&&!ev.some(e=>e.type==='warp');n++){route.controls(driver,C.fixedDt);physics.step();route.afterStep(C.fixedDt);}
+  assert.equal(ev.filter(e=>e.type==='warp').length,1,id+' moving portal approach '+JSON.stringify({side,sign,...spec,speed}));
+  assert(driver.portalCd>1.1,id+' moving approach receives exit grace');
+  const pose=physics.pose(driver.id),exit=portalExit(map.features.portals[0][1-side]);
+  assert(Math.hypot(pose.position.x-exit.x,pose.position.z-exit.z)<.01&&near(pose.position.y,exit.y+.75),id+' moving approach lands on partner deck');
+  assert(!physics.overlapsStatic(pose.position,pose.rotation),id+' moving portal exit clears actual solids');
+  route.dispose();physics.dispose();
+ }
  // Drive a real authority through the entry. Inputs contain no pose/feature id.
  const authored=structuredClone(map),entry={...c,x:c.x-Math.sin(c.angle)*4,z:c.z-Math.cos(c.angle)*4};
  authored.spawns[0]={...entry,id:'approach',surface:c.surface};
@@ -116,12 +140,13 @@ for(const id of elevatedMapIds){
   }assert(warped,id+' production input drives through a cross-level portal');
  }finally{portalAdapter.dispose(portalState);}
 
- const scene=new THREE.Scene(),world=createKartElevatedWorld(THREE,{scene,map}),art=createKartArenaFeatures(THREE,scene);art.sync(map);
+ let reduced=false;
+ const scene=new THREE.Scene(),world=createKartElevatedWorld(THREE,{scene,map}),art=createKartArenaFeatures(THREE,scene,{reducedMotion:()=>reduced});art.sync(map);
  let draws=0,triangles=0;scene.traverseVisible(o=>{if(o.isMesh&&(!o.isInstancedMesh||o.count)){draws++;triangles+=(o.geometry.index?.count??o.geometry.attributes.position.count)/3*(o.isInstancedMesh?o.count:1);}});
  assert(draws<=112&&triangles<=100000,id+' world plus feature art stays in phone geometry budget');
  for(const ring of map.features.portals[0])assert(scene.getObjectByName('arena-portal-0-'+map.features.portals[0].indexOf(ring)).position.y===ring.y,id+' portal art uses the right storey');
- const nodes=[];scene.traverse(o=>nodes.push(o));const portal=scene.getObjectByName('arena-portal-0-0'),before=portal.children[2].rotation.z;
- art.animate(.1,1,{},new Map());assert.notEqual(portal.children[2].rotation.z,before,id+' portal swirl is animated');const after=[];scene.traverse(o=>after.push(o));assert.deepEqual(after,nodes,id+' feature animation reuses all scene nodes');
+ const nodes=[];scene.traverse(o=>nodes.push(o));const portal=scene.getObjectByName('arena-portal-0-0'),depth=portal.getObjectByName('portal-depth'),before=depth.material.uniforms.time.value;
+ art.animate(.1,1,{},new Map());assert.notEqual(depth.material.uniforms.time.value,before,id+' portal depth is animated');reduced=true;art.animate(.1,2,{},new Map());assert.equal(depth.material.uniforms.time.value,0,id+' reduced motion uses a still portal');art.animate(.1,3,{},new Map());assert.equal(depth.material.uniforms.time.value,0,id+' reduced motion stays still');const after=[];scene.traverse(o=>after.push(o));assert.deepEqual(after,nodes,id+' feature animation reuses all scene nodes');
  reports.push({id,cannons:map.features.cannons.length,portals:2,draws,triangles,maxPredictionError});art.dispose();world.dispose();assert.equal(scene.children.length,0);
 }
 console.log('PASS raised feature support, hull/arc/exit clearance, authority input, wrong-floor isolation, cooldowns, animated art and phone budgets');console.log(JSON.stringify(reports));

@@ -4,6 +4,7 @@ import * as THREE from 'three';
 import {createKartElevatedWorld} from '../public/js/engines/kart-elevated-world.mjs';
 import {createKartWorld} from '../public/js/engines/kart-world.mjs';
 import {createKartFestiveLights,festiveTheme,kartLightTier} from '../public/js/engines/kart-festive-lights.mjs';
+import {PORTAL_FRAME,PORTAL_HALF_DEPTH} from '../public/js/engines/kart-map-features.mjs';
 import {buildClassicArena,countDraws} from './helpers/kart-headless-world.mjs';
 import {reviewSpawnLights} from './helpers/kart-light-review.mjs';
 
@@ -41,7 +42,8 @@ function checkWorld(world,id,mode){
   }
   assert(f.layout.runs.some(r=>/lane/.test(r.name)),tag+' nearby lane arches');
   assert(f.layout.runs.some(r=>r.name.includes('ramp')),tag+' ramp edge has light markers');
-  assert(f.layout.runs.some(r=>r.name.includes('cannon'))&&f.layout.runs.some(r=>r.name.includes('portal')),tag+' existing shortcut rims decorated');
+  assert(f.layout.runs.some(r=>r.name.includes('cannon')),tag+' cannon rims decorated');
+  assert(!f.layout.runs.some(r=>r.name.includes('portal')),tag+' portals keep their own quiet inner light');
   if(mode==='raised')assert(f.layout.runs.some(r=>r.name.endsWith(' edge')&&!r.name.includes('ramp')),tag+' upper driving deck edge decorated');
   if(id==='neon')assert(f.layout.runs.some(r=>r.neon)&&f.uniforms.uChase.value===1,tag+' neon outlines chase');
   if(id==='frost')assert(new Set(f.layout.bulbs.map(b=>b.color)).size>=5&&f.uniforms.uChase.value===0,tag+' five Christmas colours twinkle');
@@ -64,6 +66,11 @@ function checkWorld(world,id,mode){
   };
 }
 function checkSpawnViews(world,map,structures,mode){
+  for(const p of(map.features?.portals||[]).flat())for(const b of world.festive.layout.bars){
+    if(Math.abs(b.a[0]-b.b[0])>1e-6||Math.abs(b.a[2]-b.b[2])>1e-6||b.b[1]-b.a[1]<3||Math.abs(b.a[1]-(p.y||0))>.5)continue;
+    const dx=b.a[0]-p.x,dz=b.a[2]-p.z,ps=Math.sin(p.angle||0),pc=Math.cos(p.angle||0);
+    assert(Math.abs(dx*ps+dz*pc)>=PORTAL_HALF_DEPTH+1.8||Math.abs(dx*pc-dz*ps)>=PORTAL_FRAME.radius+.5,mode+'/'+map.id+' decorative posts stay out of portal lane');
+  }
   const high=reviewSpawnLights(THREE,{world,map,structures}),low=reviewSpawnLights(THREE,{world,map,structures,low:true});
   assert.equal(high.length,map.spawns.length);
   for(const[i,entry]of high.entries()){

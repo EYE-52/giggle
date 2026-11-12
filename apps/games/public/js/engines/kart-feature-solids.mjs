@@ -1,7 +1,7 @@
 // Exact solid feature envelopes, shared by both authorities, prediction and
 // camera clearance. Hollow tubes/rings stay hollow; their interiors are never
 // replaced by a solid bounding box. Generated only when a map is loaded.
-import {cannonTube,CANNON_MOUTH_HEIGHT} from './kart-map-features.mjs';
+import {cannonTube,CANNON_MOUTH_HEIGHT,PORTAL_FRAME} from './kart-map-features.mjs';
 
 export function arenaFeatureSolids(features,groundAt=()=>0){
   const solids=[];
@@ -57,13 +57,14 @@ export function arenaFeatureSolids(features,groundAt=()=>0){
     m.finish();
   }
   for(const [pair,portals]of(features?.portals||[]).entries())for(const [side,p]of portals.entries()){
-    const m=mesh(`portal-solid-${pair}-${side}`,p),rings=[],n=40,r=12;
-    for(let i=0;i<n;i++){
-      const a=i/n*Math.PI*2,ring=[];
-      for(let j=0;j<r;j++){const b=j/r*Math.PI*2,d=2.15+.3*Math.cos(b);ring.push(m.point(d*Math.cos(a),2.45+d*Math.sin(a),.3*Math.sin(b)));}rings.push(ring);
+    const m=mesh(`portal-solid-${pair}-${side}`,p),rings=[],{radius,shoulder,tube,segments:n,radialSegments:r}=PORTAL_FRAME;
+    // Half torus over two upright tubes: no bar across the tyres/bumper.
+    for(let i=0;i<=n;i++){
+      const a=i/n*Math.PI,ring=[];
+      for(let j=0;j<r;j++){const b=j/r*Math.PI*2,d=radius+tube*Math.cos(b);ring.push(m.point(d*Math.cos(a),shoulder+d*Math.sin(a),tube*Math.sin(b)));}rings.push(ring);
     }
-    for(let i=0;i<n;i++)for(let j=0;j<r;j++)m.quad(rings[i][j],rings[(i+1)%n][j],rings[(i+1)%n][(j+1)%r],rings[i][(j+1)%r]);
-    for(const side of [-1,1])m.box(side*1.75,.25,0,.275,.25,.45);
+    for(let i=0;i<n;i++)for(let j=0;j<r;j++)m.quad(rings[i][j],rings[i+1][j],rings[i+1][(j+1)%r],rings[i][(j+1)%r]);
+    for(const side of [-1,1])m.cylinder(side*radius,shoulder/2,0,tube,tube,shoulder,r);
     m.finish();
   }
   return solids;
