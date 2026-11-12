@@ -5,6 +5,7 @@ const {launchArenas}=require('../../public/js/engines/kart-launch-arenas.mjs');
 const crypto = require('crypto');
 const { createElevatedCombat } = require('./kart-elevated-combat');
 const { rankStandings } = require('./kart-standings');
+const {garageStore,garageLevels,syncGarageState,awardGarageCoins,garagePurchase,awardFinishCoins,GARAGE_CATS,GARAGE_PRICES,GARAGE_MAX}=require('./kart-garage-economy');
 
 const PROFILE = 'elevated-combat-v1';
 const MAP_LABELS = Object.freeze({
@@ -18,12 +19,14 @@ const MAP_LABELS = Object.freeze({
 });
 const INPUT_KEYS = new Set(['type', 'seq', 'life', 'controlEpoch', 'steer', 'throttle', 'brake', 'nitro', 'use']);
 
-// Elevated arenas run Zap Battle only (no Star Rush stars or Garage
-// upgrades there). Both win rules work: a score target ends the match at
-// the first knockout that reaches it, with the round length as the cap.
+const MODE_LABELS=Object.freeze({battle:'Zap Battle',starrush:'Star Rush',teambattle:'Team Battle',ctf:'Capture the Flag'});
+function modeOf(settings){
+  const key=Object.hasOwn(MODE_LABELS,settings.mode)?settings.mode:Object.keys(MODE_LABELS).find(k=>MODE_LABELS[k]===settings.mode)||(settings.mode==='Garage Battle'?'battle':null);
+  const garage=key==='battle'&&(settings.mode==='Garage Battle'||settings.garage===true);
+  return {key,garage,label:garage?'Garage Battle':MODE_LABELS[key]};
+}
 function preflightElevated(settings) {
-  return settings.mode !== 'Zap Battle' || settings.garage === true
-    ? { error: 'Elevated arenas require Zap Battle with Garage off.' } : { ok: true };
+  return modeOf(settings).key?{ok:true}:{error:'Choose a supported kart mode.'};
 }
 const GONE_AFTER_MS = 60000;
 const END_REASONS = { deadline: 'timeout', target: 'goal', 'players-left': 'players-left' };
@@ -60,26 +63,28 @@ const rotation = value => ({ x: number(value.x, 6), y: number(value.y, 6), z: nu
 
 function resultOf(raw) {
   if (!raw.result) return null;
-  const { standings, winners, winner, draw } = rankStandings(raw.result.scores.map(s => ({ pid: s.id, score: s.hits, out: s.out === true })));
+  const { standings, winners, winner, draw } = raw.result.teamResult||rankStandings(raw.result.scores.map(s => ({ pid: s.id, score: s.score??s.hits, out: s.out === true })));
   return { standings, winners, winner, draw,
-    endReason: END_REASONS[raw.result.reason] || 'timeout', endedAt: raw.result.endedAt };
+    endReason: END_REASONS[raw.result.reason] || 'timeout', endedAt: raw.result.endedAt,...(raw.result.teamResult?{teamResult:raw.result.teamResult}: {}) };
 }
 
 function project(raw, map, settings) {
-  const result = resultOf(raw);
+  const result = resultOf(raw),mode=modeOf(settings);
   return {
     profile: PROFILE, waitForResult: true, combat:raw.combat, projectileRadii:raw.projectileRadii, physicsVersion: raw.physicsVersion, configVersion: raw.configVersion,
     mapRevision: raw.mapRevision, mapId: raw.mapId,...(raw.variantId?{variantId:raw.variantId,arenaVersion:raw.arenaVersion,enabledDistricts:raw.enabledDistricts}:{}),
     map: { id: raw.mapId, label: map.name, environment: map.environment, half: map.half },
     phase: raw.phase, endsAt: raw.phase === 'done' ? 0 : raw.phase === 'countdown' ? raw.liveAt : raw.deadline,
     liveAt: raw.liveAt, deadline: raw.deadline, roundMs: raw.deadline - raw.liveAt,
-    simTick: raw.simTick, simAt: raw.simAt, mode: 'battle', modeLabel: 'Zap Battle', garage: false,
+    simTick: raw.simTick, simAt: raw.simAt, mode:mode.key==='starrush'?'starrush':'battle',modeLabel:mode.label,garage:mode.garage,...(mode.key==='starrush'?{targetStars:settings.targetStars}:{}),...(mode.key==='ctf'?{targetFlags:settings.targetFlags}:{}),
+    ...(raw.stars?{stars:raw.stars.map(s=>({...s,y:number(s.y)}))}:{}),
+    ...Object.fromEntries(['teamMode','teamByPlayer','teams','bases','flags','teamResult','objectiveEvents','capturesByPlayer'].filter(key=>raw[key]!==undefined).map(key=>[key,raw[key]])),
     winRule: settings.winRule === 'Score target' ? 'Score target' : 'Time limit', targetHits: settings.targetHits, palette: settings.palette, lightCycle: settings.lightCycle,
     skyCycle: settings.lightCycle === 'Live sunset'
       ? { startedAt: raw.liveAt, durationMs: raw.deadline - raw.liveAt,
         ...(raw.phase === 'done' ? { endedAt: raw.result?.endedAt ?? raw.deadline } : {}) } : null,
     karts: raw.karts.map(k => ({ id: k.id, connected: k.connected, ...(k.out ? { out: true } : {}), alive: k.alive, health:k.health, maxHealth:k.maxHealth,
-      hits: k.hits, deaths: k.deaths, spawnSeq: k.spawnSeq, controlEpoch: k.controlEpoch,
+      hits: k.hits,...(mode.key==='starrush'?{stars:k.stars||0}:{}),...(mode.garage||Object.values(k.upgrades||{}).some(v=>v>0)?{upgrades:k.upgrades,tuning:k.tuning,garage:mode.garage}:{}), deaths: k.deaths, spawnSeq: k.spawnSeq, controlEpoch: k.controlEpoch,
       weapon: k.weapon,...(k.weapon==='missile'?{lockTarget:k.lockTarget||null}:{}), ammo: k.ammo, firing:k.firing===true, shield: number(k.shield), guard: k.guard === true, respawn: number(k.respawn),
       nitro: number(k.nitro), nitroActive: k.nitroActive,
       ...(k.nitroLocked?{nitroLocked:true}:{}),
@@ -104,7 +109,7 @@ function project(raw, map, settings) {
       ttl:number(g.ttl||0),landed:g.landed===true,armed:g.armed===true,warning: g.warning })),
     events: raw.events.map(e => {
       const event = { id: e.id, tick: e.tick, type: e.type, pid: e.pid };
-      for (const key of ['other', 'weapon', 'damage', 'health', 'maxHealth', 'crateId', 'spawnSeq', 'controlEpoch', 'reason', 'surfaceId', 'impulse', 'cannon', 'pair', 'side']) {
+      for (const key of ['other', 'weapon', 'damage', 'health', 'maxHealth', 'crateId', 'spawnSeq', 'controlEpoch', 'reason', 'surfaceId', 'impulse', 'cannon', 'pair', 'side', 'starId']) {
         if (e[key] !== undefined) event[key] = e[key];
       }
       for (const key of ['position', 'direction', 'normal', 'from', 'to']) {
@@ -113,7 +118,7 @@ function project(raw, map, settings) {
       if (e.type === 'result') event.winners = result ? result.winners.slice() : [];
       return event;
     }),
-    scores: Object.fromEntries(raw.karts.map(k => [k.id, k.hits])), result,
+    scores: Object.fromEntries(raw.karts.map(k => [k.id,mode.key==='starrush'?k.stars||0:raw.teamByPlayer?(raw.teams.find(t=>t.id===raw.teamByPlayer[k.id])?.score||0):k.hits])), result,
   };
 }
 
@@ -133,10 +138,12 @@ function createElevatedKartAdapter({ RAPIER, config, maps, defaults, createMatch
   function preflight(settings) {
     return preflightElevated(settingsOf(settings));
   }
+  const garagePublic=state=>({upgrades:structuredClone(state.garageUpgrades),garagePrices:{cats:GARAGE_CATS.slice(),prices:GARAGE_PRICES.slice(),max:GARAGE_MAX}});
   function refresh(state, record, raw) {
     // Room reads this projection without mutating it. Freeze once per refresh
     // instead of cloning the same public tree for every transport recipient.
-    record.view = freeze(project(raw, record.map, record.settings));
+    syncGarageState(state,garageStore(record.ctx,state));
+    record.view = freeze({...project(raw, record.map, record.settings),...garagePublic(state)});
     state.phase = record.view.phase;
     state.endsAt = record.view.endsAt;
     // Cache compact private status without rebuilding the public World per seat.
@@ -145,17 +152,21 @@ function createElevatedKartAdapter({ RAPIER, config, maps, defaults, createMatch
       ? record.match.privateStatus(k.id) : record.match.snapshot(k.id).you);
   }
   function create(ctx) {
-    const settings = settingsOf(ctx.settings());
+    const settings = settingsOf(ctx.settings()),mode=modeOf(settings);
     const check = preflight(settings);
     if (check.error) throw new Error(check.error);
     const sourceMap=deps.maps[MAP_LABELS[settings.map]];
-    const map=sourceMap?.arenaVersion?selectArenaVariant(sourceMap,ctx.allPlayers().length):sourceMap, state = { profile: PROFILE, phase: 'countdown', endsAt: 0,...(map?.arenaVersion?{arenaVersion:map.arenaVersion}:{}) };
+    const map=sourceMap?.arenaVersion?selectArenaVariant(sourceMap,ctx.allPlayers().length):sourceMap, state = { profile: PROFILE, phase: 'countdown', endsAt: 0,rulesKey:mode.key==='starrush'?'starrush':'battle',garage:mode.garage,garageResults:{},karts:ctx.allPlayers().map(p=>({pid:p.id})),...(map?.arenaVersion?{arenaVersion:map.arenaVersion}:{}) };
     if (!map) throw new Error('Choose an elevated arena.');
+    const store=garageStore(ctx,state);syncGarageState(state,store);
+    for(const k of state.karts)k.upgrades=garageLevels(store,k.pid);
     const match = deps.createMatch(deps.RAPIER, deps.config, map, ctx.allPlayers(), {
+      mode:mode.key,garage:mode.garage,upgrades:structuredClone(state.garageUpgrades),targetStars:settings.targetStars,targetFlags:settings.targetFlags,winRule:settings.winRule,
+      onAward(pid,amount){awardGarageCoins(store,pid,amount,new Set(state.karts.map(k=>k.pid)));syncGarageState(state,store);},
       instance: ctx.instanceId, seed: crypto.randomBytes(4).readUInt32LE(0), startAt: ctx.now(), roundMs: settings.roundSeconds * 1000,
-      ...(settings.winRule === 'Score target' ? { targetHits: settings.targetHits } : {}),
+      ...(settings.winRule === 'Score target'&&mode.key!=='starrush' ? { targetHits: settings.targetHits } : {}),
     });
-    const record = { match, map, settings, private: new Map(), gone: new Map(), disposed: false, awarded: false, view: null };
+    const record = { match, map, settings, ctx,state, private: new Map(), gone: new Map(), disposed: false, awarded: false, view: null };
     try { refresh(state, record, match.snapshot()); }
     catch (error) { match.dispose(); throw error; }
     matches.set(state, record);
@@ -173,6 +184,9 @@ function createElevatedKartAdapter({ RAPIER, config, maps, defaults, createMatch
   function awardOnce(record, ctx) {
     if (record.disposed || !record.view.result || record.awarded) return;
     record.awarded = true;
+    if(record.state.rulesKey==='battle')awardFinishCoins(record.state,ctx,record.view.result.standings,record.view.result.winners);
+    syncGarageState(record.state,garageStore(ctx,record.state));
+    record.view=freeze({...record.view,...garagePublic(record.state)});
     for (const s of record.view.result.standings) if (s.points > 0) ctx.award(s.pid, s.points);
   }
   function onTick(state, ctx) {
@@ -191,8 +205,13 @@ function createElevatedKartAdapter({ RAPIER, config, maps, defaults, createMatch
   }
   function onAction(state, ctx, pid, action) {
     const record = matches.get(state);
-    if (!record || record.disposed || state.phase === 'done' || !action || typeof action !== 'object' || Array.isArray(action) ||
-        action.type !== 'input' || Object.keys(action).some(key => !INPUT_KEYS.has(key))) return false;
+    if(!record||record.disposed||!action||typeof action!=='object'||Array.isArray(action))return false;
+    if(action.garage!==undefined){
+      garagePurchase(state,ctx,pid,action.garage);syncGarageState(state,garageStore(ctx,state));
+      record.view=freeze({...record.view,...garagePublic(state),karts:record.view.karts.map(k=>({...k,upgrades:garageLevels(garageStore(ctx,state),k.id)}))});
+      return undefined;
+    }
+    if(state.phase==='done'||action.type!=='input'||Object.keys(action).some(key=>!INPUT_KEYS.has(key)))return false;
     const { type, ...intent } = action;
     record.match.input(pid, { ...intent, instance: ctx.instanceId }, ctx.now());
     return false;
@@ -219,11 +238,11 @@ function createElevatedKartAdapter({ RAPIER, config, maps, defaults, createMatch
     const own = record.private.get(pid);
     return { ...record.view, youDrive: !!own,
       inputAck: own ? { receivedSeq: own.receivedSeq, appliedInputSeq: own.appliedInputSeq, life: own.life, controlEpoch: own.controlEpoch } : null,
-      coins: own ? own.coins : 0 };
+      coins:own?Math.max(0,Math.floor(state.coins?.[pid]||0)):0,garageResult:own&&state.garageResults?.[pid]?{...state.garageResults[pid]}:null };
   }
   // Ordinary callers retain independent, mutable snapshots.
   function publicView(state){return matches.get(state).view;}
-  function privateView(state,pid){const {youDrive,inputAck,coins}=viewForTransport(state,pid);return {youDrive,inputAck,coins};}
+  function privateView(state,pid){const {youDrive,inputAck,coins,garageResult}=viewForTransport(state,pid);return {youDrive,inputAck,coins,garageResult};}
   function view(state, pid) { return structuredClone(viewForTransport(state, pid)); }
   function dispose(state) {
     const record = matches.get(state);
@@ -234,4 +253,4 @@ function createElevatedKartAdapter({ RAPIER, config, maps, defaults, createMatch
   return Object.freeze({ preflight, create, onAction, onTick, onConnection, onPlayerGone, view, viewForTransport, publicView, privateView, dispose, owns: state => matches.has(state) });
 }
 
-module.exports = { GONE_AFTER_MS, PROFILE, MAP_LABELS, preflightElevated, loadElevatedDependencies, createElevatedKartAdapter };
+module.exports = { GONE_AFTER_MS, PROFILE, MAP_LABELS, preflightElevated, modeOf, loadElevatedDependencies, createElevatedKartAdapter };

@@ -10,7 +10,9 @@ const {elevatedFallZone}=require('../../public/js/engines/kart-elevated-surfaces
 const { createKartPhysics } = require('./kart-physics');
 const {createElevatedMotion,clearElevatedDrift,ELEVATED_MOTION_FIELDS}=require('../../public/js/engines/kart-elevated-motion.mjs');
 const {elevatedStatics}=require('../../public/js/engines/kart-feature-solids.mjs');
-const B = require('./kart-rules-battle').constants;
+const battleRules = require('./kart-rules-battle');
+const B = battleRules.constants;
+const {createTeamRules,arrangeTeamSpawns}=require('./kart-team-rules');
 const H = require('./kart-engine').constants;
 const {config:COMBAT,damageAt,blastDamage,bladeContact,volleyHit} = require('./kart-combat-config');
 const {normalizeWeapon}=require('./kart-combat-config');
@@ -81,6 +83,8 @@ function guidedVelocity(velocity,delta,maxTurn) {
 
 function createElevatedCombat(RAPIER,config,map,seats,options={}) {
   if (!Array.isArray(seats) || seats.length < 2 || seats.length > config.maxKarts || seats.some(s => !validId(s?.id)) || new Set(seats.map(s=>s.id)).size !== seats.length) throw new TypeError('2..kart capacity unique seats required');
+  const mode=options.mode||'battle',starRush=mode==='starrush',garage=mode==='battle'&&options.garage===true;
+  if(!['battle','starrush','teambattle','ctf'].includes(mode))throw new TypeError('invalid kart mode');
   const instance = options.instance;
   if (!validId(instance) || !Number.isInteger(options.seed) || options.seed < 0 || options.seed > 0xffffffff) throw new TypeError('server instance and uint32 seed required');
   const startAt = options.startAt ?? 0, countdownMs = options.countdownMs ?? H.COUNTDOWN_MS, roundMs = options.roundMs ?? 90000;
@@ -89,14 +93,15 @@ function createElevatedCombat(RAPIER,config,map,seats,options={}) {
   const initialHealth=options.initialHealth??COMBAT.maxHealth;
   // Optional score target: the first knockout that reaches it ends the match.
   const targetHits=options.targetHits??null;
+  if(options.targetStars!==undefined&&(!Number.isInteger(options.targetStars)||options.targetStars<1||options.targetStars>30))throw new RangeError('invalid star target');
   if(targetHits!==null&&(!Number.isInteger(targetHits)||targetHits<1||targetHits>100))throw new RangeError('invalid score target');
   if(!Number.isInteger(initialHealth)||initialHealth<1||initialHealth>COMBAT.maxHealth)throw new RangeError('invalid initial health');
-  if (!boundedTime(startAt) || !finite(countdownMs) || countdownMs < 0 || countdownMs > 10000 || !finite(roundMs) || roundMs < 1000 || roundMs > 600000) throw new RangeError('invalid round timing');
+  if (!boundedTime(startAt) || !finite(countdownMs) || countdownMs < 0 || countdownMs > 10000 || !finite(roundMs) || roundMs < 1000 || roundMs > 900000) throw new RangeError('invalid round timing');
   const M = map.arenaVersion && map.variants ? selectArenaVariant(map,seats.length) : structuredClone(map), C = structuredClone(config);
   if(M.arenaVersion)validateArenaContract(M);
   if (!validId(M?.id) || typeof M.revision !== 'string' || !M.revision.length || M.revision.length > 64 || !finite(M.half) || M.half < 10 || M.half > 500 || !Array.isArray(M.colliders) || !Array.isArray(M.spawns) || !M.spawns.length || M.spawns.length > 32 || !Array.isArray(M.sockets) || M.sockets.length < 2 || M.sockets.length > (M.arenaVersion?96:64) || new Set(M.spawns.map(s=>s.id)).size!==M.spawns.length || new Set(M.sockets.map(s=>s.id)).size!==M.sockets.length) throw new TypeError('bounded authored map required');
   const physics = createKartPhysics(RAPIER,C), dt=C.fixedDt, stepMs=dt*1000;
-  const karts = new Map(), events=[], shots=[], mines=[], grenades=[], crates=[], collisionAt=new Map(), volleyHits=new Map();
+  const karts = new Map(), events=[], shots=[], mines=[], grenades=[], crates=[], stars=[], collisionAt=new Map(), volleyHits=new Map();
   let targetReached=false, rng=options.seed, eventSeq=0, entitySeq=0, phase='countdown', simTick=0, simAt=startAt, wallAt=startAt, accumulator=0, resultData=null, disposed=false, droppedMs=0;
   const liveAt=startAt+countdownMs, deadline=liveAt+roundMs;
   const rand = () => { rng=(rng+0x6d2b79f5)>>>0; let n=rng; n=Math.imul(n^(n>>>15),n|1); n^=n+Math.imul(n^(n>>>7),n|61); return ((n^(n>>>14))>>>0)/4294967296; };
@@ -173,7 +178,7 @@ function createElevatedCombat(RAPIER,config,map,seats,options={}) {
     }
     return grid;
   }
-  let spawns,sockets,motion,respawnCandidates,travel;
+  let spawns,sockets,motion,respawnCandidates,travel,team;
   const rewardPolicy=M.arenaVersion?createArenaRewardPolicy(W,seats.length,rand):null,spawnUsed=new Map();
   function pickSocket(exclude, level) {
     let pool=sockets.filter(s=>s.id!==exclude && (level===undefined || Math.abs(s.y-level)<.25) && !crates.some(c=>c.socketId===s.id));
@@ -228,16 +233,29 @@ function createElevatedCombat(RAPIER,config,map,seats,options={}) {
     }
     if(spawns.length < seats.length || sockets.length < 2) throw new Error('map lacks supported clear spawns/sockets');
     for(let i=0;i<seats.length;i++) for(let j=0;j<i;j++) if(hullsOverlap(spawnPose(spawns[i]),spawnPose(spawns[j]))) throw new Error('initial spawn hulls overlap');
+    if(mode==='teambattle'||mode==='ctf'){
+      const occupiedSpawns=spawns.slice(0,seats.length);
+      team=createTeamRules({mode,map:M,seats,occupiedSpawns,startAt:liveAt,roundMs,targetScore:mode==='ctf'?(options.targetFlags??3):(targetHits??10),winRule:options.winRule||'Time limit',supportAt:physics.supportAt,clearAt:point=>!physics.overlapsStatic({x:point.x,y:point.y+.75,z:point.z},IDENTITY)});
+      if(mode==='ctf'){
+        const publicTeam=team.snapshot(),approved=[...spawns,...respawnCandidates.filter(clearDeparture)];
+        spawns=arrangeTeamSpawns(seats,approved,publicTeam.teamByPlayer,publicTeam.bases);
+        for(let i=0;i<seats.length;i++)for(let j=0;j<i;j++)if(hullsOverlap(spawnPose(spawns[i]),spawnPose(spawns[j])))throw new Error('team starting hulls overlap');
+      }
+    }
     for(let i=0;i<seats.length;i++) {
       const s=seats[i], k={id:s.id,name:String(s.name||s.id).slice(0,48),connected:true,alive:true,spawnSeq:0,controlEpoch:0,
         input:neutral(),queue:[],receivedSeq:0,appliedSeq:0,lastReceipt:startAt,lastInputAt:null,pendingFire:false,useDown:false,
-        hits:0,deaths:0,coins:0,health:initialHealth,maxHealth:COMBAT.maxHealth,weapon:null,ammo:0,itemSeq:0,sequence:null,shield:B.SPAWN_SHIELD,guard:false,respawn:0,fireCd:0,nitro:1,nitroLocked:false,nitroActive:false,stuck:null,recoverAfter:0,
+        stars:0,garage,upgrades:{engine:0,handling:0,reload:0,...options.upgrades?.[s.id]},hits:0,deaths:0,coins:0,health:initialHealth,maxHealth:COMBAT.maxHealth,weapon:null,ammo:0,itemSeq:0,sequence:null,shield:B.SPAWN_SHIELD,guard:false,respawn:0,fireCd:0,nitro:1,nitroLocked:false,nitroActive:false,stuck:null,recoverAfter:0,
         frostT:0,spinT:0,rammingT:0,ramVolley:null,spinKick:0};
+      Object.assign(k,garageView(k));
       karts.set(k.id,k); physics.addKart(k.id,spawnPose(spawns[i]));if(M.arenaVersion)spawnUsed.set(spawns[i].id,startAt);
     }
     physics.step(15); physics.step(15); physics.step(15); physics.step(15); physics.step(15); physics.step(15);
     for(const k of karts.values()) physics.freezeKart(k.id,true);
-    if(M.arenaVersion){
+    if(starRush){
+      const levels=[...new Set(sockets.map(s=>s.y))];
+      for(let i=0;i<Math.min(6,sockets.length-1);i++){const pool=sockets.filter(s=>s.y===levels[i%levels.length]&&!stars.some(o=>o.socketId===s.id));const home=choose(pool.length?pool:sockets.filter(s=>!stars.some(o=>o.socketId===s.id)));stars.push(starAt(home));}
+    }else if(M.arenaVersion){
       const homes=selectArenaHomes({...M,sockets},seats.length,rand,spawns.slice(0,seats.length));
       for(const home of homes)crates.push(crateAt(home));
     }else{
@@ -248,7 +266,39 @@ function createElevatedCombat(RAPIER,config,map,seats,options={}) {
     }
   } catch(error) { physics.dispose(); throw error; }
 
-  motion=createElevatedMotion({physics,map:M,karts:[...karts.values()],emit});
+  try{
+    motion=createElevatedMotion({physics,map:M,karts:[...karts.values()],emit});
+  }catch(error){motion?.dispose();physics.dispose();throw error;}
+  function roster(poses){return [...karts.values()].map(k=>({id:k.id,alive:k.alive,connected:k.connected,out:!!k.out,spawnSeq:k.spawnSeq,health:k.health,respawn:k.respawn,pose:poses?.get(k.id)||physics.pose(k.id)}));}
+  function opponent(owner,k){return owner!==k.id&&(!team||team.canDamage(owner,k.id));}
+  function garageView(k){const {upgrades,tuning}=battleRules.kartViewExtra(k);return {garage:k.garage,upgrades,tuning};}
+  function starAt(home,returning=false){
+    const blocked=new Set(),centre={x:home.x,y:home.y+.75,z:home.z};
+    if(returning)for(const k of karts.values())if(k.alive&&distance(physics.pose(k.id).position,centre)<3)blocked.add(k.id);
+    return {id:entity('s'),socketId:home.id,surfaceId:home.surface,supportIds:homeSupports(home),x:home.x,y:home.y,z:home.z,blocked};
+  }
+  function updateStars(){
+    for(const star of stars)for(const id of star.blocked){
+      const centre={x:star.x,y:star.y+.75,z:star.z};
+      if(!karts.get(id)?.alive||distance(physics.pose(id).position,centre)>3)star.blocked.delete(id);
+    }
+    for(const k of karts.values())if(k.connected&&k.alive){
+      const p=physics.pose(k.id);if(!p.grounded)continue;
+      for(const star of stars){
+        const centre={x:star.x,y:star.y+.75,z:star.z};
+        const rightFloor=p.wheels.some(w=>w.contact&&(w.surfaceId===star.surfaceId||star.supportIds.includes(w.surfaceId)));
+        if(star.blocked.has(k.id)||distance(p.position,centre)>=2.4||!rightFloor||!los(centre,p.position))continue;
+        k.stars++;emit('star',k.id,{position:centre,starId:star.id});
+        const free=sockets.filter(s=>s.id!==star.socketId&&!stars.some(o=>o!==star&&o.socketId===s.id));
+        if(free.length){
+          const distant=free.filter(s=>[...karts.values()].every(driver=>!driver.alive||distance(physics.pose(driver.id).position,{x:s.x,y:s.y+.75,z:s.z})>=5));
+          Object.assign(star,starAt(choose(distant.length?distant:free),true));
+        }
+        if(options.winRule!=='Time limit'&&k.stars>=(options.targetStars??15)){targetReached=true;return;}
+      }
+    }
+  }
+
 
   function input(pid,p,receiptAt) {
     alive(); const k=karts.get(pid);
@@ -272,6 +322,7 @@ function createElevatedCombat(RAPIER,config,map,seats,options={}) {
     clean(k); k.controlEpoch++; k.connected=connected;
     physics.freezeKart(pid,!connected || phase!=='live' || !k.alive);
     emit(connected?'reconnect':'disconnect',pid);
+    team?.update(simAt,roster());
     return true;
   }
   // A driver who left (or stayed away 60 s) drops out: the kart leaves the
@@ -283,7 +334,8 @@ function createElevatedCombat(RAPIER,config,map,seats,options={}) {
     clean(k);k.controlEpoch++;
     k.out=true;k.connected=false;k.alive=false;k.respawn=0;k.weapon=null;k.ammo=0;k.shield=0;k.guard=false;
     physics.freezeKart(pid,true);physics.setKartEnabled(pid,false);
-    emit('dropout',pid);
+    emit('dropout',pid);team?.update(simAt,roster());
+    if(team?.done()){finish('players-left');return true;}
     if([...karts.values()].filter(v=>!v.out).length<2) finish('players-left');
     return true;
   }
@@ -293,10 +345,10 @@ function createElevatedCombat(RAPIER,config,map,seats,options={}) {
   function sphereBlocked(position,radius) {return !!physics.sweepStatic(position,add(position,{x:0,y:1e-6,z:0}),radius);}
   function los(a,b) { const d=sub(b,a), n=length(d); if(n<0.001) return true; const start=add(a,mul(d,Math.min(0.01/n,0.01))); const h=physics.sweepStatic(start,b); return !h || h.fraction>=1-1e-6; }
   function knockOut(k,owner,weapon) {
-    if(!vulnerable(k) || k.id===owner) return false;
+    if(!vulnerable(k) || !opponent(owner,k)) return false;
     k.alive=false; k.health=0; k.deaths++; k.respawn=B.RESPAWN_TIME; k.weapon=null; k.ammo=0; k.shield=0; k.guard=false; k.fireCd=0; clean(k); k.controlEpoch++;
     physics.freezeKart(k.id,true); physics.setKartEnabled(k.id,false);
-    const scorer=karts.get(owner); if(scorer) { scorer.hits++; award(scorer,B.COIN_KO,'ko-'+k.id+'-'+k.deaths); if(targetHits!==null&&scorer.hits>=targetHits) targetReached=true; }
+    const scorer=karts.get(owner); if(scorer) { scorer.hits++; award(scorer,B.COIN_KO,'ko-'+k.id+'-'+k.deaths); if(!team&&targetHits!==null&&scorer.hits>=targetHits) targetReached=true; team?.scoreKO(owner,k.id,instance+'-ko-'+k.id+'-'+k.deaths,simAt); }
     emit('ko',owner,{other:k.id,weapon,position:physics.pose(k.id).position});
     return true;
   }
@@ -304,7 +356,7 @@ function createElevatedCombat(RAPIER,config,map,seats,options={}) {
   // blocks every hit until its authority timer expires.
   function damage(k,owner,weapon,volley=null,override=null,shot=null) {
     let amount=override??damageAt(weapon);
-    if(!vulnerable(k) || k.id===owner || !finite(amount) || amount<=0) return false;
+    if(!vulnerable(k) || !opponent(owner,k) || !finite(amount) || amount<=0) return false;
     if(k.supernovaT>0){
       let announce=true;
       if(volley){let hits=volleyHits.get(volley);if(!hits)volleyHits.set(volley,hits=new Map());const key='blocked:'+k.id+':'+k.spawnSeq;announce=!hits.has(key);hits.set(key,true);}
@@ -340,7 +392,7 @@ function createElevatedCombat(RAPIER,config,map,seats,options={}) {
       if(k.bladesT>0){
         const h=Math.min(dt,k.bladesT),age=k.bladesAge||0;k.bladesAge=age+h;k.bladesT=Math.max(0,k.bladesT-dt);
         for(const v of karts.values()){
-          if(v.id===k.id||!vulnerable(v))continue;const p=hull(after.get(v.id));let touch=false;
+          if(!opponent(k.id,v)||!vulnerable(v))continue;const p=hull(after.get(v.id));let touch=false;
           for(let n=0;n<3&&!touch;n++)for(let j=0;j<=Math.ceil(h/.03);j++){
             const a=(age+Math.min(h,j*.03))*W.blades.turnRate+n*Math.PI*2/3;
             if(Math.hypot(p.x-me.x-Math.cos(a)*2.2,p.y-me.y,p.z-me.z-Math.sin(a)*2.2)<2.25){touch=true;break;}
@@ -351,7 +403,7 @@ function createElevatedCombat(RAPIER,config,map,seats,options={}) {
       }
       if(k.supernovaT>0){
         for(const rival of karts.values()){
-          if(rival===k||!vulnerable(rival))continue;
+          if(!opponent(k.id,rival)||!vulnerable(rival))continue;
           const other=hull(after.get(rival.id));
           if(distance(me,other)<W.supernova.contactRadius&&los(me,other))
             damage(rival,k.id,'supernova',k.supernovaVolley,W.supernova.contactDamage);
@@ -378,9 +430,18 @@ function createElevatedCombat(RAPIER,config,map,seats,options={}) {
       return {...v,score:Math.min(100,travel?travel.distance(v.s):v.clear)-threat-recency*4,threatened};
     }).filter(v=>!v.threatened).sort((a,b)=>M.arenaVersion?b.score-a.score:b.clear-a.clear);
     if(!safe.length) return; // Keep non-solid; retry until a safe pose exists.
-    spawnUsed.set(safe[0].s.id,simAt);
+    let choices=safe;
+    if(mode==='ctf'){
+      const state=team.snapshot(),own=state.bases.find(b=>b.teamId===state.teamByPlayer[k.id]),other=state.bases.find(b=>b!==own);
+      const clear=choices.filter(v=>state.bases.every(b=>Math.hypot(v.s.x-b.position.x,v.s.y-b.position.y,v.s.z-b.position.z)>=5.2));
+      if(clear.length)choices=clear;
+      const home=choices.filter(v=>Math.hypot(v.s.x-own.position.x,v.s.z-own.position.z)<=Math.hypot(v.s.x-other.position.x,v.s.z-other.position.z));
+      if(home.length)choices=home;
+    }
+    const chosen=choices[0].s;
+    spawnUsed.set(chosen.id,simAt);
     clean(k); k.spawnSeq++; k.controlEpoch++; k.alive=true; k.health=COMBAT.maxHealth; k.respawn=0; k.shield=B.SPAWN_SHIELD; k.guard=false; k.nitro=1; k.nitroLocked=false;
-    physics.resetKart(k.id,spawnPose(safe[0].s)); physics.setKartEnabled(k.id,true); physics.freezeKart(k.id,false); physics.tuneKart(k.id,{top:1,engine:1,steering:1,traction:1});
+    physics.resetKart(k.id,spawnPose(chosen)); physics.setKartEnabled(k.id,true); physics.freezeKart(k.id,false); physics.tuneKart(k.id,{top:1,engine:1,steering:1,traction:1});
     emit('respawn',k.id,{spawnSeq:k.spawnSeq,position:physics.pose(k.id).position});
   }
   function recoverStuck(k,p) {
@@ -476,7 +537,9 @@ function createElevatedCombat(RAPIER,config,map,seats,options={}) {
       }
     }
     if(weapon!=='supernova') k.shield=0;
-    const cd=W[weapon]?.cooldown??(weapon==='mine'?W[weapon].dropInterval:B.FIRE_CD);k.fireCd=cd;
+    // Carry the Garage volley's sub-tick remainder. Clamping it away makes
+    // all three reload levels round back up to the same five fixed ticks.
+    const cd=W[weapon]?.cooldown??(weapon==='mine'?W[weapon].dropInterval:B.FIRE_CD);k.fireCd=(garage?Math.max(-dt,k.fireCd):0)+cd*(garage&&weapon!=='mine'?k.tuning.reload:1);
     k.ammo-=weapon==='trishot'?3:1; if(k.ammo<=0) { k.weapon=null; k.ammo=0; }
     if(!announced)emit(weapon==='mine'?'mine':weapon==='shield'?'shield':'fire',k.id,{weapon,position:deployed||muzzle,direction:fireDirection});
     return true;
@@ -484,7 +547,7 @@ function createElevatedCombat(RAPIER,config,map,seats,options={}) {
   function missileLock(owner,origin,forward,rule=W.missile){
     let best=null,bestD=Infinity;
     for(const k of karts.values()){
-      if(k.id===owner||!vulnerable(k))continue;const p=hull(physics.pose(k.id));
+      if(!opponent(owner,k)||!vulnerable(k))continue;const p=hull(physics.pose(k.id));
       if(!inWeaponCone(origin,forward,p,rule.range,rule.halfAngle)||!los(origin,p))continue;
       const d=distance(origin,p);if(d<bestD){best=k;bestD=d;}
     }return best;
@@ -503,7 +566,7 @@ function createElevatedCombat(RAPIER,config,map,seats,options={}) {
       const solid=physics.sweepStatic(s.position,end,s.radius); let hit=null, t=solid?.fraction??Infinity;
       const pierced=[];
       for(const k of karts.values()) {
-        if(k.id===s.owner || !k.alive || !k.connected) continue;
+        if(!opponent(s.owner,k) || !k.alive || !k.connected) continue;
         const a=before.get(k.id),b=after.get(k.id);
         // A respawn is a teleport epoch, never a swept target across the arena.
         const start=a.epoch===b.epoch?hull(a):hull(b), finish=lerp(start,hull(b),h/dt);
@@ -546,7 +609,7 @@ function createElevatedCombat(RAPIER,config,map,seats,options={}) {
       k.rammingT=Math.max(0,k.rammingT-dt);
       const me=hull(after.get(k.id));
       for(const v of karts.values()){
-        if(v.id===k.id||!vulnerable(v))continue;
+        if(!opponent(k.id,v)||!vulnerable(v))continue;
         const o=hull(after.get(v.id));
         if(Math.hypot(o.x-me.x,o.z-me.z)<B.RAM_REACH&&Math.abs(o.y-me.y)<1.6&&los(me,o))damage(v,k.id,'ram',k.ramVolley);
       }
@@ -560,7 +623,7 @@ function createElevatedCombat(RAPIER,config,map,seats,options={}) {
       if(oldArm<dt && remaining>0) {
         let best=null,bestT=Infinity;
         for(const k of karts.values()) {
-          if(k.id===m.owner || !vulnerable(k)) continue;
+          if(!opponent(m.owner,k) || !vulnerable(k)) continue;
           const a=before.get(k.id),b=after.get(k.id);
           if(a.epoch!==b.epoch) continue;
           const start=lerp(a.position,b.position,startFraction),end=lerp(a.position,b.position,endFraction);
@@ -598,7 +661,7 @@ function createElevatedCombat(RAPIER,config,map,seats,options={}) {
           // bounded segment after a bounce. Static cover wins equal contacts.
           let fraction=hit?.fraction??Infinity;
           for(const k of karts.values()) {
-            if(k.id===g.owner || !k.alive || !k.connected) continue;
+            if(!opponent(g.owner,k) || !k.alive || !k.connected) continue;
             const a=before.get(k.id),b=after.get(k.id),start=a.epoch===b.epoch?hull(a):hull(b);
             const from=lerp(start,hull(b),(h-remaining)/dt),to=lerp(start,hull(b),h/dt);
             const t=hullImpact(g.position,end,from,to,Math.sqrt(B.ZAP_HIT_R2));
@@ -622,7 +685,7 @@ function createElevatedCombat(RAPIER,config,map,seats,options={}) {
         g.ttl-=h;
         if(g.ttl<=1e-8){grenades.splice(i,1);continue;}
         if(wasLanded&&g.landed)g.arm=Math.max(0,g.arm-h);
-        if(g.landed&&g.arm<=1e-8&&[...karts.values()].some(k=>k.id!==g.owner&&vulnerable(k)&&distance(hull(after.get(k.id)),g.position)<COMBAT.weapons[g.weapon].triggerRadius&&los(g.position,hull(after.get(k.id))))){
+        if(g.landed&&g.arm<=1e-8&&[...karts.values()].some(k=>opponent(g.owner,k)&&vulnerable(k)&&distance(hull(after.get(k.id)),g.position)<COMBAT.weapons[g.weapon].triggerRadius&&los(g.position,hull(after.get(k.id))))){
           splash(g.position,g.owner,heavy.splashRadius,g.weapon);
           emit('blast',g.owner,{weapon:g.weapon,position:g.position});grenades.splice(i,1);
         }
@@ -649,8 +712,10 @@ function createElevatedCombat(RAPIER,config,map,seats,options={}) {
   }
   function finish(reason='deadline') {
     if(phase==='done') return;
-    phase='done'; const scores=[...karts.values()].map(k=>({id:k.id,hits:k.hits,deaths:k.deaths,...(k.out?{out:true}:{})})), active=scores.filter(s=>!s.out), best=Math.max(...active.map(s=>s.hits));
-    resultData={instance,mapId:M.id,reason,endedAt:reason==='deadline'?deadline:simAt,scores,winners:active.filter(s=>s.hits===best).map(s=>s.id)};
+    team?.finish(simAt,reason==='deadline'?'deadline':reason==='players-left'?'abandonment':'target');
+    const teams=team?.snapshot(),teamScores=new Map((teams?.teams||[]).map(t=>[t.id,t.score]));
+    phase='done'; const scores=[...karts.values()].map(k=>({id:k.id,hits:k.hits,stars:k.stars,score:starRush?k.stars:team?teamScores.get(teams.teamByPlayer[k.id])||0:k.hits,deaths:k.deaths,...(k.out?{out:true}:{})})), active=scores.filter(s=>!s.out), best=Math.max(...active.map(s=>s.score));
+    resultData={instance,mapId:M.id,reason,endedAt:reason==='deadline'?deadline:simAt,scores,winners:active.filter(s=>s.score===best).map(s=>s.id),...(team?{teamResult:team.result()}: {})};
     for(const k of karts.values()) {clean(k);physics.freezeKart(k.id,true);}
     shots.length=0;mines.length=0;grenades.length=0;
     emit('result',null,{winners:resultData.winners});
@@ -678,7 +743,7 @@ function createElevatedCombat(RAPIER,config,map,seats,options={}) {
         if(p.fire && p.item===k.itemSeq && !k.sequence && at-p.at<=H.INPUT_TTL_MS && !k.pendingFire) {k.pendingFire=true;k.pendingFireAt=p.at;}
       }
       if(k.lastInputAt===null || at-k.lastInputAt>H.INPUT_TTL_MS) { clearElevatedDrift(k);k.input=neutral();k.pendingFire=false;k.nitroActive=false; }
-      k.shield=Math.max(0,k.shield-dt);k.fireCd=Math.max(0,k.fireCd-dt);
+      k.shield=Math.max(0,k.shield-dt);k.fireCd=Math.max(garage&&k.sequence?-dt:0,k.fireCd-dt);
       k.frostT=Math.max(0,k.frostT-dt);k.spinT=Math.max(0,k.spinT-dt);
 
     }
@@ -713,7 +778,9 @@ function createElevatedCombat(RAPIER,config,map,seats,options={}) {
       collisionAt.set(key,at);
       emit(Math.abs(contact.normal.y)>.7?'landing':'collision',ids[0],{...contact,other:ids[1]||null});
     }
-    updateShots(before,after);updateMines(before,after);updateGrenades(before,after);updateRams(after);
+    if(!starRush){updateShots(before,after);updateMines(before,after);updateGrenades(before,after);updateRams(after);}
+    else updateStars();
+    team?.update(at,roster(after));if(team?.done()){finish(team.result()?.reason==='target'?'target':team.result()?.reason==='abandonment'?'players-left':'deadline');return;}
     if(targetReached) {finish('target');return;}
     if(M.arenaVersion)for(const c of crates){
       const available=at>=c.availableAt;
@@ -735,9 +802,9 @@ function createElevatedCombat(RAPIER,config,map,seats,options={}) {
     for(const k of karts.values()) {
       if(!k.connected || !k.alive) continue;
       const p=physics.pose(k.id);
-      if(elevatedFallZone(M,p.position) || p.position.y < -12 || Math.abs(p.position.x)>M.half+8 || Math.abs(p.position.z)>M.half+8) { k.alive=false;k.health=0;k.respawn=B.RESPAWN_TIME;k.weapon=null;k.ammo=0;k.shield=0;k.guard=false;clean(k);k.controlEpoch++;physics.freezeKart(k.id,true);physics.setKartEnabled(k.id,false);emit('recovery',k.id);continue; }
+      if(elevatedFallZone(M,p.position) || p.position.y < -12 || Math.abs(p.position.x)>M.half+8 || Math.abs(p.position.z)>M.half+8) { if(starRush)k.stars=Math.max(0,k.stars-1);k.alive=false;k.health=0;k.respawn=B.RESPAWN_TIME;k.weapon=null;k.ammo=0;k.shield=0;k.guard=false;clean(k);k.controlEpoch++;physics.freezeKart(k.id,true);physics.setKartEnabled(k.id,false);emit('recovery',k.id);if(starRush){k.respawn=0;respawn(k);}continue; }
       if(recoverStuck(k,p)) continue;
-      if(k.weapon || k.sequence || activeKartPower(k) || !p.grounded) continue;
+      if(starRush || k.weapon || k.sequence || activeKartPower(k) || !p.grounded) continue;
       for(const c of crates) {
         if(at<c.availableAt || c.blocked?.has(k.id) || distance(p.position,c.position)>Math.sqrt(B.PICKUP_R2) || !p.wheels.some(w=>w.contact&&(w.surfaceId===c.surfaceId||c.supportIds?.includes(w.surfaceId))) || !los(c.position,p.position)) continue;
         k.itemSeq++;k.weapon=rewardPolicy?rewardPolicy.roll(c.profile,at-liveAt):rollWeapon();k.ammo=k.weapon==='machinegun'?ARSENAL.machinegun.ammo:(COMBAT.weapons[k.weapon]?.ammo||1);award(k,B.COIN_PICKUP,'pickup-'+c.id);emit('pickup',k.id,{weapon:k.weapon,crateId:c.id,position:c.position});
@@ -770,8 +837,8 @@ function createElevatedCombat(RAPIER,config,map,seats,options={}) {
   }
   function snapshot(viewer=null) {
     alive();
-    return structuredClone({instance,profile:'internal-elevated-combat-v2',combat:COMBAT,projectileRadii:COMBAT.staticSweepRadii,physicsVersion:physics.apiVersion,configVersion:C.version,mapId:M.id,mapRevision:M.revision,...(M.arenaVersion?{variantId:M.variantId,arenaVersion:M.arenaVersion,enabledDistricts:M.enabledDistricts}:{}),phase,simTick,simAt,serverAt:wallAt,liveAt,deadline,droppedMs,
-      karts:[...karts.values()].map(k=>({id:k.id,name:k.name,connected:k.connected,...(k.out?{out:true}:{}),alive:k.alive,health:k.health,maxHealth:k.maxHealth,hits:k.hits,deaths:k.deaths,spawnSeq:k.spawnSeq,controlEpoch:k.controlEpoch,weapon:normalizeWeapon(k.weapon),...(k.weapon==='missile'?{lockTarget:missileLock(k.id,add(physics.pose(k.id).position,rotate(CURATED_MUZZLE,physics.pose(k.id).rotation)),weaponForward(physics.pose(k.id).rotation))?.id||null}:{}),ammo:k.ammo,firing:!!k.sequence,shield:k.shield,guard:k.guard,respawn:k.respawn,nitro:k.nitro,nitroActive:k.nitroActive,frostT:k.frostT,spinT:k.spinT,rammingT:k.rammingT,bladesT:k.bladesT||0,bladesAge:k.bladesAge||0,supernovaT:k.supernovaT||0,...Object.fromEntries(ELEVATED_MOTION_FIELDS.map(key=>[key,k[key]??(key==='surface'?'road':key==='flight'?null:0)])),pose:physics.pose(k.id)})),
+    return structuredClone({instance,profile:'internal-elevated-combat-v2',combat:COMBAT,projectileRadii:COMBAT.staticSweepRadii,physicsVersion:physics.apiVersion,configVersion:C.version,mapId:M.id,mapRevision:M.revision,mode,garage,...(team?team.snapshot():{}),...(starRush?{stars:stars.map(({id,x,y,z})=>({id,x,y,z}))}:{}),...(M.arenaVersion?{variantId:M.variantId,arenaVersion:M.arenaVersion,enabledDistricts:M.enabledDistricts}:{}),phase,simTick,simAt,serverAt:wallAt,liveAt,deadline,droppedMs,
+      karts:[...karts.values()].map(k=>({id:k.id,name:k.name,connected:k.connected,...(k.out?{out:true}:{}),alive:k.alive,health:k.health,maxHealth:k.maxHealth,hits:k.hits,stars:k.stars,garage:k.garage,upgrades:k.upgrades,tuning:k.tuning,deaths:k.deaths,spawnSeq:k.spawnSeq,controlEpoch:k.controlEpoch,weapon:normalizeWeapon(k.weapon),...(k.weapon==='missile'?{lockTarget:missileLock(k.id,add(physics.pose(k.id).position,rotate(CURATED_MUZZLE,physics.pose(k.id).rotation)),weaponForward(physics.pose(k.id).rotation))?.id||null}:{}),ammo:k.ammo,firing:!!k.sequence,shield:k.shield,guard:k.guard,respawn:k.respawn,nitro:k.nitro,nitroActive:k.nitroActive,frostT:k.frostT,spinT:k.spinT,rammingT:k.rammingT,bladesT:k.bladesT||0,bladesAge:k.bladesAge||0,supernovaT:k.supernovaT||0,...Object.fromEntries(ELEVATED_MOTION_FIELDS.map(key=>[key,k[key]??(key==='surface'?'road':key==='flight'?null:0)])),pose:physics.pose(k.id)})),
       crates:crates.map(c=>({id:c.id,position:c.position,surfaceId:c.surfaceId,available:c.availableAt<=simAt,...(M.arenaVersion?{homeId:c.socketId,profile:c.profile,readyInMs:Math.max(0,c.availableAt-simAt)}:{})})),
       projectiles:shots,mines:mines.map(m=>({...m,armed:m.arm<=0})),grenades:grenades.map(g=>({...g,...(proximityCharge(g.weapon)?{armed:g.landed&&g.arm<=1e-8,warning:g.landed&&g.arm<=1e-8}:{warning:g.weapon==="nuke"&&g.fuse<=(ARSENAL[g.weapon]?.warning??B.GRENADE_WARN)})})),events,
       you:privateStatus(viewer),result:resultData});
@@ -781,7 +848,7 @@ function createElevatedCombat(RAPIER,config,map,seats,options={}) {
     alive(); if(phase!=='done' || !next || next.instance===instance || !validId(next.instance)) throw new Error('finished instance and fresh rematch id required');
     return createElevatedCombat(RAPIER,C,M,seats,{...options,...next});
   }
-  function dispose() {if(disposed)return;for(const k of karts.values())clean(k);motion?.dispose();physics.dispose();shots.length=0;mines.length=0;grenades.length=0;crates.length=0;events.length=0;collisionAt.clear();volleyHits.clear();karts.clear();disposed=true;}
+  function dispose() {if(disposed)return;for(const k of karts.values())clean(k);motion?.dispose();physics.dispose();shots.length=0;mines.length=0;grenades.length=0;crates.length=0;stars.length=0;team=null;events.length=0;collisionAt.clear();volleyHits.clear();karts.clear();disposed=true;}
   function stats() {return {instance,disposed,karts:karts.size,projectiles:shots.length,mines:mines.length,grenades:grenades.length,queuedInputs:[...karts.values()].reduce((n,k)=>n+k.queue.length,0),recovery:[...karts.values()].map(k=>({id:k.id,stuckSeconds:k.stuck?.seconds||0,retryAt:k.stuck?.retryAt||0,cooldownUntil:k.recoverAfter})),physics:physics.stats()};}
   return Object.freeze({input,setConnected,drop,advance,snapshot,privateStatus,result,rematch,dispose,stats});
 }

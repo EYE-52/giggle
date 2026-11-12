@@ -63,7 +63,7 @@ async function main() {
   eq(labels.options, ['Rookie Ring', 'Bumper Blocks', 'Garden Circuit', 'Frosty Pass', 'Neon Yard', 'Rookie Ribbons', 'Skyport Split', 'Garden Crown', 'Frostbite Crescent', 'Neon Switchyard', 'Harbor Fork', 'Foundry Wheel', 'Skyport', 'Foundry', 'Alpine Courtyard', 'Frost Quarry', 'Neon Harbor', 'Harbor Heights']);
   eq(labels.def, 'Rookie Ribbons', 'new rooms default to the launch rotation');
   const mode = def.manifest.settings.find(s => s.key === 'mode');
-  eq(mode.options, ['Star Rush', 'Zap Battle', 'Garage Battle']);
+  eq(mode.options, ['Star Rush', 'Zap Battle', 'Garage Battle', 'Team Battle', 'Capture the Flag']);
 
   let frees = 0, creations = 0, loaderCalls = 0, resolveLoad;
   class CountedWorld extends base.RAPIER.World {
@@ -85,8 +85,7 @@ async function main() {
   eq(loaderCalls, 1, 'initialize runs once and does not replace dependencies');
   for (const bad of [{ ...settings('Alpine Courtyard'), mode: 'Star Rush' },
     { ...settings('Frost Quarry'), mode: 'Garage Battle' }]) {
-    ok(unready.start(bad).error.includes('require Zap Battle'), 'initialized unsupported combination stays rejected');
-    eq(unready.r.game, old);eq(probe.disposals,0);
+    eq(def.preflight(bad),{ok:true},'initialized raised Star/Garage mode is supported');
   }
   eq(def.preflight({ ...settings('Neon Harbor'), winRule: 'Score target' }), { ok: true }, 'elevated arenas accept a score target');
   eq(def.preflight({ map: 'Garden Circuit' }), { ok: true }, 'initialized original arena available');
@@ -282,9 +281,9 @@ async function main() {
     m.advance(20); const weapon = m.snapshot().karts[0].weapon; m.dispose(); if (weapon === 'machinegun') break;
   }
   ok(seed < 256, 'bounded real pickup selects a Pulse seed');
-  const legal = freshDef();
+  const legal = freshDef();let legalMatch;
   await legal.initialize(async () => ({ ...base, maps: diagnostic,
-    createMatch: (R, C, M, seats, opts) => createElevatedCombat(R, C, M, seats, { ...opts, seed, crates: 1, initialHealth: 1 }) }));
+    createMatch: (R, C, M, seats, opts) => (legalMatch=createElevatedCombat(R, C, M, seats, { ...opts, seed, crates: 1, initialHealth: 1 })) }));
   const battle = room(legal), b = battle.r;
   now = 2000000; Date.now = () => now;
   try {
@@ -313,10 +312,24 @@ async function main() {
     const impact=ko.events.filter(e=>e.type==='impact'&&e.weapon==='machinegun').at(-1);ok(impact.from&&Object.values(impact.from).every(Number.isFinite)&&impact.position.z>impact.from.z,'Room projects the authoritative final Pulse sweep for confirmed feedback');
     eq(ko.coins, 11); ok(Object.values(b.totals).every(v => v === 0), 'KO coins remain distinct from deferred Room score');
     pump(45); ok(latest(battle.clients[0].ws).karts[1].alive, 'real safe respawn completes'); eq(latest(battle.clients[0].ws).karts[1].health, 100, 'respawn restores all three hearts');
-    now = initial.deadline; b.onTick(); const done = latest(battle.clients[0].ws);
+    now = initial.deadline; b.onTick(); const done = latest(battle.clients[0].ws),beforeFinishCoins=legalMatch.privateStatus(battle.clients[0].p.id).coins;
     eq(done.result.winner, battle.clients[0].p.id); eq(done.result.winners, [battle.clients[0].p.id]);
     eq(b.totals[battle.clients[0].p.id], 300); eq(b.totals[battle.clients[1].p.id], 200, 'Room awards place points (300 / 200) exactly once');
     pump(5); b.broadcastState(); eq(b.totals[battle.clients[0].p.id], 300);
+    eq(latest(battle.clients[0].ws).coins,beforeFinishCoins+20,'pickup + KO + participation + winner coins persist exactly once');
+    eq(latest(battle.clients[1].ws).coins,5,'other driver receives only their participation wallet');
+    send(b,battle.clients[0],{garage:{category:'engine',nonce:'raised-engine-1'}});b.broadcastState();
+    const bought=latest(battle.clients[0].ws);
+    eq(bought.coins,beforeFinishCoins,'real results purchase spends the shared twenty-coin price');eq(bought.garageResult.ok,true);
+    eq(bought.upgrades[battle.clients[0].p.id].engine,1);eq(latest(battle.clients[1].ws).garageResult,null,'purchase receipt remains private');
+    send(b,battle.clients[0],{garage:{category:'engine',nonce:'raised-engine-1'}});b.broadcastState();
+    eq(latest(battle.clients[0].ws).coins,beforeFinishCoins,'duplicate purchase cannot spend again');ok(latest(battle.clients[0].ws).garageResult.error.includes('Duplicate'));
+    send(b,battle.clients[0],{garage:{category:'engine',nonce:'raised-forged',pid:battle.clients[1].p.id}});b.broadcastState();
+    eq(latest(battle.clients[0].ws).coins,beforeFinishCoins,'a driver cannot spend on another seat');
+    eq(battle.start({...settings('Alpine Courtyard'),mode:'Garage Battle'}),{ok:true},'raised Garage rematch keeps same room wallet');
+    const upgraded=latest(battle.clients[0].ws),mine=upgraded.karts.find(k=>k.id===upgraded.you);
+    eq(upgraded.coins,beforeFinishCoins);eq(mine.upgrades.engine,1);eq(mine.tuning.top,1.05);eq(mine.tuning.accel,1.05);eq(upgraded.garage,true);
+
   } finally { Date.now = originalNow; b.destroy(); }
   console.log(JSON.stringify({ pass: true, checks, node: process.version, rapier: base.RAPIER.version(),
     scope: 'Production facade/Room with real Rapier, authored four-map starts, 8 drivers/16 watchers, controlled server clock, legal combat on an explicitly diagnostic map; no browser claim.' }, null, 2));

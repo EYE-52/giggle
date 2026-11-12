@@ -54,11 +54,12 @@ export function createElevatedMotion({physics,map,karts,emit}){
     else{k.nitroActive=false;k.nitro=Math.min(1,k.nitro+.15*dt);}
     const active=stepDrift(k,dt,p.grounded&&!(k.spinT>0),s.driftEase,{...input,drift:input.brake>.5});
     const boost=Math.max(k.nitroActive?1.5:1,k.turbo>0?1.35:1,k.rammingT>0?1.5:1),frost=k.frostT>0?.55:1,spun=k.spinT>0;
+    const engine=k.garage?1+.05*clamp(k.upgrades?.engine||0,0,3):1,handling=k.garage?1+.04*clamp(k.upgrades?.handling||0,0,3):1;
     const grip=p.grounded?s.traction:1,top=p.grounded?s.top:1;
     // Rapier already applies the authored wheel collider grip. Normalize it
     // once here so ice does not have its friction multiplied twice.
-    physics.tuneKart(k.id,{top:clamp(boost*frost*top*(active?1.08:1),.1,2),engine:clamp(Math.max(k.nitroActive?1.75:1,k.turbo>0?1.6:active?1.12:1,k.rammingT>0?1.6:1)*(frost<1?.7:1)*(.75+.25*top),.1,2),
-      steering:1,traction:clamp(grip/(d?.grip||1),.1,2),rearTraction:spun?.12:active?.55:1,rearStiffness:spun?.2:active?.7:1});
+    physics.tuneKart(k.id,{top:clamp(engine*boost*frost*top*(active?1.08:1),.1,2),engine:clamp(engine*Math.max(k.nitroActive?1.75:1,k.turbo>0?1.6:active?1.12:1,k.rammingT>0?1.6:1)*(frost<1?.7:1)*(.75+.25*top),.1,2),
+      steering:handling,traction:clamp(grip/(d?.grip||1),.1,2),rearTraction:spun?.12:active?.55:1,rearStiffness:spun?.2:active?.7:1});
     physics.arcadeSlide(k.id,{active:active&&!spun,direction:k.driftDirection||0,ease:s.driftEase,traction:grip});
     physics.applyIntent(k.id,{...input,brake:active?0:input.brake||0});
     applyElevatedBelts(physics,k.id,p,map,dt);
