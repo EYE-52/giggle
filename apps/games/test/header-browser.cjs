@@ -33,6 +33,7 @@ async function check(page, label, capture = true) {
   assert(bounds.header.height <= 60, label + ' dock stays shallow');
   assert(bounds.dockLeft >= 0 && bounds.dockLeft <= 16, label + ' intentional small left inset');
   assert(bounds.viewport - bounds.dockRight >= 0 && bounds.viewport - bounds.dockRight <= 16, label + ' intentional small right inset');
+  assert(bounds.dockRight - bounds.controls.at(-1).right >= 12, label + ' space between the last action and the dock edge');
   assert(bounds.radius >= 16, label + ' lower corners form a dock');
   assert(Math.abs(bounds.brand.x - (bounds.app.x + bounds.gutter)) < 1, label + ' brand keeps the content grid');
   for (const control of bounds.controls) {
@@ -50,6 +51,48 @@ async function check(page, label, capture = true) {
   assert(painted.every((value, i) => Math.abs(value - line[i]) <= 2), label + ' bottom divider follows the dock');
   return bounds;
 }
+async function checkUtilities(page, width) {
+  const buttons = page.locator('.topbar-actions button');
+  assert.equal(await buttons.count(), 3);
+  const inspect = n => {
+    const s = getComputedStyle(n), r = n.getBoundingClientRect();
+    const ink = n.querySelector('svg').getBoundingClientRect();
+    return {
+      surface: [s.backgroundColor, s.borderColor, s.borderWidth, s.borderRadius, s.boxShadow, s.transform, s.color],
+      outline: [s.outlineStyle, s.outlineWidth, s.outlineColor, s.outlineOffset],
+      left:r.left, right:r.right, height:r.height, icon: [ink.width, ink.height],
+      textVisible:n.querySelector('.hlabel').getClientRects().length > 0
+    };
+  };
+  await page.mouse.move(0, 0);
+  const states = [];
+  for (const button of await buttons.all()) states.push(await button.evaluate(inspect));
+  for (const [index, state] of states.entries()) {
+    assert.deepEqual(state.surface, states[0].surface, 'same resting face, stroke and shadow for each action');
+    assert.equal(state.surface[2], '1px'); assert.equal(state.surface[4], 'none');
+    assert.deepEqual(state.icon, [18, 18]); assert.equal(state.height, 44);
+    assert.equal(state.textVisible, width > 720);
+    if (index) assert(state.left - states[index-1].right >= 12, 'space between adjacent actions');
+  }
+  if (await page.evaluate(() => matchMedia('(hover:hover)').matches)) {
+    const hovered = [];
+    for (const button of await buttons.all()) { await button.hover(); hovered.push((await button.evaluate(inspect)).surface); }
+    assert(hovered.every(face => JSON.stringify(face) === JSON.stringify(hovered[0])), 'hover feedback matches across controls');
+    await page.mouse.move(0, 0);
+  }
+  await page.locator('.topbar .brand').focus();
+  let expectedRing;
+  for (const button of await buttons.all()) {
+    await page.keyboard.press('Tab');
+    assert(await button.evaluate(n => n === document.activeElement && n.matches(':focus-visible')));
+    const { outline } = await button.evaluate(inspect);
+    assert(parseFloat(outline[1]) >= 2);
+    if (expectedRing) assert.deepEqual(outline, expectedRing);
+    expectedRing = outline;
+  }
+  await page.locator('.topbar .brand').focus();
+  await page.locator('.topbar .brand').evaluate(n => n.blur());
+}
 async function visit(url, viewport, theme) {
   const context = await browser.newContext({ viewport, isMobile:viewport.width < 560, hasTouch:viewport.width < 560, deviceScaleFactor:1 });
   await context.addInitScript(t => localStorage.setItem('pb_theme', t), theme);
@@ -58,6 +101,7 @@ async function visit(url, viewport, theme) {
   try {
     await page.goto(url);
     await page.locator('.home-picks .pick').first().waitFor();
+    await checkUtilities(page, viewport.width);
     const initial = await check(page, label + '-home');
     await page.evaluate(() => scrollTo(0, 700));
     await check(page, label + '-sticky');
@@ -99,7 +143,7 @@ async function visit(url, viewport, theme) {
     }
   }
   browser = await chromium.launch({ headless:true, ...(process.env.HEADER_BROWSER_PATH ? { executablePath:process.env.HEADER_BROWSER_PATH } : { channel:'chromium' }) });
-  for (const theme of ['day', 'night']) for (const viewport of [{width:2048,height:900}, {width:1280,height:800}, {width:390,height:844}, {width:320,height:568}]) await visit(url, viewport, theme);
+  for (const theme of ['day', 'night']) for (const viewport of [{width:2048,height:900}, {width:1280,height:800}, {width:721,height:700}, {width:720,height:700}, {width:390,height:844}, {width:320,height:568}]) await visit(url, viewport, theme);
   report.pass = true;
   console.log('HEADER_BROWSER_PASS', report.cases.length, 'normal-entry desktop/mobile Day/Night home, sticky, theme, sound, report and lobby cases');
 })().catch(error => { report.error = error.stack; console.error(error.stack); process.exitCode = 1; }).finally(async () => {

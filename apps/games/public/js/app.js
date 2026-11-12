@@ -1014,18 +1014,19 @@ function topbar() {
     : `<a class="brand" href="/" data-nav>${BRANDMARK}<span>Game Night<span class="dot">.</span></span><small>by Giggle</small></a>`;
   return `<div class="topbar">
     ${brand}
-    <div class="row">
+    <div class="topbar-actions" role="group" aria-label="Game controls">
       ${room && !EMBED.enabled ? `<div class="roomchip" title="Share this code">${esc(room.code)}</div>` : ''}
       ${reportButton()}
-      ${document.body.classList.contains('is-embed') ? '' : `<button class="btn ghost hbtn" id="bTheme" title="Switch theme" aria-label="Switch theme, current ${themeName(theme())}">${themeIcon(theme())}<span class="hlabel">${themeName(theme())}</span></button>`}
-      <button class="btn ghost hbtn" id="bSound" title="Sound on/off" aria-label="${sound.enabled ? 'Mute sound' : 'Unmute sound'}" data-state="${sound.enabled ? 'on' : 'off'}">${soundIcon(sound.enabled)}<span class="hlabel">${sound.enabled ? 'Sound on' : 'Muted'}</span></button>
+      ${document.body.classList.contains('is-embed') ? '' : `<button class="hbtn" type="button" id="bTheme" title="Switch theme" aria-label="Switch theme, current ${themeName(theme())}">${themeIcon(theme())}<span class="hlabel">${themeName(theme())}</span></button>`}
+      <button class="hbtn" type="button" id="bSound" title="Sound on/off" aria-label="${sound.enabled ? 'Mute sound' : 'Unmute sound'}" data-state="${sound.enabled ? 'on' : 'off'}">${soundIcon(sound.enabled)}<span class="hlabel">${sound.enabled ? 'Sound on' : 'Muted'}</span></button>
     </div>
   </div>
   ${connbarHtml()}`;
 }
 
 function reportButton(extraClass = '') {
-  return `<button type="button" class="report-icon ${extraClass}" data-report aria-label="Report an issue" title="Report an issue"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 4H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h3l4 3v-3h9a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2Z"/><path d="M12 8v4m0 3h.01"/></svg></button>`;
+  const label = extraClass ? '' : '<span class="hlabel">Report</span>';
+  return `<button type="button" class="report-icon ${extraClass || 'hbtn'}" data-report aria-label="Report an issue" title="Report an issue"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 4H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h3l4 3v-3h9a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2Z"/><path d="M12 8v4m0 3h.01"/></svg>${label}</button>`;
 }
 
 function meetFooter() {

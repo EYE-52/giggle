@@ -320,13 +320,30 @@ body:not(.is-embed) .topbar::before {
 }
 .brand .dot { color: var(--accent); }
 .brandmark { flex: none; display: block; }
-/* Compact header utilities: icon + readable label. Icons are inline SVG
- * in the DOM (JS repaints icon + label on toggle); no pseudo glyphs. */
-.topbar .btn.ghost { min-height: 44px; padding: 7px 14px; font-size: 14px; border-width: 1px; box-shadow: none; }
-.topbar .hbtn { gap: 8px; }
+/* One control style for Report, theme and sound in either color scheme. */
+.topbar-actions { display: flex; flex: none; align-items: center; gap: 16px; }
+.topbar .hbtn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 9px;
+  min-width: 44px; height: 44px; padding: 0 14px;
+  border: 1px solid var(--line); border-radius: 12px;
+  background: var(--card); color: var(--ink); font: var(--text-button-sm); font-size: 14px;
+  cursor: pointer; touch-action: manipulation;
+}
 .topbar .hbtn svg { width: 18px; height: 18px; flex: none; display: block; }
 .topbar .hbtn .hlabel { white-space: nowrap; }
-.topbar #bSound[data-state="off"] { opacity: 0.6; }
+@media (hover: hover) {
+  .topbar .hbtn:hover { background: var(--well); border-color: var(--ink-dim); }
+}
+.topbar .hbtn:active { background: var(--well); border-color: var(--ink-dim); }
+.topbar .hbtn:focus-visible { outline: var(--focus-ring); outline-offset: 2px; }
+@media (max-width: 1280px) {
+  .topbar-actions { margin-inline-end: 8px; }
+}
+@media (max-width: 720px) {
+  .topbar-actions { gap: 12px; margin-inline-end: 4px; }
+  .topbar .hbtn { padding: 0; }
+  .topbar .hbtn .hlabel { display: none; }
+}
 .roomchip {
   font-family: var(--font-display); font-weight: 800; font-size: 15px;
   letter-spacing: 3px; text-indent: 3px;
@@ -1647,18 +1664,14 @@ body.is-embed .gamehead .btn { min-height: 42px; padding: 6px 14px; font-size: 1
   .btn { min-height: 50px; }
   .only-desktop { display: none !important; }
   .only-phone { display: revert !important; }
-  /* Compact single-row header: brand + code + two small actions.
+  /* Compact single-row header: brand, code and utility actions.
    * Icon-only, compact rounded rectangles (not circles): the label text
    * hides, the SVG icon and the meaningful aria-label stay. */
   .topbar { gap: 8px; flex-wrap: nowrap; }
-  .topbar .row { gap: 6px; margin-left: auto; flex: none; flex-wrap: nowrap; }
   .brand { font-size: 19px; overflow: hidden; text-overflow: ellipsis; }
   .brand small { display: none; }
   .brandmark { width: 24px; height: 24px; }
   .roomchip { font-size: 13px; letter-spacing: 2px; text-indent: 2px; padding: 4px 10px; }
-  .topbar .hbtn { padding: 6px 10px; min-height: 44px; min-width: 44px; border-radius: 12px; gap: 0; }
-  .topbar .hbtn .hlabel { display: none; }
-  #bSound[data-state="off"] { opacity: 0.55; }
   .partystrip { padding: 12px 14px; gap: 12px 16px; }
   .partystrip .player { font-size: 13px; }
   .ps-actions .btn { padding: 8px 16px; }
@@ -2189,7 +2202,6 @@ body .btn:disabled { opacity: 1; background: var(--well); color: var(--ink-dim);
   body .btn.ghost:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 calc(var(--lift-sm) + 2px) 0 var(--outline); }
   body .btn.sun:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 calc(var(--lift) + 2px) 0 var(--sun-lip); }
 }
-.topbar .btn.ghost { border-width: 2px; }
 .chip { border-width: 2px; border-color: var(--outline); background: var(--card); }
 .chip.sel { border-color: var(--accent); }
 @media (hover: hover) { .chip:hover { box-shadow: none; } }
@@ -2451,7 +2463,7 @@ body.game-playing[data-game] { --ink-dim:color-mix(in srgb,var(--ink) 82%,var(--
 body.is-embed .topbar { position: absolute; top: 6px; right: 8px; left: auto; margin: 0; padding: 0; background: none; border: 0; z-index: 30; }
 body.is-embed .topbar .brand { display: none; }
 body.is-embed .topbar .hbtn .hlabel { display: none; }
-body.is-embed .topbar .btn.ghost, body.is-embed .topbar .report-icon { min-height: 36px; min-width: 36px; padding: 6px; border-color: transparent; background: transparent; }
+body.is-embed .topbar .hbtn { height: 36px; min-height: 36px; min-width: 36px; padding: 6px; border-color: transparent; background: transparent; }
 body.is-embed .lobby { padding-top: 6px; gap: 16px; }
 body.is-embed .catbar .catpick, body.is-embed .catbar #custTog { display: none; }
 body.is-embed .catbar { flex-wrap: nowrap; }

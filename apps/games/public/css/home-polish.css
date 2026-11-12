@@ -298,8 +298,7 @@
 [data-theme="night"] .home-welcome h1 .pop::after,
 .hand-spark { display:none; }
 [data-theme="night"] .home-welcome .hero-cta .hero-create,
-[data-theme="night"] .home-welcome .hero-local,
-[data-theme="night"] .topbar .hbtn {
+[data-theme="night"] .home-welcome .hero-local {
   border:1px solid var(--line);
   border-radius:12px;
   box-shadow:none;
