@@ -59,7 +59,7 @@ function resultLabel() {
 function finalModel(done) {
   if (!done) return null;
   const me = state.youAre === null || state.spectator ? null : state.seats[state.youAre];
-  const rows = bkRank(state.seats.map((pid, i) => ({ name: nameOf(state, pid), points: state.scores?.[pid] ?? 0, you: pid === me, order: i })));
+  const rows = bkRank(state.seats.map((pid, i) => ({ name: nameOf(state, pid), points: state.scores?.[pid] ?? 0, you: !state.sameRoom && pid === me, order: i })));
   const winners = state.result.winnerPid ? [nameOf(state, state.result.winnerPid)] : state.seats.map(pid => nameOf(state, pid));
   return { headline: bkHeadline(winners), detail: reasonText(state.result), rows, ...bkHost(api) };
 }
@@ -90,7 +90,7 @@ function paint() {
     meta: bkMeta(state, text('variant')),
     players: [0, 1].map(side => {
       const count = (moving?.before || state.board).filter(p => p && sideOf(p) === side).length;
-      return { name: nameOf(state, state.seats[side]), side: text(side ? 'charcoal' : 'red'), chip: chip(side), color: PIECE[side][0], stat: count, statLabel: text(count === 1 ? 'man' : 'pieces'), turn: !done && !moving && !state.preparing && state.phase === 'play' && state.turn === side, you: state.youAre === side && !state.spectator };
+      return { name: nameOf(state, state.seats[side]), side: text(side ? 'charcoal' : 'red'), chip: chip(side), color: PIECE[side][0], stat: count, statLabel: text(count === 1 ? 'man' : 'pieces'), turn: !done && !moving && !state.preparing && state.phase === 'play' && state.turn === side, shared: state.sameRoom, you: state.youAre === side && !state.spectator };
     }),
     statusColor: done ? null : PIECE[state.turn][0],
     status: moving ? text('moving') : done ? resultLabel() : state.preparing ? '' : state.youAre === null ? text('watching') + ' · ' + nameOf(state, state.seats[state.turn]) : myTurn() ? text('yourTurn') : text('waiting'),

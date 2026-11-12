@@ -27,7 +27,7 @@ function plural(n, one, many = one + 's') { return `${n} ${n === 1 ? one : many}
 
 function paint(el, S, api) {
     ensureCss();
-    if (S.phase === 'done') { mountKey = ''; paintFinal(el, { scene: 'never-ever', scores: S.scores || {}, players: S.players || [], you: isWatch(S) ? null : S.me, watching: isWatch(S) }); return; }
+    if (S.phase === 'done') { mountKey = ''; paintFinal(el, { scene: 'never-ever', scores: S.scores || {}, players: S.players || [], you: S.sameRoom || isWatch(S) ? null : S.me, watching: isWatch(S) }); return; }
     liveApi = api;
     liveEl = el;
     liveState = S;
@@ -76,7 +76,7 @@ function paint(el, S, api) {
 
     const choices = el.querySelector('.never-choices');
     choices.hidden = done;
-    const picked = S.myVote;
+    const picked = S.sameRoom && reveal ? null : S.myVote;
     choices.classList.toggle('is-locked', !!picked && !reveal);
     choices.classList.toggle('is-reveal', reveal);
     const ballots = reveal ? S.last.votes || {} : {};
@@ -97,7 +97,7 @@ function paint(el, S, api) {
       if (facesEl.innerHTML !== faces) facesEl.innerHTML = faces;
       const pick = b.querySelector('.never-pick');
       pick.hidden = picked !== v || watch || reveal;
-      const pickHtml = pick.hidden ? '' : `${faceHtml(S, S.me)}Your answer · locked`;
+      const pickHtml = pick.hidden ? '' : `${faceHtml(S, S.me)}${esc(S.sameRoom ? `${nameOf(S, S.me)}’s answer` : 'Your answer')} · locked`;
       if (pick.innerHTML !== pickHtml) pick.innerHTML = pickHtml;
       b.onclick = () => sendAction({ vote: v });
     }
@@ -108,7 +108,7 @@ function paint(el, S, api) {
     status.hidden = done;
     status.classList.toggle('is-done', reveal);
     status.textContent = !S.statement && !reveal ? 'Dealing the next card…'
-      : reveal ? (watch ? 'Here is how the room answered.' : picked ? `You said ${picked === 'have' ? haveLabel : notLabel}${myPts ? ` · +${myPts} points` : ''}.` : 'You sat this one out.')
+      : reveal ? (watch || S.sameRoom ? 'Here is how the room answered.' : picked ? `You said ${picked === 'have' ? haveLabel : notLabel}${myPts ? ` · +${myPts} points` : ''}.` : 'You sat this one out.')
       : watch ? `Watching · waiting for ${plural(waiting, 'player')}`
       : picked ? `Locked in: ${picked === 'have' ? haveLabel : notLabel} · waiting for ${plural(waiting, 'player')}`
       : 'Tap Have or Never. Answers stay secret until the reveal.';

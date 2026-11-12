@@ -112,7 +112,7 @@ function beginPending(el, c) {
 function finalModel(S, c) {
   if (S.phase !== 'done' || c.settling) return null;
   const me = S.youAre && !S.spectator ? S.seats[S.youAre - 1] : null;
-  const rows = bkRank(S.seats.map((pid, i) => ({ name: nameOf(S, pid), points: S.scores?.[pid] ?? 0, you: pid === me, order: i, note: `${S.counts[i]} discs` })));
+  const rows = bkRank(S.seats.map((pid, i) => ({ name: nameOf(S, pid), points: S.scores?.[pid] ?? 0, you: !S.sameRoom && pid === me, order: i, note: `${S.counts[i]} discs` })));
   const winners = S.result?.winnerPid ? [nameOf(S, S.result.winnerPid)] : S.seats.map(pid => nameOf(S, pid));
   const lose = S.result?.winner ? nameOf(S, S.seats[2 - S.result.winner]) : '';
   const detail = S.result?.reason === 'complete' ? (S.result.winner ? `${S.counts[S.result.winner - 1]} discs to ${S.counts[2 - S.result.winner]}.` : `${S.counts[0]} discs each.`) : bkReason(S.result?.reason, lose);
@@ -125,7 +125,7 @@ function paintRail(el, c) {
   const counts = c.settling ? c.countsBefore : S.counts;
   bkPaint(el, {
     meta: bkMeta(S),
-    players: [1, 2].map(side => ({ name: nameOf(S, S.seats[side - 1]), side: sideName(side), chip: chip(side), color: DISC[side][side === 1 ? 0 : 1], stat: counts[side - 1], statLabel: 'discs', turn: S.phase === 'play' && !c.settling && S.turn === side, you: S.youAre === side && !S.spectator })),
+    players: [1, 2].map(side => ({ name: nameOf(S, S.seats[side - 1]), side: sideName(side), chip: chip(side), color: DISC[side][side === 1 ? 0 : 1], stat: counts[side - 1], statLabel: 'discs', turn: S.phase === 'play' && !c.settling && S.turn === side, shared: S.sameRoom, you: S.youAre === side && !S.spectator })),
     statusColor: S.phase === 'done' ? null : DISC[S.turn][S.turn === 1 ? 0 : 1],
     status: S.preparing ? 'Getting the table ready…' : c.pending ? 'Placing your disc…' : c.settling ? `Flipping ${S.lastMove.flips.length} ${S.lastMove.flips.length === 1 ? 'disc' : 'discs'}…` : c.retry ? 'Move not confirmed. Try again.' : status(S),
     timer: bkTimer(S, c.api), done: S.phase === 'done', player: !!me, busy: c.pending || c.settling || !!S.preparing,

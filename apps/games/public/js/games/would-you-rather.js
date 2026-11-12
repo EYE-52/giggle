@@ -25,7 +25,7 @@ function paint(el, S, api) {
   ensureCss();
   if (S.phase === 'done') {
     mountedKey = '';
-    paintFinal(el, { scene: 'would-you-rather', scores: S.scores || {}, players: S.players || [], you: watching(S) ? null : S.me, watching: watching(S) });
+    paintFinal(el, { scene: 'would-you-rather', scores: S.scores || {}, players: S.players || [], you: S.sameRoom || watching(S) ? null : S.me, watching: watching(S) });
     return;
   }
   const key = `${S.instanceId || ''}:${S.me}:${Math.min(S.round, S.rounds)}:${S.prompt?.a}:${S.prompt?.b}`;
@@ -58,7 +58,7 @@ function paint(el, S, api) {
   const watch = watching(S);
   const done = S.phase === 'done';
   const reveal = (S.phase === 'reveal' || done) && !!S.last;
-  const picked = S.myVote || (S.phase === 'vote' ? pendingVote : null);
+  const picked = S.sameRoom && reveal ? null : S.myVote || (S.phase === 'vote' ? pendingVote : null);
   const ballots = reveal ? S.last.votes || {} : {};
   const votes = Object.values(ballots).length;
   const total = (S.players || []).length;
@@ -70,12 +70,12 @@ function paint(el, S, api) {
   el.querySelector('#wyrPhase').textContent = done ? 'Final scores' : reveal ? 'Results' : 'Vote';
   el.querySelector('#wyrWatch').hidden = !watch;
   el.querySelector('#wyrTitle').textContent = done ? 'Final scores' : 'Would you rather…';
-  el.querySelector('#wyrProgress').textContent = done ? '' : reveal ? `${votes} vote${votes === 1 ? '' : 's'}` : `${voted} of ${total} locked in`;
+  el.querySelector('#wyrProgress').textContent = done ? '' : reveal ? `${votes} vote${votes === 1 ? '' : 's'}` : `${voted}/${total} voted`;
   const status = el.querySelector('#wyrStatus');
   const waitingFor = Math.max(0, total - voted);
   status.textContent = !S.prompt ? 'Shuffling choices…'
     : reveal && !votes ? 'Nobody voted in this round.'
-    : reveal ? (watch ? 'Here is how the room voted.' : picked ? `You picked ${picked.toUpperCase()}.` : 'You sat this one out.')
+    : reveal ? (watch || S.sameRoom ? 'Here is how the room voted.' : picked ? `You picked ${picked.toUpperCase()}.` : 'You sat this one out.')
     : watch ? `Watching · waiting for ${waitingFor} player${waitingFor === 1 ? '' : 's'}`
     : picked ? (S.myVote ? `Locked in · waiting for ${waitingFor} player${waitingFor === 1 ? '' : 's'}` : 'Locking in your choice…')
     : 'Pick the one you would rather do.';
@@ -110,7 +110,8 @@ function paint(el, S, api) {
     const pick = button.querySelector('.wyr-pick');
     const showPick = picked === side && !watch && !reveal;
     pick.hidden = !showPick;
-    const pickHtml = showPick ? `${faceHtml(S, S.me)}${S.myVote ? 'Your pick · locked' : 'Your pick'}` : '';
+    const pickName = S.sameRoom ? `${nameOf(S, S.me)}’s pick` : 'Your pick';
+    const pickHtml = showPick ? `${faceHtml(S, S.me)}${esc(pickName)}${S.myVote ? ' · locked' : ''}` : '';
     if (pick.innerHTML !== pickHtml) pick.innerHTML = pickHtml;
   });
   paintLiveStrip(scene, S, reveal

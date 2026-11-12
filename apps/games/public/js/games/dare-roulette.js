@@ -92,7 +92,7 @@ function lastRecap(S, L) {
 
 function paint(el, S, api) {
     ensureCss();
-    if (S.phase === 'done') { visualKey = ''; paintFinal(el, { scene: 'dare-roulette', scores: S.scores || {}, players: S.players || [], you: isWatching(S) ? null : S.me, watching: isWatching(S), note: S.last ? lastRecap(S, S.last) : '' }); return; }
+    if (S.phase === 'done') { visualKey = ''; paintFinal(el, { scene: 'dare-roulette', scores: S.scores || {}, players: S.players || [], you: S.sameRoom || isWatching(S) ? null : S.me, watching: isWatching(S), note: S.last ? lastRecap(S, S.last) : '' }); return; }
     liveApi = api;
     liveEl = el;
     liveState = S;

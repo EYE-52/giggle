@@ -114,8 +114,10 @@ export function bkDispose(root) {
 function bkColor(color) {
   return /^#[a-f\d]{6}$/i.test(color || '') ? color : 'var(--bk-fam)';
 }
+// `you` also anchors the active seat below the board. A shared device keeps
+// that layout/turn identity while omitting personal copy for its audience.
 function bkPlayerLabel(p) {
-  return `${p.name}${p.side ? ', ' + p.side : ''}${p.you ? ', you' : ''}${p.turn ? ', to move' : ''}${p.out ? ', out' : ''}${p.clock != null ? ', clock ' + p.clock : p.stat != null && p.stat !== '' ? ', ' + p.stat + ' ' + (p.statLabel || '') : ''}`;
+  return `${p.name}${p.side ? ', ' + p.side : ''}${p.you && !p.shared ? ', you' : ''}${p.turn ? ', to move' : ''}${p.out ? ', out' : ''}${p.clock != null ? ', clock ' + p.clock : p.stat != null && p.stat !== '' ? ', ' + p.stat + ' ' + (p.statLabel || '') : ''}`;
 }
 
 /* Players row markup once per seat count; values are painted after. */
@@ -139,9 +141,9 @@ function bkPlayers(panel, players) {
     const chip = row.querySelector('.bk-chip');
     if (chip.getAttribute('data-chip') !== (p.chip || '')) { chip.setAttribute('data-chip', p.chip || ''); chip.innerHTML = p.chip || ''; }
     row.querySelector('.bk-name').textContent = p.name;
-    row.querySelector('.bk-you').hidden = !p.you;
+    row.querySelector('.bk-you').hidden = !p.you || !!p.shared;
     row.querySelector('.bk-side-text').textContent = p.out ? p.outLabel || 'Out' : p.side || '';
-    row.querySelector('.bk-turn-text').textContent = p.you ? 'Your turn' : 'Turn';
+    row.querySelector('.bk-turn-text').textContent = p.you && !p.shared ? 'Your turn' : 'Turn';
     row.querySelector('.bk-turn-text').hidden = !p.turn;
     row.querySelector('.bk-stat-value').textContent = p.clock != null ? p.clock : p.stat ?? '';
     row.querySelector('.bk-stat-label').textContent = p.clock != null ? 'Clock' : p.statLabel || '';
@@ -308,7 +310,7 @@ export function bkPanelStatic(cfg, m) {
     const side = p.out ? p.outLabel || 'Out' : p.side || '';
     const cls = ['bk-player', p.turn ? 'is-turn' : '', p.you ? 'is-you' : '', p.out ? 'is-out' : '', p.clock != null ? 'has-clock' : '', p.clock != null || p.stat != null && p.stat !== '' ? 'has-stat' : '', p.low ? 'is-low' : ''].filter(Boolean).join(' ');
     const value = p.clock != null ? p.clock : p.stat ?? '';
-    return `<li class="${cls}" data-seat="${i}" style="--bk-player-color:${bkColor(p.color)}" aria-label="${bkEsc(bkPlayerLabel(p))}"><span class="bk-chip" aria-hidden="true">${p.chip || ''}</span><span class="bk-who"><b class="bk-name">${bkEsc(p.name)}</b>${p.captures ? `<span class="bk-captures">${p.captures}</span>` : ''}<small class="bk-side"><span class="bk-you"${p.you ? '' : ' hidden'}>You</span><span class="bk-side-text">${bkEsc(side)}</span><span class="bk-turn-text"${p.turn ? '' : ' hidden'}>${p.you ? 'Your turn' : 'Turn'}</span></small></span><span class="bk-stat"><b class="bk-stat-value"${p.statId ? ` id="${p.statId}"` : ''}>${bkEsc(value)}</b><small class="bk-stat-label">${bkEsc(p.clock != null ? 'Clock' : p.statLabel || '')}</small></span></li>`;
+    return `<li class="${cls}" data-seat="${i}" style="--bk-player-color:${bkColor(p.color)}" aria-label="${bkEsc(bkPlayerLabel(p))}"><span class="bk-chip" aria-hidden="true">${p.chip || ''}</span><span class="bk-who"><b class="bk-name">${bkEsc(p.name)}</b>${p.captures ? `<span class="bk-captures">${p.captures}</span>` : ''}<small class="bk-side"><span class="bk-you"${p.you && !p.shared ? '' : ' hidden'}>You</span><span class="bk-side-text">${bkEsc(side)}</span><span class="bk-turn-text"${p.turn ? '' : ' hidden'}>${p.you && !p.shared ? 'Your turn' : 'Turn'}</span></small></span><span class="bk-stat"><b class="bk-stat-value"${p.statId ? ` id="${p.statId}"` : ''}>${bkEsc(value)}</b><small class="bk-stat-label">${bkEsc(p.clock != null ? 'Clock' : p.statLabel || '')}</small></span></li>`;
   }).join('');
   const t = m.timer && !done ? m.timer : null;
   const left = t ? (t.running ? bkRemaining(t) : t.total) : 0;

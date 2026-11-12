@@ -93,7 +93,7 @@ function meter(S, label, voters, total, win) {
 
 function paint(el, S, api) {
     ensureCss();
-    if (S.phase === 'done') { visualKey = ''; liveState = null; stopSpin(); lastKey = 'done'; paintFinal(el, { scene: 'truth-dare', scores: S.scores || {}, players: S.players || [], you: isWatching(S) ? null : S.me, watching: isWatching(S), note: lastRound(S) }); return; }
+    if (S.phase === 'done') { visualKey = ''; liveState = null; stopSpin(); lastKey = 'done'; paintFinal(el, { scene: 'truth-dare', scores: S.scores || {}, players: S.players || [], you: S.sameRoom || isWatching(S) ? null : S.me, watching: isWatching(S), note: lastRound(S) }); return; }
     liveApi = api;
     liveEl = el;
     liveState = S;

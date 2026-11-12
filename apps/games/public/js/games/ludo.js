@@ -59,7 +59,7 @@ function finalModel(S,c){
   if(S.phase!=='done'||c.settling)return null;
   const me=S.youAre!==null&&!S.spectator?S.seats[S.youAre]:null;
   const places=(S.places||[]).length?S.places:S.seats.map((pid,side)=>({pid,side,rank:side===S.result.winner?1:2,points:S.scores?.[pid]??0,out:S.resigned.includes(side)}));
-  const rows=places.map(p=>({name:nameOf(S,p.pid),rank:p.rank,points:p.points,you:p.pid===me,note:p.out?outLabel(S,p.side):`${S.pawns[p.side].filter(x=>x===56).length}/4 home`}));
+  const rows=places.map(p=>({name:nameOf(S,p.pid),rank:p.rank,points:p.points,you:!S.sameRoom && p.pid===me,note:p.out?outLabel(S,p.side):`${S.pawns[p.side].filter(x=>x===56).length}/4 home`}));
   const ties=places.filter(p=>p.rank===1).length;
   return {headline:ties>1?'It’s a tie':`${nameOf(S,S.result.winnerPid)} wins`,detail:S.result.reason==='home'?'All four pawns home.':S.result.reason==='timeout'?'Everyone else ran out of time or left.':'Everyone else left the race.',rows,...bkHost(c.api)};
 }
@@ -73,7 +73,7 @@ function paint(el,c){
   el.querySelector('.ld-dock').hidden=S.phase==='done'&&!c.settling;
   bkPaint(el,{
     meta:bkMeta(S,`${S.seats.length} players`),
-    players:S.seats.map((pid,side)=>({name:nameOf(S,pid),side:NAMES[S.lanes[side]],chip:chip(S.lanes[side]),color:COLORS[S.lanes[side]],stat:`${S.pawns[side].filter(p=>p===56).length}/4`,statLabel:'home',turn:S.phase!=='done'&&side===S.turn&&!S.resigned.includes(side),you:side===S.youAre&&!S.spectator,out:S.resigned.includes(side),outLabel:outLabel(S,side)})),
+    players:S.seats.map((pid,side)=>({name:nameOf(S,pid),side:NAMES[S.lanes[side]],chip:chip(S.lanes[side]),color:COLORS[S.lanes[side]],stat:`${S.pawns[side].filter(p=>p===56).length}/4`,statLabel:'home',turn:S.phase!=='done'&&side===S.turn&&!S.resigned.includes(side),shared:S.sameRoom,you:side===S.youAre&&!S.spectator,out:S.resigned.includes(side),outLabel:outLabel(S,side)})),
     statusColor:S.phase==='done'?null:COLORS[S.lanes[S.turn]],
     status:S.preparing?'Getting the table ready…':c.pending?'Sending your turn…':c.settling?(c.settleKind==='roll'?'Rolling…':'Hop, hop…'):c.retry?'Turn not confirmed. Try again.':status(S),
     timer:bkTimer(S,c.api),done:S.phase==='done',player:my&&!out,busy:c.pending||c.settling||!!S.preparing,armed:c.armed,draw:false,

@@ -43,7 +43,7 @@ const registry = require('../games/registry');
     history: { replaceState() {} }, sessionStorage: storage, localStorage: storage, URLSearchParams,
     performance, WebSocket: FakeSocket, fetch: async () => ({ ok: true, json: async () => ({}) }),
     setTimeout, clearTimeout, setInterval: () => 0, console, sameRoomSupport, LOCAL_AVATARS,
-    wsTargetFromConfig: () => '', reset: () => ui.dispose(), show: async (el, game, state, api) => { if (game === 'truth-dare') ui.render(el, state, api); return ui; },
+    wsTargetFromConfig: () => '', reset: () => ui.dispose(), show: async (el, game, state, api) => { assert.equal(state.sameRoom,true,'shared views receive presentation context without replacing the active seat'); if (game === 'truth-dare') ui.render(el, state, api); return ui; },
     esc: value => String(value).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])),
   };
   vm.createContext(ctx);

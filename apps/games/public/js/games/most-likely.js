@@ -46,7 +46,7 @@ function revealRows(S) {
       const voters = Object.keys(S.last.votes).filter((v) => S.last.votes[v] === p.id);
       const win = n > 0 && S.last.winners.includes(p.id);
       const pct = ballots ? Math.round(n / ballots * 100) : 0;
-      const mine = S.me != null && S.last.votes?.[S.me] === p.id;
+      const mine = !S.sameRoom && S.me != null && S.last.votes?.[S.me] === p.id;
       const tags = (win ? '<span class="likely-tag is-top">Most votes</span>' : '') + (mine ? '<span class="likely-tag is-mine">Your pick</span>' : '');
       return `<div class="party-result likely-row${win ? ' party-result--winner is-winner' : ''}${mine ? ' is-mine' : ''}">`
         + `<span class="gk-mark likely-initials pl-c${seat(S, p.id)}" aria-hidden="true">${esc(initials(p.name))}</span>`
@@ -58,7 +58,7 @@ function revealRows(S) {
 
 function paint(el, S, api) {
     ensureCss();
-    if (S.phase === 'done') { mountKey = ''; paintFinal(el, { scene: 'most-likely', scores: S.scores || {}, players: S.players || [], you: isWatch(S) ? null : S.me, watching: isWatch(S) }); return; }
+    if (S.phase === 'done') { mountKey = ''; paintFinal(el, { scene: 'most-likely', scores: S.scores || {}, players: S.players || [], you: S.sameRoom || isWatch(S) ? null : S.me, watching: isWatch(S) }); return; }
     liveApi = api;
     liveEl = el;
     liveState = S;
@@ -86,7 +86,7 @@ function paint(el, S, api) {
         body = `<div class="gk-choices likely-lineup${picked ? ' is-locked' : ''}" role="group" aria-label="Nominees" style="--gk-cols:2;--gk-cols-phone:1">`
           + list.map((p) => `<button type="button" class="gk-choice likely-nominee${picked === p.id ? ' is-selected is-picked' : ''}" data-v="${esc(p.id)}" aria-pressed="${picked === p.id}"${picked || watch ? ' disabled' : ''}>`
             + `<span class="gk-mark likely-initials pl-c${seat(S, p.id)}" aria-hidden="true">${esc(initials(p.name))}</span><span class="gk-choice-text likely-name">${esc(p.name)}</span>`
-            + (picked === p.id && !watch ? `<span class="pl-pick">${faceHtml(S, S.me)}Your vote</span>` : '') + `</button>`).join('')
+            + (picked === p.id && !watch ? `<span class="pl-pick">${faceHtml(S, S.me)}${esc(S.sameRoom ? `${nameOf(S, S.me)}’s vote` : 'Your vote')}</span>` : '') + `</button>`).join('')
           + `</div>`;
       }
       el.innerHTML = `<section class="party-scene gk-col gk-stack likely-world" aria-label="Most Likely">`
@@ -113,7 +113,7 @@ function paint(el, S, api) {
     status.hidden = done;
     status.classList.toggle('is-done', reveal);
     status.textContent = !reveal && !(typeof S.prompt === 'string' && S.prompt) ? 'Cueing the nominees…'
-      : reveal ? (watch ? 'Here is who the room picked.' : picked ? `You picked ${nameOf(S, picked)}${myPts ? ` · +${myPts} points` : ''}.` : 'You sat this one out.')
+      : reveal ? (watch || S.sameRoom ? 'Here is who the room picked.' : picked ? `You picked ${nameOf(S, picked)}${myPts ? ` · +${myPts} points` : ''}.` : 'You sat this one out.')
       : watch ? `Watching · waiting for ${plural(waiting, 'player')}`
       : picked ? `Locked in on ${nameOf(S, picked)} · waiting for ${plural(waiting, 'player')}`
       : 'Vote for someone else, never yourself.';

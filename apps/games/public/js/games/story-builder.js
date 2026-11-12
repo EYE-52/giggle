@@ -68,7 +68,7 @@ function revealHtml(S, watch) {
   const cards = L.lines.map((l, i) => {
     const win = (L.winners || []).includes(i);
     const mine = !watch && l.pid === S.me;
-    const meta = `${esc(nameOf(S, l.pid))}${mine ? ' (you)' : ''} · ${l.n} vote${l.n === 1 ? '' : 's'}`;
+    const meta = `${esc(nameOf(S, l.pid))}${!S.sameRoom && mine ? ' (you)' : ''} · ${l.n} vote${l.n === 1 ? '' : 's'}`;
     return `<li class="gk-choice${win ? ' is-correct' : ''}"><span class="gk-mark" aria-hidden="true">${i + 1}</span>`
       + `<div class="gk-choice-text"><div>${esc(l.text)}</div><div class="gk-meta">${meta}</div>${shareBar(l.n, total)}</div></li>`;
   }).join('');
@@ -161,7 +161,7 @@ function paint(el, S, api) {
     screenKey = key;
 
     if (S.phase === 'done') {
-      el.innerHTML = finalHtml({ scene: 'story-builder', scores: S.scores || {}, players: S.players || [], you: watch ? null : S.me, watching: watch });
+      el.innerHTML = finalHtml({ scene: 'story-builder', scores: S.scores || {}, players: S.players || [], you: S.sameRoom || watch ? null : S.me, watching: watch });
       return;
     }
     if (S.phase === 'reveal' && S.last) {

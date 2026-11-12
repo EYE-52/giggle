@@ -63,7 +63,7 @@ function revealHtml(S, watch) {
   const cards = L.statements.map((text, i) => {
     const voters = Object.keys(L.votes || {}).filter((pid) => L.votes[pid] === i);
     const isLie = i === L.lie;
-    const mine = !watch && L.votes?.[S.me] === i;
+    const mine = !S.sameRoom && !watch && L.votes?.[S.me] === i;
     const cls = ['gk-choice', 'tt-card', isLie && 'is-correct', mine && !isLie && 'is-wrong'].filter(Boolean).join(' ');
     const meta = `${isLie ? 'The lie' : 'Truth'} · ${voters.length ? esc(namesList(S, voters)) : 'no votes'}`;
     return `<li class="${cls}"><span class="gk-mark" aria-hidden="true">${i + 1}</span>`
@@ -171,7 +171,7 @@ function paint(el, S, api) {
     screenKey = key;
 
     if (S.phase === 'done') {
-      el.innerHTML = finalHtml({ scene: 'two-truths', scores: S.scores || {}, players: S.players || [], you: watch ? null : S.me, watching: watch });
+      el.innerHTML = finalHtml({ scene: 'two-truths', scores: S.scores || {}, players: S.players || [], you: S.sameRoom || watch ? null : S.me, watching: watch });
       return;
     }
     if (S.phase === 'reveal' && S.last) {

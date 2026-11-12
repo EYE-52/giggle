@@ -322,7 +322,7 @@ export default {
     const final = done ? {
       headline: bkHeadline(S.result?.winnerPid ? [nameOf(S, S.result.winnerPid)] : [S.white, S.black].filter(Boolean).map(pid => nameOf(S, pid))),
       detail: reasonText(S),
-      rows: bkRank([S.white, S.black].filter(Boolean).map((pid, i) => ({ name: nameOf(S, pid), points: S.scores?.[pid] ?? 0, you: pid === me, order: i }))),
+      rows: bkRank([S.white, S.black].filter(Boolean).map((pid, i) => ({ name: nameOf(S, pid), points: S.scores?.[pid] ?? 0, you: !S.sameRoom && pid === me, order: i }))),
       ...host,
     } : null;
     const panelHtml = bkPanelStatic({
@@ -337,7 +337,7 @@ export default {
         captures: capturedCount(shownForCaptures, side === 'w' ? 'b' : 'w') ? captureTray(shownForCaptures, side === 'w' ? 'b' : 'w') : '',
         stat: capturedCount(shownForCaptures, side === 'w' ? 'b' : 'w'), statLabel: 'captures',
         clock: S.clocks ? fmtClock(S.clocks[side]) : null, statId: S.clocks ? `ch-clock-${side}` : null,
-        turn: S.phase === 'play' && S.turn === side && !moveMotion, you: S.youAre === side && !S.spectator,
+        turn: S.phase === 'play' && S.turn === side && !moveMotion, shared: S.sameRoom, you: S.youAre === side && !S.spectator,
       })),
       statusColor: done ? null : S.turn === 'w' ? '#bdb49b' : '#41444d',
       status: statusLine(S), timer: moveTimerInfo, done: S.phase === 'done', player: !!me,

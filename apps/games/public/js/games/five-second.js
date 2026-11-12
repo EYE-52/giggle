@@ -116,7 +116,7 @@ function paint(el, S, api) {
     screenKey = key;
 
     if (S.phase === 'done') {
-      el.innerHTML = finalHtml({ scene: 'five-second', scores: S.scores || {}, players: S.players || [], you: watch ? null : S.me, watching: watch });
+      el.innerHTML = finalHtml({ scene: 'five-second', scores: S.scores || {}, players: S.players || [], you: S.sameRoom || watch ? null : S.me, watching: watch });
       return;
     }
 

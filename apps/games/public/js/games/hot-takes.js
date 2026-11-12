@@ -99,7 +99,7 @@ function splitRows(S, r, agreeLabel, disLabel) {
 
 function paint(el, S, api) {
     ensureCss();
-    if (S.phase === 'done') { visualKey = ''; submitKey = null; paintFinal(el, { scene: 'hot-takes', scores: S.scores || {}, players: S.players || [], you: isWatch(S) ? null : S.me, watching: isWatch(S), note: divisiveLine(S) }); return; }
+    if (S.phase === 'done') { visualKey = ''; submitKey = null; paintFinal(el, { scene: 'hot-takes', scores: S.scores || {}, players: S.players || [], you: S.sameRoom || isWatch(S) ? null : S.me, watching: isWatch(S), note: divisiveLine(S) }); return; }
     liveApi = api;
     liveEl = el;
     liveState = S;
@@ -122,7 +122,7 @@ function paint(el, S, api) {
 
     if (S.phase === 'standings') {
       submitKey = null;
-      const you = watch ? null : S.me;
+      const you = S.sameRoom || watch ? null : S.me;
       el.innerHTML = `<section class="party-scene gk-col gk-stack party-scene--hot" aria-label="Hot takes round results">`
         + `${hud(S)}`
         + `<h3 class="gk-prompt party-prompt">Round ${S.round} results</h3>`
@@ -245,7 +245,7 @@ function paint(el, S, api) {
           + [['agree', agreeLabel], ['disagree', disLabel]].map(([v, label], i) =>
             `<button type="button" class="gk-choice hot-choice${picked === v ? ' is-selected is-picked' : ''}" data-v="${v}" aria-pressed="${picked === v}"${picked || watch ? ' disabled' : ''}>`
             + `<span class="gk-mark" aria-hidden="true">${i ? '✕' : '✓'}</span><span class="gk-choice-text">${esc(label)}</span>`
-            + (picked === v && !watch ? `<span class="pl-pick">${faceHtml(S, S.me)}Your vote · locked</span>` : '')
+            + (picked === v && !watch ? `<span class="pl-pick">${faceHtml(S, S.me)}${esc(S.sameRoom ? `${nameOf(S, S.me)}’s vote` : 'Your vote')} · locked</span>` : '')
             + `</button>`).join('')
           + `</div>`)
       + `</section>`;

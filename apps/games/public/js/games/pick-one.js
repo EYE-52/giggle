@@ -31,7 +31,7 @@ function choiceCards(S, picked, watch, reveal) {
       return `<button type="button" class="gk-choice pick-choice${sel ? ' is-selected is-picked' : ''}${win ? ' is-majority' : ''}" data-v="${side}" aria-pressed="${sel}"${picked || watch || reveal ? ' disabled' : ''}>`
         + `<span class="gk-mark" aria-hidden="true">${side.toUpperCase()}</span>`
         + `<span class="pick-body"><span class="pick-text">${esc(S.prompt?.[side] || '')}</span>`
-        + (sel && !watch && !reveal ? `<span class="pl-pick">${faceHtml(S, S.me)}Your pick</span>` : '')
+        + (sel && !watch && !reveal ? `<span class="pl-pick">${faceHtml(S, S.me)}${esc(S.sameRoom ? `${nameOf(S, S.me)}’s pick` : 'Your pick')}</span>` : '')
         + `<span class="pick-result"><span class="pick-bar"><span class="pick-fill" style="width:${reveal ? pct : 0}%"></span></span>`
         + `<span class="gk-meta pick-count">${reveal ? `${plural(voters.length, 'vote')}${win ? ' · Majority' : ''}` : ''}</span>`
         + `<span class="pl-faces pick-voters">${reveal ? voters.map((pid) => faceHtml(S, pid, { name: true })).join('') : ''}</span></span></span>`
@@ -42,7 +42,7 @@ function choiceCards(S, picked, watch, reveal) {
 
 function paint(el, S, api) {
     ensureCss();
-    if (S.phase === 'done') { mountKey = ''; paintFinal(el, { scene: 'pick-one', scores: S.scores || {}, players: S.players || [], you: isWatch(S) ? null : S.me, watching: isWatch(S) }); return; }
+    if (S.phase === 'done') { mountKey = ''; paintFinal(el, { scene: 'pick-one', scores: S.scores || {}, players: S.players || [], you: S.sameRoom || isWatch(S) ? null : S.me, watching: isWatch(S) }); return; }
     liveApi = api;
     liveEl = el;
     liveState = S;
@@ -54,7 +54,7 @@ function paint(el, S, api) {
     const watch = isWatch(S);
     const done = S.phase === 'done';
     const reveal = S.phase === 'reveal' && !!S.last;
-    const picked = S.myVote;
+    const picked = S.sameRoom && reveal ? null : S.myVote;
     const total = (S.players || []).length;
     const inCount = (S.voted || []).length;
     const state = done ? 'done' : reveal ? 'reveal' : watch ? 'watch' : picked ? 'locked' : 'open';
@@ -82,7 +82,7 @@ function paint(el, S, api) {
     if (status) {
       const waiting = Math.max(0, total - inCount);
       const label = picked ? S.prompt?.[picked] : '';
-      status.textContent = reveal ? (watch ? 'Here is how the room picked.' : picked ? `You picked ${label}.` : 'You sat this one out.')
+      status.textContent = reveal ? (watch || S.sameRoom ? 'Here is how the room picked.' : picked ? `You picked ${label}.` : 'You sat this one out.')
         : watch ? `Watching · waiting for ${plural(waiting, 'player')}`
         : picked ? `Locked in · waiting for ${plural(waiting, 'player')}`
         : 'Pick A or B before the clock runs out.';

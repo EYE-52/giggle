@@ -42,7 +42,7 @@ function paintRoster(box, S, statusOf) {
     const st = statusOf(p), name = nameOf(S, p.id);
     return `<li class="ck-player ${st.cls}${p.id === S.me ? ' is-you' : ''}" style="--ck-hue:${(i * 67) % 360}">`
       + `<span class="ck-ava" aria-hidden="true">${esc(initialOf(name))}</span>`
-      + `<span class="ck-pname">${esc(name)}${p.id === S.me ? ' <small>(you)</small>' : ''}</span><span class="ck-pstate">${esc(st.text)}</span></li>`;
+      + `<span class="ck-pname">${esc(name)}${!S.sameRoom && p.id === S.me ? ' <small>(you)</small>' : ''}</span><span class="ck-pstate">${esc(st.text)}</span></li>`;
   }).join('') + `</ul>`;
   if (box._ckRoster === html) return;
   box._ckRoster = html;
@@ -123,7 +123,7 @@ export default {
       current = null;
       lastKey = `done:${S.instanceId || ''}`;
       el.innerHTML = `<section class="gk-final wg wg-final ch ck gk-col gk-stack" data-family="create" data-game="charades" data-phase="done" aria-label="Charades final scores">`
-        + resultsHtml({ title: 'Final scores', scores: S.scores || {}, players: S.players || [], you: S.me })
+        + resultsHtml({ title: 'Final scores', scores: S.scores || {}, players: S.players || [], you: S.sameRoom ? null : S.me })
         + `</section>`;
       return;
     }

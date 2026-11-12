@@ -79,7 +79,7 @@ function resultLabel() { const r = state.result; return r.winner === null ? 'Itâ
 function finalModel(done) {
   if (!done) return null;
   const me = state.youAre === null || state.spectator ? null : state.seats[state.youAre];
-  const rows = bkRank(state.seats.map((pid, i) => ({ name: nameOf(state, pid), points: state.scores?.[pid] ?? 0, you: pid === me, order: i, note: `${state.pits[storeOf(i)]} ${text('seeds')}` })));
+  const rows = bkRank(state.seats.map((pid, i) => ({ name: nameOf(state, pid), points: state.scores?.[pid] ?? 0, you: !state.sameRoom && pid === me, order: i, note: `${state.pits[storeOf(i)]} ${text('seeds')}` })));
   const winners = state.result.winnerPid ? [nameOf(state, state.result.winnerPid)] : state.seats.map(pid => nameOf(state, pid));
   return { headline: bkHeadline(winners), detail: reasonText(state.result), rows, ...bkHost(api) };
 }
@@ -96,7 +96,7 @@ function paint() {
   const extraHint = state.lastMove?.extra === true || state.lastMove?.captures?.length;
   bkPaint(root, {
     meta: bkMeta(state, text('variant')),
-    players: [0, 1].map(side => ({ name: nameOf(state, state.seats[side]), side: text(side ? 'amber' : 'jade'), chip: chip(side), color: SEED[side][0], stat: pits[storeOf(side)], statLabel: text('store').toLowerCase(), turn: !done && !moving && !state.preparing && state.phase === 'play' && state.turn === side, you: state.youAre === side && !state.spectator })),
+    players: [0, 1].map(side => ({ name: nameOf(state, state.seats[side]), side: text(side ? 'amber' : 'jade'), chip: chip(side), color: SEED[side][0], stat: pits[storeOf(side)], statLabel: text('store').toLowerCase(), turn: !done && !moving && !state.preparing && state.phase === 'play' && state.turn === side, shared: state.sameRoom, you: state.youAre === side && !state.spectator })),
     statusColor: done ? null : SEED[state.turn][0],
     status: moving ? text('sowing') : done ? resultLabel() : state.preparing ? '' : state.youAre === null ? text('watching') + ' Â· ' + nameOf(state, state.seats[state.turn]) : myTurn() ? text('yourTurn') : text('waiting'),
     hint: done ? reasonText(state.result) : moving || state.preparing || !extraHint ? '' : state.youAre === null ? text('spectatorHelp') : state.lastMove?.extra && myTurn() ? text('extra') : state.lastMove?.captures?.length && state.lastMove.side === state.youAre ? text('capture') : myTurn() ? text('choose') : text('waitingHint'),

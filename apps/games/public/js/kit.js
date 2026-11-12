@@ -265,11 +265,11 @@ export function liveSeatsHtml(S, opts = {}) {
     const did = acted.has(p.id);
     const waits = !did && !role && !p.left && actors.has(p.id) && opts.waiting !== false;
     const state = p.left ? 'Left' : role || (did ? verb : waits ? waiting : '');
-    const cls = ['pl-seat', `pl-c${i % 5}`, did && 'is-acted', waits && 'is-waiting', role && 'is-role', bad && 'is-bad', p.id === S?.me && 'is-you', p.left && 'is-left'].filter(Boolean).join(' ');
+    const cls = ['pl-seat', `pl-c${i % 5}`, did && 'is-acted', waits && 'is-waiting', role && 'is-role', bad && 'is-bad', !S?.sameRoom && p.id === S?.me && 'is-you', p.left && 'is-left'].filter(Boolean).join(' ');
     const gain = Number(gains[p.id]) || 0;
     const name = nameOf(S, p.id);
     return `<li class="${cls}"><span class="pl-avatar" aria-hidden="true">${esc(initials(name))}<i class="pl-badge"></i></span>`
-      + `<span class="pl-name">${esc(name)}${p.id === S?.me ? '<small> (you)</small>' : ''}</span>`
+      + `<span class="pl-name">${esc(name)}${!S?.sameRoom && p.id === S?.me ? '<small> (you)</small>' : ''}</span>`
       + `<span class="pl-state">${esc(state)}</span>`
       + (opts.score === false ? '' : `<span class="pl-points"><b>${Number(scores[p.id]) || 0}</b><small class="pl-unit">pts</small><small class="pl-gain${gain ? '' : ' is-empty'}">${gain ? `+${gain}` : '+0'}</small></span>`)
       + `</li>`;

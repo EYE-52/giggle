@@ -204,7 +204,7 @@ export default {
     gestureId = Math.max(gestureId, S.lastGestureId || 0);
     if ((S.inkRevision || 0) === revision) visibleStrokes = S.strokes || [];
     if (S.phase === 'done') {
-      el.innerHTML = `<div class="sk sk-doodle dg ck dg-done gk-final gk-col" data-family="create" role="status">${resultsHtml({ scores: S.scores || {}, players: S.players || [], you: S.spectator ? null : S.me })}${S.spectator ? '<p class="gk-final-note">You watched this game.</p>' : ''}</div>`;
+      el.innerHTML = `<div class="sk sk-doodle dg ck dg-done gk-final gk-col" data-family="create" role="status">${resultsHtml({ scores: S.scores || {}, players: S.players || [], you: S.sameRoom || S.spectator ? null : S.me })}${S.spectator ? '<p class="gk-final-note">You watched this game.</p>' : ''}</div>`;
       return;
     }
     if (rebuild) {

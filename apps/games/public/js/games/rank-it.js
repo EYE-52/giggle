@@ -155,7 +155,7 @@ function watchRank(S) {
 
 function paint(el, S, api) {
     ensureCss();
-    if (S.phase === 'done') { rankKey = ''; paintFinal(el, { scene: 'rank-it', scores: S.scores || {}, players: S.players || [], you: watching(S) ? null : S.me, watching: watching(S) }); return; }
+    if (S.phase === 'done') { rankKey = ''; paintFinal(el, { scene: 'rank-it', scores: S.scores || {}, players: S.players || [], you: S.sameRoom || watching(S) ? null : S.me, watching: watching(S) }); return; }
     rankApi = api;
     const liveHud = el.querySelector ? el.querySelector('.party-hud') : null;
     if (liveHud) liveHud.outerHTML = hud(S);
@@ -170,14 +170,14 @@ function paint(el, S, api) {
       const con = S.last.consensus.map((itemIdx, pos) =>
         `<li class="party-rank-item rank-p${place[pos]}"><span class="gk-mark" aria-hidden="true">${place[pos]}</span><span class="party-rank-name">${esc(S.last.items[itemIdx])}</span><span class="gk-meta">${plural(S.last.borda[itemIdx], 'pt')}</span></li>`).join('');
       const rankers = (S.players || []).filter((p) => S.last.pts && S.last.pts[p.id] !== undefined);
-      const rows = rankRows(S.last.pts, rankers, watching(S) ? null : S.me);
+      const rows = rankRows(S.last.pts, rankers, S.sameRoom || watching(S) ? null : S.me);
       const closest = new Set(S.last.closest || []);
       const fmt = (d) => Number.isInteger(d) ? String(d) : d.toFixed(1);
       const board = rows.length
         ? rowsHtml(rows, { prefix: '+', note: (r) => `<small class="rank-note">${closest.has(r.id) ? 'Closest · ' : ''}off by ${fmt(S.last.dist[r.id])}</small>` })
         : '<p class="gk-wait is-done">Nobody ranked this round.</p>';
-      const mine = S.last.dist && S.last.dist[S.me] !== undefined
-        ? `You were off by ${fmt(S.last.dist[S.me])} · +${S.last.pts[S.me] || 0} points.` : watching(S) ? 'Here is the room\'s ranking.' : 'You sat this one out.';
+      const mine = S.sameRoom || watching(S) ? 'Here is the room’s ranking.' : S.last.dist && S.last.dist[S.me] !== undefined
+        ? `You were off by ${fmt(S.last.dist[S.me])} · +${S.last.pts[S.me] || 0} points.` : 'You sat this one out.';
       el.innerHTML = `<section class="party-scene gk-col gk-stack party-scene--rank" aria-label="Room ranking">
         ${hud(S)}
         <p class="gk-prompt party-prompt">${esc(S.last.topic)}</p>

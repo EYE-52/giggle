@@ -192,7 +192,8 @@ function play(message) {
   current = message; setSkin();
   app.setAttribute('aria-busy', 'false');
   if (message.gate !== 'play') { handoff(message); return; }
-  const S = message.state, p = message.players.find(p => p.id === message.player);
+  // Presentation context only: the active seat still owns actions and private data.
+  const S = { ...message.state, sameRoom: true }, p = message.players.find(p => p.id === message.player);
   const actor = message.players.find(player => player.id === S.me) || p;
   if (message.private) lastPrivatePlayer = actor;
   const result = S.phase === 'done', reveal = ['reveal', 'standings'].includes(S.phase);

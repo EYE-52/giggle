@@ -74,7 +74,7 @@ function liveBars(poll, counts, total) {
 
 function paint(el, S, api) {
     ensureCss();
-    if (S.phase === 'done') { voteKey = ''; poseKey = null; paintFinal(el, { scene: 'rapid-polls', scores: S.scores || {}, players: S.players || [], you: isWatch(S) ? null : S.me, watching: isWatch(S) }); return; }
+    if (S.phase === 'done') { voteKey = ''; poseKey = null; paintFinal(el, { scene: 'rapid-polls', scores: S.scores || {}, players: S.players || [], you: S.sameRoom || isWatch(S) ? null : S.me, watching: isWatch(S) }); return; }
     liveApi = api;
     liveEl = el;
     liveState = S;

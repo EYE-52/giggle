@@ -99,7 +99,7 @@ export default {
 
     if (S.phase === 'done') {
       el.innerHTML = `<section class="gk-final wg wg-final gk-col gk-stack" data-game="trivia" data-phase="done" aria-label="Trivia final scores">`
-        + resultsHtml({ title: 'Final scores', scores: S.scores || {}, players: S.players || [], you: S.me })
+        + resultsHtml({ title: 'Final scores', scores: S.scores || {}, players: S.players || [], you: S.sameRoom ? null : S.me })
         + (watch ? '<p class="gk-final-note">You watched this game.</p>' : '')
         + `</section>`;
       runClock(el, S, api);
@@ -109,14 +109,14 @@ export default {
     if (S.phase === 'reveal' && S.last) {
       const results = S.last.results || {};
       const good = Object.keys(results).filter((pid) => results[pid].ok);
-      const mine = results[S.me];
+      const mine = S.sameRoom ? null : results[S.me];
       const options = (S.question?.options || []).map((label, i) => ({
         value: i, label,
         correct: i === S.last.correct,
         wrong: !!mine && !mine.ok && mine.pick === i,
         dim: i !== S.last.correct && !(mine && mine.pick === i),
       }));
-      const myLine = watch ? 'You are watching.'
+      const myLine = S.sameRoom ? 'Here are the room’s answers.' : watch ? 'You are watching.'
         : !mine ? 'You did not answer in time.'
           : mine.ok ? `Correct! +${mine.pts} points${mine.streak > 1 ? ` · ${mine.streak} in a row` : ''}`
             : `Not this time: the answer was ${LETTERS[S.last.correct]}, ${S.question?.options?.[S.last.correct] || ''}.`;
