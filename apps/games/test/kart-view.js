@@ -29,6 +29,7 @@ const {weaponThumbnailArt}=await import('../public/js/engines/kart-assets.mjs');
 const {createKartPickupPrediction}=await import('../public/js/engines/kart-pickup-prediction.mjs');
 const {paintKartWeapon,kartWeaponArt}=await import('../public/js/engines/kart-weapon-hud.mjs');
 const {kartResultView}=await import('../public/js/engines/kart-results.mjs');
+const {createKartArenaPicker}=await import('../public/js/engines/kart-next-arena.mjs');
 const {kartGarageHtml,createKartGarageUI,garagePreviewKey}=await import('../public/js/engines/kart-garage-ui.mjs');
 const {createGarageThumbnail}=await import('../public/js/engines/kart-garage-thumbnail.mjs');
 const {readInputCapabilities,touchControlsFor}=await import('../public/js/toolkit/input-capabilities.mjs');
@@ -105,7 +106,7 @@ const context = vm.createContext({...hudWrites,createKartPickupPool,...require('
   createKartAudio: () => {const audio={cues:[],active:true,muted:false,preps:0,prep(){this.preps++},ready(){return this.readyWait||Promise.resolve(true)},unlock(){},setMuted(value){this.muted=value},update(frame){this.active=frame.active},cue(name){if(this.active&&!this.muted)this.cues.push(name)},dispose(){}};audios.push(audio);return audio;},
   createPoseStore: () => ({}), resetPoseStore() {}, ingestSnapshot() {}, framePoses: () => new Map(),
   forwardOf: () => ({x:0,z:1}), canvasNoseRotation: () => 0,
-  waitKartPreparation,kartGarageHtml,createKartGarageUI,garagePreviewKey,createGarageThumbnail,intentFromKeys,createMobileStick,readInputCapabilities,touchControlsFor,createKartFeedback,weaponThumbnailArt,paintKartWeapon,kartResultView,createGearbox,paintGear,CLASSIC_MAX_FORWARD,createKartArenaFeatures,drawArenaFeatures2d,createKartLod,crowdColor,createKartArenaStructures,drawArenaRoads2d,drawArenaStructures2d,kartWeaponArt,createKartPickupPrediction});
+  waitKartPreparation,kartGarageHtml,createKartGarageUI,garagePreviewKey,createGarageThumbnail,intentFromKeys,createMobileStick,readInputCapabilities,touchControlsFor,createKartFeedback,weaponThumbnailArt,paintKartWeapon,kartResultView,createKartArenaPicker:()=>createKartArenaPicker({now:()=>clock}),createGearbox,paintGear,CLASSIC_MAX_FORWARD,createKartArenaFeatures,drawArenaFeatures2d,createKartLod,crowdColor,createKartArenaStructures,drawArenaRoads2d,drawArenaStructures2d,kartWeaponArt,createKartPickupPrediction});
 // The hearts HUD runs against this fake DOM, so it loads into the same context.
 vm.runInContext(fs.readFileSync(require.resolve('../public/js/pickers.js'),'utf8').replace(/^export /gm,''),context);
 vm.runInContext(fs.readFileSync(require.resolve('../public/js/engines/kart-hearts.mjs'),'utf8').replace(/^export /gm,''),context);
@@ -823,7 +824,7 @@ const nitro=main.querySelector('#pk-tn');
   const hostApi={...api,context:()=>({isHost:true,settings:{map:savedMap}}),configure:(s)=>{calls.push(s);return true;},announce:text=>notices.push(text)};
   view.update(main,done,hostApi);
   const res=main.querySelector('#pk-result');
-  const btn={disabled:false,getAttribute:()=>'frost',closest:()=>'x'};
+  const btn={disabled:false,getAttribute:()=>'legacy-frost',closest:()=>'x'};
   res.fire('click',{target:{closest:(s)=>s==='[data-arena]'?btn:null}});
   assert.equal(calls.length,1,'host arena pick calls configure once');
   assert.equal(calls[0].map,'Frosty Pass','configure carries the label for the next rematch');
@@ -836,7 +837,7 @@ const nitro=main.querySelector('#pk-tn');
   assert.equal(notices.filter(t=>t.includes('Next arena: Frosty')).length,1,'save acknowledgement announced once');
   view.update(main,done,hostApi);
   assert.equal(notices.filter(t=>t.includes('Next arena: Frosty')).length,1,'repeated snapshots do not repeat acknowledgement');
-  const neon={...btn,getAttribute:()=>'neon'};
+  const neon={...btn,getAttribute:()=>'legacy-neon'};
   res.fire('click',{target:{closest:(s)=>s==='[data-arena]'?neon:null}});
   clock+=5001;view.update(main,done,hostApi);
   assert.ok(res.innerHTML.includes('Arena was not saved'),'missing acknowledgement times out with retry feedback');

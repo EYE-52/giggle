@@ -85,9 +85,9 @@ async function main() {
     console.log('GK ok: unpack + manifest');
 
     const previews = 'public/assets/karts/previews';
-    const previewFiles = ['ring', 'blocks', 'garden', 'frost', 'neon'].map(arena => `legacy-${arena}.webp`);
+    const previewFiles = require('../public/js/engines/kart-arena-catalog.mjs').KART_ARENAS.map(arena => `${arena.key}.webp`);
     assert.deepStrictEqual(fs.readdirSync(path.join(kit, previews)).sort(), previewFiles.slice().sort(),
-      'kit packs exactly the five legacy arena previews used by the result view');
+      'kit packs every canonical arena preview used by both result views');
     for (const file of previewFiles) {
       assert.deepStrictEqual(fs.readFileSync(path.join(kit, previews, file)), fs.readFileSync(path.join(ROOT, previews, file)),
         `${file} packed bytes match source`);

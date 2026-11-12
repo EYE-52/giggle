@@ -4,13 +4,13 @@ const http = require('node:http');
 const fs = require('node:fs/promises');
 const path = require('node:path');
 const root = path.resolve(__dirname, '../../..');
-const game = require('../../../games/pocket-karts/server');
 const { MAPS } = require('../../../games/engines/kart-maps');
 const { MAP_LABELS } = require('../../../games/engines/kart-elevated-adapter');
-const maps = game.manifest.settings.find(s => s.key === 'map').options.map(label => {
+const {KART_ARENAS} = require('../../../public/js/engines/kart-arena-catalog.mjs');
+const maps = KART_ARENAS.map(({label,key}) => {
   const elevated = Object.hasOwn(MAP_LABELS, label);
   const id = elevated ? MAP_LABELS[label] : Object.keys(MAPS).find(id => MAPS[id].label === label);
-  return { key: `${elevated ? 'elevated' : 'legacy'}-${id}`, label, profile: elevated ? 'elevated' : 'legacy', id,
+  return { key, label, profile: elevated ? 'elevated' : 'legacy', id,
     ...(elevated ? {} : { map: { id, ...MAPS[id], bound: MAPS[id].half - 2 } }) };
 });
 const mime = { '.html': 'text/html', '.mjs': 'text/javascript', '.js': 'text/javascript', '.css': 'text/css',

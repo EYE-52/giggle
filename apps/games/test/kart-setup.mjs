@@ -1,12 +1,13 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
+import crypto from 'node:crypto';
 import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
 const game = require('../games/pocket-karts/server');
 const { MAP_LABELS, preflightElevated } = require('../games/engines/kart-elevated-adapter');
 const util = 'data:text/javascript;base64,' + Buffer.from(fs.readFileSync(new URL('../public/js/util.js', import.meta.url))).toString('base64');
-const source = fs.readFileSync(new URL('../public/js/kart-setup.js', import.meta.url), 'utf8').replace("'./util.js'", JSON.stringify(util));
+const source = fs.readFileSync(new URL('../public/js/kart-setup.js', import.meta.url), 'utf8').replace("'./util.js'", JSON.stringify(util)).replace("'./engines/kart-arena-catalog.mjs'", JSON.stringify(new URL('../public/js/engines/kart-arena-catalog.mjs', import.meta.url).href));
 const { KART_ARENAS, ROUND_MINUTES, roundMinutes, resolveKartSetup, kartSetupHtml, kartSetupSummary } = await import('data:text/javascript;base64,' + Buffer.from(source).toString('base64'));
 const g = { id: 'pocket-karts', schema: { settings: game.manifest.settings, packs: [] } };
 const defaults = Object.fromEntries(g.schema.settings.map(s => [s.key, s.def]));
@@ -14,11 +15,18 @@ let checks = 0;
 const check = (v, msg) => { assert(v, msg); checks++; };
 check(KART_ARENAS.length === g.schema.settings.find(s => s.key === 'map').options.length, 'every offered map has one truthful preview');
 check(new Set(KART_ARENAS.map(a => a.key)).size === KART_ARENAS.length, 'legacy and elevated profiles cannot share preview keys');
+const previews = JSON.parse(fs.readFileSync(new URL('../public/assets/karts/previews/manifest.json', import.meta.url)));
+check(previews.width === 480 && previews.height === 270 && previews.images.length === KART_ARENAS.length, 'capture manifest covers all18 full-size menu previews');
+check(new Set(previews.images.map(image => image.sha256)).size === KART_ARENAS.length, 'no two maps ship a duplicated capture');
 for (const a of KART_ARENAS) {
   check(g.schema.settings.find(s => s.key === 'map').options.includes(a.label), 'preview label is authoritative');
   check(Boolean(MAP_LABELS[a.label]) === Boolean(a.elevated), 'profile agrees with authority');
   const file = new URL('../public/assets/karts/previews/' + a.key + '.webp', import.meta.url);
   check(fs.statSync(file).size > 0 && fs.statSync(file).size < 25000, 'preview exists within small image budget');
+  const capture = previews.images.find(image => image.file === `assets/karts/previews/${a.key}.webp`), data = fs.readFileSync(file);
+  check(capture?.label === a.label && capture.bytes === data.length && capture.sha256 === crypto.createHash('sha256').update(data).digest('hex'), 'manifest verifies the actual image and correct canonical map');
+  check(capture.framing && Object.values(capture.framing).every(n => Number.isFinite(n) && Math.abs(n) < .95), 'entire authored footprint including its highest floor retains a visible border');
+  if (a.launch) check(Math.max(capture.framing.maxX-capture.framing.minX,capture.framing.maxY-capture.framing.minY)>1.85,'authored launch shape fills its thumbnail with a small gutter');
   for (const mode of ['Zap Battle', 'Garage Battle', 'Star Rush']) {
     const settings = { ...defaults, mode, map: a.label, winRule: 'Score target', targetStars: 23, targetHits: 17 };
     const next = resolveKartSetup(settings, 'map');

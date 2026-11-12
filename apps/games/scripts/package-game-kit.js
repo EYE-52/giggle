@@ -49,6 +49,7 @@ function manifest() {
     ['public/js/game-protocol.mjs', 'public/js/game-protocol.mjs'],
     ['public/css/camera-party.css', 'public/css/camera-party.css'],
     ['public/css/kart-arena.css', 'public/css/kart-arena.css'],
+    ['public/css/kart-next-arena.css', 'public/css/kart-next-arena.css'],
     ['public/vendor/three/three.module.js', 'public/vendor/three/three.module.js'],
     ['public/vendor/three/three.core.js', 'public/vendor/three/three.core.js'],
     ['public/vendor/three/package.json', 'public/vendor/three/package.json'],
@@ -59,9 +60,9 @@ function manifest() {
     ['public/vendor/rapier/VERSION','public/vendor/rapier/VERSION'],
     ['public/vendor/rapier/NOTICE.txt','public/vendor/rapier/NOTICE.txt'],
   ];
-  // The exported kart result view renders these legacy arena previews.
-  for (const arena of ['ring', 'blocks', 'garden', 'frost', 'neon']) {
-    const file = `public/assets/karts/previews/legacy-${arena}.webp`;
+  // All result pickers share the canonical arena catalog and captured worlds.
+  for (const arena of require('../public/js/engines/kart-arena-catalog.mjs').KART_ARENAS) {
+    const file = `public/assets/karts/previews/${arena.key}.webp`;
     files.push([file, file]);
   }
   for (const dir of ['scripts/templates', 'games/engines', 'public/js/toolkit', 'public/js/toolkit/realtime', 'public/js/engines', 'public/js/renderers']) {

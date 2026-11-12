@@ -8,6 +8,7 @@ import {WEAPON_IDS,WEAPON_DISPLAY,CURATED_MUZZLE,activeKartPower,weaponForward,n
 import {paintKartWeapon,kartWeaponArt} from './kart-weapon-hud.mjs';
 import {paintKartHearts,createKartHitFeedback,landedText,kartEventCue} from './kart-hearts.mjs';
 import {kartResultView} from './kart-results.mjs';
+import {createKartArenaPicker} from './kart-next-arena.mjs';
 import {kartGarageHtml,createKartGarageUI,garagePreviewKey} from './kart-garage-ui.mjs';
 import {createGarageThumbnail} from './kart-garage-thumbnail.mjs';
 import physicsConfig from './kart-physics-config.mjs';
@@ -122,22 +123,6 @@ const NITRO_RING = '<svg class="pk-nitro-ring" viewBox="0 0 24 24" aria-hidden="
 const NITRO_ARC_LEN = 62.8;
 // Ground blast ring size per weapon (the ring geometry is a 4u radius).
 const BLAST_SCALE = { missile:.75,cannon:.7,supernova:2.25,nuke:3.5 };
-/* Classic arenas for the game-owned Results chooser. Use the same captured
- * map overviews as setup; profile keys keep these distinct from elevated maps.
- * Labels match the engine manifest (configure accepts labels or ids). */
-const ARENA_CHOOSER = [
-  { id: 'ring', label: 'Rookie Ring', blurb: 'A small, open arena for close battles.' },
-  { id: 'blocks', label: 'Bumper Blocks', blurb: 'A small arena with four solid cover blocks.' },
-  { id: 'garden', label: 'Garden Circuit', blurb: 'Rolling roads, hedge cover and boost strips.' },
-  { id: 'frost', label: 'Frosty Pass', blurb: 'Snowy ridges and slippery ice shortcuts.' },
-  { id: 'neon', label: 'Neon Yard', blurb: 'Raised cargo lanes, cover and boost strips.' },
-];
-function arenaByMap(map) {
-  if (!map) return null;
-  const id = map.id || map;
-  const label = map.label || map;
-  return ARENA_CHOOSER.find((a) => a.id === id || a.label === label) || null;
-}
 export function createKartView(viewConfig) {
   const cfg = viewConfig && typeof viewConfig === 'object' ? viewConfig : {};
   const title = cfg.title || 'Kart Arena';
@@ -241,8 +226,7 @@ export function createKartView(viewConfig) {
     if(picker)picker.value=controlsPreference;
     syncPickers(rootEl);
   }
-  let arenaPending = null;
-  let arenaNotice = '';
+  const arenaPicker = createKartArenaPicker({ now: () => nowMs() });
 
   let drivingInstance=null,drivingMapId=null,drivingSurfaceIndex=null;
   function drivingSurfaceAt(x,z){
@@ -577,17 +561,7 @@ export function createKartView(viewConfig) {
 
   function paintHud() {
     if (!rootEl || !S) return;
-    if (arenaPending) {
-      if (S.phase !== 'done' || hostContext().isHost !== true) {
-        arenaPending = null; arenaNotice = '';
-      } else if (nextMapSetting() === arenaPending.label) {
-        const label = arenaPending.label;
-        arenaPending = null; arenaNotice = '';
-        try { apiRef.announce(`Next arena: ${label}. Applies on rematch.`); } catch { /* best-effort */ }
-      } else if (nowMs() - arenaPending.at > 5000) {
-        arenaPending = null; arenaNotice = 'Arena was not saved. Try again.';
-      }
-    }
+    const arenaKey = arenaPicker.sync(S, apiRef);
     const timer = rootEl.querySelector('#pk-timer');
     const goal = rootEl.querySelector('#pk-goal');
     const mine = rootEl.querySelector('#pk-mine');
@@ -766,7 +740,7 @@ export function createKartView(viewConfig) {
       const reason = (S.result && S.result.endReason) || 'timeout';
       const resKey = (battle ? 'b' : 'r') + '|' + reason + '|' + wins.join(',') + '|' +
         (S.result.standings || []).map((r) => r.pid + ':' + r.score + ':' + r.points + ':' + (r.out ? 1 : 0)).join(',') + '|' + S.you + '|' +
-        JSON.stringify([S.coins,S.upgrades?.[S.you],S.garageResult,nextMapSetting(),hostContext().isHost,S.map?.id,typeof apiRef?.configure,arenaPending?.label,arenaNotice,garagePending,lookOf(S.you)]);
+        JSON.stringify([S.coins,S.upgrades?.[S.you],S.garageResult,arenaKey,S.map?.id,garagePending,lookOf(S.you)]);
       if (resKey !== lastResultKey) {
         lastResultKey = resKey;
         const unit = (n) => (battle ? `${n} KO${n === 1 ? '' : 's'}` : `${n} star${n === 1 ? '' : 's'}`);
@@ -776,7 +750,7 @@ export function createKartView(viewConfig) {
         const scrollTop = result.scrollTop || 0;
         const focused = result.contains?.(document.activeElement) ? document.activeElement : null;
         const focusArena = focused?.getAttribute?.('data-arena'), focusPart = focused?.getAttribute?.('data-upgrade') || focused?.getAttribute?.('data-part');
-        result.innerHTML = final.html + mapChooserHtml() + garageHtml();
+        result.innerHTML = final.html + garageHtml() + arenaPicker.html(S, apiRef);
         garageUI.paint(result,S,{bought,reducedMotion:reducedMotion(),key:garagePreviewKey(garagePreviewSpec())},apiRef);
         result.scrollTop = scrollTop;
         if (focusArena) result.querySelector(`[data-arena="${focusArena}"]`)?.focus?.({ preventScroll: true });
@@ -853,31 +827,6 @@ export function createKartView(viewConfig) {
     return looks && Object.hasOwn(looks, pid) ? looks[pid] : null;
   }
 
-  function nextMapSetting() {
-    const s = hostContext().settings || {};
-    return typeof s.map === 'string' ? s.map : null;
-  }
-
-  function mapChooserHtml() {
-    const active = arenaByMap(S.map) || ARENA_CHOOSER[0];
-    const ctx = hostContext();
-    const isHost = ctx.isHost === true;
-    const canConfigure = isHost && S.phase === 'done' && !arenaPending && apiRef && typeof apiRef.configure === 'function';
-    const nextRaw = nextMapSetting();
-    const next = (nextRaw && arenaByMap({ id: nextRaw, label: nextRaw })) || active;
-    const buttons = ARENA_CHOOSER.map((a) => {
-      const isActive = a.id === active.id;
-      const isNext = a.id === next.id;
-      const tag = arenaPending?.label === a.label ? 'Saving…' : isActive && isNext ? 'Now + Next' : isActive ? 'Now' : isNext ? 'Next' : '';
-      const aria = `${a.label}, ${a.blurb}${isActive ? ' (current arena)' : ''}${isNext ? ' (next)' : ''}${canConfigure ? '' : isHost ? ' (configure unavailable)' : ' (host picks)'}`;
-      return `<button type="button" class="pk-arena" data-arena="${a.id}" ${canConfigure ? '' : 'disabled'} aria-pressed="${isNext ? 'true' : 'false'}" aria-label="${esc(aria)}" title="${esc(a.label)} · ${esc(a.blurb)}"><img class="pk-arena-preview" src="/assets/karts/previews/legacy-${a.id}.webp" width="480" height="270" alt="" aria-hidden="true" decoding="async"><span class="pk-arenalabel">${esc(a.label)}</span>${tag ? `<span class="pk-tag${isNext && !isActive ? ' pk-next' : ''}">${esc(tag)}</span>` : ''}</button>`;
-    }).join('');
-    const note = arenaPending ? `Saving ${arenaPending.label}…` : arenaNotice ? arenaNotice : !apiRef || typeof apiRef.configure !== 'function'
-      ? 'Arena preview — host rematch settings unavailable here.'
-      : isHost ? (next.id === active.id ? 'Quick picks for your next match.' : `Next: ${next.label} — applies on rematch.`) : `Host picks next arena — showing ${next.label} next.`;
-    return `<section class="pk-arenas" aria-label="Next arena"><header><h4>Classic arenas</h4><span class="pk-arena-note" role="status">${esc(note)}</span></header><div class="pk-arenagrid">${buttons}</div></section>`;
-  }
-
   function buyUpgrade(event) {
     const button=event.target?.closest?.('[data-upgrade]');
     if (!button || button.disabled || garagePending || S?.phase!=='done' || !S?.youDrive) return;
@@ -896,25 +845,9 @@ export function createKartView(viewConfig) {
     paintHud();
   }
 
-  function chooseArena(event) {
-    const button=event.target?.closest?.('[data-arena]');
-    if (!button || button.disabled || arenaPending || S?.phase !== 'done') return;
-    if (hostContext().isHost !== true) return;
-    if (!apiRef || typeof apiRef.configure !== 'function') return;
-    const arena = ARENA_CHOOSER.find((a) => a.id === button.getAttribute('data-arena'));
-    if (!arena) return;
-    if (nextMapSetting() === arena.label) return;
-    let ok = false;
-    try { ok = apiRef.configure({ map: arena.label }) === true; } catch { ok = false; }
-    arenaPending = ok ? { label: arena.label, at: nowMs() } : null;
-    arenaNotice = ok ? '' : 'Arena was not saved. Try again.';
-    lastResultKey = '';
-    paintHud();
-  }
-
   function resultClick(event) {
     buyUpgrade(event);
-    chooseArena(event);
+    if (arenaPicker.choose(event, S, apiRef)) { lastResultKey = ''; paintHud(); }
   }
 
   function meRespawning() { return !!(myKart()?.respawn > 0 && S?.phase === 'drive'); }
@@ -1848,7 +1781,7 @@ export function createKartView(viewConfig) {
     stopFallback();
     audio?.dispose();audio=null;startAudio=null;wasTurbo=false;
     garageUI.dispose();
-    garagePending=null;arenaPending=null;arenaNotice='';
+    garagePending=null;arenaPicker.reset();
     for (const [t, type, fn, opts] of bound) {
       try { t.removeEventListener(type, fn, opts); } catch { /* noop */ }
     }

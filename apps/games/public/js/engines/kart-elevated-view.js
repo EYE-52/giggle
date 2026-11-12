@@ -27,6 +27,7 @@ import {arenaFeatureSolids} from './kart-feature-solids.mjs';
  * client coordinates are sent: only sequenced, life-scoped intent. */
 import {createThreeView} from '../renderers/three-view.js';
 import {kartResultView} from './kart-results.mjs';
+import {createKartArenaPicker} from './kart-next-arena.mjs';
 import {createMobileStick} from '../toolkit/mobile-stick.mjs';
 import {readInputCapabilities,touchControlsFor} from '../toolkit/input-capabilities.mjs';
 import {createKartModel,animateKartModel} from './kart-model.mjs';
@@ -109,6 +110,8 @@ export function createElevatedKartView() {
     const controls=$('controls');
     if(controls.value!==preference){controls.value=preference;syncPickers(controls.parentNode);}
     const show=touchControlsFor(preference,readInputCapabilities())&&S?.youDrive&&S.phase!=='done';setKartFlag($('touch'),'hidden',!show);root.classList.toggle('pke-touch-mode',show);}
+  const arenaPicker=createKartArenaPicker();
+  let resultAnnouncementKey='';
   function paint(){
     if(!S||!root)return;
     const me=self(),watch=!S.youDrive;
@@ -136,14 +139,19 @@ export function createElevatedKartView() {
     setKartText($('arena'),S.map?.label||'Pocket Karts');
     setKartText($('goal'),S.winRule==='Score target'&&S.targetHits?`First to ${S.targetHits} KO${S.targetHits===1?'':'s'} wins.`:'Most knockouts wins.');
     setKartFlag($('result'),'hidden',S.phase!=='done');
-    const nextStandings=S.phase==='done'?JSON.stringify([S.result,S.you,ranked.map(k=>api.name?.(k.id)||k.id),S.winRule,S.targetHits]):'';
+    const arenaKey=arenaPicker.sync(S,api);
+    const nextStandings=S.phase==='done'?JSON.stringify([S.result,S.you,ranked.map(k=>api.name?.(k.id)||k.id),S.winRule,S.targetHits,arenaKey]):'';
     if(nextStandings!==standingsKey){
       standingsKey=nextStandings;
       if(S.phase==='done'&&S.result){
         const unit=n=>`${n} KO${n===1?'':'s'}`,target=S.targetHits||0;
         const final=kartResultView({result:S.result,you:S.you,nameOf:id=>api.name?.(id)||id,unit,target,targetUnit:target===1?'KO':'KOs'});
-        $('result').innerHTML=final.html;
-        api.announce?.(`${final.title}. ${final.line}`);
+        const result=$('result'),scroll=result.scrollTop,focused=result.contains(document.activeElement)?document.activeElement?.getAttribute?.('data-arena'):null;
+        result.innerHTML=final.html+arenaPicker.html(S,api);
+        if(focused)result.querySelector(`[data-arena="${focused}"]`)?.focus({preventScroll:true});
+        result.scrollTop=scroll;
+        const announcementKey=JSON.stringify([S.instanceId,S.result,S.you]);
+        if(announcementKey!==resultAnnouncementKey){resultAnnouncementKey=announcementKey;api.announce?.(`${final.title}. ${final.line}`);}
       }else $('result').replaceChildren();
     }
     // Final scores own the screen: the driving HUD steps aside (as in classic).
@@ -660,6 +668,7 @@ export function createElevatedKartView() {
     // that drawer instead of drawing a second menu on top of it.
     const roomMenu=document.getElementById('roomMenu'),roomPanel=roomMenu?.querySelector('.room-menu-panel');
     if(roomPanel){const panel=$('menu').querySelector('.pke-panel');panel.classList.add('pke-room-settings');roomPanel.append(panel);listeners.push([panel,'owned-panel',null]);setKartFlag($('menu'),'hidden',true);setKartFlag($('resume'),'hidden',true);root.classList.add('pke-has-room');on(roomMenu,'toggle',()=>{stop();paint();if(!roomMenu.open&&active()&&roomMenu.contains(document.activeElement))gl?.canvas.focus({preventScroll:true});});}
+    on($('result'),'click',event=>{if(arenaPicker.choose(event,S,api)){standingsKey='';paint();}});
     wirePickers($('controls').parentNode);
     try{preference=localStorage.getItem('pk-controls-v1')||'auto';}catch{preference='auto';}if(!['auto','keyboard','touch'].includes(preference))preference='auto';
     audio=createKartAudio({muted:api.context?.().sound===false});
@@ -731,7 +740,7 @@ export function createElevatedKartView() {
     if(S.phase==='done'&&was?.phase!=='done'&&was?.instanceId===S.instanceId){clearTimeout(resultsTimer);resultsTimer=setTimeout(()=>{if(S?.instanceId===snapshot.instanceId&&S.phase==='done')api.resultsReady?.(S.instanceId);},900);}
   }
   function dispose(){
-    stop(false);generation++;rendererWarmup?.cancel();rendererWarmup=null;clearInterval(timer);clearTimeout(resultsTimer);timer=resultsTimer=0;stick?.dispose();stick=null;audio?.dispose();audio=null;startAudio=null;gl?.dispose();gl=null;prediction?.dispose();prediction=null;predicted=null;
+    arenaPicker.reset();resultAnnouncementKey='';stop(false);generation++;rendererWarmup?.cancel();rendererWarmup=null;clearInterval(timer);clearTimeout(resultsTimer);timer=resultsTimer=0;stick?.dispose();stick=null;audio?.dispose();audio=null;startAudio=null;gl?.dispose();gl=null;prediction?.dispose();prediction=null;predicted=null;
     for(const[target,type,fn,opts]of listeners.splice(0)){if(type==='owned-style'||type==='owned-panel')target.remove();else target.removeEventListener(type,fn,opts);}
     hitFx?.dispose();hitFx=null;root?.remove();root=null;S=null;api=null;epoch='';pending=gfxReady=graphicsFailed=false;timeline.reset();newEvents.length=0;seen.clear();nodes.clear();firstEvents=true;sequence=0;itemKey=standingsKey='';audioDrifting=false;lastSnapshotArrival=null;snapshotOffset=null;
   }

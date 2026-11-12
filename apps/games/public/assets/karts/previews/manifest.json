@@ -1,52 +1,277 @@
 {
-  "source": "Native Safari captures of actual map worlds; profile keys distinguish classic and elevated maps. Daybreak overview, not promotional renders. WebP encoding only; no synthetic artwork.",
+  "source": "Actual production map builders and shipped assets, Daybreak. Orthographic full-footprint camera, menu fill light, no chase-camera fog, and no outside horizon in shaped arena overviews. WebP only; no baked text.",
   "width": 480,
   "height": 270,
   "images": [
     {
-      "file": "assets/karts/previews/elevated-frost.webp",
-      "bytes": 16698,
-      "sha256": "17a96adbafe93e916bfdac7adeb209c9d0e1c1823d06ed2d246196273d5f4b79"
+      "file": "assets/karts/previews/arena-rookie-ribbons.webp",
+      "bytes": 11294,
+      "sha256": "dedb487f31b279e90b3605a3f672af4ac47f44555c26937120a90dc401cc9404",
+      "label": "Rookie Ribbons",
+      "mapId": "rookie-ribbons",
+      "profile": "elevated",
+      "revision": "rookie-ribbons-1",
+      "framing": {
+        "minX": -0.8498,
+        "maxX": 0.8498,
+        "minY": -0.9434,
+        "maxY": 0.9434
+      }
+    },
+    {
+      "file": "assets/karts/previews/arena-garden-crown.webp",
+      "bytes": 10576,
+      "sha256": "9a1bf0072a06f263027a36111a15ab9820ec34569aa4a49dea1182861c43c2fa",
+      "label": "Garden Crown",
+      "mapId": "garden-crown",
+      "profile": "elevated",
+      "revision": "garden-crown-1",
+      "framing": {
+        "minX": -0.7164,
+        "maxX": 0.7164,
+        "minY": -0.9434,
+        "maxY": 0.9434
+      }
+    },
+    {
+      "file": "assets/karts/previews/arena-frostbite-crescent.webp",
+      "bytes": 10952,
+      "sha256": "5c5a4eebbb972935add8e7b638d2df0085a99c6081057bf660d46fb390583439",
+      "label": "Frostbite Crescent",
+      "mapId": "frostbite-crescent",
+      "profile": "elevated",
+      "revision": "frostbite-crescent-1",
+      "framing": {
+        "minX": -0.8714,
+        "maxX": 0.8714,
+        "minY": -0.9434,
+        "maxY": 0.9434
+      }
+    },
+    {
+      "file": "assets/karts/previews/arena-neon-switchyard.webp",
+      "bytes": 12098,
+      "sha256": "a98c8f88a421730c964f9982ec05b624999563b274709354baff2c745d3528e9",
+      "label": "Neon Switchyard",
+      "mapId": "neon-switchyard",
+      "profile": "elevated",
+      "revision": "neon-switchyard-1",
+      "framing": {
+        "minX": -0.8185,
+        "maxX": 0.8185,
+        "minY": -0.9434,
+        "maxY": 0.9434
+      }
+    },
+    {
+      "file": "assets/karts/previews/arena-harbor-fork.webp",
+      "bytes": 10064,
+      "sha256": "1bf40d3971e839ecf911f40561116f8650cdabe82c0f9ee5b21246c80cce9af4",
+      "label": "Harbor Fork",
+      "mapId": "harbor-fork",
+      "profile": "elevated",
+      "revision": "harbor-fork-1",
+      "framing": {
+        "minX": -0.767,
+        "maxX": 0.767,
+        "minY": -0.9434,
+        "maxY": 0.9434
+      }
+    },
+    {
+      "file": "assets/karts/previews/arena-skyport-split.webp",
+      "bytes": 12458,
+      "sha256": "cf90260e0e4c13714cbdd8a815233eef2860eb2912c9f08731ae55f06d7c13cb",
+      "label": "Skyport Split",
+      "mapId": "skyport-split",
+      "profile": "elevated",
+      "revision": "skyport-split-2",
+      "framing": {
+        "minX": -0.8433,
+        "maxX": 0.8433,
+        "minY": -0.9434,
+        "maxY": 0.9434
+      }
+    },
+    {
+      "file": "assets/karts/previews/arena-foundry-wheel.webp",
+      "bytes": 16494,
+      "sha256": "64481ced93a9d4785ea1e960160359aa2d5d0a3696caa5de5f3e89d34f6b0219",
+      "label": "Foundry Wheel",
+      "mapId": "foundry-wheel",
+      "profile": "elevated",
+      "revision": "foundry-wheel-1",
+      "framing": {
+        "minX": -0.8634,
+        "maxX": 0.8634,
+        "minY": -0.9434,
+        "maxY": 0.9434
+      }
+    },
+    {
+      "file": "assets/karts/previews/elevated-skyport.webp",
+      "bytes": 9644,
+      "sha256": "0fed597a2807aed1dc6ef7efe1bf34f4fe151d1373e710dfa1a1c22d11dd9a00",
+      "label": "Skyport",
+      "mapId": "skyport",
+      "profile": "elevated",
+      "revision": "complex-1-routes-2",
+      "framing": {
+        "minX": -0.7423,
+        "maxX": 0.7423,
+        "minY": -0.8987,
+        "maxY": 0.9434
+      }
+    },
+    {
+      "file": "assets/karts/previews/elevated-foundry.webp",
+      "bytes": 11176,
+      "sha256": "685663cb0e2d14dade4c55850c2727d7fcc4df0e340e7cbe572af0e111a1aae6",
+      "label": "Foundry",
+      "mapId": "foundry",
+      "profile": "elevated",
+      "revision": "complex-1-routes-2",
+      "framing": {
+        "minX": -0.7429,
+        "maxX": 0.7429,
+        "minY": -0.899,
+        "maxY": 0.9434
+      }
     },
     {
       "file": "assets/karts/previews/elevated-garden.webp",
-      "bytes": 14152,
-      "sha256": "5bf955dfde803bb15dc69e5f70e01fa266958e4ae0860f6762346692b30c88c2"
+      "bytes": 14208,
+      "sha256": "83b8dfd95268a389e93b399552b12da687afbf8a0b4c7919d8b6defc0e45d5b7",
+      "label": "Alpine Courtyard",
+      "mapId": "garden",
+      "profile": "elevated",
+      "revision": "combat-elevation-2-routes-2",
+      "framing": {
+        "minX": -0.746,
+        "maxX": 0.746,
+        "minY": -0.9065,
+        "maxY": 0.9434
+      }
     },
     {
-      "file": "assets/karts/previews/elevated-harbor.webp",
-      "bytes": 11226,
-      "sha256": "c34841fb941e3f30ee4b0e98a4400d8e893fea94a7c0021bee1a9a0883aa3d6c"
+      "file": "assets/karts/previews/elevated-frost.webp",
+      "bytes": 21952,
+      "sha256": "367bb09aa59d239895e1feeb108e58732045e811715eb8229fec72a416317ad5",
+      "label": "Frost Quarry",
+      "mapId": "frost",
+      "profile": "elevated",
+      "revision": "combat-elevation-2-routes-2",
+      "framing": {
+        "minX": -0.74,
+        "maxX": 0.74,
+        "minY": -0.903,
+        "maxY": 0.9434
+      }
     },
     {
       "file": "assets/karts/previews/elevated-neon.webp",
-      "bytes": 10898,
-      "sha256": "31aa81c4a37a5f9ec26be639318fe96f7b8849125bed874231e8ce4eaeea801f"
+      "bytes": 13108,
+      "sha256": "86eb854c2472b806d130a4c171e6cf1ab2be3c67accc1da89656ddf9acd6ebd4",
+      "label": "Neon Harbor",
+      "mapId": "neon",
+      "profile": "elevated",
+      "revision": "combat-elevation-2-routes-2",
+      "framing": {
+        "minX": -0.7521,
+        "maxX": 0.7521,
+        "minY": -0.9101,
+        "maxY": 0.9434
+      }
     },
     {
-      "file": "assets/karts/previews/legacy-blocks.webp",
-      "bytes": 20792,
-      "sha256": "ab1ef9d68742c39700fc1305f3b7a6f549e1c9dc55075605fdb46e73b43d0552"
-    },
-    {
-      "file": "assets/karts/previews/legacy-frost.webp",
-      "bytes": 21330,
-      "sha256": "0167cc47b84a71079be148b8a478ca3f138d6d71b8ede60001f9ee77f653fced"
-    },
-    {
-      "file": "assets/karts/previews/legacy-garden.webp",
-      "bytes": 20644,
-      "sha256": "36b8e3e7210294fd5f72d64b7eff14159523dbae9848f12eb3e3c4e8bccce8f3"
-    },
-    {
-      "file": "assets/karts/previews/legacy-neon.webp",
-      "bytes": 14440,
-      "sha256": "8477d03264404fa3b4290e191b05c8ca457afd9a5b8e68cf24837ddab08013e7"
+      "file": "assets/karts/previews/elevated-harbor.webp",
+      "bytes": 13650,
+      "sha256": "6314101ac6f8863252c97250134c4fdf31f4811e446d71a2e98f08f17d5b3b02",
+      "label": "Harbor Heights",
+      "mapId": "harbor",
+      "profile": "elevated",
+      "revision": "combat-elevation-2-routes-2",
+      "framing": {
+        "minX": -0.7645,
+        "maxX": 0.7645,
+        "minY": -0.9138,
+        "maxY": 0.9434
+      }
     },
     {
       "file": "assets/karts/previews/legacy-ring.webp",
-      "bytes": 20422,
-      "sha256": "e0927511c4c7888e557eb3bc54449e4499396fba83f6f722a4ab0495f5afd815"
+      "bytes": 23558,
+      "sha256": "db18ced7dc9a775d62178d36f4fe74e29199e89c3d4d730684c4bfe1bc866871",
+      "label": "Rookie Ring",
+      "mapId": "ring",
+      "profile": "legacy",
+      "revision": "ring-bowtie-20261109-1",
+      "framing": {
+        "minX": -0.6982,
+        "maxX": 0.6982,
+        "minY": -0.8884,
+        "maxY": 0.9434
+      }
+    },
+    {
+      "file": "assets/karts/previews/legacy-blocks.webp",
+      "bytes": 22138,
+      "sha256": "b931d9a02674fc713bb73d0b198c033c901a083c1caa43c176d1efe99e807cd6",
+      "label": "Bumper Blocks",
+      "mapId": "blocks",
+      "profile": "legacy",
+      "revision": "blocks-switchback-20261109-2",
+      "framing": {
+        "minX": -0.6982,
+        "maxX": 0.6982,
+        "minY": -0.8884,
+        "maxY": 0.9434
+      }
+    },
+    {
+      "file": "assets/karts/previews/legacy-garden.webp",
+      "bytes": 24724,
+      "sha256": "835418a5c2cce655bab666e2e5f3e452373994de2e6de6e03bef4b44050d4f62",
+      "label": "Garden Circuit",
+      "mapId": "garden",
+      "profile": "legacy",
+      "revision": "garden-fountain-20261109-1",
+      "framing": {
+        "minX": -0.7559,
+        "maxX": 0.7559,
+        "minY": -0.9122,
+        "maxY": 0.9434
+      }
+    },
+    {
+      "file": "assets/karts/previews/legacy-frost.webp",
+      "bytes": 20370,
+      "sha256": "f6d0872846fabe909d4a85fb6716657aa25b717ea023071fd56f36bf52cbd97f",
+      "label": "Frosty Pass",
+      "mapId": "frost",
+      "profile": "legacy",
+      "revision": "frost-split-lake-20261109-1",
+      "framing": {
+        "minX": -0.7559,
+        "maxX": 0.7559,
+        "minY": -0.9122,
+        "maxY": 0.9434
+      }
+    },
+    {
+      "file": "assets/karts/previews/legacy-neon.webp",
+      "bytes": 14324,
+      "sha256": "c39ea1481c3f77314295911ebfd6fdb5a60ee612f8046cdb7af0adbaa14ca43a",
+      "label": "Neon Yard",
+      "mapId": "neon",
+      "profile": "legacy",
+      "revision": "neon-city-20261109-1",
+      "framing": {
+        "minX": -0.7559,
+        "maxX": 0.7559,
+        "minY": -0.9122,
+        "maxY": 0.9434
+      }
     }
   ]
 }

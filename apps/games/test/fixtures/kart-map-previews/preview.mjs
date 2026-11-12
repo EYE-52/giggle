@@ -2,14 +2,14 @@ import {MeshoptDecoder} from '/vendor/three/libs/meshopt_decoder.mjs';
 await MeshoptDecoder.ready;
 import * as THREE from 'three';
 import { GLTFLoader } from '/vendor/three/loaders/GLTFLoader.js';
-import { loadKartAssets, closeKartAssetBitmaps } from '/js/engines/kart-assets.mjs';
+import { loadKartAssets, closeKartAssetBitmaps, KART_ELEVATED_FILES } from '/js/engines/kart-assets.mjs';
 import { createKartWorld } from '/js/engines/kart-world.mjs';
 import { createKartLighting } from '/js/engines/kart-lighting.mjs';
 import { createKartElevatedWorld } from '/js/engines/kart-elevated-world.mjs';
 import { elevatedMap } from '/js/engines/kart-elevated-maps.mjs';
 
 const $ = id => document.getElementById(id), canvas = $('stage');
-const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, preserveDrawingBuffer: true, powerPreference: 'high-performance' });
 renderer.setPixelRatio(1); renderer.setSize(960, 540, false);
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFShadowMap;
@@ -51,8 +51,8 @@ async function capture() {
     if (choice.profile === 'elevated') {
       const assets = {}, library = new THREE.Group(); library.visible = false; scene.add(library);
       // This is exactly the environment library used by kart-elevated-view.
-      const files = map.environment === 'alpine'
-        ? [['stylized', 'environment/stylized-alpine', '9426a0ed'], ['fountain', 'environment/alpine-fountain', '7a687cd3']] : [];
+      const files = [...KART_ELEVATED_FILES];
+      if (map.environment === 'alpine') files.push(['stylized', 'environment/stylized-alpine', '9426a0ed'], ['fountain', 'environment/alpine-fountain', '7a687cd3']);
       const loader = new GLTFLoader().setMeshoptDecoder(MeshoptDecoder);
       const loaded = await Promise.allSettled(files.map(async ([key, file, version]) => {
         const gltf = await loader.loadAsync(`/assets/karts/${file}.glb?v=${version}`);
@@ -79,11 +79,52 @@ async function capture() {
       world.animate(0, 0, undefined); lighting.update(world.palette);
     }
     if (retired) throw new Error('Capture page retired');
-    const camera = new THREE.PerspectiveCamera(52, 960 / 540, .1, 900);
-    // An elevated diagonal overview preserves ramps, cover and the lower routes.
-    // Scale with the real half extent so every playable corner stays in frame.
-    camera.position.set(map.half * 1.60, map.half * 1.85, -map.half * 2.25);
-    camera.lookAt(0, 0, 0); camera.updateMatrixWorld();
+    // The game fog is tuned for a chase camera. At overview distance it hides
+    // the arena. Capture lighting reveals the authored geometry at menu size.
+    scene.fog = null;
+    if (choice.key.startsWith('arena-')) {
+      // The chase-camera sky/horizon surrounds the arena, not its footprint.
+      // Keep it outside the menu overview so it cannot cover the far edges.
+      const scenery = world.group.getObjectByName('outside-arena-scenery');
+      if (scenery) scenery.visible = false;
+      scene.background = new THREE.Color(0xdceaf1);
+    }
+    scene.add(new THREE.HemisphereLight(0xffffff, 0xb9c8d7, 1.8));
+    renderer.toneMappingExposure = 1.15;
+    const top = Math.max(8, ...(map.colliders || []).map(c => c.position.y + c.half.y));
+    const target = new THREE.Vector3(0, top / 3, 0);
+    const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, .1, 1600);
+    camera.position.copy(target).add(new THREE.Vector3(1.35, 1.8, -1.7).normalize().multiplyScalar(map.half * 5));
+    camera.lookAt(target); camera.updateMatrixWorld();
+    const points = [];
+    const launch = choice.key.startsWith('arena-');
+    if (launch) {
+      // Fit the actual visible slabs, ramps, guards and on-track landmarks.
+      // The square authority half-extent includes large empty corners.
+      world.group.updateMatrixWorld(true);
+      for (const child of world.group.children) if (child.name !== 'outside-arena-scenery') child.traverseVisible(mesh => {
+        const vertices = mesh.geometry?.attributes.position;
+        if (!mesh.isMesh || !vertices || mesh.userData.cameraCollider) return;
+        const matrix = new THREE.Matrix4(), instance = new THREE.Matrix4();
+        for (let i = 0; i < (mesh.isInstancedMesh ? mesh.count : 1); i++) {
+          if (mesh.isInstancedMesh) { mesh.getMatrixAt(i, instance); matrix.multiplyMatrices(mesh.matrixWorld, instance); }
+          else matrix.copy(mesh.matrixWorld);
+          for (let v = 0; v < vertices.count; v++) points.push(new THREE.Vector3().fromBufferAttribute(vertices, v).applyMatrix4(matrix).applyMatrix4(camera.matrixWorldInverse));
+        }
+      });
+    } else {
+      // Keep the existing clear full-footprint view for the older maps.
+      for (const x of [-map.half - 3, map.half + 3]) for (const z of [-map.half - 3, map.half + 3]) for (const y of [-2, top + 2])
+        points.push(new THREE.Vector3(x, y, z).applyMatrix4(camera.matrixWorldInverse));
+    }
+    let minX=Infinity,maxX=-Infinity,minY=Infinity,maxY=-Infinity;
+    for (const p of points) { minX=Math.min(minX,p.x);maxX=Math.max(maxX,p.x);minY=Math.min(minY,p.y);maxY=Math.max(maxY,p.y); }
+    const centerX=launch?(minX+maxX)/2:0,centerY=launch?(minY+maxY)/2:0;
+    const extentX=Math.max(maxX-centerX,centerX-minX),extentY=Math.max(maxY-centerY,centerY-minY);
+    const span = Math.max(extentY, extentX / (16 / 9)) * 1.06;
+    camera.left=centerX-span*16/9;camera.right=centerX+span*16/9;camera.top=centerY+span;camera.bottom=centerY-span;
+    camera.updateProjectionMatrix();
+    const footprint=[[minX,minY],[maxX,maxY]].map(([x,y])=>new THREE.Vector3(x,y,0).applyMatrix4(camera.projectionMatrix).toArray());
     world.updateDetail?.(camera, .5);
     renderer.render(scene, camera);
     await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
@@ -91,7 +132,7 @@ async function capture() {
     status({ state: 'ready', label: choice.label, key: choice.key, profile: choice.profile,
       mapId: choice.id, revision: map.revision || 'shipped-flat-map', half: map.half, palette,
       loadedAssets, captures: ++captures, canvas: { x: 16, y: 62, width: 960, height: 540 },
-      camera: { position: camera.position.toArray(), target: [0, 0, 0] },
+      camera: { type: 'orthographic', position: camera.position.toArray(), target: target.toArray(), span, footprint, vertices: points.length, framingSource: launch ? 'visible on-track mesh vertices' : 'full map bounds' },
       renderer: { contexts: 1, calls: renderer.info.render.calls, triangles: renderer.info.render.triangles,
         geometries: renderer.info.memory.geometries, textures: renderer.info.memory.textures } });
   } catch (error) {
