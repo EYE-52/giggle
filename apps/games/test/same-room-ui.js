@@ -64,9 +64,12 @@ const registry = require('../games/registry');
     assert(sprite.includes('id="'+ref+'"'),game.id+' has artwork for '+setting.key);
     assert(icon.includes('aria-hidden="true"') && icon.includes('focusable="false"'));
   }
-  assert.equal(document.querySelectorAll('.sr-steps li').length, 3);
-  assert(document.querySelector('.sr-hero-art .sr-cover'));
-  assert.equal(document.querySelector('.sr-empty-friends use').getAttribute('href'), '/assets/ui/settings-icons.svg#armchair');
+  const currentGame = registry.list().find(g => g.id === $('srGame').value);
+  assert.equal(document.querySelector('.sr-feature-copy .t-body').textContent, currentGame.tagline);
+  assert.equal(document.querySelector('.sr-feature-copy .t-caption').textContent, '2–20 players');
+  assert(document.querySelector('.sr-feature .sr-cover'));
+  assert.equal($('srName').getAttribute('aria-describedby'), 'srNameHint');
+  assert.equal($('srNames').childElementCount, 0);
   assert.equal(document.querySelectorAll('.sr-prompt-styles .sr-prompt-art').length, 4);
   assert.equal(document.querySelectorAll('.sr-choice-desc').length, 4);
   assert.equal(document.querySelectorAll('.sr-pace-art').length, 3);

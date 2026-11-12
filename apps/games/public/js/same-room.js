@@ -62,19 +62,23 @@ function settingChoices(s, choices, value, id) {
   }).join('')}</div>`;
 }
 const cover = g => `/${g.art || `img/games/${g.id}.png`}`;
+function playerRange(g) {
+  const { min, max } = sameRoomSupport(g);
+  return min === max ? String(min) : `${min}–${max}`;
+}
 function gameCards() {
   // Keep the current pick in the short shelf, including when it is a board
   // game near the end of the catalogue.
   const shelf = [game(), ...games.filter(g => g.id !== gameId)];
   return `<details id="srGamePicker" class="sr-game-picker"${pickingGame ? ' open' : ''}>
-    <summary class="tb-btn tb-secondary" aria-label="Choose a game">Choose a game <span class="t-caption">${games.length} on one device</span></summary>
+    <summary class="tb-btn tb-secondary" aria-label="Choose a game">Choose a game <span class="sr-picker-count t-caption">${games.length} games</span></summary>
     <div id="srGameGrid" class="sr-game-grid${showingAllGames ? ' is-expanded' : ''}" role="group" aria-label="Choose a one-device game">${shelf.map(g => {
-      const selected = g.id === gameId, support = sameRoomSupport(g);
+      const selected = g.id === gameId;
       return `<button type="button" class="sr-game-card tb-card is-compact" data-game-choice="${g.id}" data-family="${family(g)}" aria-pressed="${selected}" aria-label="Choose ${esc(g.name)}">
         <span class="sr-game-tile">
           <span class="sr-game-art"><img src="${esc(cover(g))}" alt="" loading="lazy" width="96" height="96"><span class="sr-game-check" aria-hidden="true">${uiIcon('check', 16)}</span></span>
           <span class="sr-game-name">${esc(g.name)}</span>
-          <span class="sr-game-count tb-badge">${support.min === support.max ? support.min : `${support.min}–${support.max}`} people</span>
+          <span class="sr-game-count tb-badge">${playerRange(g)} people</span>
         </span></button>`;
     }).join('')}</div><button type="button" id="srShowGames" class="tb-btn tb-chip sr-show-games" aria-controls="srGameGrid" aria-expanded="${showingAllGames}">${showingAllGames ? 'Show fewer games' : `Show all ${games.length} games`}</button></details>`;
 }
@@ -95,10 +99,13 @@ function setup() {
   const g = game();
   app.setAttribute('aria-busy', 'false');
   app.innerHTML = `<form id="srSetup" class="sr-setup">
-    <header class="sr-feature tb-card"><div class="sr-hero-art"><img class="sr-cover" src="${esc(cover(g))}" alt="" width="160" height="160"><span class="sr-hero-sticker" aria-hidden="true">${uiIcon('sparkle', 22)}</span></div><div class="sr-feature-copy"><p class="sr-kicker">Same room · one device</p><h1 class="t-heading">${esc(g.name)}</h1><p class="t-body">One phone. A whole table of friends.</p><ol class="sr-steps" aria-label="How to play"><li><span>1</span>Add friends</li><li><span>2</span>Pick your style</li><li><span>3</span>Pass & play</li></ol></div></header>
+    <header class="sr-feature">
+      <img class="sr-cover" src="${esc(cover(g))}" alt="" width="100" height="100">
+      <div class="sr-feature-copy"><h1 class="t-heading">${esc(g.name)}</h1><p class="t-body">${esc(g.tagline || '')}</p><span class="t-caption">${playerRange(g)} players</span></div>
+    </header>
     <input id="srGame" type="hidden" value="${g.id}">${gameCards()}
-    <section class="sr-panel sr-people-panel tb-card"><div class="sr-section-head"><span class="sr-section-icon" aria-hidden="true">${uiIcon('users-three', 30)}</span><h2>Who’s here?</h2><span id="srSeatCount" class="tb-badge"></span></div><p class="t-body">Pull up a chair. Everyone gets an animal.</p>
-      <div class="sr-add"><input id="srName" maxlength="200" autocomplete="off" enterkeyhint="done" aria-label="Player names" placeholder="Sam, Jess, Mo…"><button type="button" id="srAdd" class="tb-btn tb-secondary">Add</button></div>
+    <section class="sr-panel sr-people-panel tb-card"><div class="sr-section-head"><span class="sr-section-icon" aria-hidden="true">${uiIcon('users-three', 30)}</span><h2>Who’s here?</h2><span id="srSeatCount" class="tb-badge"></span></div><p id="srNameHint" class="t-caption">Separate names with commas.</p>
+      <div class="sr-add"><input id="srName" maxlength="200" autocomplete="off" enterkeyhint="done" aria-label="Player names" aria-describedby="srNameHint" placeholder="Sam, Jess, Mo…"><button type="button" id="srAdd" class="tb-btn tb-secondary">Add</button></div>
       <div id="srNames" class="sr-names" aria-label="Players"></div><p id="srNameError" class="sr-error" role="alert"></p>
     </section>
     <section class="sr-panel sr-settings-panel"><div class="sr-section-head"><span class="sr-section-icon" aria-hidden="true">${uiIcon('sliders-horizontal', 29)}</span><h2>Make it yours</h2></div><div class="sr-fields">${g.schema.settings.map(field).join('') || '<p class="t-body">The board is ready. Add your names and play.</p>'}</div><p class="sr-timer-note t-caption"><span aria-hidden="true">${uiIcon('pause', 18)}</span>Private turns get their own timer. Passing time is on us.</p></section>
@@ -158,7 +165,7 @@ function paintNames() {
   const max = sameRoomSupport(game()).max;
   const previous = new Set([...$('srNames').querySelectorAll('[data-name]')].map(el => el.dataset.name));
   $('srSeatCount').textContent = `${names.length} / ${max}`;
-  $('srNames').innerHTML = names.length ? names.map((name, i) => `<span class="sr-person${previous.has(name) ? '' : ' is-new'}" data-name="${esc(name)}" data-colour="${i % 6}">${avatar({ avatar: LOCAL_AVATARS[i], colour: i % 6 })}<span>${esc(name)}</span><button type="button" data-remove="${i}" aria-label="Remove ${esc(name)}">×</button></span>`).join('') : `<div class="sr-empty"><span class="sr-empty-friends" aria-hidden="true">${uiIcon('armchair', 40)}</span><strong class="t-title">Your table is waiting</strong><p class="t-caption">Add two names to take the first seats.</p></div>`;
+  $('srNames').innerHTML = names.map((name, i) => `<span class="sr-person${previous.has(name) ? '' : ' is-new'}" data-name="${esc(name)}" data-colour="${i % 6}">${avatar({ avatar: LOCAL_AVATARS[i], colour: i % 6 })}<span>${esc(name)}</span><button type="button" data-remove="${i}" aria-label="Remove ${esc(name)}">×</button></span>`).join('');
   $('srNames').querySelectorAll('[data-remove]').forEach(b => { b.onclick = () => {
     names.splice(Number(b.dataset.remove), 1); save('giggle:one-device:names', JSON.stringify(names)); paintNames(); $('srName').focus();
   }; });
@@ -197,7 +204,7 @@ function play(message) {
   if (mountKey !== key) {
     reset(); mountKey = key; readyStep = null;
     window.scrollTo?.(0, 0);
-    app.innerHTML = `<header class="sr-play-head tb-card${newTurn ? ' is-new-turn' : ''}" data-colour="${colour(actor)}"><div class="sr-head-avatar">${result ? avatar(null, 'trophy') : avatar(actor)}</div><div class="sr-turn-copy"><p class="t-caption">${esc(game()?.name || gameId)}${S.round ? ` · round ${S.round}${S.rounds ? ` of ${S.rounds}` : ''}` : ''}</p><h1 id="srTurn" class="sr-turn"></h1></div><div class="sr-turn-tools"><span class="sr-private-badge${message.private ? '' : ' is-public'}" aria-label="${message.private ? 'Private turn' : 'Shared screen'}">${message.private ? uiIcon('lock-simple', 16) + ' Private' : 'All together'}</span>${message.private ? btn('srCover', 'Hide', 'tb-chip') : `<span class="sr-turn-star" aria-hidden="true">${uiIcon('sparkle', 22)}</span>`}</div></header><div id="srView" class="sr-view-shell" aria-busy="true"><div class="sr-loading tb-card" role="status"><div class="tb-skeleton"></div><p class="t-body">Setting the table…</p></div><div id="gbody" class="sr-playfield" data-layout="standard"></div></div><div id="srExtras"></div><nav class="sr-game-tools" aria-label="Game controls">${btn('srEnd', 'End game', 'tb-chip')}</nav>`;
+    app.innerHTML = `<header class="sr-play-head tb-card${newTurn ? ' is-new-turn' : ''}" data-colour="${colour(actor)}"><div class="sr-head-avatar">${result ? avatar(null, 'trophy') : avatar(actor)}</div><div class="sr-turn-copy"><p class="t-caption">${esc(game()?.name || gameId)}${S.round ? ` <span class="sr-round">· round ${S.round}${S.rounds ? ` of ${S.rounds}` : ''}</span>` : ''}</p><h1 id="srTurn" class="sr-turn"></h1></div><div class="sr-turn-tools"><span class="sr-private-badge${message.private ? '' : ' is-public'}" aria-label="${message.private ? 'Private turn' : 'Shared screen'}">${message.private ? uiIcon('lock-simple', 16) + ' Private' : 'All together'}</span>${message.private ? btn('srCover', 'Hide', 'tb-chip') : `<span class="sr-turn-star" aria-hidden="true">${uiIcon('sparkle', 22)}</span>`}</div></header><div id="srView" class="sr-view-shell" aria-busy="true"><div class="sr-loading tb-card" role="status"><div class="tb-skeleton"></div><p class="t-body">Setting the table…</p></div><div id="gbody" class="sr-playfield" data-layout="standard"></div></div><div id="srExtras"></div><nav class="sr-game-tools" aria-label="Game controls">${btn('srEnd', 'End game', 'tb-chip')}</nav>`;
     if ($('srCover')) $('srCover').onclick = () => { clearPrivate(); input('cover'); };
     $('srEnd').onclick = () => confirmEnd();
   }

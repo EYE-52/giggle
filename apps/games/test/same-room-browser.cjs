@@ -59,6 +59,14 @@ async function run() {
       else assert.equal(seat.id, seat.target, `${phase}: target acts now`);
       assert.equal(await page.locator('#srTurn').textContent(), `${seat.name}’s turn!`, `${phase}: banner names the actor`);
       assert(await page.locator('#gbody .party-scene--truth').isVisible(), `${phase}: actual game scene is mounted`);
+      if (privatePeer) {
+        assert(await page.locator('#srCover').evaluate(button => {
+          const label = document.createRange();
+          label.selectNodeContents(button);
+          const box = button.getBoundingClientRect();
+          return label.getClientRects().length === 1 && box.width >= 44 && box.height >= 44;
+        }), 'Hide fits on one line inside its full touch target');
+      }
       return seat;
     };
     const shelf = async expanded => {
@@ -92,7 +100,8 @@ async function run() {
     assert.match(await page.locator('body').evaluate(el => getComputedStyle(el).backgroundImage), /radial-gradient/);
     assert.equal(await page.locator('.sr-prompt-art').count(), 4);
     assert.equal(await page.locator('.sr-pace-art').count(), 3);
-    assert.equal(await page.locator('.sr-empty-friends').count(), 1);
+    assert.equal(await page.locator('#srNames').innerText(), '');
+    assert.equal(await page.locator('.sr-feature-copy .t-caption').innerText(), '2–20 players');
     assert.equal(await page.locator('#srGame').inputValue(), 'truth-dare');
     assert(await page.locator('#srStart').isDisabled());
     await page.locator('#srGamePicker > summary').click();
@@ -126,6 +135,11 @@ async function run() {
     assert.equal(await page.locator('select:not(.picker-native)').count(), 0);
     await page.locator('#sr-setting-rounds').fill('1'); await page.locator('#sr-setting-rounds').dispatchEvent('change');
     await page.locator(`[data-picker-for="sr-setting-promptStyle"] [data-value="${promptStyle}"]`).click();
+    if (width > 600) {
+      const start = await page.locator('#srStart').boundingBox();
+      const players = await page.locator('.sr-people-panel').boundingBox();
+      assert(Math.abs(start.x - players.x) < 2 && start.y - (players.y + players.height) < 50, 'Start sits directly beneath the roster');
+    }
     await shot('setup');
     await page.locator('#srStart').click();
     const spinner = await actor('spin');
