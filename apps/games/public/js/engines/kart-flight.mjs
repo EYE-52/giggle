@@ -3,6 +3,17 @@
  * A short lead expires on missing packets, and stops at visible cover. */
 import {WEAPONS} from './kart-weapon-contract.mjs';
 const PHYSICAL_LEAD=.15;
+const NO_MINES=Object.freeze([]);
+// A ground trap stays put while packets bunch up. Its server TTL still wins.
+export function visibleGroundMines(mines, ageMs, live) {
+  if (!live || !(ageMs <= 320) || !mines?.length) return NO_MINES;
+  for (const mine of mines) {
+    if (Number.isFinite(mine.ttl) && mine.ttl*1000 <= ageMs) {
+      return mines.filter(other => !Number.isFinite(other.ttl) || other.ttl*1000 > ageMs);
+    }
+  }
+  return mines;
+}
 export function projectilePose(shot, snapshot, serverNow) {
   const speed=Number(shot.speed)||WEAPONS[shot.kind]?.speed||({pulse:110,scatter:95,rocket:85,rail:160}[shot.kind]||110);
   const age=Number.isFinite(snapshot.simAt) ? Math.max(0,(serverNow-snapshot.simAt)/1000) : 0;

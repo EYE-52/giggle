@@ -1139,6 +1139,7 @@ function createKartGame(config) {
       ...(team ? { ...team, targetFlags: state.targetFlags } : {}),
       garage: isGarage,
       simAt: state.lastTick,
+      ...(motion?.poseLagUs ? {poseLagUs:motion.poseLagUs()} : {}),
       map: {
         id: state.map,
         revision: mapD.revision,

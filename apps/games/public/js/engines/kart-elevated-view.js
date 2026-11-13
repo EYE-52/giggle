@@ -12,6 +12,7 @@ import {WEAPON_DISPLAY,WEAPON_IDS,CURATED_MUZZLE,equippedKartWeapon,weaponForwar
 import {paintKartWeapon,kartWeaponArt} from './kart-weapon-hud.mjs';
 import {paintKartHearts,createKartHitFeedback,landedText,kartEventCue} from './kart-hearts.mjs';
 import {createKartImpactFX} from './kart-impact-fx.mjs';
+import {visibleGroundMines} from './kart-flight.mjs';
 import {createArsenalFX} from './kart-arsenal-fx.mjs';
 import {createKartSkids,kartSliding} from './kart-skids.mjs';
 import {createKartThreats} from './kart-threats.mjs';
@@ -413,6 +414,7 @@ export function createElevatedKartView() {
         if(prefix==='mine:')minesSeen=true; // later mines are fresh drops; the first batch was already down
         for(const[id,object]of objects)if(id.startsWith(prefix)&&!ids.has(id)){impactFX.retire(object);object.visible=false;object.removeFromParent();if(object.userData.poolKey)pools.get(object.userData.poolKey).push(object);objects.delete(id);}
       }
+      let previousMines=null, visibleMineCount=-1;
       let minesSeen=false,objectTick='',started=false,cameraLife='',sideYaw=0,selectedSideYaw=0,sideHeight=3,recovery=0,sideSettling=false;
       const cameraAnchor=new THREE.Vector3(),cameraSolidAnchor=new THREE.Vector3(),sideEye=new THREE.Vector3(),recoveryEye=new THREE.Vector3(),modelBox=new THREE.Box3(),meshBox=new THREE.Box3(),corner=new THREE.Vector3(),probeCamera=new THREE.PerspectiveCamera(52,1,.1,650);
       const cameraModels=new WeakMap(),contactBoxes=new WeakMap(),contactPoint=new THREE.Vector3(),sideAngles=[25,-25,45,-45,60,-60,75,-75,90,-90];
@@ -531,9 +533,17 @@ export function createElevatedKartView() {
         // Do not keep drawing ordnance from a frozen authority snapshot or a
         // terminal round. A fresh snapshot may show genuinely current objects
         // again; no motion, collision or gameplay lifetime is invented here.
-        const itemsFresh=S.phase!=='done'&&performance.now()-(lastSnapshotArrival??-Infinity)<=120&&api?.context?.().connected!==false;
+        const snapshotAge=performance.now()-(lastSnapshotArrival??-Infinity);
+        const live=S.phase!=='done'&&api?.context?.().connected!==false;
+        const itemsFresh=live&&snapshotAge<=120;
+        const groundMines=visibleGroundMines(S.mines,snapshotAge,live);
+        if(previousMines!==S.mines||visibleMineCount!==groundMines.length){
+          sync(groundMines,'mine:',v=>art.mine(v.owner===S.you,v.kind||v.weapon));
+          previousMines=S.mines;
+          visibleMineCount=groundMines.length;
+        }
         const itemTick=itemSnapshot.simTick+':'+S.simTick+':'+itemsFresh;
-        if(objectTick!==itemTick){objectTick=itemTick;sync(itemsFresh?(itemSnapshot.projectiles||[]).filter(v=>S.projectiles?.some(latest=>latest.id===v.id)):[],'shot:',v=>projectile(v.weapon));sync(itemsFresh?S.mines:[],'mine:',v=>art.mine(v.owner===S.you,v.kind||v.weapon));sync(itemsFresh?(itemSnapshot.grenades||[]).filter(v=>S.grenades?.some(latest=>latest.id===v.id)):[],'grenade:',v=>art.projectile(v.weapon));sync(itemsFresh?(itemSnapshot.grenades||[]).filter(v=>v.weapon==='nuke'&&S.grenades?.some(latest=>latest.id===v.id)):[],'warning:',()=>{throw Error('Nuke warning pool exhausted');});}
+        if(objectTick!==itemTick){objectTick=itemTick;sync(itemsFresh?(itemSnapshot.projectiles||[]).filter(v=>S.projectiles?.some(latest=>latest.id===v.id)):[],'shot:',v=>projectile(v.weapon));sync(itemsFresh?(itemSnapshot.grenades||[]).filter(v=>S.grenades?.some(latest=>latest.id===v.id)):[],'grenade:',v=>art.projectile(v.weapon));sync(itemsFresh?(itemSnapshot.grenades||[]).filter(v=>v.weapon==='nuke'&&S.grenades?.some(latest=>latest.id===v.id)):[],'warning:',()=>{throw Error('Nuke warning pool exhausted');});}
         const itemAlpha=playback?.alpha??1;movingItems(itemSnapshot.projectiles,'shot:',playback?.previous.snapshot.projectiles,playback?.current.snapshot.projectiles,itemAlpha);movingItems(itemSnapshot.grenades,'grenade:',playback?.previous.snapshot.grenades,playback?.current.snapshot.grenades,itemAlpha);
         for(const object of objects.values())art.animate(object,dt,time,helper.reducedMotion());
         for(const object of objects.values()){const d=object.userData.drop,to=object.userData.dropTo;if(!d||!to)continue;if(d.at===null)d.at=time;const t=helper.reducedMotion()?1:Math.min(1,(time-d.at)/.32);if(t>=1){object.position.copy(to);object.userData.drop=null;continue;}object.position.lerpVectors(d.from,to,t*(2-t));object.position.y+=Math.sin(t*Math.PI)*.45;}
@@ -648,7 +658,7 @@ export function createElevatedKartView() {
           }
           camera.lookAt(target);healthBars.face(camera);
         }
-        {const own=self(),ownModel=own?.alive&&S.youDrive?models.get(own.id):null;threats.update(itemsFresh&&S.phase==='live'?S:null,S.you,ownModel?.position,camera);}
+        {const own=self(),ownModel=own?.alive&&S.youDrive?models.get(own.id):null;threats.update(itemsFresh?S:null,S.you,S.phase==='live'?ownModel?.position:null,camera,performance.now(),groundMines);}
         objectives.update(S,models,camera,time,helper.reducedMotion());
         skids.update(dt);
         world.updateDetail(camera,dt);

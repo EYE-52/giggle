@@ -143,6 +143,9 @@ export function createClassicMotion(RAPIER,baseConfig,state){
     // Unsimulated fraction of the next fixed step: renderers blend
     // _prevPose -> physicalPose by it so motion is even at any frame rate.
     alpha:()=>Math.max(0,Math.min(1,accumulator/config.fixedDt)),
+    // Elapsed time owed to the next physics tick. Keep the wire value small
+    // and retain sub-millisecond precision for fixed-step input replay.
+    poseLagUs:()=>Math.round(Math.max(0,accumulator)*1e6),
     restore(k,p){overturned.set(k.pid,0);k._prevPose=null;features.resumeLanded(k);if(physics.pose(k.pid).epoch!==p.epoch)physics.resetKart(k.pid,{position:p.position,rotation:p.rotation});physics.restoreKart(k.pid,p);life.set(k.pid,k.spawnSeq||0);project(k);},
     sweepStatic:(from,to,radius)=>physics.sweepStatic(from,to,radius),
     kickKart:(id,delta)=>physics.kickKart(id,delta),

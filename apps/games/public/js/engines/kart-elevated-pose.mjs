@@ -28,8 +28,8 @@ export function blendElevatedPose(previous, current, alpha, output) {
  * prevents late ordered packets from spending the whole catch-up in one frame.
  * Missing history freezes; a fresh baseline never invents a motion segment. */
 export function createElevatedTimeline(bufferMs=75) {
-  const samples=[];let offset=null,played=-Infinity,lastFrame=null,lastArrival=null,jitter=0;
-  const reset=()=>{samples.length=0;offset=null;played=-Infinity;lastFrame=null;lastArrival=null;jitter=0;};
+  const samples=[];let offset=null,played=-Infinity,lastFrame=null,lastArrival=null,jitter=0,holdUntil=-Infinity;
+  const reset=()=>{samples.length=0;offset=null;played=-Infinity;lastFrame=null;lastArrival=null;jitter=0;holdUntil=-Infinity;};
   function ingest(snapshot,arrival){
     const latest=samples.at(-1),at=snapshot.simAt;
     if(!Number.isFinite(at))return;
@@ -38,8 +38,12 @@ export function createElevatedTimeline(bufferMs=75) {
     if(samples.at(-1)?.snapshot.simAt===at)return;
     offset=offset===null?arrival-at:Math.min(offset,arrival-at);
     // The 20Hz stream's ordinary <=25ms jitter already fits the 75ms floor.
-    // Grow promptly for a late burst; release its reserve by 50ms per second.
-    jitter=Math.max(0,arrival-at-offset,jitter-Math.max(0,arrival-(lastArrival??arrival))*.05);
+    // Bursts can recur several times a second. Keep their reserve while late
+    // packets recur, then release it at 50ms per second on a steady link.
+    const age=arrival-at-offset;
+    if(age>=25&&age>=jitter*.85)holdUntil=arrival+750;
+    const elapsed=Math.max(0,arrival-Math.max(holdUntil,lastArrival??arrival));
+    jitter=Math.max(age,jitter-elapsed*.05);
     lastArrival=arrival;
     while(samples.length>1&&samples[1].snapshot.simAt<=played)samples.shift();
     // Keep the active bracket. If accepted history exceeds the bounded queue,

@@ -9,6 +9,47 @@ const k={pid:'a',x:0,z:0,angle:0,speed:0,boost:0,boostCd:0,turbo:0,padCd:0,nitro
 // Isolate strict correction-jump limits from legitimate road relief/flight.
 // The all-map terrain test separately exercises actual Ring climbs/descent.
 const flatMap='flat-prediction-fixture';
+// The authority's 30 Hz timer has integer millisecond jitter. Drive the real
+// game projection through that timer, then deliver it over a bursty 100ms RTT
+// link. Its fixed-step checkpoint and round clock must keep their own times.
+{
+ const players=[{id:'a',name:'A'},{id:'b',name:'B'}],epoch=1700000000000;
+ let now=epoch,motion;
+ const ctx={allPlayers:()=>players,players:()=>players,settings:()=>({map:'ring',mode:'battle'}),now:()=>now,broadcast(){},award(){},content:()=>({})};
+ const def=engine.createKartGame({id:'fixed-clock',name:'Fixed clock',createMotion:s=>(motion=createClassicMotion(RAPIER,config,s))}),room=def.create(ctx);
+ const prediction=createClassicPrediction(RAPIER),input={steer:0,throttle:.5},packets=[];
+ const snapshot=()=>({...structuredClone(def.view(room,'a')),instanceId:'fixed-clock',you:'a',youDrive:true});
+ try{
+  assert.equal(snapshot().poseLagUs,0,'countdown has no pending physics time');
+  now+=3000;def.onTick(room,ctx);
+  const start=now,initial=snapshot(),tick0=motion.stats().tick;
+  assert.equal(initial.poseLagUs,0,'the first live pose starts at the countdown boundary');
+  const intervals=[31,35,30,36,33];let lastInput=0;
+  for(let i=0;now<start+2000;i++){
+   now+=intervals[i%intervals.length];
+   def.onAction(room,ctx,'a',{input,seq:++lastInput,life:0,controlEpoch:0});
+   def.onTick(room,ctx);
+   const s=snapshot(),elapsed=now-start;
+   assert.equal(s.simAt,now,'timers and shot lifetimes use the entire timer interval');
+   assert(Math.abs(elapsed-s.poseLagUs/1000-(motion.stats().tick-tick0)*config.fixedDt*1000)<.001,'wire pose is stamped at the last completed physics tick');
+   packets.push({s,arrival:50+elapsed+Math.max(0,150-elapsed%550)});
+  }
+  prediction.ingest(initial,0,start);
+  let latest=initial,i=0,previousZ,lastSpeed,maxJolt=0;
+  for(let frame=1;frame<=120;frame++){
+   const t=frame*1000/60;let fresh;
+   while(i<packets.length&&packets[i].arrival<=t){fresh=packets[i++];latest=fresh.s;prediction.observe(latest,fresh.arrival,start+fresh.arrival);}
+   if(fresh)prediction.ingest(latest,fresh.arrival,start+fresh.arrival);
+   const z=prediction.frame(latest,input,1/60,t,start+t).z,speed=(z-previousZ)*60;
+   if(t>750)maxJolt=Math.max(maxJolt,Math.abs(speed-lastSpeed));
+   previousZ=z;lastSpeed=speed;
+  }
+  assert(maxJolt<1,'bursty timer checkpoints cause no extra hold or double step: '+maxJolt);
+  assert.equal(prediction.stats().snaps,0);
+  now+=600;def.onTick(room,ctx);
+  const late=snapshot();assert.equal(late.simAt,now);assert(late.poseLagUs>=0&&late.poseLagUs<16667,'clamped late pumps report only the pending fixed-step fraction');
+ }finally{prediction.dispose();def.dispose(room);}
+}
 // Actual shared Rapier worlds with ordinary 20Hz checkpoints. The timestamp
 // belongs to the physical tick, even when a 144Hz frame receives it between
 // ticks. Acceleration is real; a checkpoint must not add a hold/double step.
@@ -327,6 +368,23 @@ for(const hz of [120,144]){
   if(previous)maxStep=Math.max(maxStep,Math.abs(pose.x-previous.x));previous=pose;
  }
  assert.ok(maxStep<.3,'remote underrun recovery is capped at 60Hz: '+maxStep);
+ // Five ordered snapshots can land together after a 165ms queue. A rival
+ // maintaining 6m/s must still move on the first frame after each delivery.
+ const viewer=createClassicPrediction(RAPIER),packets=[];
+ for(let at=0;at<15000;at+=33)packets.push({at,arrival:at+50+Math.max(0,165-at%1050)});
+ let index=0,lastX,stops=0;
+ for(let frame=0;frame<900;frame++){
+  const t=frame*1000/60;
+  while(index<packets.length&&packets[index].arrival<=t){
+   const {at,arrival}=packets[index++];viewer.observe(snapshot(at),arrival,arrival);
+  }
+  const rival=viewer.remote('remote',t,t);
+  if(!rival)continue;
+  if(t>2000&&(rival.x-lastX)*60<.3)stops++;
+  lastX=rival.x;
+ }
+ assert.equal(stops,0,'late snapshots never cancel a frame of ordinary travel');
+ viewer.dispose();
  prediction.dispose();physics.dispose();console.log(JSON.stringify({remoteRecoveryMaxStep:maxStep}));
 }
 

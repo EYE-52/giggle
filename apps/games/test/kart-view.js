@@ -1002,14 +1002,19 @@ for (const [t,fns] of window.screen.orientation.events) assert.equal(fns.length,
   const mineSnapshot={...structuredClone(s),simTick:10,simAt:clock,mines:[{id:'lifecycle-mine',owner:'one',x:0,z:3,armed:true}]};
   const minesVisible=()=>built.scene.children.filter(o=>o.visible&&o.userData.prop?.userData.combat?.type==='mine').length;
   live.update(el,mineSnapshot,api);built.frame(1/60,clock/1000);assert.equal(minesVisible(),1,'fresh classic authority mine is rendered');
-  clock+=501;built.frame(.1,clock/1000);assert.equal(minesVisible(),0,'frozen classic snapshot retires stale mine presentation');
+  clock+=225;built.frame(.1,clock/1000);assert.equal(minesVisible(),1,'classic mine survives a burst in snapshot arrivals');
+  api.context=()=>({connected:false});built.frame(.01,clock/1000);assert.equal(minesVisible(),0,'offline classic view retires ground traps immediately');delete api.context;
+  clock+=276;built.frame(.1,clock/1000);assert.equal(minesVisible(),0,'frozen classic snapshot retires stale mine presentation');
   live.update(el,{...mineSnapshot,simTick:11,simAt:clock},api);built.frame(1/60,clock/1000);assert.equal(minesVisible(),1,'fresh advancing authority restores an actually live mine');
+  live.update(el,{...mineSnapshot,simTick:11,simAt:clock,mines:[]},api);built.frame(.01,clock/1000);assert.equal(minesVisible(),0,'a classic mine removed by authority disappears at once');
+  live.update(el,{...mineSnapshot,simTick:11,simAt:clock},api);built.frame(.01,clock/1000);
   live.update(el,{...mineSnapshot,simTick:11,simAt:clock,phase:'done'},api);built.frame(1/60,clock/1000);assert.equal(minesVisible(),0,'same-tick terminal packet retires classic ordnance');
   let mineFills=0;const canvasContext=new Proxy({fillStyle:''},{get:(o,key)=>key in o?o[key]:(...args)=>{if(key==='fill'&&o.fillStyle==='#ff83b8')mineFills++;}}),canvas={width:320,height:300,getContext:()=>canvasContext};
-  const canvasSnapshot={...mineSnapshot,simTick:12,simAt:clock};
+  const canvasSnapshot={...mineSnapshot,simTick:12,simAt:clock,mines:mineSnapshot.mines.map(m=>({...m,ttl:.24}))};
   live.update(el,canvasSnapshot,api);live.drawCanvasFixture(canvas);assert.equal(mineFills,1,'Canvas fallback draws the same fresh authority mine');
-  clock+=501;live.drawCanvasFixture(canvas);assert.equal(mineFills,1,'Canvas fallback retires the same stalled authority mine');
-  live.update(el,{...canvasSnapshot,simTick:13,simAt:clock,phase:'done'},api);live.drawCanvasFixture(canvas);assert.equal(mineFills,1,'Canvas terminal packet cannot leave old mine pixels');
+  clock+=220;live.drawCanvasFixture(canvas);assert.equal(mineFills,2,'Canvas fallback keeps the trap visible across a short delivery stall');
+  clock+=25;live.drawCanvasFixture(canvas);assert.equal(mineFills,2,'Canvas fallback retires the trap at its server TTL');
+  live.update(el,{...canvasSnapshot,simTick:13,simAt:clock,phase:'done'},api);live.drawCanvasFixture(canvas);assert.equal(mineFills,2,'Canvas terminal packet cannot leave old mine pixels');
   // Resume the graphics fixture at fresh clocks after the explicit stall.
   s.simAt=clock;s.simTick=14;live.update(el,s,api);
   const bar=built.scene.getObjectByName('KartHealth:one');

@@ -63,7 +63,7 @@ import {createSurfaceIndex,surfaceTuning} from './kart-surface.mjs';
 import {driftTier,DRIFT_TIERS} from './kart-drift.mjs';
 import {createKartThreats} from './kart-threats.mjs';
 import {createKartFeedback} from './kart-feedback.mjs';
-import { createProjectilePlayback, projectilePose, grenadePose } from './kart-flight.mjs';
+import { createProjectilePlayback, projectilePose, grenadePose, visibleGroundMines } from './kart-flight.mjs';
 import {createGroundMarker,placeGroundMarker,prepareGroundProp,placeGroundProp} from './kart-ground-markers.mjs';
 import {
   createPoseStore, resetPoseStore, ingestSnapshot, framePoses,
@@ -432,10 +432,12 @@ export function createKartView(viewConfig) {
     return Date.now();
   }
 
-  // The same retirement boundary protects WebGL and Canvas fallback. Static
-  // mines are authority objects too: a disconnected/frozen round is not live.
   function ordnanceFresh(maxAge=120) {
     return S?.phase!=='done'&&nowMs()-(lastSnapshotArrival??-Infinity)<=maxAge&&apiRef?.context?.().connected!==false;
+  }
+
+  function groundMines() {
+    return visibleGroundMines(S?.mines, nowMs()-(lastSnapshotArrival??-Infinity), S?.phase!=='done'&&apiRef?.context?.().connected!==false);
   }
 
   // Simulation may pause while the arena prepares. Advance from the latest
@@ -1414,7 +1416,7 @@ export function createKartView(viewConfig) {
           combat.animate(group.userData.body,dt,t,rm);if(!flight.visible)impactFX.retire(group.userData.body);if(flight.visible)impactFX.trail(group.userData.body,dt,group.position);if(group.userData.ring){placeGroundMarker(group.userData.ring,flight.x,flight.z,groundAt);group.userData.ring.visible=flight.visible&&g.warning===true;}
         }
         for(const[id,group]of grenades)if(!liveG.has(id)){impactFX.retire(group.userData.body);if(group.userData.ring)returnMarker(group.userData.ring);group.visible=false;grenadePools.get(group.userData.poolKey).push(group);grenades.delete(id);}
-        liveM.clear();const currentM=(ordnanceFresh()?S.mines:[])||[];
+        liveM.clear();const currentM=groundMines();
         for(const m of currentM)liveM.add(m.id);
         for(const[id,mesh]of mines)if(!liveM.has(id)){mesh.visible=false;mesh.removeFromParent();minePools.get(mesh.userData.poolKey).push(mesh);mines.delete(id);}
         for (const m of currentM) {
@@ -1509,7 +1511,7 @@ export function createKartView(viewConfig) {
           shakeOffset.copy(camera.position).sub(beforeShake);
         }
         const ownKart=me&&S.youDrive&&!(me.respawn>0)?karts.get(me.pid):null;
-        threats.update(ordnanceFresh()&&S.phase==='drive'?S:null,S.you,ownKart?.position,camera,nowMs());
+        threats.update(ordnanceFresh()?S:null,S.you,S.phase==='drive'?ownKart?.position:null,camera,nowMs(),currentM);
         healthBars.face(camera);
         objectives.update(S,karts,camera,t,rm);
         if (typeof hooks.sceneExtra === 'function') {
@@ -1713,7 +1715,7 @@ export function createKartView(viewConfig) {
     if(localFlash){
       if(nowMs()-localFlash.at<100){ctx.fillStyle='#fff3a0';ctx.beginPath();ctx.arc(px(localFlash.position.x),pz(localFlash.position.z),Math.max(3,scale*.6),0,Math.PI*2);ctx.fill();}else localFlash=null;
     }
-    for (const m of (ordnanceFresh()?S.mines:[]) || []) {
+    for (const m of groundMines()) {
       if(m.kind==='fakecrate'){
         const size=Math.max(6,1.8*scale);
         ctx.fillStyle='#80ffe0';ctx.fillRect(px(m.x)-size/2,pz(m.z)-size/2,size,size);

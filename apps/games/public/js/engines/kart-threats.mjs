@@ -39,14 +39,17 @@ function charge(owner, x, y, z, range, kind, hot) {
 }
 
 // Fill `out` (pooled slots) with threats to `me` ({x,y,z}); returns the count.
-export function findKartThreats(S, you, me, out) {
-  if (!S || !me) return 0;
+export function findKartThreats(S, you, me, out, mines=S?.mines) {
+  if (!me || (!S && !mines?.length)) return 0;
   scan.out = out; scan.n = 0; scan.you = you; scan.me = me;
-  for (const z of S.zaps || []) shot(z.kind, z.owner, z.targetId, z.x, z.y ?? me.y, z.z, z.vx || 0, z.vy || 0, z.vz || 0);
-  for (const p of S.projectiles || []) if (p.position && p.velocity)
+  for (const z of S?.zaps || []) shot(z.kind, z.owner, z.targetId, z.x, z.y ?? me.y, z.z, z.vx || 0, z.vy || 0, z.vz || 0);
+  for (const p of S?.projectiles || []) if (p.position && p.velocity)
     shot(p.weapon, p.owner, p.targetId, p.position.x, p.position.y, p.position.z, p.velocity.x, p.velocity.y, p.velocity.z);
-  for (const m of S.mines || []) if (m.kind === 'proximity') charge(m.owner, m.x, m.y ?? me.y, m.z, CHARGE_RANGE, 'proximity', m.armed);
-  for (const g of S.grenades || []) {
+  for (const m of mines || []) if (m.kind === 'proximity') {
+    const p=m.position || m;
+    charge(m.owner, p.x, p.y ?? me.y, p.z, CHARGE_RANGE, 'proximity', m.armed);
+  }
+  for (const g of S?.grenades || []) {
     const kind = g.weapon || g.kind, p = g.position || g;
     if (kind === 'nuke') charge(g.owner, p.x, p.y ?? me.y, p.z, NUKE_RANGE, 'nuke', true);
     else if (kind === 'proximity') charge(g.owner, p.x, p.y ?? me.y, p.z, CHARGE_RANGE, 'proximity', g.armed);
@@ -74,9 +77,9 @@ export function createKartThreats(THREE, scene, host, { reducedMotion = () => fa
   const threats = Array.from({ length: MAX_THREATS }, slot), v = new THREE.Vector3();
   let count = 0, level = 0, nextBeep = 0, disposed = false;
   // me: {x,y,z} ground position of the local kart; S: latest snapshot.
-  function update(S, you, me, camera, now = performance.now()) {
+  function update(S, you, me, camera, now = performance.now(), mines=S?.mines) {
     if (disposed) return 0;
-    count = me ? findKartThreats(S, you, me, threats) : 0;
+    count = me ? findKartThreats(S, you, me, threats, mines) : 0;
     level = 0;
     for (let i = 0; i < count; i++) level = Math.max(level, threats[i].level);
     ring.visible = count > 0;

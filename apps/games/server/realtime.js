@@ -17,13 +17,11 @@
  * Per tick the channel builds the public view once, encodes every streamed
  * entity's binary record once, and diffs the stripped public view once
  * against the previous frame. Each recipient then gets: that shared patch
- * (or a keyframe when it missed frames), its private fields, and the entity
+ * (or a catch-up delta from its last send), its private fields, and the entity
  * records its interest tiers make due this tick. */
 
 const codec = require('../public/js/toolkit/realtime/codec.mjs');
 const interest = require('../public/js/toolkit/realtime/interest.mjs');
-
-const HISTORY = 4;
 
 /* Reuse the negotiated rt1 JSON delta for games without entity streams.
  * Only explicitly shared fields from the spectator projection enter the
@@ -50,8 +48,8 @@ function createJsonRealtime(view, sharedKeys) {
 function createRealtimeChannel(spec) {
   const streams = spec.streams.map(codec.compileSchema);
   const schemaJSON = JSON.stringify(spec.streams);
-  const history = new Map(); // seq -> stripped public view
-  const patchCache = new Map(); // base seq -> patch JSON text (current seq)
+  // Patches for the current tick, shared by peers on the same public baseline.
+  const patchCache = new Map();
   const sockets = new WeakMap();
   let seq = 0, current = null, tick = 0;
 
@@ -76,15 +74,19 @@ function createRealtimeChannel(spec) {
       return { schema, records, keys, points };
     });
     seq = (seq + 1) >>> 0; tick++;
-    const previous = history.get((seq - 1) >>> 0);
-    history.set(seq, view);
-    for (const k of history.keys()) if (((seq - k) >>> 0) >= HISTORY) history.delete(k);
+    const previous = current?.view;
     patchCache.clear();
     const shared = previous ? codec.diff(previous, view) : undefined;
-    if (previous) patchCache.set((seq - 1) >>> 0, JSON.stringify(shared ?? {}));
+    if (previous) patchCache.set(previous, JSON.stringify(shared ?? {}));
     // Entities whose JSON half changed this tick ship their record too, so
     // a respawn or life change never pairs new fields with an old pose.
-    const changed = built.map(b => new Set(Object.keys(shared?.o?.[b.schema.path]?.u || {})));
+    const changed = built.map(b => {
+      const patch = shared?.o?.[b.schema.path];
+      // Inserting the first entity replaces an empty array. Every streamed
+      // entity then needs its first pose, independent of its interest tier.
+      if (patch && Object.hasOwn(patch, '$')) return new Set(b.keys.map(String));
+      return new Set(Object.keys(patch?.u || {}));
+    });
     // Positions come from the unstripped entities (x/z may be streamed fields).
     const focus = new Map();
     for (const b of built) b.keys.forEach((key, i) => { if (!focus.has(key)) focus.set(key, b.points[i]); });
@@ -93,20 +95,22 @@ function createRealtimeChannel(spec) {
   }
 
   function patchText(base) {
-    if (!patchCache.has(base)) patchCache.set(base, base === seq ? '{}' : JSON.stringify(codec.diff(history.get(base), current.view) ?? {}));
+    if (!patchCache.has(base)) patchCache.set(base, JSON.stringify(codec.diff(base, current.view) ?? {}));
     return patchCache.get(base);
   }
 
   /* One recipient's binary frame for the prepared tick. */
   function frameFor(socket, pid, privateFields) {
-    let s = sockets.get(socket);
-    const keyframe = !s || s.forceKey || !history.has(s.seq);
-    if (!s || keyframe) { s = { seq: 0, sent: streams.map(() => new Set()), forceKey: false }; sockets.set(socket, s); }
+    const previous = sockets.get(socket);
+    const keyframe = !previous || previous.view.instanceId !== current.view.instanceId;
+    // A stalled link still owns its last sent public snapshot. Send only what
+    // changed since then, plus current poses (including normally distant karts).
+    const catchup = previous && ((seq - previous.seq) >>> 0) > 1;
     let jsonText;
     if (keyframe) {
       current.keyText ??= JSON.stringify(current.view);
       jsonText = '{"p":' + current.keyText + ',"v":' + JSON.stringify(privateFields) + ',"s":' + schemaJSON + '}';
-    } else jsonText = '{"p":' + patchText(s.seq) + ',"v":' + JSON.stringify(privateFields) + '}';
+    } else jsonText = '{"p":' + patchText(previous.view) + ',"v":' + JSON.stringify(privateFields) + '}';
     const focus = pid ? current.focus.get(pid) || null : null;
     const out = current.built.map((b, index) => {
       const periods = interest.interestPeriods(focus, b.points, spec.tiers);
@@ -114,21 +118,23 @@ function createRealtimeChannel(spec) {
       b.records.forEach((bytes, i) => {
         if (!bytes) return;
         const key = String(b.keys[i]);
-        if (keyframe || !s.sent[index].has(key) || current.changed[index].has(key) || interest.due(tick, i, periods[i])) {
-          records.push({ entity: i, bytes }); s.sent[index].add(key);
+        if (keyframe || catchup || current.changed[index].has(key) || interest.due(tick, i, periods[i])) {
+          records.push({ entity: i, bytes });
         }
       });
       return { index, records };
     }).filter(x => x.records.length);
-    const base = s.seq;
-    s.seq = seq;
-    return codec.encodeFrame({ seq, base, simAt: current.simAt, keyframe, jsonText, streams: out });
+    const base = keyframe ? 0 : previous.seq;
+    const frame = codec.encodeFrame({ seq, base, simAt: current.simAt, keyframe, jsonText, streams: out });
+    // One reference per socket; all recipients of this tick share the public view.
+    sockets.set(socket, { seq, view: current.view });
+    return frame;
   }
 
   return {
     prepare, frameFor,
     /* The socket missed or could not apply a frame: next one is a keyframe. */
-    resync(socket) { const s = sockets.get(socket); if (s) s.forceKey = true; },
+    resync(socket) { sockets.delete(socket); },
     get seq() { return seq; },
   };
 }

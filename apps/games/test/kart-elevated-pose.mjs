@@ -133,6 +133,24 @@ function playback(packets,fps,probe){
   return {fps,maxStep,maxClockStep,rewinds,penetrations,frames,finalAt:lastAt};
 }
 const timelineMeasurements={exactBurst:[],authored:[]};
+// A recurring 160ms delivery queue should settle at steady playback speed.
+// When delivery recovers, the extra reserve must drain back to its LAN floor.
+{
+  const clock=createElevatedTimeline(),packets=[];
+  for(let at=0;at<=25000;at+=50)packets.push({at,arrival:1000+at+(at<15000?Math.max(0,160-at%400):0)});
+  let next=0,previous,frames=0,speedError=0;
+  for(let f=0;f<1500;f++){
+    const time=1000+f*1000/60;
+    while(next<packets.length&&packets[next].arrival<=time){
+      const p=packets[next++];clock.ingest(straight(p.at),p.arrival);
+    }
+    const frame=clock.frame(time);if(!frame)continue;
+    if(f>180&&f<900){speedError+=Math.abs(1-(frame.at-previous)*60/1000);frames++;}
+    previous=frame.at;
+  }
+  check('recurring ordered delivery queues settle within 0.1% of real speed',speedError/frames<.001);
+  check('reserve returns to ordinary LAN latency after delivery recovers',Math.abs((1499*1000/60-previous)-75)<1);
+}
 const exactPackets=[0,50,100,150,200,250].map((at,i)=>({snapshot:straight(at),arrival:[1000,1050,1280,1410,1410,1410][i]}));
 for(const fps of [60,30]){
   const result=playback(exactPackets,fps);timelineMeasurements.exactBurst.push(result);

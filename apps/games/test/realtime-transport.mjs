@@ -146,20 +146,76 @@ const eq = (a, b, m) => { assert.deepEqual(a, b, m); checks++; };
   eq(timing.stats(10201),{ticks:0,p50:0,p99:0,max:0,lateTicks:0},'idle room releases history');
 }
 
-// --- channel: missed frames resync from history or keyframe.
+// --- channel: skip unsent frames, recover lost decoder state with explicit resync.
 {
   const ch = createRealtimeChannel({ streams: [], publicView: s => ({ n: s.n }), privateView: () => ({}) });
   const dec = decodeFrame(), sock = {};
   for (let n = 0; n < 3; n++) { ch.prepare({ n }, null, {}); eq(dec.apply(ch.frameFor(sock, null, { mine: n })).n, n, 'delta ' + n); }
   for (let n = 3; n < 6; n++) ch.prepare({ n }, null, {}); // socket skipped three ticks
-  eq(dec.apply(ch.frameFor(sock, null, {})).n, 5, 'gap inside history still patches');
+  eq(dec.apply(ch.frameFor(sock, null, {})).n, 5, 'short gap patches the last sent state');
   for (let n = 6; n < 12; n++) ch.prepare({ n }, null, {});
-  eq(dec.apply(ch.frameFor(sock, null, {})).n, 11, 'long gap sends keyframe');
+  eq(dec.apply(ch.frameFor(sock, null, {})).n, 11, 'long gap reconstructs the latest state');
   const other = decodeFrame(); ch.prepare({ n: 12 }, null, {}); ch.frameFor(sock, null, {});
   ch.prepare({ n: 13 }, null, {});
   eq(other.apply(ch.frameFor(sock, null, {})), null, 'decoder without the base refuses a delta');
   ch.resync(sock); ch.prepare({ n: 14 }, null, {});
   eq(other.apply(ch.frameFor(sock, null, {})).n, 14, 'resync forces a keyframe');
+}
+
+// A slow peer that can normally afford delta updates must recover after a
+// short stall. Re-sending the immutable arena on recovery can refill the
+// queue before the next few ticks, trapping that peer in a keyframe loop.
+{
+  const stream = { path: 'karts', key: 'id', fields: [['x', 'f32']] };
+  const channel = createRealtimeChannel({ streams: [stream], publicView: s => s,
+    tiers: [{ rank: 1, radius: 5, period: 1 }, { rank: Infinity, radius: Infinity, period: 4 }] });
+  const arena = { tiles: 'track'.repeat(4000) };
+  const slow = {}, fast = {}, decoder = decodeFrame(), fastDecoder = decodeFrame();
+  const update = (tick, instanceId = 'race') => channel.prepare({
+    arena, simAt: tick * 33, instanceId, karts: [
+      { id: 'a', x: tick, life: 0 },
+      { id: 'b', x: 100 + tick, life: tick < 20 ? 0 : 1 },
+    ],
+  }, null, {});
+  update(0);
+  const initial = channel.frameFor(slow, 'a', { you: 'a' });
+  ok(initial[2] & 1, 'first connection includes an independent baseline');
+  const first = decoder.apply(initial);
+  fastDecoder.apply(channel.frameFor(fast, 'b', { you: 'b' }));
+  for (let tick = 1; tick <= 23; tick++) {
+    update(tick);
+    const live = fastDecoder.apply(channel.frameFor(fast, 'b', { you: 'b' }));
+    eq(live.karts[1].x, 100 + tick, 'healthy peer keeps the current pose');
+  }
+  const recovered = channel.frameFor(slow, 'a', { you: 'a' });
+  eq(recovered[2] & 1, 0, 'server-skipped sends resume with a delta from the actual socket baseline');
+  ok(recovered.byteLength < initial.byteLength / 10, 'recovery omits the static arena and schema');
+  const resumed = decoder.apply(recovered);
+  eq(resumed.arena, first.arena, 'immutable arena survives the skipped ticks');
+  eq(resumed.karts.map(k => [k.life,k.x,k.rtAge]), [[0,23,0],[1,123,0]], 'off-tier poses and new lives both refresh together');
+  eq(resumed.you, 'a', 'a slow peer keeps its private view');
+  const fresh = {}; eq(channel.frameFor(fresh, null, {})[2] & 1, 1, 'a different socket starts independently');
+  channel.resync(slow);
+  const restored = channel.frameFor(slow, 'a', {});
+  ok(restored[2] & 1, 'requested resync includes an independent frame and schema');
+  eq(decodeFrame().apply(restored).karts[1].x, 123, 'resync repairs a fresh decoder without history');
+  update(24, 'rematch');
+  const rematch = channel.frameFor(slow, 'a', {});
+  ok(rematch[2] & 1, 'a new instance discards the old baseline');
+  eq(decoder.apply(rematch).instanceId, 'rematch', 'new instance is ready for play');
+}
+
+// Empty-to-populated streams replace their public array as a whole. Even
+// entities outside the current interest tier need a pose on the first update.
+{
+  const schema = { path: 'units', key: 'id', fields: [['x', 'f32']] };
+  const channel = createRealtimeChannel({ streams: [schema], publicView: state => state });
+  const watcher = {}, decoder = decodeFrame();
+  channel.prepare({ simAt: 0, units: [] }, null, {});
+  eq(decoder.apply(channel.frameFor(watcher, null, {})).units, [], 'watcher starts with no entities');
+  channel.prepare({ simAt: 50, units: [{ id: 'a', x: 10 }, { id: 'b', x: 20 }] }, null, {});
+  const entered = decoder.apply(channel.frameFor(watcher, null, {}));
+  eq(entered.units.map(unit => [unit.x, unit.rtAge]), [[10, 0], [20, 0]], 'new entities arrive with their first pose');
 }
 
 // --- channel interest: a recipient's own entity is its focus; far ones thin out.

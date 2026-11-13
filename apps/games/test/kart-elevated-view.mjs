@@ -325,17 +325,29 @@ for(const missingDrivers of [['bunny'],['fox','bunny','panda','raccoon']]){
 // the renderer clamps a long frame for camera/physics stability.
 {
   const r=rig({graphics:true}),shot={id:'retire-me',weapon:'machinegun',position:{x:0,y:1,z:4},velocity:{x:0,y:0,z:110},ttl:.4,radius:.18};
-  r.render({...base(),projectiles:[shot]});const gl=await r.settle();r.frame();
+  const mine={id:'still-here',owner:'a',ttl:1,armed:true,radius:.41,position:{x:0,y:.425,z:2},normal:{x:0,y:1,z:0}};
+  const traps=()=>gl.built.scene.children.filter(o=>o.visible&&o.userData.combat?.type==='mine').length;
+  r.render({...base(),projectiles:[shot],mines:[mine,{...mine,id:'expires-soon',ttl:.18}]});const gl=await r.settle();r.frame();
   const moving=()=>gl.built.scene.children.filter(o=>o.userData.poolKey?.startsWith('shot:')&&o.visible);
   check('fresh authoritative shot remains visible without invented flight',moving().length===1);
-  r.advance(1000);r.frame(.1);
+  check('both authoritative traps are shown on arrival',traps()===2);
+  r.advance(225);r.frame(.1);
+  check('only the unexpired stationary trap survives a 225ms packet burst; the bullet is already retired',traps()===1&&moving().length===0);
+  r.api.context=()=>({connected:false});r.frame();
+  check('disconnect immediately clears a stationary trap',traps()===0);
+  r.api.context=()=>({connected:true});r.frame();
+  r.advance(775);r.frame(.1);
+  check('a frozen raised match retires its last ground trap',traps()===0);
   check('stalled snapshot cannot leave an old bullet visible indefinitely',moving().length===0);
-  r.render({...base(),simAt:1050,simTick:21,projectiles:[{...shot,id:'fresh-shot'}]});r.frame();
+  r.render({...base(),simAt:1050,simTick:21,mines:[mine],projectiles:[{...shot,id:'fresh-shot'}]});r.frame();
   check('fresh current authority can show a genuinely live projectile after a stall',moving().length===1);
-  r.render({...base(),simAt:1050,simTick:21,phase:'done',projectiles:[shot],result:{winners:[]}});r.frame();
-  check('same-tick terminal metadata hides moving ordnance without rejecting the final state',moving().length===0&&r.node('clock').textContent==='0:00');
+  r.render({...base(),simAt:1100,simTick:22,mines:[],projectiles:[shot]});r.frame();
+  check('authoritative removal clears a fresh ground trap',traps()===0);
+  r.render({...base(),simAt:1150,simTick:23,mines:[mine],projectiles:[shot]});r.frame();
+  r.render({...base(),simAt:1150,simTick:23,phase:'done',mines:[mine],projectiles:[shot],result:{winners:[]}});r.frame();
+  check('same-tick terminal metadata hides moving ordnance without rejecting the final state',traps()===0&&moving().length===0&&r.node('clock').textContent==='0:00');
   r.render({...base(),simAt:1050,simTick:21,projectiles:[shot]});r.frame();
-  check('late equal-clock live packet cannot resurrect a completed instance',moving().length===0&&r.node('clock').textContent==='0:00');
+  check('late equal-clock live packet cannot resurrect a completed instance',traps()===0&&moving().length===0&&r.node('clock').textContent==='0:00');
   r.view.dispose();
 }
 // A freshly dropped mine leaves through the back of its kart and lands on

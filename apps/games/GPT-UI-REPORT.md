@@ -356,3 +356,11 @@ The driving camera now shows the kart at 85% of its previous on-screen width and
 With the same fox driver and Triple Rockets at 390 × 844, Rookie Ring went from 201 to 171 pixels wide and Alpine Courtyard from 187 to 159. At 1280 × 800, the widths went from 225 to 191 and 256 to 218. Compared the same starts and drove with keyboard and emulated touch. All 22 browser checks around walls, low barriers and cannon exits passed. The eight day and night layout scans found zero clipped elements.
 
 Both 60-second local practice rounds finished with zero browser errors. The desktop Rookie Ring and touch-size Rookie Ribbons driving samples each averaged 60 FPS on the Mac. The full Games suite and the production build passed.
+
+### Online driving on Pocket Karts
+
+In two 20-second Chrome drives per connection (one classic arena and one raised arena), localhost delivered updates evenly. On the public site, updates sometimes arrived together after gaps of 182–201 ms. Both arenas still rendered at about 60 FPS, with no missing sequence numbers. These measurements describe the route from the testing Mac to the Games server.
+
+Classic prediction now uses the time of the last completed physics step when reconciling the driver's position. Rivals keep moving through ordinary late arrivals. Raised arenas keep a short reserve of received positions when delays recur. Stationary traps remain visible across short delays, with a limit of 320 ms or their remaining lifetime, whichever ends first.
+
+A separate 16-driver simulation tested recovery after a 600 ms interruption on a 50 KiB/s connection. Resuming from each driver's last sent update prevented repeated full-map downloads. After the interruption, the 95th-percentile gap dropped from 400 to 40 ms on Rookie Ring and from 350 to 50 ms on Rookie Ribbons. New connections and explicit resyncs still receive the full state.

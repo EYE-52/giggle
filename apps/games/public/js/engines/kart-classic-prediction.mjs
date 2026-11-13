@@ -81,7 +81,9 @@ export function createClassicPrediction(R){
     if(retired)return;
     observe(snapshot,now,serverAt);
     const next=snapshot.instanceId+':'+snapshot.map.id+':'+(snapshot.map.revision||''),changed=next!==identity;
-    const simAt=Number.isFinite(snapshot.simAt)?snapshot.simAt:serverAt;
+    // The snapshot clock also dates weapons and round timers. Rigid bodies
+    // have advanced only through the last completed fixed step.
+    const simAt=Number.isFinite(snapshot.simAt)?snapshot.simAt-(snapshot.poseLagUs||0)/1000:serverAt;
     const priorSelf=state?.karts.find(k=>k.pid===selfId),sourceSelf=snapshot.karts.find(k=>k.pid===snapshot.you),gap=simAt-simulatedAt;
     if(!changed&&snapshot.phase==='drive'&&snapshot.youDrive&&priorSelf&&sourceSelf?.connected!==false&&sourceSelf?.physicalPose&&!(sourceSelf.respawn>0)&&priorSelf.spawnSeq===sourceSelf.spawnSeq&&priorSelf.physicalPose?.epoch===sourceSelf.physicalPose.epoch&&snapshot.inputAck?.controlEpoch===lastControlEpoch&&gap>.001&&gap<=config.fixedDt*1000+.001){
       let step=gap/1000;if(Math.abs(step-config.fixedDt)<1e-6)step=config.fixedDt;
@@ -180,7 +182,14 @@ export function createClassicPrediction(R){
       else if(visual&&visual.serverAt<=serverAt){
         // Near peers already follow the shared physical timeline. A snapshot
         // must not turn their ordinary travel into a new smoothing offset.
-        if((!near&&stamp?.at!==visual.stamp&&visual.ahead)||!!visual.near!==!!near)residual=visualError(visual.pose,pose,now);
+        if(!!visual.near!==!!near)residual=visualError(visual.pose,pose,now);
+        else if(!near&&stamp?.at!==visual.stamp&&visual.ahead){
+          // Measure the correction at the same instant on both paths. Comparing
+          // last frame's position with this frame's would cancel a frame of
+          // ordinary travel each time an overdue packet arrives.
+          const previousFrame=remotes.sample(pid,visual.serverAt,blendPose);
+          residual=visualError(visual.pose,previousFrame,now);
+        }
         if(residual){
           const draw=corrected(pose,residual,now,10,120),overlapsPeer=state?.karts.some(k=>{if(k.pid===pid||k.connected===false||k.respawn>0)return false;const other=k.pid===selfId&&lastDraw?lastDraw:stepBlend(k);if(!other)return false;const contact=hull.contactShape(draw.position,draw.rotation,hull,other.position,other.rotation,.02);return contact&&contact.distance<-.02;});
           if(world?.overlapsStatic(draw.position,draw.rotation)||overlapsPeer)residual=null;else pose=draw;

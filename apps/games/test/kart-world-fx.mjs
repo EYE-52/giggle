@@ -72,6 +72,8 @@ globalThis.document={createElement:()=>new Element()};
   eq(findKartThreats(S({zaps:[{kind:'missile',owner:'a',x:0,z:-10,vx:0,vz:85}]}),'a',me,out),0,'your own rocket never warns you');
   eq(findKartThreats(S({zaps:[{kind:'machinegun',owner:'b',x:0,z:-10,vx:0,vz:110}]}),'a',me,out),0,'bullets get their glow, not a warning');
   eq(findKartThreats(S({mines:[{kind:'proximity',owner:'b',x:4,z:0,armed:true}]}),'a',me,out),1,'a rival proximity bomb nearby is a threat');
+  eq(findKartThreats(null,'a',me,out,[{kind:'proximity',owner:'b',position:{x:4,y:1,z:0},armed:true}]),1,'a raised stationary proximity trap still warns during a gap in flight updates');
+  eq(findKartThreats(null,'a',me,out,[]),0,'after a stationary trap expires the warning clears too');
   eq(findKartThreats(S({mines:[{owner:'b',x:1,z:0,armed:true}]}),'a',me,out),0,'a plain mine is not flagged');
   eq(findKartThreats(S({grenades:[{kind:'nuke',owner:'b',x:10,z:0}]}),'a',me,out),1,'a live nuke within reach is a threat');
   eq(findKartThreats({projectiles:[{weapon:'missile',owner:'b',targetId:'a',position:{x:0,y:1,z:20},velocity:{x:0,y:0,z:-60}}],grenades:[{weapon:'proximity',owner:'b',position:{x:3,y:0,z:0},armed:true}]},'a',me,out),2,'elevated snapshots warn the same way');
