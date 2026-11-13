@@ -1,16 +1,16 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" role="img" aria-label="Chess thumbnail">
-<rect width="120" height="120" fill="#f4f4f7"/>
-<g fill="#55565e">
-<rect x="15" y="0" width="15" height="15"/><rect x="45" y="0" width="15" height="15"/><rect x="75" y="0" width="15" height="15"/><rect x="105" y="0" width="15" height="15"/>
-<rect x="0" y="15" width="15" height="15"/><rect x="30" y="15" width="15" height="15"/><rect x="60" y="15" width="15" height="15"/><rect x="90" y="15" width="15" height="15"/>
-<rect x="15" y="30" width="15" height="15"/><rect x="45" y="30" width="15" height="15"/><rect x="75" y="30" width="15" height="15"/><rect x="105" y="30" width="15" height="15"/>
-<rect x="0" y="45" width="15" height="15"/><rect x="30" y="45" width="15" height="15"/><rect x="60" y="45" width="15" height="15"/><rect x="90" y="45" width="15" height="15"/>
-<rect x="15" y="60" width="15" height="15"/><rect x="45" y="60" width="15" height="15"/><rect x="75" y="60" width="15" height="15"/><rect x="105" y="60" width="15" height="15"/>
-<rect x="0" y="75" width="15" height="15"/><rect x="30" y="75" width="15" height="15"/><rect x="60" y="75" width="15" height="15"/><rect x="90" y="75" width="15" height="15"/>
-<rect x="15" y="90" width="15" height="15"/><rect x="45" y="90" width="15" height="15"/><rect x="75" y="90" width="15" height="15"/><rect x="105" y="90" width="15" height="15"/>
-<rect x="0" y="105" width="15" height="15"/><rect x="30" y="105" width="15" height="15"/><rect x="60" y="105" width="15" height="15"/><rect x="90" y="105" width="15" height="15"/>
-</g>
-<rect x="0" y="0" width="120" height="120" rx="20" fill="none" stroke="#DE1E6A" stroke-width="6"/>
-<text x="60" y="84" text-anchor="middle" font-size="56" fill="#10141b" stroke="#ffffff" stroke-width="3">&#9822;</text>
-<path d="M96 12 l2.4 5 5.4 0.8 -3.9 3.8 0.9 5.4 -4.8 -2.5 -4.8 2.5 0.9 -5.4 -3.9 -3.8 5.4 -0.8z" fill="#ffc531" stroke="#10141b" stroke-width="1.5"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" role="img" aria-label="Chessboard with a knight">
+  <defs>
+    <pattern id="squares" width="28" height="28" x="4" y="4" patternUnits="userSpaceOnUse">
+      <rect width="28" height="28" fill="#f4f4f7"/>
+      <path d="M14 0h14v14H14zM0 14h14v14H0z" fill="#55565e"/>
+    </pattern>
+  </defs>
+  <rect x="3" y="3" width="114" height="114" rx="16" fill="url(#squares)" stroke="#de1e6a" stroke-width="4"/>
+  <g transform="translate(20 21) scale(1.25)" fill="#20252d" stroke="#fff" stroke-width="2" stroke-linejoin="round" stroke-linecap="round">
+    <path d="m23 12 10-4 1 7c12 4 16 17 13 33H20c2-9 6-15 12-22l-10 5-7-5 6-10z"/>
+    <path d="m23 16 9 3M34 28c-5 7-7 13-6 20" fill="none"/>
+    <circle cx="29" cy="22" r="1.4" fill="#fff" stroke="none"/>
+    <path d="M21 48h23l2 6H18z"/>
+  </g>
+  <path d="m96 12 2.4 5 5.4.8-3.9 3.8.9 5.4-4.8-2.5-4.8 2.5.9-5.4-3.9-3.8 5.4-.8z" fill="#ffc531" stroke="#10141b" stroke-width="1.5"/>
 </svg>

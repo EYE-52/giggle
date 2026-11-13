@@ -19,6 +19,37 @@ const settle = page => page.evaluate(async () => {
   await document.fonts.ready;
   await Promise.allSettled(document.getAnimations().filter(a => a.effect?.getTiming().iterations !== Infinity).map(a => a.finished));
 });
+// Render beyond the authored viewBox. A normal screenshot cannot see pixels
+// that the file itself has already discarded, even with object-fit: contain.
+async function checkIllustrationEdges(page) {
+  const sources = require('../games/registry').list().map(g => g.art).filter(src => src?.endsWith('.svg'));
+  for (const src of sources) {
+    const outside = await page.evaluate(async src => {
+      const response = await fetch('/' + src);
+      if (!response.ok) throw Error('Missing artwork ' + src);
+      const svg = new DOMParser().parseFromString(await response.text(), 'image/svg+xml').documentElement;
+      const { x, y, width, height } = svg.viewBox.baseVal;
+      const margin = 8;
+      const canvas = document.createElement('canvas');
+      canvas.width = width + 2 * margin;
+      canvas.height = height + 2 * margin;
+      svg.setAttribute('viewBox', [x - margin, y - margin, canvas.width, canvas.height].join(' '));
+      svg.setAttribute('width', canvas.width);
+      svg.setAttribute('height', canvas.height);
+      const file = new Blob([new XMLSerializer().serializeToString(svg)], { type: 'image/svg+xml' });
+      const image = new Image();
+      image.src = URL.createObjectURL(file);
+      try {
+        await image.decode();
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(image, 0, 0);
+        ctx.clearRect(margin, margin, width, height);
+        return ctx.getImageData(0, 0, canvas.width, canvas.height).data.some((v, i) => i % 4 === 3 && v > 32);
+      } finally { URL.revokeObjectURL(image.src); }
+    }, src);
+    assert.equal(outside, false, src + ' artwork stays inside its authored bounds');
+  }
+}
 async function checkCase(url, viewport, theme) {
   const mobile = viewport.width < 1100;
   const context = await browser.newContext({ viewport, isMobile: mobile, hasTouch: mobile, deviceScaleFactor: 1 });
@@ -29,6 +60,7 @@ async function checkCase(url, viewport, theme) {
   try {
     await page.goto(url);
     await page.locator('.home-picks .pick').first().waitFor();
+    if (!report.cases.length) await checkIllustrationEdges(page);
     await page.locator('#bBrowse').click();
     await page.waitForFunction(n => document.querySelectorAll('#shelfGames [data-how]').length === n, require('../games/registry').list().length);
     await settle(page);
@@ -50,6 +82,18 @@ async function checkCase(url, viewport, theme) {
       assert(card.copy.x - card.art.right >= 9 && card.copy.x - card.art.right <= 15, name + ' art and text sit together');
       for (let i = 1; i < card.parts.length; i++) assert(Math.abs(card.parts[i].y - card.parts[i - 1].bottom - 3) < 1, name + ' keeps the copy together');
       assert.equal(card.badge, null, name + ' art stays unobstructed');
+    }
+    const illustratedIcons = page.locator('#shelfGames img[src$=".svg"]');
+    for (const image of await illustratedIcons.all()) {
+      const icon = await image.evaluate(el => ({
+        src: el.getAttribute('src'),
+        fit: getComputedStyle(el).objectFit,
+        frame: getComputedStyle(el.parentElement).backgroundColor,
+        inset: parseFloat(getComputedStyle(el).paddingTop),
+      }));
+      assert.equal(icon.fit, 'contain', icon.src + ' is shown whole');
+      assert.equal(icon.frame, 'rgba(0, 0, 0, 0)', icon.src + ' has no visible bars around its outline');
+      assert(icon.inset > 0, icon.src + ' has breathing room at the top and bottom');
     }
     await page.locator('.home-picks').screenshot({ path:path.join(out, label + '-picks.png') });
     await page.locator('#games').screenshot({ path:path.join(out, label + '-catalogue.png') });

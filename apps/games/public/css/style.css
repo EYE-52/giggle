@@ -949,10 +949,8 @@ button.gamepick.gstart { background: var(--card); border: 1px solid var(--edge);
 }
 .gstart:disabled { cursor: default; }
 .gart { display: block; width: 100%; height: auto; aspect-ratio: 16 / 8; object-fit: cover; border-bottom: 1px solid var(--line); }
-/* Square SVG thumbnails are framed whole on a calm well instead of being
- * cropped to the wide poster shape (the img height attribute would
- * otherwise beat aspect-ratio). */
-img:is(.gart, .catart, .featart, .heroimg)[src$=".svg"] { object-fit: contain; background: var(--well); }
+/* Game icons are complete illustrations. Poster artwork can fill a crop. */
+img[src^="/img/games/"][src$=".svg"] { object-fit: contain; }
 .played {
   position: absolute; top: 10px; right: 10px; z-index: 2;
   background: var(--sun); color: var(--sun-ink);

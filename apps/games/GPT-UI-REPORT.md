@@ -366,3 +366,9 @@ Classic prediction now uses the time of the last completed physics step when rec
 A separate 16-driver simulation tested recovery after a 600 ms interruption on a 50 KiB/s connection. Resuming from each driver's last sent update prevented repeated full-map downloads. After the interruption, the 95th-percentile gap dropped from 400 to 40 ms on Rookie Ring and from 350 to 50 ms on Rookie Ribbons. New connections and explicit resyncs still receive the full state.
 
 The full two-seat browser check exposed one more timing error. When a delayed update arrived a fraction of a millisecond before a predicted tick, the client could compare positions from different ticks. A real Chrome capture on localhost measured the kart at the point Three.js drew it. On the same 5–30 metre straight, the 95th-percentile change in visible speed between frames fell from 23.17 to 0.69 m/s after aligning those ticks. Both runs used keyboard acceleration, starting at the same place. A regression also checks irregular browser frame times.
+
+### Catalogue icon edges
+
+The Checkers board extended above and below its own image, and the Chess border was drawn halfway outside its canvas. The revised artwork fits the full board, pieces and border. On the shelf, square illustrations now have clear space around their outlines without dark side strips. Reversi has more room around its tilted board, and Pose Party keeps its original camera artwork.
+
+Checked all 11 catalogue SVG illustrations on four screen sizes in Day and Night mode. A browser regression now checks the artwork outside each original canvas as well as the framing of the actual cards. The old artwork failed on Checkers and Chess; the revised set had zero cropped icons. The catalogue layout passed all 18 browser cases, and the detail dialog, practice picker, one-phone picker and individual game pages passed 72 thumbnail placement checks.
