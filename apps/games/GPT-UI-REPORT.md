@@ -348,3 +348,11 @@ The complete picker check exercised 90 map and mode combinations at each of two 
 The full Games suite passed with Node 24. It exercised all 72 games and completed 1,224 layout measurements with zero failures. The production build, bundled-client check and both canonical release and Meet bridge checks passed.
 
 In the final two 60-second matches, Chrome on the Apple M5 submitted 60.0 frames per second in both recorded driving windows. The 95th-percentile interval between submitted frames was 17.7 ms on desktop Rookie Ring and 18.3 ms on touch-size Rookie Ribbons. Neither 46-second moving sample had a gap over 50 ms or a browser error. These measurements cover the two-driver local game.
+
+### Wider driving view
+
+The driving camera now shows the kart at 85% of its previous on-screen width and height. Classic and raised arenas share the lens setting. Steering, collisions, pickups and the spectator camera retain their previous behavior.
+
+With the same fox driver and Triple Rockets at 390 × 844, Rookie Ring went from 201 to 171 pixels wide and Alpine Courtyard from 187 to 159. At 1280 × 800, the widths went from 225 to 191 and 256 to 218. Compared the same starts and drove with keyboard and emulated touch. All 22 browser checks around walls, low barriers and cannon exits passed. The eight day and night layout scans found zero clipped elements.
+
+Both 60-second local practice rounds finished with zero browser errors. The desktop Rookie Ring and touch-size Rookie Ribbons driving samples each averaged 60 FPS on the Mac. The full Games suite and the production build passed.

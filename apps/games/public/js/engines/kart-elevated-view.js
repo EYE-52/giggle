@@ -22,6 +22,7 @@ import {createKartArenaFeatures} from './kart-arena-features-art.mjs';
 import {loadElevatedPhysics,createElevatedPrediction} from './kart-elevated-prediction.mjs';
 import {createKartWarmupLibrary,warmKartRenderer} from './kart-render-warmup.mjs';
 import {createKartCameraCollision} from './kart-camera-collision.mjs';
+import {setKartCameraLens} from './kart-camera-lens.mjs';
 import {arenaFeatureSolids} from './kart-feature-solids.mjs';
 /* Elevated combat presentation for real Room snapshots. No gameplay or
  * client coordinates are sent: only sequenced, life-scoped intent. */
@@ -446,7 +447,7 @@ export function createElevatedKartView() {
         for(const sample of data.samples){sample.world.copy(sample.local).applyMatrix4(sample.mesh.matrixWorld);sample.world.y=Math.max(.03,sample.world.y);}
       }
       function sideCameraFits(data){
-        probeCamera.fov=camera.fov;probeCamera.aspect=camera.aspect;probeCamera.updateProjectionMatrix();probeCamera.position.copy(sideEye);probeCamera.lookAt(cameraAnchor);probeCamera.updateMatrixWorld();
+        probeCamera.fov=camera.fov;probeCamera.zoom=camera.zoom;probeCamera.aspect=camera.aspect;probeCamera.updateProjectionMatrix();probeCamera.position.copy(sideEye);probeCamera.lookAt(cameraAnchor);probeCamera.updateMatrixWorld();
         for(let i=0;i<8;i++){
           corner.set(i&1?modelBox.max.x:modelBox.min.x,i&2?modelBox.max.y:modelBox.min.y,i&4?modelBox.max.z:modelBox.min.z).project(probeCamera);
           if(Math.abs(corner.x)>.95||Math.abs(corner.y)>.95||corner.z< -1||corner.z>1)return false;
@@ -495,10 +496,9 @@ export function createElevatedKartView() {
       return {scene,camera,frame(dt,time){
         if(gen!==generation||!S)return;
         if(S.phase==='done'&&S.youDrive&&S.garagePrices){const spec=garageSpec();garageUI.preview(root,garagePreviewKey(spec),()=>{garageThumbnail ||= createGarageThumbnail(THREE,renderer,assets);return garageThumbnail.draw(spec);});}
-        // Preserve useful horizontal framing on portrait screens without
-        // changing the normal landscape lens or camera clearance geometry.
+        // Preserve the horizontal view on portrait screens as the arena resizes.
         const fov=Math.min(80,Math.max(52,2*Math.atan(Math.tan(Math.PI/10)/camera.aspect)*180/Math.PI));
-        if(camera.fov!==fov){camera.fov=fov;camera.updateProjectionMatrix();}
+        setKartCameraLens(camera, fov, S.youDrive);
         const cycle=S.skyCycle,sky=cycle?Math.max(0,Math.min(1,(now()-cycle.startedAt)/cycle.durationMs)):undefined;
         // Use the full elapsed frame for prediction; the renderer clips dt for
         // camera/FX. Prediction applies its own 250ms budget and fixed substeps.

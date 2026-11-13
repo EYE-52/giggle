@@ -851,6 +851,9 @@ for(const aspect of [1,390/844,844/390,568/320,1024/768])for(const frameMs of [1
 {
   const r=rig({graphics:true}),snapshot=base();r.render(snapshot);const gl=await r.settle(),camera=gl.built.camera;
   for(const [width,height] of [[390,844],[844,390],[568,320],[1024,768],[200,1000],[390,844],[844,390]]){camera.aspect=width/height;camera.updateProjectionMatrix();r.frame();const expected=Math.min(80,Math.max(52,2*Math.atan(Math.tan(Math.PI/10)/camera.aspect)*180/Math.PI));check(width+'x'+height+' orientation resize updates the bounded portrait lens',Math.abs(camera.fov-expected)<1e-10);check(width+'x'+height+' lens change preserves a finite projection',camera.projectionMatrix.elements.every(Number.isFinite));}
+  check('raised driving view leaves room around the kart',camera.zoom===0.85);
+  r.render({...snapshot,you:'watcher',youDrive:false});r.frame();
+  check('raised spectators keep the follow lens',camera.zoom===1);
   r.view.dispose();
 }
 // Raised launch tubes now share classic solid shells. A reveal at the muzzle

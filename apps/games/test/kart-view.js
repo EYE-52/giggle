@@ -26,6 +26,7 @@ const { createMobileStick } = await import('../public/js/toolkit/mobile-stick.mj
 const {createKartFeedback}=await import('../public/js/engines/kart-feedback.mjs');
 const groundMarkers=await import('../public/js/engines/kart-ground-markers.mjs');
 const {createKartCameraCollision}=await import('../public/js/engines/kart-camera-collision.mjs');
+const {setKartCameraLens}=await import('../public/js/engines/kart-camera-lens.mjs');
 const {classicStatics}=await import('../public/js/engines/kart-classic-motion.mjs');
 const {weaponThumbnailArt}=await import('../public/js/engines/kart-assets.mjs');
 const {createKartPickupPrediction}=await import('../public/js/engines/kart-pickup-prediction.mjs');
@@ -967,7 +968,7 @@ for (const [t,fns] of window.screen.orientation.events) assert.equal(fns.length,
   const encounter=root=>{if(!root.visible)return;if(root.isMesh||root.isLine){if(root.geometry)geometries.add(root.geometry);for(const m of Array.isArray(root.material)?root.material:[root.material])if(m)materials.add(m);}for(const child of root.children)encounter(child);};
   const renderer={async compileAsync(scene){compiles++;encounter(scene);},render(scene){warmFrames++;encounter(scene);}};
   const {matchKartDrivers}=await import('../public/js/engines/kart-assets.mjs');
-  Object.assign(context,models,flight,groundMarkers,{matchKartDrivers,createKartCameraCollision,classicStatics,createKartWarmupLibrary,warmKartRenderer:async(T,r,s,c,o)=>{const handle=await warmKartRenderer(T,r,s,c,{...o,budgetMs:Infinity,yieldTask:async()=>{}}),cancel=handle.cancel;handle.cancel=()=>{warmupCancels++;cancel();};return handle;},createKartCombatArt,createKartHealthBars,createKartImpactFX,createKartDrivingFX,loadKartAssets:async(T,scene,selection)=>{assetSelections.push(selection);const library=new T.Group();library.visible=false;scene.add(library);for(const asset of Object.values(assets))library.add(asset);return assets;},
+  Object.assign(context,models,flight,groundMarkers,{matchKartDrivers,createKartCameraCollision,setKartCameraLens,classicStatics,createKartWarmupLibrary,warmKartRenderer:async(T,r,s,c,o)=>{const handle=await warmKartRenderer(T,r,s,c,{...o,budgetMs:Infinity,yieldTask:async()=>{}}),cancel=handle.cancel;handle.cancel=()=>{warmupCancels++;cancel();};return handle;},createKartCombatArt,createKartHealthBars,createKartImpactFX,createKartDrivingFX,loadKartAssets:async(T,scene,selection)=>{assetSelections.push(selection);const library=new T.Group();library.visible=false;scene.add(library);for(const asset of Object.values(assets))library.add(asset);return assets;},
     createKartWorld:T=>({group:new T.Group(),palette:{horizon:0xd8f3ff},syncMap(){},dispose(){worldRetired++;}}),createKartLighting:()=>()=>{},
     createThreeView:(el,hooks)=>{build=hooks.build;return new Promise(()=>{});}});
   const live=context.makeView({}),el=new Node(),s={...state('drive'),simAt:clock,events:[],zaps:[],grenades:[],mines:[],crates:[],stars:[]};
@@ -1013,6 +1014,7 @@ for (const [t,fns] of window.screen.orientation.events) assert.equal(fns.length,
   s.simAt=clock;s.simTick=14;live.update(el,s,api);
   const bar=built.scene.getObjectByName('KartHealth:one');
   assert(bar,'classic player has a prepared scene HP bar');built.frame(1/60,clock/1000);assert(!bar.visible,'own HP is shown in the HUD, not over the driving line');
+  assert.equal(built.camera.zoom,0.85,'classic driving view leaves room around the kart');
   const wounded=structuredClone(s);wounded.you='watcher';wounded.youDrive=false;wounded.karts[0].health=35;wounded.karts[0].maxHealth=100;
   live.update(el,wounded,api);built.frame(1/60,clock/1000);
   const [full,...lost]=bar.children;
@@ -1025,6 +1027,7 @@ for (const [t,fns] of window.screen.orientation.events) assert.equal(fns.length,
   for(const patch of [{health:0,respawn:2},{health:1,connected:false}]) {const next=structuredClone(wounded);Object.assign(next.karts[0],patch);live.update(el,next,api);built.frame(1/60,clock/1000);assert(!bar.visible,'classic hides full, KO and disconnected scene health');}
   const offline=structuredClone(wounded);offline.players=[{id:'one',connected:false}];live.update(el,offline,api);built.frame(1/60,clock/1000);assert(!bar.visible,'actual classic Room roster disconnection hides the bar');
   const watcher=structuredClone(wounded);watcher.you='watcher';watcher.youDrive=false;live.update(el,watcher,api);built.frame(1/60,clock/1000);assert(bar.visible,'classic spectator sees wounded players without a personal HUD');
+  assert.equal(built.camera.zoom,1,'classic spectators keep the overview lens');
   live.update(el,{...watcher,karts:[]},api);built.frame(1/60,clock/1000);assert.equal(bar.parent,null,'retired classic player detaches its bar');
   live.dispose();built.dispose();assert.equal(built.scene.getObjectByName('KartHealth:one'),undefined,'classic scene disposal removes health bars');
   assert.equal(worldRetired,1,'classic scene disposal retires pending world image loads');

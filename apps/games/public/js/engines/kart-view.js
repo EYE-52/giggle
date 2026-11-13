@@ -58,6 +58,7 @@ import {createKartDrivingFX} from './kart-driving-fx.mjs';
 import {createKartWarmupLibrary,warmKartRenderer} from './kart-render-warmup.mjs';
 import {classicStatics} from './kart-classic-motion.mjs';
 import {createKartCameraCollision} from './kart-camera-collision.mjs';
+import {setKartCameraLens} from './kart-camera-lens.mjs';
 import {createSurfaceIndex,surfaceTuning} from './kart-surface.mjs';
 import {driftTier,DRIFT_TIERS} from './kart-drift.mjs';
 import {createKartThreats} from './kart-threats.mjs';
@@ -1500,7 +1501,7 @@ export function createKartView(viewConfig) {
         const boosting=(selfPose?.turbo??me?.turbo)>0||me?.boost>0||me?.nitroActive===true;
         const targetFov=rm||!S.youDrive||S.phase!=='drive'?60:60+Math.min(5,Math.max(0,(Math.abs(selfPose?.speed??me?.speed??0)-14)*.4))+(boosting?4:0);
         const nextFov=rm?60:camera.fov+(targetFov-camera.fov)*(1-Math.exp(-dt*5));
-        if(Math.abs(nextFov-camera.fov)>.005){camera.fov=nextFov;camera.updateProjectionMatrix();}
+        setKartCameraLens(camera, nextFov, S.youDrive);
         const shake=hitFx?.shake(nowMs());
         if(shake&&(shake.x||shake.y)){
           beforeShake.copy(camera.position);shakeOffset.set(shake.x,shake.y,0).applyQuaternion(camera.quaternion);camera.position.add(shakeOffset);
