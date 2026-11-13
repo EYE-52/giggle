@@ -56,9 +56,16 @@ for(const kind of [...kinds,'nuke','frost','mine']){
  const prefix=['nuke','frost'].includes(kind)?'grenades':['mine'].includes(kind)?'mines':'projectiles';s=structuredClone(s);s.simTick++;s.simAt+=1000;
  const item={id:'same-slot',weapon:kind,owner:'a',position:{x:0,y:1,z:3},velocity:{x:0,y:0,z:50},ttl:2,fuse:2,warning:true};s.projectiles=[];s.grenades=[];s.mines=[];s[prefix]=[item];
  s.simAt=r.api.now();r.render(s);r.advance(100);r.frame();const started=r.allocations();
- bound('raised dropped '+kind,100+lastVisible(ms=>{if(ms)r.advance(10);r.frame(.01);},()=>liveBodies().length>0));
+ const lastShown=100+lastVisible(ms=>{if(ms)r.advance(10);r.frame(.01);},()=>liveBodies().length>0);
+ bound('raised dropped '+kind,lastShown,kind==='mine'?320:120);
+ if(kind==='mine'&&!measuring) assert.equal(lastShown,320,'the stationary mine stays visible through its reporting window');
  s=structuredClone(s);s.simTick++;s.simAt=r.api.now();r.render(s);r.frame();r.advance(100);r.frame();assert(liveBodies().length,kind+' reuse becomes visible');
  s=structuredClone(s);s.simTick++;s.simAt=r.api.now();s[prefix]=[];r.render(s);r.frame();bound('raised explicit removal '+kind,liveBodies().length?Infinity:0);
+ if(kind==='mine'){
+   s=structuredClone(s);s.simTick++;s.simAt=r.api.now();s.mines=[{...item,ttl:.19}];r.render(s);r.frame();
+   r.advance(180);r.frame(.01);assert(liveBodies().length,'stationary trap survives a gap before its server TTL');
+   r.advance(10);r.frame(.01);assert.equal(liveBodies().length,0,'server TTL retires the trap before the reporting window ends');
+ }
  assert.equal(r.allocations().projectiles,started.projectiles,'pool reuse allocates no projectile');
 }
 for(const weapon of WEAPON_IDS){

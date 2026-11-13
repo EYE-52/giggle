@@ -86,7 +86,12 @@ export function createClassicPrediction(R){
     const simAt=Number.isFinite(snapshot.simAt)?snapshot.simAt-(snapshot.poseLagUs||0)/1000:serverAt;
     const priorSelf=state?.karts.find(k=>k.pid===selfId),sourceSelf=snapshot.karts.find(k=>k.pid===snapshot.you),gap=simAt-simulatedAt;
     if(!changed&&snapshot.phase==='drive'&&snapshot.youDrive&&priorSelf&&sourceSelf?.connected!==false&&sourceSelf?.physicalPose&&!(sourceSelf.respawn>0)&&priorSelf.spawnSeq===sourceSelf.spawnSeq&&priorSelf.physicalPose?.epoch===sourceSelf.physicalPose.epoch&&snapshot.inputAck?.controlEpoch===lastControlEpoch&&gap>.001&&gap<=config.fixedDt*1000+.001){
-      let step=gap/1000;if(Math.abs(step-config.fixedDt)<1e-6)step=config.fixedDt;
+      let step=gap/1000;
+      // This checkpoint is a completed tick. Millisecond wire timestamps and
+      // the render clock can place the remaining fraction just below it. Use
+      // the accumulator's exact remainder before comparing the physical poses.
+      const remaining=config.fixedDt*(1-world.alpha());
+      if(Math.abs(step-remaining)<.001)step=remaining;
       world.advance(step,online());simulatedAt=simAt;frameCredit+=step;
     }
     // The checkpoint is a physical tick, not an interpolated draw frame.

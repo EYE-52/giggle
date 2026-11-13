@@ -12,7 +12,7 @@ const flatMap='flat-prediction-fixture';
 // The authority's 30 Hz timer has integer millisecond jitter. Drive the real
 // game projection through that timer, then deliver it over a bursty 100ms RTT
 // link. Its fixed-step checkpoint and round clock must keep their own times.
-{
+for(const link of ['bursty','local']){
  const players=[{id:'a',name:'A'},{id:'b',name:'B'}],epoch=1700000000000;
  let now=epoch,motion;
  const ctx={allPlayers:()=>players,players:()=>players,settings:()=>({map:'ring',mode:'battle'}),now:()=>now,broadcast(){},award(){},content:()=>({})};
@@ -32,19 +32,25 @@ const flatMap='flat-prediction-fixture';
    const s=snapshot(),elapsed=now-start;
    assert.equal(s.simAt,now,'timers and shot lifetimes use the entire timer interval');
    assert(Math.abs(elapsed-s.poseLagUs/1000-(motion.stats().tick-tick0)*config.fixedDt*1000)<.001,'wire pose is stamped at the last completed physics tick');
-   packets.push({s,arrival:50+elapsed+Math.max(0,150-elapsed%550)});
+   const delay=link==='bursty'?50+Math.max(0,150-elapsed%550):[2,3,3.3,2.5,4.1][i%5];
+   packets.push({s,arrival:elapsed+delay});
   }
   prediction.ingest(initial,0,start);
-  let latest=initial,i=0,previousZ,lastSpeed,maxJolt=0;
+  let latest=initial,i=0,previousZ,lastSpeed,maxJolt=0,previousAt=0;
   for(let frame=1;frame<=120;frame++){
-   const t=frame*1000/60;let fresh;
+   const t=frame*1000/60+(link==='local'?[.1,1.4,-.3,.2,1][frame%5]:0);
+   const frameMs=t-previousAt;
+   // The renderer measures dt at the top of its loop; physics reads the
+   // server clock later in that frame, after variable scene work.
+   const dt=(frameMs+(link==='local'?.12*(frame%2?1:-1):0))/1000;
+   let fresh;
    while(i<packets.length&&packets[i].arrival<=t){fresh=packets[i++];latest=fresh.s;prediction.observe(latest,fresh.arrival,start+fresh.arrival);}
    if(fresh)prediction.ingest(latest,fresh.arrival,start+fresh.arrival);
-   const z=prediction.frame(latest,input,1/60,t,start+t).z,speed=(z-previousZ)*60;
+   const z=prediction.frame(latest,input,dt,t,start+t).z,speed=(z-previousZ)*1000/frameMs;
    if(t>750)maxJolt=Math.max(maxJolt,Math.abs(speed-lastSpeed));
-   previousZ=z;lastSpeed=speed;
+   previousZ=z;lastSpeed=speed;previousAt=t;
   }
-  assert(maxJolt<1,'bursty timer checkpoints cause no extra hold or double step: '+maxJolt);
+  assert(maxJolt<1,link+' checkpoints cause no extra hold or double step: '+maxJolt);
   assert.equal(prediction.stats().snaps,0);
   now+=600;def.onTick(room,ctx);
   const late=snapshot();assert.equal(late.simAt,now);assert(late.poseLagUs>=0&&late.poseLagUs<16667,'clamped late pumps report only the pending fixed-step fraction');
