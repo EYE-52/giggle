@@ -321,6 +321,7 @@ export function sendMemberMedia(input: MemberMediaInput): Promise<MemberMediaRes
 export function activateGroupPresence(squadId: string): () => void {
   const socket = connectSocket(squadId);
   let retired = false, generation: string | undefined;
+  let connectionVersion = 0;
   let operation: Promise<void> = Promise.resolve();
   const send = (action: "begin" | "update" | "end", ownedGeneration?: string) => new Promise<{ok:boolean;generation?:string}>(resolve => {
     if (!socket.connected) return resolve({ok:false});
@@ -330,12 +331,15 @@ export function activateGroupPresence(squadId: string): () => void {
     if (retired) return;
     operation = operation.then(async () => {
       if (retired || !socket.connected) return;
+      const version = connectionVersion;
       const result = await send(generation ? "update" : "begin",generation);
+      // An acknowledgement from the previous connection cannot own this one.
+      if (version !== connectionVersion) return;
       if (result.ok) generation = result.generation ?? generation;
       else generation = undefined;
     });
   };
-  const reconnect = () => { generation = undefined;refresh(); };
+  const reconnect = () => { connectionVersion++;generation = undefined;refresh(); };
   socket.on("connect",reconnect);
   const timer = setInterval(refresh,25_000);
   if (typeof document !== "undefined") document.addEventListener("visibilitychange",refresh);

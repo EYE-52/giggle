@@ -123,3 +123,24 @@ test("late start cleanup captures the retired tab lease instead of ending its re
   assert.equal(f.sent.at(-1).input.squadId, "second");
   assert.equal(f.sent.at(-1).input.generation, "lease-1");
 });
+
+
+test("a late presence acknowledgement cannot reuse the old connection after reconnect", async () => {
+  const f = fixture({ holdBegin: true });
+  const stop = f.api.activateGroupPresence("current");
+  await flush();
+  f.handlers.get("connect")();
+  f.pending[0]();
+  await flush();
+  assert.deepEqual(f.sent.map(row => row.input.action), ["begin", "begin"],
+    "reconnect must obtain a new lease immediately, not update the old one");
+  f.pending[1]();
+  await flush();
+  f.timers[0].fn();
+  await flush();
+  assert.equal(f.sent.at(-1).input.generation, "lease-2");
+  stop();
+  await flush();
+  assert.equal(f.sent.at(-1).input.action, "end");
+  assert.equal(f.sent.at(-1).input.generation, "lease-2");
+});
