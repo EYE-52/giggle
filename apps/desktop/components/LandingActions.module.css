@@ -1,9 +1,8 @@
 .launch { width: 100%; font: inherit; }
-.launch .start { width: fit-content; min-height: 58px; display: inline-flex; justify-content: center; align-items: center; gap: 26px; padding: 14px 28px; border-radius: 19px; background: var(--launch-accent, var(--accent)); color: var(--launch-on-accent, var(--on-accent)); font-size: 18px; line-height: 1.3; font-weight: 800; text-decoration: none; transition: background-color 160ms ease, transform 160ms ease; }
+.options { display: flex; flex-wrap: wrap; gap: 12px; }
+.launch .start { width: fit-content; min-height: 58px; display: inline-flex; justify-content: center; align-items: center; gap: 16px; padding: 14px 23px; border-radius: 19px; background: var(--launch-accent, var(--accent)); color: var(--launch-on-accent, var(--on-accent)); font-size: 17px; line-height: 1.3; font-weight: 800; text-decoration: none; transition: background-color 160ms ease, transform 160ms ease; }
 .start svg { transition: transform 180ms ease; }
-.note { margin: 12px 0 20px; font-size: 13px; line-height: 1.5; color: var(--text-muted); }
-.private { display: flex; flex-wrap: wrap; gap: 4px 9px; align-items: center; min-height: 44px; border: 0; padding: 0; background: none; color: var(--text-muted); font: inherit; font-size: 14px; cursor: pointer; text-align: start; }
-.private > span { display: inline-flex; align-items: center; gap: 7px; font-weight: 800; color: var(--text); }
+.private { display: inline-flex; gap: 14px; align-items: center; justify-content: center; min-height: 58px; border: 0; border-radius: 19px; padding: 14px 21px; background: color-mix(in srgb, #ec729f 16%, var(--meet-bg)); color: var(--text); font: inherit; font-size: 17px; line-height: 1.3; font-weight: 800; cursor: pointer; transition: background-color 160ms ease, transform 160ms ease; }
 .private svg { transition: transform 180ms ease; }
 .launch :is(a,button):focus-visible { outline: 3px solid var(--launch-accent, var(--accent)); outline-offset: 5px; }
 .dialogTitle { display: block; font: 700 clamp(24px, 5vw, 30px)/1.15 var(--font-baloo), var(--font-nunito), sans-serif; letter-spacing: -.02em; }
@@ -20,7 +19,8 @@
 .gameLinks { display: flex; flex-wrap: wrap; gap: 4px 19px; padding-left: 38px; margin-top: 10px; }
 .gameLinks a { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; color: var(--text); font-size: 14px; font-weight: 800; text-decoration: none; }
 .privateChoices a:focus-visible { outline: 2px solid var(--text); outline-offset: 3px; }
-@media (hover: hover) { .start:hover { background: var(--launch-hover, var(--accent-hover)); transform: translateY(-2px); } .start:hover svg, .private:hover svg { transform: translateX(3px); } .private:hover > span, .gameLinks a:hover { text-decoration: underline; text-underline-offset: 4px; } .way:hover { background: var(--overlay-hover); } }
-.launch .start:active { transform: scale(.98); }
-@media (max-width: 640px) { .launch .start { width: 100%; min-height: 54px; } .note { text-align: center; margin-bottom: 8px; } .private { justify-content: center; width: 100%; font-size: 13px; } }
-@media (prefers-reduced-motion: reduce) { .launch .start, .launch .start:active, .launch .start:hover, .start svg, .start:hover svg, .private svg, .private:hover svg, .way { transition: none; transform: none; } }
+@media (hover: hover) { .start:hover { background: var(--launch-hover, var(--accent-hover)); transform: translateY(-2px); } .start:hover svg, .private:hover svg { transform: translateX(3px); } .private:hover { background: color-mix(in srgb, #ec729f 25%, var(--meet-bg)); transform: translateY(-2px); } .gameLinks a:hover { text-decoration: underline; text-underline-offset: 4px; } .way:hover { background: var(--overlay-hover); } }
+.launch .start:active, .launch .private:active { transform: scale(.98); }
+@media (min-width: 641px) and (max-width: 1100px) { .options { flex-direction: column; align-items: flex-start; } }
+@media (max-width: 640px) { .options { gap: 10px; } .launch .start, .launch .private { width: 100%; min-height: 52px; padding-block: 13px; font-size: 16px; } }
+@media (prefers-reduced-motion: reduce) { .launch .start, .launch .start:active, .launch .start:hover, .launch .private, .launch .private:active, .launch .private:hover, .start svg, .start:hover svg, .private svg, .private:hover svg, .way { transition: none; transform: none; } }

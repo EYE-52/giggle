@@ -15,9 +15,10 @@ const privateWays = [
 export function LandingActions({ hrefs, gamesUrl, groupHref }: { hrefs: Record<Mode, string>; gamesUrl: string; groupHref: string }) {
   const [privateOpen, setPrivateOpen] = useState(false);
   return <div className={styles.launch}>
+    <div className={styles.options}>
     <Link href={groupHref} className={styles.start}>Start your group<Icon.arrowRight size={22} color="currentColor" /></Link>
-    <p className={styles.note}>Bring your people. We’ll find the other group.</p>
-    <button type="button" className={styles.private} aria-haspopup="dialog" onClick={() => setPrivateOpen(true)}>Just your friends? <span>Private hangout<Icon.arrowRight size={17} color="currentColor" /></span></button>
+    <button type="button" className={styles.private} aria-haspopup="dialog" onClick={() => setPrivateOpen(true)}>Private hangout<Icon.arrowRight size={20} color="currentColor" /></button>
+    </div>
     {privateOpen && <Modal onClose={() => setPrivateOpen(false)} title={<span className={styles.dialogTitle}>Your people. Your plans.</span>} subtitle="An invite-only hangout, however you feel like joining." width="min(520px, calc(100vw - 32px))">
       <div className={styles.privateChoices}>
         {privateWays.map(way => <Link key={way.id} href={hrefs[way.id]} className={styles.way}>

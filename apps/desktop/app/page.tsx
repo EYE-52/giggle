@@ -33,9 +33,9 @@ export default function LandingPage() {
       <main>
         <section className={styles.hero} data-testid="giggle-hero">
           <div className={styles.copy}>
-            <p className={styles.eyebrow}>Group vs group. Everyone’s invited.</p>
-            <h1>Your friends.<span>Their friends.</span><em>Good chaos.<svg viewBox="0 0 360 16" aria-hidden="true"><path d="M4 10C85 0 229 0 354 8M34 14C137 6 257 8 327 12" /></svg></em></h1>
-            <p>Meet another group on video, with your friends by your side. Add a game when words run out.</p>
+            <p className={styles.eyebrow}>Group vs group. Or just your group.</p>
+            <h1>Good company.<br /><em>Great chaos.<svg viewBox="0 0 360 16" aria-hidden="true"><path d="M4 10C85 0 229 0 354 8M34 14C137 6 257 8 327 12" /></svg></em></h1>
+            <p>Meet new groups, catch up with friends, or make it game night.</p>
           </div>
           <div className={styles.art} aria-hidden="true">
             <span className={styles.yourGroup}>Your group<svg viewBox="0 0 75 60"><path d="M8 3C58 3 68 23 57 52m-12-8 12 10 12-13" /></svg></span>

@@ -1,7 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 
 const groupHref = "/home?create=1&mode=video&match=1";
-const privateTriggerName = "Just your friends? Private hangout";
+const privateTriggerName = "Private hangout";
 const dialogTitle = "Your people. Your plans.";
 const privateWays = [
   { name: "Video call", href: "/home?create=1&mode=video" },
@@ -55,7 +55,7 @@ test("landing keeps group matching primary and private choices behind one button
   await page.goto("/");
   const hero = page.getByTestId("giggle-hero");
   await expect(hero).toBeVisible();
-  await expect(hero.getByRole("heading", { level: 1, name: /^Your friends\.\s*Their friends\.\s*Good chaos\.$/ })).toBeVisible();
+  await expect(hero.getByRole("heading", { level: 1, name: /^Good company\.\s*Great chaos\.$/ })).toBeVisible();
   await expect(hero.getByRole("link", { name: "Start your group", exact: true })).toHaveAttribute("href", groupHref);
   await expect(hero.getByRole("link")).toHaveCount(1);
   await expect(hero.getByRole("radio")).toHaveCount(0);
