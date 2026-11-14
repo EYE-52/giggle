@@ -1,4 +1,5 @@
-/* Game Night shell: connection, home/lobby/game screens, game view host. */
+import { selectedGame, playInMeetHref, addCallHref } from './meet-link.js';
+/* Giggle Games shell: connection, home/lobby/game screens, game view host. */
 import {warmPickedKart} from './kart-warmup.mjs';
 import { esc, store, artGradient, artInitial, practiceContext, uiIcon } from './util.js';
 import { practiceSupport } from './practice-support.mjs';
@@ -192,6 +193,7 @@ const BOOT_ENTRY = shouldHandleGameEntry({
   parsed: BOOT_ENTRY_RAW, pathname: location.pathname, embedEnabled: EMBED.enabled,
 }) ? BOOT_ENTRY_RAW : null;
 let bootEntryConsumed = false;
+let embedEntryConsumed = false;
 
 /* Identity persistence is standalone-only: embedded seats resume via fresh
  * parent tickets, never via stored room/name/token. */
@@ -799,6 +801,7 @@ function onMsg(msg) {
       games = msg.games;
       catalogLoaded = true;
       consumeBootEntry();
+      consumeEmbedGameEntry();
       if(PRACTICE_GAME&&!room?.game){const picked=gameById(PRACTICE_GAME);if(picked)query=picked.name;}
       if (!room) render();
       else if (!room.game) render();
@@ -807,6 +810,7 @@ function onMsg(msg) {
       break;
     case 'room': {
       room = msg.room;
+      if (room.game) consumeEmbedGameEntry();
       warmPickedKart(room.pickedGame,{players:room.players,settings:room.config?.['pocket-karts']?.settings});
       if (pendingRoomAction && !isHost()) clearRoomAction();
       roomCode = room.code;
@@ -824,6 +828,7 @@ function onMsg(msg) {
         if(pendingGame&&(peekPendingGameEntry()||room.code!==lastLobbyKey)){query=pendingGame.name;catFilter='all';fitsOnly=false;customOnly=false;}
         render();
         consumePendingCustomize();
+        consumeEmbedGameEntry();
         consumeGameEntry();
       } else if (lastState?.youLeft && watchInstance !== lastState.instanceId) {
         render();
@@ -1024,8 +1029,8 @@ function topbar() {
   // Embedded: the brand is a static label (leaving would drop the squad
   // game) and the internal room code is hidden — Giggle owns inviting.
   const brand = EMBED.enabled
-    ? `<span class="brand">${BRANDMARK}<span>Game Night<span class="dot">.</span></span></span>`
-    : `<a class="brand" href="/" data-nav>${BRANDMARK}<span>Game Night<span class="dot">.</span></span><small>by Giggle</small></a>`;
+    ? `<span class="brand">${BRANDMARK}<span>Giggle Games</span></span>`
+    : `<a class="brand" href="/" data-nav>${BRANDMARK}<span>Giggle Games</span></a>`;
   const themeTool = headerThemeAction(theme());
   const soundLabel = soundAction(sound.enabled);
   return `<div class="topbar">
@@ -1365,10 +1370,11 @@ function heroHandHtml() {
 
 /* Each entry opens the guide. The same hit target works from picks, search and a room. */
 function gameChoiceHtml(g, classes, artClass, meta = seatsLine(g)) {
+  const requirement = g.communication === 'video' ? 'Video call needed for online play' : g.communication === 'voice' ? 'Voice call needed for online play' : '';
   return `<button type="button" class="${classes} home-game-card card-open" data-how="${esc(g.id)}" data-cat="${esc(g.cat || '')}" data-family="${controlFamily(g)}" aria-haspopup="dialog">
     <span class="home-card-art">${artImg(g, artClass)}</span>
     <span class="home-card-copy"><span class="t">${esc(g.name)}</span>
-      <span class="d">${esc(g.tagline)}</span><span class="p">${meta}</span></span>
+      <span class="d">${esc(g.tagline)}</span><span class="p">${meta}</span>${requirement ? `<span class="communication-hint">${esc(requirement)}</span>` : ''}</span>
   </button>`;
 }
 
@@ -1452,7 +1458,10 @@ function renderHome() {
         <h1>Bring your people. <span class="pop">Pick a game</span>.</h1>
         <p class="hero-sub">Make a room, share the code, and play ${catalogLoaded ? `${games.length} party games` : 'party games'}
           with friends. Use your own devices, or pass one phone around the room.</p>
-        <a class="shelf-link" href="#games">Find your next game</a>
+        <div class="home-app-actions">
+          <a class="shelf-link" href="#games">Find your next game</a>
+          <a class="home-meet-link" href="https://www.gigglemeet.com/home">Start a Giggle Meet call <span aria-hidden="true">↗</span></a>
+        </div>
         ${catalogLoaded ? heroHandHtml() : '<div class="hero-hand" aria-hidden="true"></div>'}
       </div>
       <div class="hero-form ticket">
@@ -1680,8 +1689,8 @@ function vibeFor(g) {
     board: 'Board game', '3d': '3D arena',
   }[g.cat] || 'Party game';
   const bits = [base];
-  if (g.communication === 'video') bits.push('Great on video');
-  else if (g.communication === 'voice') bits.push('Voice recommended');
+  if (g.communication === 'video') bits.push('Video call needed for online play');
+  else if (g.communication === 'voice') bits.push('Voice call needed for online play');
   return bits.join(' · ');
 }
 
@@ -2005,7 +2014,7 @@ function renderLobby() {
     b.onclick = async () => {
 
       try {
-        await navigator.share({ title: 'Game Night', text: `Join my game night — room ${room.code}`, url: location.href });
+        await navigator.share({ title: 'Giggle Games', text: `Join my game night — room ${room.code}`, url: location.href });
       } catch { /* dismissed — the copy button is right beside it */ }
     };
   });
@@ -2080,6 +2089,22 @@ function consumeBootEntry() {
   history.replaceState(null, '', location.pathname + stripGameEntryParams(location.search));
   setPendingGameEntry(decision);
   send({ t: 'create', name: myName });
+}
+
+function consumeEmbedGameEntry() {
+  if (!EMBED.enabled || !embedAuthed || !room || !catalogLoaded || embedEntryConsumed) return;
+  const choice = selectedGame(location.search, games);
+  if (!choice.requested) return;
+  embedEntryConsumed = true;
+  // Joining an existing match never replaces the running game.
+  if (room.game) return;
+  if (!choice.game) {
+    query = ''; catFilter = 'all'; fitsOnly = false; customOnly = false;
+    render(); toast('That game is unavailable. Pick one from the shelf.'); return;
+  }
+  setPendingGameEntry({gameId:choice.game, wantSetup:false});
+  if (isHost()) send({t:'pick-game', game:choice.game});
+  consumeGameEntry();
 }
 
 function consumeGameEntry() {
@@ -2224,7 +2249,9 @@ function howtoFooter(game) {
   const settingsLabel = game.schema?.settings?.some((s) => s.key === 'map') ? 'Maps & settings' : 'Customize';
   // Details lives INSIDE the dialog (never on the shelf); embed renders
   // nothing so no link leaks out of the squad frame.
-  const details = gameDetails(game);
+  const meet = !EMBED.enabled && !room?.game
+    ? `<a class="meet-play-link" href="${playInMeetHref('https://www.gigglemeet.com', game.id)}">${uiIcon('video-camera', 20)}<span>Play in Meet</span></a>` : '';
+  const details = gameDetails(game) + meet;
   const practice = !room && !EMBED.enabled && !PRACTICE && practiceSupport(game)
     ? `<a class="howto-btn practice-link" href="/practice/?game=${encodeURIComponent(game.id)}">Practice solo</a>` : '';
   if (!room) {
@@ -2522,6 +2549,7 @@ function gameRoomMenu(g, context, floating = false) {
         <button type="button" class="room-setting is-switch" id="bTheme" role="switch" aria-checked="${theme() === 'night'}">${roomSwitchHtml(themeIcon(theme()), 'Night')}</button>
         <button type="button" class="room-setting" id="bGameScreen">Full screen</button>
         ${!EMBED.enabled ? '<button type="button" class="room-setting" id="bGameInvite">Invite friends</button>' : ''}
+      ${!EMBED.enabled ? `<a class="room-setting room-meet" href="${addCallHref('https://www.gigglemeet.com')}" target="_blank" rel="noopener">${uiIcon('video-camera', 20)}<span>Add a call</span></a><p class="room-call-help">Keep playing in this tab while you call.</p>` : ''}
         ${EMBED.enabled && embedTrusted ? '<button type="button" class="room-setting" id="bVoice">' + uiIcon('microphone', 20) + ' Talk together</button>' : ''}
         <button type="button" class="room-setting" data-report>Report an issue</button>
       </div>
@@ -2534,7 +2562,7 @@ function gameRoomMenu(g, context, floating = false) {
       <p id="roomRequestStatus" role="status" hidden></p>
       <div id="scores" class="scoreboard" aria-label="Game night totals"></div>
       <div id="roomMembers" class="room-members"></div>
-      ${!EMBED.enabled ? '<a class="room-meet" href="https://gigglemeet.com" target="_blank" rel="noopener">Hang out on Giggle Meet ↗</a>' : ''}
+
     </div>
   </details><button type="button" id="bGameScreenToggle" class="tb-btn tb-icon tb-chip game-screen-toggle" aria-label="Full screen" title="Full screen" aria-pressed="false" hidden></button>`;
 }

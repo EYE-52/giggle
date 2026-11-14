@@ -70,3 +70,5 @@
 .gp-rules summary { cursor: pointer; min-height: 44px; display: flex; align-items: center; gap: 8px; list-style: none; color: var(--accent-deep); font-weight: 800; }
 .gp-rules summary::-webkit-details-marker { display: none; }
 .gp-rules p { color: var(--ink-dim); }
+
+.gp-meet-link { display:inline-flex; align-items:center; gap:8px; min-height:44px; color:var(--ink); text-underline-offset:3px; }

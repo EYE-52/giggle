@@ -1,0 +1,30 @@
+const assert=require('node:assert/strict'),fs=require('node:fs');
+(async()=>{const helper=await import('data:text/javascript;base64,'+Buffer.from(fs.readFileSync(require('node:path').join(__dirname,'../public/js/meet-link.js'))).toString('base64'));
+ const {playInMeetHref,addCallHref,selectedGame}=helper;
+ assert.equal(playInMeetHref('https://meet.test','charades'),'https://meet.test/home?game=charades');
+ assert.equal(playInMeetHref('https://adult.test','ad-closer',{adult:true}),'https://adult.test/adult/create?game=ad-closer');
+ assert.equal(addCallHref('https://meet.test'),'https://meet.test/home');
+ for(const base of ['//other.test','javascript:alert(1)','https://x:y@meet.test','https://meet.test?room=ABCD','https://meet.test/path'])assert.equal(playInMeetHref(base,'charades'),null);
+ assert.equal(playInMeetHref('https://meet.test','../bad'),null);
+ const catalog=require('../games/registry').list();
+ assert.deepEqual(selectedGame('?game=charades',catalog),{requested:true,game:'charades'});
+ assert.deepEqual(selectedGame('?game=unknown-game',catalog),{requested:true,game:null});
+ assert.deepEqual(selectedGame('',catalog),{requested:false,game:null});
+ assert.equal(playInMeetHref('https://meet.test',null),'https://meet.test/home?games=1');
+ const {pills,renderPage}=require('../scripts/build-game-pages');
+ const counts={video:0,voice:0,any:0};
+ for(const game of catalog){
+  counts[game.communication]++;
+  const facts=pills(game), expected=game.communication==='video'?'Video call needed for online play':game.communication==='voice'?'Voice call needed for online play':null;
+  assert.equal(facts.some(text=>text.includes('call needed for online play')),!!expected);
+  if(expected)assert.ok(facts.includes(expected));
+  const html=renderPage(game,require('node:path').join(__dirname,'../public'));
+  assert.ok(html.includes(`href="https://www.gigglemeet.com/home?game=${game.id}"`));
+  assert.ok(html.includes('Play in Meet'));
+ }
+ assert.deepEqual(counts,{video:4,voice:5,any:63});
+ const app=fs.readFileSync(require('node:path').join(__dirname,'../public/js/app.js'),'utf8');
+ assert.ok(app.includes('Add a call'));assert.ok(app.includes('Keep playing in this tab while you call.'));
+ assert.ok(app.includes('https://www.gigglemeet.com/home'));
+ console.log('Meet navigation and live-catalogue selection checks passed');
+})().catch(error=>{console.error(error);process.exitCode=1;});

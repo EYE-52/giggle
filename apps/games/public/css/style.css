@@ -2459,3 +2459,12 @@ body.is-embed .partystrip { box-shadow: none; }
 .loading-mark.loading-logo i { display: none; animation: none; }
 .boot-view .loading-mark.loading-logo { width: 88px; height: 88px; background-image: url('/icon.svg'); }
 .loading-mark.loading-logo[hidden] { display: none; }
+
+.meet-play-link { display:inline-flex; align-items:center; justify-content:center; gap:8px; min-height:44px; color:var(--ink); font-size:14px; text-decoration:underline; text-underline-offset:3px; }
+.room-meet { display:flex; align-items:center; gap:8px; min-height:44px; }
+.room-call-help { margin:0; font-size:12px; line-height:1.5; color:var(--muted); }
+
+.home-card-copy .communication-hint { display:block; margin-top:4px; color:var(--ink-dim); font-size:12px; line-height:1.4; font-weight:600; white-space:normal; }
+
+.room-menu-actions .room-meet { margin:0; border:0; padding:10px 12px; gap:8px; text-decoration:none; }
+.room-menu-actions .room-call-help { grid-column:1 / -1; margin:0; }

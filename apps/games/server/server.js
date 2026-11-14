@@ -199,8 +199,9 @@ function requestPath(reqUrl) {
   }
   if (raw === '/') raw = '/index.html';
   // Client-side routes (/r/CODE) all serve the shell.
-  if (raw.startsWith('/r/')) raw = '/index.html';
-  return { path: raw };
+  const privateRoom = raw.startsWith('/r/');
+  if (privateRoom) raw = '/index.html';
+  return { path: raw, privateRoom };
 }
 
 /* True only when the normalized file is strictly inside PUBLIC. A raw
@@ -311,16 +312,19 @@ const server = http.createServer(async (req, res) => {
   const parsed = requestPath(req.url);
   if (parsed.bad) {
     setFraming();
+    res.setHeader('X-Robots-Tag', 'noindex, nofollow');
     res.writeHead(400, { 'Content-Type': 'text/plain' });
     res.end('bad request');
     return;
   }
+  if (parsed.privateRoom) res.setHeader('X-Robots-Tag', 'noindex, nofollow');
   /* Game detail pages: /games/<id>/ (and /games/<id>) resolve to the
    * generated static index. Traversal-safe: single-segment allow-listed
    * ids only — anything else under /games/ falls through to the normal
    * file gate (real files serve, directories and unknown slugs 404). */
   let servePath = path.posix.normalize(parsed.path);
   if (process.env.NODE_ENV === 'production' && /^\/(test|fixtures)(\/|$)/.test(servePath)) {
+    res.setHeader('X-Robots-Tag', 'noindex, nofollow');
     res.writeHead(404, { 'Content-Type': 'text/plain' });
     res.end('not found');
     return;
@@ -330,6 +334,7 @@ const server = http.createServer(async (req, res) => {
     if (!rest.includes('/')) {
       if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(rest) || rest.length < 2 || rest.length > 40) {
         setFraming();
+        res.setHeader('X-Robots-Tag', 'noindex, nofollow');
         res.writeHead(404, { 'Content-Type': 'text/plain' });
         res.end('not found');
         return;
@@ -341,6 +346,7 @@ const server = http.createServer(async (req, res) => {
   if (insidePublic(file) && fs.existsSync(file) && fs.statSync(file).isDirectory()) file = path.join(file, 'index.html');
   if (!insidePublic(file) || !fs.existsSync(file) || fs.statSync(file).isDirectory()) {
     setFraming();
+    res.setHeader('X-Robots-Tag', 'noindex, nofollow');
     res.writeHead(404, { 'Content-Type': 'text/plain' });
     res.end('not found');
     return;

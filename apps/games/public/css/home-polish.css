@@ -329,3 +329,10 @@
 @media (hover:hover) and (prefers-reduced-motion:no-preference) {
   .hero-hand .hand-card:is(:hover,:focus-visible) { transform:translateY(-4px); }
 }
+
+/* Both Giggle apps have a direct entry from the public game shelf. */
+.home-app-actions { display:flex; flex-wrap:wrap; align-items:center; gap:8px 24px; }
+.home-app-actions a { min-height:44px; display:inline-flex; align-items:center; gap:9px; }
+.home-meet-link { font:650 14px/1.4 var(--font-body); color:var(--ink-dim); text-decoration:none; }
+.home-meet-link:hover { color:var(--ink); }
+.home-meet-link:focus-visible { outline:var(--focus-ring); outline-offset:4px; border-radius:4px; }

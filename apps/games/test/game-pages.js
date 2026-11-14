@@ -10,6 +10,7 @@ const ROOT = path.join(__dirname, '..');
 const PUBLIC = path.join(ROOT, 'public');
 const registry = require('../games/registry');
 const bp = require('../scripts/build-game-pages');
+const { gamePageSEO } = require('../scripts/game-page-seo');
 
 function read(p) {
   return fs.readFileSync(p, 'utf8');
@@ -58,15 +59,23 @@ function main() {
   const titles = new Set();
   for (const g of games) {
     const html = read(path.join(PUBLIC, 'games', g.id, 'index.html'));
+    const schema = JSON.parse(html.match(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/)[1]);
+    assert.equal(schema.name, g.name);
+    assert.equal(schema.numberOfPlayers.minValue, g.minPlayers);
+    assert.equal(schema.numberOfPlayers.maxValue, g.maxPlayers);
+    assert.equal(schema.url, `https://play.gigglemeet.com/games/${g.id}/`);
+    assert(schema.description.length > 20, `${g.id}: meaningful public description`);
     // Game-owned pages have their own topology, copy and scripts. Only
     // the optional generated fallback promises gp-* template structure.
     if (g.homepage) {
-      assert.equal(html, bp.instrumentHtml(read(path.join(ROOT, 'games', g.id, 'home/index.html'))), `${g.id}: authored document preserved with telemetry hook`);
+      const source = read(path.join(ROOT, 'games', g.id, 'home/index.html'));
+      assert.equal(html, bp.instrumentHtml(gamePageSEO(source, g)), `${g.id}: authored document published with shared metadata and telemetry hook`);
+      assert.equal(html.slice(html.indexOf('<body')), source.slice(source.indexOf('<body')), `${g.id}: authored body remains unchanged`);
       assert(!html.includes('/css/style.css') && !html.includes('/css/game-page.css'), `${g.id}: independent style graph`);
       assert(html.includes(`name="game" value="${g.id}"`) && html.includes('action="/"'), `${g.id}: shared room entry`);
       continue;
     }
-    const title = `<title>${bp.esc(g.name)} — Game Night by Giggle</title>`;
+    const title = `<title>${bp.esc(g.name)} — Giggle Games</title>`;
     assert.ok(html.includes(title), `${g.id}: unique escaped title`);
     assert.ok(!titles.has(title), `${g.id}: title must be unique`);
     titles.add(title);
@@ -76,7 +85,10 @@ function main() {
     assert.ok(html.includes('<meta name="description" content="'), `${g.id}: meta description`);
     const oneDeviceHref = `href="/same-room/?game=${g.id}"`;
     assert.equal(html.includes(oneDeviceHref), !!g.sameRoom, `${g.id}: one-device CTA follows manifest`);
-    const withoutOneDevice = html.replace(oneDeviceHref, '');
+    const meetHref = `href="https://www.gigglemeet.com/home?game=${g.id}"`;
+    assert.ok(html.includes(meetHref), `${g.id}: selected-game Meet CTA`);
+    assert.ok(html.includes('Play in Meet'), `${g.id}: quiet Meet link`);
+    const withoutOneDevice = html.replace(oneDeviceHref, '').replace(meetHref, '');
     assert.ok(!withoutOneDevice.includes('?&') && !withoutOneDevice.includes('?game='), `${g.id}: no named-query dupes`);
     // CTA form: GET to /, hidden game, named ticket field, no auto-submit.
     assert.ok(html.includes('<form class="gp-cta" method="GET" action="/">'), `${g.id}: CTA form`);
@@ -84,7 +96,7 @@ function main() {
     assert.ok(html.includes('name="name" required maxlength="16"'), `${g.id}: name field`);
     assert.ok(html.includes('>Create room</button>'), `${g.id}: create button`);
     // Theme, local panels and the early monitoring hook; no room transport.
-    assert.strictEqual(html.split('<script').length - 1, 3, `${g.id}: theme, local panels and telemetry only`);
+    assert.strictEqual((html.match(/<script(?! type="application\/ld\+json")/g) || []).length, 3, `${g.id}: theme, local panels and telemetry only`);
     assert(html.includes('/js/telemetry.min.js'), `${g.id}: early monitoring hook`);
     assert(html.includes('/js/app-panels.js'), `${g.id}: rules use shared accessible floating panels`);
     for (const auto of ['fetch(', 'WebSocket', 'XMLHttpRequest', '.submit(']) {

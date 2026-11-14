@@ -20,6 +20,7 @@ const path = require('path');
 const ROOT = path.join(__dirname, '..');
 const { LIMITS } = require('../games/_validate');
 const { KART_MODES } = require('../public/js/engines/kart-mode-ui.mjs');
+const { gamePageSEO } = require('./game-page-seo');
 
 /* Same id rule as the registry: traversal-safe by construction. */
 const ID_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
@@ -81,8 +82,8 @@ function pills(g) {
   const out = [playersLine(g)];
   if (Number.isInteger(g.seats)) out.push(`${g.seats} play · rest watch`);
   else out.push('Everyone plays');
-  if (g.communication === 'video') out.push('Best on video');
-  else if (g.communication === 'voice') out.push('Best with voice');
+  if (g.communication === 'video') out.push('Video call needed for online play');
+  else if (g.communication === 'voice') out.push('Voice call needed for online play');
   if (g.renderer === '3d') out.push('3D arena');
   else if (g.renderer === 'canvas') out.push('Live drawing');
   else if (g.realtime) out.push('Live');
@@ -178,11 +179,11 @@ function renderPage(g, publicDir) {
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
-<title>${esc(g.name)} — Game Night by Giggle</title>
+<title>${esc(g.name)} — Giggle Games</title>
 <meta name="description" content="${esc(desc)}">
 <link rel="canonical" href="${esc(canonical)}">
 <meta property="og:type" content="website">
-<meta property="og:title" content="${esc(g.name)} — Game Night by Giggle">
+<meta property="og:title" content="${esc(g.name)} — Giggle Games">
 <meta property="og:description" content="${esc(desc)}">
 <meta property="og:url" content="${esc(canonical)}">
 <meta property="og:image" content="https://play.gigglemeet.com/og.png">
@@ -244,13 +245,14 @@ ${customSection}
           <button class="gp-btn gp-btn-hot" type="submit">Create room</button>${g.sameRoom ? `<a class="gp-btn" href="/same-room/?game=${esc(id)}">Play on one device</a>` : ''}${customizeBtn}
         </div>
       </form>
+      <a class="gp-meet-link" href="https://www.gigglemeet.com/home?game=${esc(id)}"><svg width="20" height="20" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><use href="/assets/ui/settings-icons.svg#video-camera"></use></svg><span>Play in Meet</span></a>
       <p class="gp-note" id="gpCtaNote">Pick a name, create a room, and invite your friends. No account needed.</p>
     </section>
   </main>
 
   <footer class="gp-foot">
     <a href="/">← Back to all games</a>
-    <span>Game Night by Giggle</span>
+    <span>Giggle Games</span>
   </footer>
 </div>
 </body>
@@ -319,12 +321,15 @@ function build({ publicDir, games, gamesDir = path.join(ROOT, 'games') }) {
   fs.mkdirSync(outRoot, { recursive: true });
   const wanted = new Set();
   const framed = new Set();
-  const copy = (files, dest) => {
+  const copy = (files, dest, game) => {
     fs.rmSync(dest, { recursive: true, force: true });
     for (const { file, rel } of files) {
       const target = path.join(dest, rel);
       fs.mkdirSync(path.dirname(target), { recursive: true });
-      if (rel.endsWith('.html')) fs.writeFileSync(target, instrumentHtml(fs.readFileSync(file, 'utf8')));
+      if (rel.endsWith('.html')) {
+        const html = fs.readFileSync(file, 'utf8');
+        fs.writeFileSync(target, instrumentHtml(game && rel === 'index.html' ? gamePageSEO(html, game) : html));
+      }
       else fs.copyFileSync(file, target);
     }
   };
@@ -337,11 +342,11 @@ function build({ publicDir, games, gamesDir = path.join(ROOT, 'games') }) {
     wanted.add(id);
     const dir = path.join(outRoot, id);
     const owned = exports.get(id);
-    if (owned?.home) copy(owned.home, dir);
+    if (owned?.home) copy(owned.home, dir, g);
     else {
       fs.rmSync(dir, { recursive: true, force: true });
       fs.mkdirSync(dir, { recursive: true });
-      fs.writeFileSync(path.join(dir, 'index.html'), instrumentHtml(renderPage({ ...g, id }, publicDir)));
+      fs.writeFileSync(path.join(dir, 'index.html'), instrumentHtml(gamePageSEO(renderPage({ ...g, id }, publicDir), g)));
     }
     if (owned?.browser) { framed.add(id); copy(owned.browser, path.join(assetsRoot, id)); }
   }

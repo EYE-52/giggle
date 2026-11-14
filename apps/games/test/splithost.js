@@ -148,9 +148,10 @@ async function main() {
   assert.deepEqual(cspRules.map((h) => h.source).sort(), ['/', '/index.html', '/r/:code'].sort(),
     'CSP covers /, /index.html, /r/:code');
   for (const h of cspRules) {
-    assert.equal(h.headers.length, 1, 'CSP is the only header');
-    assert.equal(h.headers[0].key, 'Content-Security-Policy', 'header is CSP');
-    assert.equal(h.headers[0].value, csp, 'frame-ancestors self + exact giggle origin');
+    assert.equal(h.headers.length, h.source === '/r/:code' ? 2 : 1, 'Only private room documents add noindex');
+    const policy = h.headers.find(header => header.key === 'Content-Security-Policy');
+    assert.equal(policy.value, csp, 'frame-ancestors self + exact giggle origin');
+    if (h.source === '/r/:code') assert.equal(h.headers.find(header => header.key === 'X-Robots-Tag').value, 'noindex, nofollow');
   }
   const app = fs.readFileSync(path.join(ROOT, 'public/js/app.js'), 'utf8');
   assert(app.includes("from './netconfig.js'"), 'shell uses the target helper');
