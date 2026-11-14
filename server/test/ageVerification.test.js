@@ -315,7 +315,8 @@ test("POST /api/me/age: minor DOB is stored once and denied with AGE_RESTRICTED"
     assert.equal(user.isAdult, false);
     assert.equal(user.ageConfirmed, true);
     assert.equal(user.ageVerified, false);
-    assert.equal(user.saved, true);
+    assert.equal(user.saved, false); // atomic update, not a stale document save
+    assert.ok(user.birthDate instanceof Date);
   });
 });
 

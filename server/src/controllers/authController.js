@@ -492,7 +492,7 @@ const setMyAge = async (req, res) => {
     }
 
     const userId = req.user?.userId || req.user?.sub;
-    const user = await User.findById(userId);
+    let user = await User.findById(userId);
     if (!user) {
       return res.status(404).json({ ok: false, error: { code: "NOT_FOUND", message: "User not found" } });
     }
@@ -515,11 +515,16 @@ const setMyAge = async (req, res) => {
       });
     }
 
-    user.birthDate = date;
-    user.ageConfirmed = true;
-    user.isAdult = age >= 18;
-    user.ageVerified = false;
-    await user.save();
+    // Normal Meet and After Dark share this durable declaration. Only the
+    // first write wins, even if another request already read an undeclared user.
+    user = await User.findOneAndUpdate(
+      { _id: userId, ageConfirmed: { $ne: true } },
+      { $set: { birthDate: date, ageConfirmed: true, isAdult: age >= 18, ageVerified: false } },
+      { new: true, runValidators: true }
+    ) || await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ ok: false, error: { code: "NOT_FOUND", message: "User not found" } });
+    }
 
     if (!user.isAdult) {
       return res.status(403).json({
