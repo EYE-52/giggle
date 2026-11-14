@@ -14,6 +14,25 @@ import { Icon } from "./Icons";
 const FOCUSABLE =
   'a[href], button:not([disabled]), input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
+const focusTraps: HTMLElement[] = [];
+let bodyScrollLocks = 0;
+let originalBodyOverflow = "";
+
+function isAvailable(element: HTMLElement) {
+  return !element.matches(":disabled") &&
+    !element.closest('[hidden], [inert], [aria-hidden="true"]') &&
+    element.getClientRects().length > 0 &&
+    getComputedStyle(element).visibility === "visible";
+}
+
+function canFocus(element: HTMLElement) {
+  return element.tabIndex >= 0 && isAvailable(element);
+}
+
+function isTopFocusTrap(container: HTMLElement | null) {
+  return container != null && focusTraps[focusTraps.length - 1] === container;
+}
+
 /**
  * Focus management for dialog-like surfaces: traps Tab inside `containerRef`
  * while `active`, moves focus in on mount (initialFocusRef → first focusable →
@@ -31,19 +50,19 @@ export function useFocusTrap(
     const container = containerRef.current;
     if (!container) return;
     const previouslyFocused = document.activeElement as HTMLElement | null;
+    focusTraps.push(container);
+    container.tabIndex = -1;
 
     const initial =
-      initialFocusRef?.current ??
-      (container.querySelector(FOCUSABLE) as HTMLElement | null) ??
+      (initialFocusRef?.current && container.contains(initialFocusRef.current) && isAvailable(initialFocusRef.current)
+        ? initialFocusRef.current : null) ??
+      Array.from(container.querySelectorAll<HTMLElement>(FOCUSABLE)).find(canFocus) ??
       container;
-    if (initial === container) container.tabIndex = -1;
     initial.focus({ preventScroll: true });
 
     const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key !== "Tab") return;
-      const nodes = Array.from(container.querySelectorAll<HTMLElement>(FOCUSABLE)).filter(
-        (el) => el.offsetParent !== null || el === document.activeElement
-      );
+      if (e.key !== "Tab" || !isTopFocusTrap(container)) return;
+      const nodes = Array.from(container.querySelectorAll<HTMLElement>(FOCUSABLE)).filter(canFocus);
       if (nodes.length === 0) {
         e.preventDefault();
         container.focus({ preventScroll: true });
@@ -53,7 +72,7 @@ export function useFocusTrap(
       const last = nodes[nodes.length - 1];
       const current = document.activeElement as HTMLElement | null;
       if (e.shiftKey) {
-        if (current === first || !container.contains(current)) {
+        if (current === first || current === container || !container.contains(current)) {
           e.preventDefault();
           last.focus();
         }
@@ -65,7 +84,13 @@ export function useFocusTrap(
     document.addEventListener("keydown", onKeyDown, true);
     return () => {
       document.removeEventListener("keydown", onKeyDown, true);
-      previouslyFocused?.focus?.({ preventScroll: true });
+      const wasTop = isTopFocusTrap(container);
+      const index = focusTraps.lastIndexOf(container);
+      if (index !== -1) focusTraps.splice(index, 1);
+      if (wasTop && previouslyFocused?.isConnected &&
+          (!focusTraps.length || focusTraps[focusTraps.length - 1].contains(previouslyFocused))) {
+        previouslyFocused.focus({ preventScroll: true });
+      }
     };
   }, [containerRef, active, initialFocusRef]);
 }
@@ -74,10 +99,12 @@ export function useFocusTrap(
 export function useBodyScrollLock(active = true) {
   useEffect(() => {
     if (!active) return;
-    const prev = document.body.style.overflow;
+    if (bodyScrollLocks === 0) originalBodyOverflow = document.body.style.overflow;
+    bodyScrollLocks += 1;
     document.body.style.overflow = "hidden";
     return () => {
-      document.body.style.overflow = prev;
+      bodyScrollLocks -= 1;
+      if (bodyScrollLocks === 0) document.body.style.overflow = originalBodyOverflow;
     };
   }, [active]);
 }
@@ -143,7 +170,10 @@ export function Modal({
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+      if (e.key === "Escape" && isTopFocusTrap(cardRef.current)) {
+        e.preventDefault();
+        onClose();
+      }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -152,7 +182,7 @@ export function Modal({
   return createPortal(
     <div
       onClick={(e) => {
-        if (closeOnBackdrop && e.target === e.currentTarget) onClose();
+        if (closeOnBackdrop && e.target === e.currentTarget && isTopFocusTrap(cardRef.current)) onClose();
       }}
       className={`gg-modal-backdrop${inCallRoom ? " gg-call-room-modal" : ""}`}
       style={{

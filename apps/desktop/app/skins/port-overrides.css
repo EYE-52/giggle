@@ -42,11 +42,8 @@ html[data-skin] .gg-home-heading .page-head {
   }
 }
 
-/* Contrast floor — the honey/lagoon light-mode brands cannot carry 4.5:1
-   text in either direction (white 2.9:1 / 3.5:1, ink ~4.4:1), so primary
-   buttons deepen toward brand-deep in exactly those palette+mode pairs.
-   Values precomputed from the palettes (honey #C98600×#5E3D00 55/45 → #996500;
-   lagoon #0C9B8A×#0A544C 55/45 → #0B7B6E) so computed styles stay simple rgb.
+/* Legacy contrast correction for older primary layouts. Keep these existing
+   darker fills accessible alongside the updated light Honey/Lagoon brands.
    Paper is excluded — its primaries are sketch-drawn on transparent. */
 html:not([data-skin="paper"])[data-palette="honey"][data-mode="light"] .btn-primary {
   background: #996500;

@@ -13,6 +13,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { PersonAvatar } from "@/components/PersonAvatar";
 import { Icon } from "@/components/Icons";
 import { ChatPanel } from "@/components/ChatPanel";
+import { CallNotice } from "@/components/CallNotice";
 import { GamePanel, type GameLayoutOverride } from "@/components/GamePanel";
 import { FloatingCallTools, type CallCorner } from "@/components/FloatingCallTools";
 import floatingStyles from "@/components/FloatingCallTools.module.css";
@@ -57,6 +58,8 @@ function LobbyInner() {
   const [squad, setSquad] = useState<SquadState | null>(null);
   const privateChats=useNormalPrivateChats(squad && !squad.isPrivatePair ? squadId : undefined);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const squadScopeRef = useRef({ squadId, active: false, generation: 0, request: 0 });
   const micOn = media.capture.audio === "active";
   const micCapture = mapCaptureToVoiceMic(media.capture.audio);
   const camOn = media.capture.video === "active";
@@ -223,8 +226,15 @@ function LobbyInner() {
   const [inviteCopied, setInviteCopied] = useState(false);
 
   const [codeCopied, setCodeCopied] = useState(false);
-
-  const violet = "var(--accent, var(--violet))";
+  useEffect(() => {
+    setCodeCopied(false);
+    setInviteCopied(false);
+  }, [squadId]);
+  useEffect(() => {
+    if (!codeCopied) return;
+    const timer = window.setTimeout(() => setCodeCopied(false), 1800);
+    return () => window.clearTimeout(timer);
+  }, [codeCopied]);
 
   // ── CHROME text tiers ───────────────────────────────────────────────────
   // The lobby now RESPECTS THE ACTIVE THEME (Meet/Zoom light-mode model): the
@@ -236,10 +246,16 @@ function LobbyInner() {
   // Chrome hairline (header / sidebar / panels) — themed, not a stage literal.
 
   async function fetchSquad() {
-    if (!squadId) return;
+    if (!squadId || squadScopeRef.current.squadId !== squadId || !squadScopeRef.current.active || lobbyExitingRef.current) return;
+    const generation = squadScopeRef.current.generation;
+    const request = ++squadScopeRef.current.request;
+    const isCurrent = () => squadScopeRef.current.active && !lobbyExitingRef.current &&
+      generation === squadScopeRef.current.generation && squadScopeRef.current.squadId === squadId && request === squadScopeRef.current.request;
     try {
       const s = await api.getSquad(squadId);
+      if (!isCurrent()) return;
       setSquad(s);
+      setLoadError(null);
       if (discoveryEnabledNow() && ["searching", "matched", "in_encounter"].includes(s.status)) router.replace(`/matchmaking?squad=${squadId}`);
       const vis = (s as { visibility?: "private" | "open" }).visibility;
       if (vis === "open" || vis === "private") setVisibility(vis);
@@ -248,6 +264,7 @@ function LobbyInner() {
 
       pollSucceeded();
     } catch (e) {
+      if (!isCurrent()) return;
       // Squad is gone (disbanded by the leader, or we were removed) → don't
       // trap the user in a dead lobby; send them home with a note.
       const status = (e as { status?: number })?.status;
@@ -257,9 +274,10 @@ function LobbyInner() {
         return;
       }
       console.error("getSquad failed:", e);
+      setLoadError("Check your connection and try again.");
       pollFailed();
     } finally {
-      setLoading(false);
+      if (isCurrent()) setLoading(false);
     }
   }
 
@@ -300,8 +318,15 @@ function LobbyInner() {
   }
 
   useEffect(() => {
-    if (!squadId) { setLoading(false); return; }
-    fetchSquad();
+    squadScopeRef.current = { squadId, active: true, generation: squadScopeRef.current.generation + 1, request: 0 };
+    lobbyExitingRef.current = false;
+    setSquad(null);
+    setLoadError(null);
+    setConnTrouble(false);
+    pollFailsRef.current = 0;
+    setLoading(!!squadId);
+    if (!squadId) return;
+    void fetchSquad();
 
     const socket = connectSocket(squadId);
     const onSquadUpdate = (update: { memberId?: string; ready?: boolean } = {}) => {
@@ -323,6 +348,8 @@ function LobbyInner() {
     const stopPolling = pollWhileVisible(fetchSquad, 10_000);
 
     return () => {
+      squadScopeRef.current.active = false;
+      squadScopeRef.current.generation += 1;
       stopPolling();
       socket.off(SOCKET_EVENTS.MATCH_FOUND, onSquadUpdate);
       socket.off(SOCKET_EVENTS.SQUAD_UPDATED, onSquadUpdate);
@@ -800,50 +827,23 @@ function LobbyInner() {
   useEffect(()=>{if(!squad)return;void vcRef.current?.setAllowedRemoteUids?.(squad.members.filter(member=>!isOwnGroupMember(squad,member,session.user?.id)).flatMap(member=>member.uid===undefined?[]:[member.uid])).catch(()=>setVideoError("Could not update room playback. Reconnect your call."));},[squad?.members,videoJoined]);
 
   if (loading) {
-    return (
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: 400, color: "var(--text-muted)", fontSize: 14 }}>
-        Loading lobby…
-      </div>
-    );
+    return <CallNotice busy title="Opening your squad…" role="status" />;
   }
 
   if (!squad) {
     return (
-      <div style={{ minHeight: "calc(100vh - 160px)", display: "grid", placeItems: "center", padding: isPhone ? "32px 16px" : "48px 24px" }}>
-        <div style={{
-          width: "100%",
-          maxWidth: 520,
-          borderRadius: 24,
-          border: "1px solid var(--border)",
-          background: "linear-gradient(135deg, color-mix(in srgb, var(--violet) 12%, var(--surface)) 0%, var(--surface) 58%, color-mix(in srgb, var(--lime) 8%, var(--surface)) 100%)",
-          boxShadow: "var(--shadow-card, var(--elev))",
-          padding: isPhone ? 22 : 28,
-          textAlign: "center",
-        }}>
-          <div style={{
-            width: 58,
-            height: 58,
-            borderRadius: 18,
-            margin: "0 auto 16px",
-            display: "grid",
-            placeItems: "center",
-            background: "color-mix(in srgb, var(--violet) 16%, transparent)",
-            border: "1px solid color-mix(in srgb, var(--violet) 30%, transparent)",
-          }}>
-            <Icon.users size={25} color={violet} />
-          </div>
-          <h1 style={{ margin: 0, color: "var(--text)", fontFamily: "var(--font-display, var(--font-space-grotesk))", fontSize: isPhone ? 26 : 30, lineHeight: 1.08, letterSpacing: "-0.02em" }}>
-            This lobby link is no longer active
-          </h1>
-          <p style={{ margin: "10px auto 0", maxWidth: 410, color: "var(--text-muted)", fontSize: 14, lineHeight: 1.5 }}>
-            The squad may have ended, changed, or been opened from an old invite. Start fresh or browse live squads.
-          </p>
-          <div style={{ display: "flex", flexDirection: isPhone ? "column" : "row", justifyContent: "center", gap: 10, marginTop: 22 }}>
-            <Button onClick={() => router.push("/home")} variant="primary">Go home</Button>
-            <Button onClick={() => router.push("/discover")} variant="secondary">Browse squads</Button>
-          </div>
-        </div>
-      </div>
+      <CallNotice
+        icon={<Icon.users size={26} color="currentColor" />}
+        title={loadError ? "Couldn't open this lobby" : "This lobby link is incomplete"}
+        role="alert"
+        actions={<>
+          {loadError && <Button onClick={() => { setLoading(true); void fetchSquad(); }}>Retry</Button>}
+          <Button variant={loadError ? "secondary" : "primary"} onClick={() => router.push("/home")}>Go home</Button>
+          {WEB_DISCOVERY_ENABLED && <Button variant="secondary" onClick={() => router.push("/discover")}>Browse squads</Button>}
+        </>}
+      >
+        {loadError ?? "Open a squad from Home or use an invite link to join."}
+      </CallNotice>
     );
   }
 
@@ -860,7 +860,7 @@ function LobbyInner() {
 
   const openSeats = Math.max(0, MAX_SLOTS - memberCount);
   const readyLine = !WEB_DISCOVERY_ENABLED
-    ? "Squad matching is unavailable right now"
+    ? squad.communicationMode === "chat" ? "Chat is ready" : videoJoined ? "You're connected" : squad.communicationMode === "voice" ? "Turn on your microphone to join" : "Turn on your microphone or camera to join"
     : isLeader
       ? othersOnline.length === 0
         ? "Just you so far"
@@ -971,7 +971,7 @@ function LobbyInner() {
             </div>
             <span id="lobby-match-status" className={`muted ${styles.readyLine}`} data-joining={videoJoining || undefined} role="status">{videoJoining ? <><span className="gg-spinner" aria-hidden="true" /> Connecting your devices…</> : readyLine}</span>
             {WEB_DISCOVERY_ENABLED && !isLeader && <Button variant={myReady ? "secondary" : "primary"} disabled={squad.isPrivatePair || !!(squad.communicationMode && squad.communicationMode !== "video") || noCamEnabling} loading={settingReady} onClick={handleReady}>{myReady ? "Not ready" : <><span className={styles.wide}>I&apos;m ready to join</span><span className={styles.narrow}>I&apos;m ready</span></>}</Button>}
-            <Button variant={isLeader ? "primary" : "secondary"} disabled={squad.isPrivatePair || squad.communicationMode && squad.communicationMode !== "video" || !WEB_DISCOVERY_ENABLED || !isLeader || !othersReady || findingMatch} loading={findingMatch} onClick={handleFindMatch} aria-describedby="lobby-match-status">Find a squad<Icon.arrowRight size={18} weight="regular" /></Button>
+            {WEB_DISCOVERY_ENABLED ? <Button variant={isLeader ? "primary" : "secondary"} disabled={squad.isPrivatePair || squad.communicationMode && squad.communicationMode !== "video" || !isLeader || !othersReady || findingMatch} loading={findingMatch} onClick={handleFindMatch} aria-describedby="lobby-match-status">Find a squad<Icon.arrowRight size={18} weight="regular" /></Button> : <Button onClick={canInvite ? () => setInviteSheetOpen(true) : openChat}>{canInvite ? "Invite friends" : "Open chat"}</Button>}
           </div>
           {videoError && <p role="alert" className={styles.error}>{videoError}</p>}
         </div>

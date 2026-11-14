@@ -60,9 +60,9 @@ export const SKINS: readonly Skin[] = [
 export const PALETTES: readonly Palette[] = [
   { id: "raspberry", label: "Raspberry", brandLight: "#DE1E6A", brandDark: "#FF4F8F", accentLight: "#FFB020" },
   { id: "grape", label: "Grape", brandLight: "#7C2FEB", brandDark: "#A474FF", accentLight: "#18C4B8" },
-  { id: "lagoon", label: "Lagoon", brandLight: "#0C9B8A", brandDark: "#2BD4BD", accentLight: "#FFC53D" },
+  { id: "lagoon", label: "Lagoon", brandLight: "#087F72", brandDark: "#2BD4BD", accentLight: "#FFC53D" },
   { id: "moss", label: "Moss", brandLight: "#2E7D4E", brandDark: "#5FC287", accentLight: "#FF7AA8" },
-  { id: "honey", label: "Honey", brandLight: "#C98600", brandDark: "#FFB627", accentLight: "#DE1E6A" },
+  { id: "honey", label: "Honey", brandLight: "#A16A00", brandDark: "#FFB627", accentLight: "#DE1E6A" },
   { id: "petrol", label: "Petrol", brandLight: "#146B8C", brandDark: "#4FB6DB", accentLight: "#FF6B9D" },
 ];
 

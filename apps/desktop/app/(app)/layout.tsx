@@ -76,15 +76,22 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     else if (discoveryRouteDisabled) router.replace("/home");
   }, [discoveryRouteDisabled, identityRouteBlocked, router]);
 
-  // Sync the shared avatar once adult access is confirmed; people who have
-  // never picked one get a one-time picker (never over a call).
-  useEffect(() => {
+  // Sync the shared avatar, but leave explicit create/join/game/call flows
+  // uninterrupted. The optional first picker belongs on plain Home/profile.
+  useEffect(function syncAvatarPrompt() {
+    setAvatarPrompt(false);
     if (!authReady || !hasAdultAccess) return;
     const neverPicked = reconcileMyAvatar(session.user?.avatar);
     let prompted = false;
     try { prompted = localStorage.getItem(AVATAR_PROMPTED_KEY) === "1"; } catch {}
-    if (neverPicked && !prompted) setAvatarPrompt(true);
-  }, [authReady, hasAdultAccess]);
+    if (!neverPicked || prompted || !["/home", "/profile"].includes(pathname)) return;
+    // Let the page's own effects open its requested dialog before checking.
+    const frame = window.requestAnimationFrame(() => {
+      if (window.location.search || window.location.hash || document.querySelector('[role="dialog"], dialog[open]')) return;
+      setAvatarPrompt(true);
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [authReady, hasAdultAccess, pathname]);
 
   function closeAvatarPrompt() {
     setAvatarPrompt(false);

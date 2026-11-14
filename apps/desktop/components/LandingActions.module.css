@@ -1,21 +1,26 @@
-.launch { width: min(100%, 440px); font: inherit; }
-.launch .purposes { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; border: 0; padding: 0; margin: 0 0 16px; }
-.launch .purpose { position: relative; display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 48px; padding: 10px 0; border-bottom: 2px solid color-mix(in srgb, var(--text) 12%, transparent); color: var(--text-muted); font-size: 15px; font-weight: 750; cursor: pointer; }
-.launch .purpose input { position: absolute; width: 1px; height: 1px; margin: 0; opacity: 0; }
-.launch .purpose:has(input:checked) { border-color: var(--launch-accent, var(--accent)); color: var(--text); }
-.launch .purpose:has(input:focus-visible) { outline: 2px solid var(--launch-accent, var(--accent)); outline-offset: 3px; border-radius: 4px; }
-.launch .explainer { margin: 0 0 20px; max-width: 44ch; color: var(--text-muted); font-size: 15px; line-height: 1.5; }
-.launch .legend { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
-.launch .modes { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; margin: 0 0 16px; padding: 0; border: 0; }
-.launch .mode { position: relative; display: flex; flex-direction: row; justify-content: center; align-items: center; gap: 8px; min-height: 48px; padding: 8px 5px; border-radius: 14px; cursor: pointer; color: var(--text-muted); font-size: 14px; font-weight: 650; line-height: 1.2; transition: color 150ms ease, background-color 150ms ease; }
-.launch .mode input { position: absolute; width: 1px; height: 1px; margin: 0; opacity: 0; }
-.launch .mode:has(input:checked) { background: color-mix(in srgb, var(--launch-accent, var(--accent)) 17%, transparent); color: var(--text); }
-.launch .mode:has(input:focus-visible) { outline: 2px solid var(--launch-accent, var(--accent)); outline-offset: 3px; }
-.launch .start { min-height: 54px; display: flex; justify-content: center; align-items: center; gap: 18px; padding: 12px 22px; border: 0; border-radius: 18px; background: var(--launch-accent, var(--accent)); color: var(--launch-on-accent, var(--on-accent)); font: inherit; font-size: 17px; line-height: 1.3; font-weight: 750; text-decoration: none; transition: background-color 150ms ease, transform 150ms ease; }
-.launch .standalone { display: flex; align-items: center; justify-content: center; gap: 10px; width: fit-content; min-height: 44px; margin: 7px auto 0; color: var(--text); font-size: 14px; font-weight: 600; text-decoration: none; }
-.launch .standalone:hover { text-decoration: underline; text-underline-offset: 4px; }
-.launch a:focus-visible { outline: 2px solid var(--launch-accent, var(--accent)); outline-offset: 4px; }
-@media (hover: hover) { .launch .mode:hover { color: var(--text); background: color-mix(in srgb, var(--text) 6%, transparent); } .launch .start:hover { background: var(--launch-hover, var(--accent-hover)); transform: translateY(-1px); } }
-.launch .start:active { transform: translateY(1px); }
-@media (max-width: 380px) { .launch .purposes { gap: 12px; } .launch .purpose { gap: 5px; font-size: 13px; } .launch .purpose svg { width: 18px; } .launch .mode { flex-direction: column; gap: 5px; min-height: 59px; font-size: 13px; } }
-@media (prefers-reduced-motion: reduce) { .launch .mode, .launch .start { transition: none; transform: none; } }
+.launch { width: 100%; font: inherit; }
+.launch .start { width: fit-content; min-height: 58px; display: inline-flex; justify-content: center; align-items: center; gap: 26px; padding: 14px 28px; border-radius: 19px; background: var(--launch-accent, var(--accent)); color: var(--launch-on-accent, var(--on-accent)); font-size: 18px; line-height: 1.3; font-weight: 800; text-decoration: none; transition: background-color 160ms ease, transform 160ms ease; }
+.start svg { transition: transform 180ms ease; }
+.note { margin: 12px 0 20px; font-size: 13px; line-height: 1.5; color: var(--text-muted); }
+.private { display: flex; flex-wrap: wrap; gap: 4px 9px; align-items: center; min-height: 44px; border: 0; padding: 0; background: none; color: var(--text-muted); font: inherit; font-size: 14px; cursor: pointer; text-align: start; }
+.private > span { display: inline-flex; align-items: center; gap: 7px; font-weight: 800; color: var(--text); }
+.private svg { transition: transform 180ms ease; }
+.launch :is(a,button):focus-visible { outline: 3px solid var(--launch-accent, var(--accent)); outline-offset: 5px; }
+.dialogTitle { display: block; font: 700 clamp(24px, 5vw, 30px)/1.15 var(--font-baloo), var(--font-nunito), sans-serif; letter-spacing: -.02em; }
+.privateChoices { font-family: var(--font-nunito), system-ui, sans-serif; padding-top: 3px; }
+.way { display: flex; align-items: center; gap: 15px; min-height: 82px; padding: 14px 10px; border-radius: 15px; color: var(--text); text-decoration: none; transition: background-color 150ms ease; }
+.way > span:nth-child(2) { flex: 1; min-width: 0; }
+.wayIcon { display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; flex: none; color: var(--brand-deep, var(--text)); }
+.way strong, .gameHeading strong { font-size: 17px; font-weight: 800; }
+.way small { display: block; margin-top: 2px; font-size: 13px; line-height: 1.4; color: var(--text-muted); }
+.gameNight { margin-top: 14px; padding: 21px 16px 12px; border-radius: 18px; background: color-mix(in srgb, var(--brand) 8%, var(--surface)); }
+.gameHeading { display: flex; align-items: flex-start; gap: 13px; }
+.gameHeading > svg { flex: none; margin-top: 1px; color: var(--brand-deep, var(--text)); }
+.gameHeading p { font-size: 13px; line-height: 1.5; margin-top: 5px; color: var(--text-muted); }
+.gameLinks { display: flex; flex-wrap: wrap; gap: 4px 19px; padding-left: 38px; margin-top: 10px; }
+.gameLinks a { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; color: var(--text); font-size: 14px; font-weight: 800; text-decoration: none; }
+.privateChoices a:focus-visible { outline: 2px solid var(--text); outline-offset: 3px; }
+@media (hover: hover) { .start:hover { background: var(--launch-hover, var(--accent-hover)); transform: translateY(-2px); } .start:hover svg, .private:hover svg { transform: translateX(3px); } .private:hover > span, .gameLinks a:hover { text-decoration: underline; text-underline-offset: 4px; } .way:hover { background: var(--overlay-hover); } }
+.launch .start:active { transform: scale(.98); }
+@media (max-width: 640px) { .launch .start { width: 100%; min-height: 54px; } .note { text-align: center; margin-bottom: 8px; } .private { justify-content: center; width: 100%; font-size: 13px; } }
+@media (prefers-reduced-motion: reduce) { .launch .start, .launch .start:active, .launch .start:hover, .start svg, .start:hover svg, .private svg, .private:hover svg, .way { transition: none; transform: none; } }

@@ -33,11 +33,14 @@ export default function LandingPage() {
       <main>
         <section className={styles.hero} data-testid="giggle-hero">
           <div className={styles.copy}>
-            <h1>Good company.<span>Great <em>nonsense.</em></span></h1>
-            <p>Your friends meet their friends. Catch up, crack up, and bring a game along for the ride.</p>
+            <p className={styles.eyebrow}>Group vs group. Everyone’s invited.</p>
+            <h1>Your friends.<span>Their friends.</span><em>Good chaos.<svg viewBox="0 0 360 16" aria-hidden="true"><path d="M4 10C85 0 229 0 354 8M34 14C137 6 257 8 327 12" /></svg></em></h1>
+            <p>Meet another group on video, with your friends by your side. Add a game when words run out.</p>
           </div>
           <div className={styles.art} aria-hidden="true">
+            <span className={styles.yourGroup}>Your group<svg viewBox="0 0 75 60"><path d="M8 3C58 3 68 23 57 52m-12-8 12 10 12-13" /></svg></span>
             <img src="/illustrations/giggle-hangout.webp" width={960} height={960} alt="" fetchPriority="high" />
+            <span className={styles.theirGroup}>Their group<svg viewBox="0 0 75 60"><path d="M63 3C10 3 8 28 20 52m-12-9 12 11 12-13" /></svg></span>
           </div>
           <div className={styles.actions}>
             <LandingActions gamesUrl={gamesUrl} groupHref="/home?create=1&mode=video&match=1" hrefs={{

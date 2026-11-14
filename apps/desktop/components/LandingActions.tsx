@@ -1,42 +1,35 @@
 "use client";
-import { useId, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { Icon } from "./Icons";
+import { Modal } from "./Modal";
 import styles from "./LandingActions.module.css";
 
 type Mode = "video" | "voice" | "chat" | "games";
-const modes = [
-  { id: "video", label: "Video", icon: Icon.cam, action: "Start a video call" },
-  { id: "voice", label: "Voice", icon: Icon.mic, action: "Start a voice call" },
-  { id: "chat", label: "Chat", icon: Icon.chat, action: "Start a chat" },
-  { id: "games", label: "Games", icon: Icon.dice, action: "Play in a call" },
+const privateWays = [
+  { id: "video", label: "Video call", detail: "Faces & familiar voices", icon: Icon.cam },
+  { id: "voice", label: "Voice call", detail: "Cameras off, catch-up on", icon: Icon.mic },
+  { id: "chat", label: "Text chat", detail: "Keep the conversation going", icon: Icon.chat },
 ] as const;
 
-export function LandingActions({ hrefs, gamesUrl, groupHref }: { hrefs: Record<Mode, string>; gamesUrl: string; groupHref?: string }) {
-  const group = useId();
-  const [purpose, setPurpose] = useState<"group" | "private">(groupHref ? "group" : "private");
-  const [mode, setMode] = useState<Mode>("video");
-  const chosen = modes.find(item => item.id === mode)!;
+export function LandingActions({ hrefs, gamesUrl, groupHref }: { hrefs: Record<Mode, string>; gamesUrl: string; groupHref: string }) {
+  const [privateOpen, setPrivateOpen] = useState(false);
   return <div className={styles.launch}>
-    {groupHref && <fieldset className={styles.purposes}>
-      <legend className={styles.legend}>Who would you like to meet?</legend>
-      <label className={styles.purpose}><input type="radio" name={`${group}-purpose`} checked={purpose === "group"} onChange={() => setPurpose("group")} /><Icon.users size={20} color="currentColor" /><span>Group vs group</span></label>
-      <label className={styles.purpose}><input type="radio" name={`${group}-purpose`} checked={purpose === "private"} onChange={() => setPurpose("private")} /><Icon.cam size={20} color="currentColor" /><span>Private hangout</span></label>
-    </fieldset>}
-    {purpose === "group" && groupHref ? <>
-      <p className={styles.explainer}>Invite your friends, then meet another group on video. Stay together for every match.</p>
-      <Link href={groupHref} className={styles.start}>Start your group<Icon.arrowRight size={20} color="currentColor" /></Link>
-    </> : <>
-    <fieldset className={styles.modes}>
-      <legend className={styles.legend}>How would you like to hang out?</legend>
-      {modes.map(item => <label key={item.id} className={styles.mode}>
-        <input type="radio" name={group} value={item.id} checked={mode === item.id} onChange={() => setMode(item.id)} />
-        <item.icon size={21} color="currentColor" />
-        <span>{item.label}</span>
-      </label>)}
-    </fieldset>
-    <Link href={hrefs[mode]} className={styles.start}>{chosen.action}<Icon.arrowRight size={20} color="currentColor" /></Link>
-    {mode === "games" && <a className={styles.standalone} href={gamesUrl}>Play games only<Icon.arrowRight size={16} color="currentColor" /></a>}
-    </>}
+    <Link href={groupHref} className={styles.start}>Start your group<Icon.arrowRight size={22} color="currentColor" /></Link>
+    <p className={styles.note}>Bring your people. We’ll find the other group.</p>
+    <button type="button" className={styles.private} aria-haspopup="dialog" onClick={() => setPrivateOpen(true)}>Just your friends? <span>Private hangout<Icon.arrowRight size={17} color="currentColor" /></span></button>
+    {privateOpen && <Modal onClose={() => setPrivateOpen(false)} title={<span className={styles.dialogTitle}>Your people. Your plans.</span>} subtitle="An invite-only hangout, however you feel like joining." width="min(520px, calc(100vw - 32px))">
+      <div className={styles.privateChoices}>
+        {privateWays.map(way => <Link key={way.id} href={hrefs[way.id]} className={styles.way}>
+          <span className={styles.wayIcon}><way.icon size={24} color="currentColor" /></span>
+          <span><strong>{way.label}</strong><small>{way.detail}</small></span>
+          <Icon.arrowRight size={19} color="currentColor" />
+        </Link>)}
+        <div className={styles.gameNight}>
+          <div className={styles.gameHeading}><Icon.dice size={25} color="currentColor" /><div><strong>Make it game night.</strong><p>Play together in a call, or jump straight into games.</p></div></div>
+          <div className={styles.gameLinks}><Link href={hrefs.games}>Play in a call<Icon.arrowRight size={16} color="currentColor" /></Link><a href={gamesUrl}>Games only<Icon.arrowRight size={16} color="currentColor" /></a></div>
+        </div>
+      </div>
+    </Modal>}
   </div>;
 }

@@ -62,6 +62,7 @@ export function Button({
     VARIANT_CLASS[variant],
     size === "sm" ? "gg-btn--sm small" : "gg-btn--md",
   ];
+  if (loading) classes.push("gg-btn--loading");
   if (fullWidth) classes.push("gg-btn--wide wide");
   if (className) classes.push(className);
 
@@ -76,7 +77,7 @@ export function Button({
       style={style}
     >
       {loading && <span className="gg-spinner" aria-hidden="true" />}
-      {children}
+      <span className="gg-btn-label">{children}</span>
     </button>
   );
 }

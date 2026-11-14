@@ -63,9 +63,14 @@ export function ChatPanel({
   onRetry?: (message: ChatPanelMessage) => void;
 }) {
   const [localMessages, setLocalMessages] = useState<ChatPanelMessage[]>([]);
-  const [localInput, setLocalInput] = useState("");
-  const input = draft ?? localInput;
-  const setInput = onDraftChange ?? setLocalInput;
+  // A query-only room switch keeps this panel mounted. Each room owns its
+  // draft, so text meant for one squad never appears in another composer.
+  const draftKey = JSON.stringify([scope.kind, scope.squadId, scope.kind === "encounter" ? scope.encounterId : null]);
+  const [localDrafts, setLocalDrafts] = useState<Record<string, string>>({});
+  const input = draft ?? localDrafts[draftKey] ?? "";
+  const setInput = onDraftChange ?? ((value: string) => {
+    setLocalDrafts(current => ({ ...current, [draftKey]: value }));
+  });
   const [sendError, setSendError] = useState("");
   const [emojiOpen, setEmojiOpen] = useState(false);
   const emojiId = useId();
@@ -121,7 +126,9 @@ export function ChatPanel({
   const messages = useMemo(() => allMessages.filter(accepts), [allMessages, accepts]);
   useEffect(() => {
     setSendError("");
+    setEmojiOpen(false);
     setNewMessageCount(0);
+    sentMessageRef.current = false;
     nearBottomRef.current = true;
     lastMessageKeyRef.current = null;
   }, [scopeKind, scopeSquadId, scopeEncounterId]);
@@ -265,7 +272,7 @@ export function ChatPanel({
           {EMOJIS.map(([emoji, label]) => <button type="button" key={label} className={styles.tool} aria-label={label} onClick={() => addEmoji(emoji)}>{emoji}</button>)}
         </div>}
         <div className={styles.inputRow}>
-          <button ref={emojiButtonRef} type="button" className={styles.tool} aria-label="Add emoji" aria-expanded={emojiOpen} aria-controls={emojiId} onClick={() => setEmojiOpen((open) => !open)}>🙂</button>
+          <button ref={emojiButtonRef} type="button" className={styles.tool} aria-label="Add emoji" aria-expanded={emojiOpen} aria-controls={emojiId} onClick={() => setEmojiOpen((open) => !open)}><Icon.wink size={21} color="currentColor" /></button>
           <input ref={inputRef} className={styles.input} value={input} onChange={(event) => {
             setSendError("");
             setInput(event.target.value.slice(0, MAX_CHAT_TEXT_LENGTH));

@@ -4,7 +4,7 @@ html[data-mode="light"] {
   --meet-bg:#fff; --meet-panel:#fff; --meet-raised:#f4f4f5;
   --meet-ink:#19191b; --meet-secondary:#404046; --meet-muted:#616169;
   --meet-line:#d7d7dc; --meet-line-strong:#85858d;
-  --meet-action:#242427; --meet-action-hover:#3b3b40; --meet-on-action:#fff;
+  --meet-action:var(--brand); --meet-action-hover:var(--brand-deep); --meet-on-action:var(--on-brand);
   --meet-wash:color-mix(in srgb, var(--brand) 11%, var(--meet-bg)); --meet-good:#116743; --meet-good-bg:#e2f2ea;
   --meet-danger:#9f2745; --meet-danger-bg:#fae6eb;
 }
@@ -13,7 +13,7 @@ html[data-mode="dark"] {
   --meet-bg:#0c0c0e; --meet-panel:#171719; --meet-raised:#242427;
   --meet-ink:#f7f7f8; --meet-secondary:#d2d2d7; --meet-muted:#b4b4bc;
   --meet-line:#404045; --meet-line-strong:#81818b;
-  --meet-action:#f4f4f5; --meet-action-hover:#dcdce0; --meet-on-action:#151517;
+  --meet-action:var(--brand); --meet-action-hover:var(--brand-deep); --meet-on-action:var(--on-brand);
   --meet-wash:color-mix(in srgb, var(--brand) 13%, var(--meet-bg)); --meet-good:#83dfae; --meet-good-bg:#173629;
   --meet-danger:#ffa8ba; --meet-danger-bg:#392127;
 }
@@ -21,6 +21,14 @@ html[data-mode="dark"] {
 html[data-mode] {
   --meet-page:radial-gradient(ellipse at 100% 0,var(--meet-wash),transparent 49%) top right / 100% min(100vh,850px) no-repeat,var(--meet-bg);
 }
+
+/* Preserve the label's dimensions while the loading status occupies its centre.
+   The skin still supplies the button's type, fill, border and currentColor. */
+.gg-btn { position:relative; }
+.gg-btn-label { display:inline-flex; align-items:center; justify-content:center; gap:inherit; min-width:0; }
+.gg-btn--loading .gg-btn-label { opacity:0; }
+.gg-btn--loading .gg-spinner { position:absolute; inset:0; margin:auto; }
+.gg-modal-subtitle { overflow-wrap:anywhere; }
 
 /* Only main content scrolls. The header can share the page underneath it,
    including Soft Depth's light, Doodle's paper and Scrapbook's ruled lines. */

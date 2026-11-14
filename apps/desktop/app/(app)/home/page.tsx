@@ -67,6 +67,7 @@ export default function HomePage() {
   const [name, setName] = useState("");
   const [topics, setTopics] = useState<string[]>([]);
   const [createError, setCreateError] = useState("");
+  const [createdSquadId, setCreatedSquadId] = useState<string | null>(null);
   const [leaving, setLeaving] = useState<MySquadLite | null>(null);
   const [requested, setRequested] = useState<string[]>([]);
   const [friends, setFriends] = useState<Friend[] | null>(null);
@@ -200,6 +201,7 @@ export default function HomePage() {
       setName("");
       setTopics([]);
       setCreateError("");
+      setCreatedSquadId(null);
       setCreateOpen(true);
       return;
     }
@@ -220,6 +222,7 @@ export default function HomePage() {
     setName("");
     setTopics([]);
     setCreateError("");
+    setCreatedSquadId(null);
     setCommunicationMode(forMatching ? "video" : readRoomCreateIntent(window.location.search).communicationMode);
     setMatching(forMatching);
     setCreateOpen(true);
@@ -235,10 +238,19 @@ export default function HomePage() {
     setPending("create");
     setCreateError("");
     try {
-      const squad = await api.createSquad({ squadName: name.trim(), tags: topics, communicationMode });
-      if (inviteAfterCreate) await api.inviteUserToSquad(squad.squadId, inviteAfterCreate.userId).catch(() => {});
+      const squadId = createdSquadId ?? (await api.createSquad({ squadName: name.trim(), tags: topics, communicationMode })).squadId;
+      if (inviteAfterCreate) {
+        try {
+          await api.inviteUserToSquad(squadId, inviteAfterCreate.userId);
+        } catch {
+          setCreatedSquadId(squadId);
+          setCreateError(`Your squad is ready, but we couldn't invite ${inviteAfterCreate.name}. Try again or open the squad.`);
+          setReload(value => value + 1);
+          return;
+        }
+      }
       setCreateOpen(false);
-      router.push(withGameIntent(`/lobby?squad=${squad.squadId}${matching ? "&match=1" : ""}`, readGameIntent(window.location.search), readGamesIntent(window.location.search)));
+      router.push(withGameIntent(`/lobby?squad=${squadId}${matching ? "&match=1" : ""}`, readGameIntent(window.location.search), readGamesIntent(window.location.search)));
     } catch (error) {
       setCreateError(message(error, "Couldn't create your squad. Try again."));
     } finally {
@@ -535,21 +547,24 @@ export default function HomePage() {
                   setName(event.target.value);
                   setCreateError("");
                 }}
-                disabled={!!pending}
+                disabled={!!pending || !!createdSquadId}
               />
             </label>
-            <TopicPicker value={topics} onChange={setTopics} disabled={!!pending} />
+            <TopicPicker value={topics} onChange={setTopics} disabled={!!pending || !!createdSquadId} />
             {createError && (
               <p role="alert" className="gg-inline-error">
                 {createError}
               </p>
             )}
             <div className="gg-form-actions modal-foot">
-              <Button variant="ghost" onClick={() => setCreateOpen(false)} disabled={!!pending}>
-                Cancel
+              <Button variant="ghost" onClick={() => {
+                setCreateOpen(false);
+                if (createdSquadId) router.push(withGameIntent(`/lobby?squad=${createdSquadId}`, readGameIntent(window.location.search), readGamesIntent(window.location.search)));
+              }} disabled={!!pending}>
+                {createdSquadId ? "Open squad" : "Cancel"}
               </Button>
               <Button type="submit" loading={pending === "create"} disabled={!!pending}>
-                Create squad
+                {createdSquadId ? "Retry invite" : "Create squad"}
               </Button>
             </div>
           </form>

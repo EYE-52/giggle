@@ -19,7 +19,7 @@ fonturl='https://fonts.googleapis.com/css2?'+'&'.join('family='+f.replace(' ','+
 node='/Users/divyansh/Agents/tools/node-v24.19.0/bin/node'
 js=subprocess.run([node,'-e',"const ts=require('/Users/divyansh/KaltStart/Giggle/node_modules/typescript');const fs=require('fs');const f='/Users/divyansh/KaltStart/Giggle/packages/core/src/videoLayout.ts';process.stdout.write(ts.transpileModule(fs.readFileSync(f,'utf8'),{fileName:f,compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2019}}).outputText)"],capture_output=True,text=True,check=True).stdout
 layoutjs='const GiggleLayout = (function () { const exports = {}; const module = { exports };\n'+js+'\nreturn exports; })();'
-palettes=[('raspberry','Raspberry','#DE1E6A'),('grape','Grape','#7C2FEB'),('lagoon','Lagoon','#0C9B8A'),('moss','Moss','#2E7D4E'),('honey','Honey','#C98600'),('petrol','Petrol','#146B8C')]
+palettes=[('raspberry','Raspberry','#DE1E6A'),('grape','Grape','#7C2FEB'),('lagoon','Lagoon','#087F72'),('moss','Moss','#2E7D4E'),('honey','Honey','#A16A00'),('petrol','Petrol','#146B8C')]
 skin_btns=''.join(f'<button class="opt skin-opt" data-skin="{k}" aria-pressed="false"><b>{metas[k]["name"]}</b><small>{BLURBS[k]}</small></button>' for k in ORDER)
 pal_btns=''.join(f'<button class="sw" data-palette="{p}" aria-pressed="false" title="{n}"><span style="background:{c}"></span>{n}</button>' for p,n,c in palettes)
 page=(open('page-template.html').read().replace('%FONTURL%',fonturl).replace('%BASE%',open('base.css').read())

@@ -67,7 +67,9 @@ test("the API switch hides stranger matching without hiding private squads", () 
   assert.match(home, /const WEB_DISCOVERY_ENABLED = useDiscoveryEnabled\(\) === true;/);
   assert.match(home, /if \(!discovery\) return `\/lobby\?squad=\$\{squad\.squadId\}`/);
   assert.match(home, /aria-label="Squad invite code"/i);
-  assert.match(lobby, /disabled=\{squad\.isPrivatePair \|\| squad\.communicationMode && squad\.communicationMode !== "video" \|\| !WEB_DISCOVERY_ENABLED \|\| !isLeader/);
+  assert.match(lobby, /WEB_DISCOVERY_ENABLED \? <Button variant=\{isLeader/);
+  assert.match(lobby, /disabled=\{squad\.isPrivatePair \|\| squad\.communicationMode && squad\.communicationMode !== "video" \|\| !isLeader/);
+  assert.match(lobby, /canInvite \? "Invite friends" : "Open chat"/);
   assert.match(encounter, /WEB_DISCOVERY_ENABLED && \(/);
   assert.doesNotMatch(config, /AGE|country|Country/);
 });
@@ -706,13 +708,12 @@ test("desktop matchmaking clears delayed match reveal navigations on unmount", (
   assert.equal(page.includes("navigationTimeoutRef.current = setTimeout(() => {"), true);
 });
 
-test("lobby missing-squad state is a polished empty state with mobile touch targets", () => {
+test("lobby missing and failed loads use shared notices with useful actions", () => {
   const page = lobbySource();
-
-  assert.equal(page.includes("Squad not found. <button"), false);
-  assert.equal(page.includes("This lobby link is no longer active"), true);
-
-  assert.equal(page.includes('router.push("/discover")'), true);
+  assert.match(page, /<CallNotice/);
+  assert.match(page, /loadError \? "Couldn't open this lobby" : "This lobby link is incomplete"/);
+  assert.match(page, /loadError && <Button[^\n]+>Retry<\/Button>/);
+  assert.match(page, /WEB_DISCOVERY_ENABLED && <Button[^\n]+>Browse squads<\/Button>/);
 });
 
 test("approved lobby has a bounded stage and one invite entry beside people", () => {
@@ -1349,7 +1350,7 @@ test("avatar picker stays viewport-bound and behaves like a modal", () => {
   assert.equal(modal.includes('aria-modal="true"'), true);
   assert.equal(modal.includes('width: 44'), true);
   assert.equal(modal.includes('height: 44'), true);
-  assert.equal(modal.includes('if (e.key === "Escape") onClose()'), true);
+  assert.equal(modal.includes('if (e.key === "Escape" && isTopFocusTrap(cardRef.current))'), true);
   assert.equal(modal.includes("createPortal("), true);
   assert.equal(modal.includes("document.body"), true);
 });
