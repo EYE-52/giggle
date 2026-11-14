@@ -57,3 +57,13 @@ test("private metadata clears home previews and the home schema describes only r
   assert.equal(graph[1].logo.url, SITE_ORIGIN + "/icon.png");
   assert(!HOME_JSON_LD.includes("<"));
 });
+
+
+test("new group routes inherit private metadata from their server layout", () => {
+  const layout = fs.readFileSync(path.join(__dirname, "../app/(app)/groups/layout.tsx"), "utf8");
+  assert.match(layout, /export const metadata: Metadata/);
+  assert.match(layout, /\.\.\.PRIVATE_METADATA/);
+  const crawler = fs.readFileSync(path.join(__dirname, "seo-crawl.cjs"), "utf8");
+  assert(crawler.includes('"/groups/new"'));
+  assert(crawler.includes('"/groups/fixture"'));
+});

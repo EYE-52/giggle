@@ -36,7 +36,7 @@ const base = process.env.MEET_SEO_TEST_URL || "http://localhost:4104";
         assert.equal(graph.find(item => item["@type"] === "Organization").url, origin + "/");
       }
     }
-    for (const route of ["/signin?ref=ABC123XY", "/auth/callback", "/join/ABC123XY", "/home", "/discover", "/match", "/lobby", "/matchmaking", "/encounter", "/profile", "/friends", "/premium", "/avatar-playground"]) {
+    for (const route of ["/signin?ref=ABC123XY", "/auth/callback", "/join/ABC123XY", "/home", "/discover", "/groups/new", "/groups/fixture", "/match", "/lobby", "/matchmaking", "/encounter", "/profile", "/friends", "/premium", "/avatar-playground"]) {
       const response = await context.request.get(base + route);
       assert.equal(response.status(), 200, route);
       const html = await response.text();
@@ -58,7 +58,7 @@ const base = process.env.MEET_SEO_TEST_URL || "http://localhost:4104";
     const image = await context.request.get(base + "/icon.png");
     assert.equal(image.status(), 200);
     assert(image.headers()["content-type"].includes("image/png"));
-    console.log("PASS crawled HTML: six public requests, thirteen private routes, referral canonical, home schema, robots, sitemap and existing social image.");
+    console.log("PASS crawled HTML: six public requests, fifteen private routes, referral canonical, home schema, robots, sitemap and existing social image.");
   } finally {
     await context.close();
     await browser.close();
