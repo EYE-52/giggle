@@ -1190,6 +1190,24 @@ document.addEventListener('game-screenchange', () => {
   requestAnimationFrame(() => window.dispatchEvent(new Event('resize')));
 });
 
+/* Same-screen snapshots replace card nodes. Keep only the game card the
+ * player already focused; dialogs, inputs and screen transitions own focus. */
+function rememberGameCardFocus() {
+  const element = document.activeElement;
+  const game = element?.getAttribute?.('data-how');
+  if (!game || !app.contains(element)) return null;
+  const copies = [...app.querySelectorAll('[data-how]')].filter(card => card.dataset.how === game);
+  return { element, game, index: copies.indexOf(element) };
+}
+
+function restoreGameCardFocus(saved) {
+  if (!saved || document.contains(saved.element)) return;
+  const copies = [...app.querySelectorAll('[data-how]')].filter(card => card.dataset.how === saved.game);
+  const preferred = copies[saved.index];
+  const target = preferred?.getClientRects().length ? preferred : copies.find(card => card.getClientRects().length);
+  target?.focus({ preventScroll: true });
+}
+
 function render() {
   telemetryContext(room?.game ? lastState : null);
   if (!room) { clearKickRequest(); lastKickRequestId = null; kickConfirmation = null; }
@@ -1235,10 +1253,12 @@ function render() {
   const tools = document.getElementById('headerTools');
   const keepOptions = screen === lastScreen && tools?.hasAttribute('popover') && tools.matches(':popover-open');
   const focusedOption = keepOptions && tools.contains(document.activeElement) ? document.activeElement : null;
+  const focusedGameCard = screen === lastScreen ? rememberGameCardFocus() : null;
   if (!room) renderHome();
   else if (!room.game || leftToLobby()) renderLobby();
   else renderGame();
   wireTopbar();
+  restoreGameCardFocus(focusedGameCard);
   if (keepOptions && tools !== document.getElementById('headerTools')) {
     const next = document.getElementById('headerTools');
     if (next?.hasAttribute('popover')) {

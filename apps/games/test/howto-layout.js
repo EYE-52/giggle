@@ -113,3 +113,32 @@ context.api.closeHowto();
 assert.equal(media.listeners.size, 0, 'closing removes the responsive listener');
 assert.equal(document.activeElement, opener, 'closing returns focus');
 console.log('HOWTO_LAYOUT_PASS: desktop columns, phone scroller and sticky actions, live resize, tabs, footer refresh and handlers');
+
+// Exercise the production snapshot-focus helpers with replaced card nodes.
+const appSource = fs.readFileSync(require.resolve('../public/js/app.js'), 'utf8');
+let liveCards = [];
+const focusDocument = { activeElement: null, contains: element => liveCards.includes(element) };
+const focusApp = { contains: element => liveCards.includes(element), querySelectorAll: () => liveCards };
+function gameCard(id, visible = true) {
+  return { dataset: { how: id }, getAttribute: name => name === 'data-how' ? id : null,
+    getClientRects: () => visible ? [{}] : [], focus(options) { assert.equal(options.preventScroll, true); focusDocument.activeElement = this; } };
+}
+const focusContext = { document: focusDocument, app: focusApp };
+vm.createContext(focusContext);
+vm.runInContext(appSource.slice(appSource.indexOf('function rememberGameCardFocus()'), appSource.indexOf('function render()')) + '\nglobalThis.focusApi = {rememberGameCardFocus, restoreGameCardFocus};', focusContext);
+const oldFeatured = gameCard('chess'), oldCatalog = gameCard('chess');
+liveCards = [oldFeatured, oldCatalog]; focusDocument.activeElement = oldCatalog;
+const savedCard = focusContext.focusApi.rememberGameCardFocus();
+const newFeatured = gameCard('chess'), newCatalog = gameCard('chess');
+liveCards = [newFeatured, newCatalog]; focusDocument.activeElement = null;
+focusContext.focusApi.restoreGameCardFocus(savedCard);
+assert.equal(focusDocument.activeElement, newCatalog, 'same-screen rebuild keeps the same game and catalogue copy focused');
+focusDocument.activeElement = { getAttribute: () => null };
+assert.equal(focusContext.focusApi.rememberGameCardFocus(), null, 'input and dialog focus do not arm card restoration');
+liveCards = [gameCard('chess', false), gameCard('chess')];
+focusContext.focusApi.restoreGameCardFocus({element:oldFeatured,game:'chess',index:0});
+assert.equal(focusDocument.activeElement, liveCards[1], 'a hidden recommendation falls back to the live visible same-game card');
+liveCards = [gameCard('ludo')]; focusDocument.activeElement = null;
+focusContext.focusApi.restoreGameCardFocus(savedCard);
+assert.equal(focusDocument.activeElement, null, 'a removed game does not move focus to a different game');
+console.log('GAME_CARD_FOCUS_PASS: same-game snapshot replacement, duplicate position, visible fallback, no input/dialog/other-game focus steals');
