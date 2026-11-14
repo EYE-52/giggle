@@ -2,10 +2,12 @@
 import { useEffect, useSyncExternalStore } from "react";
 import { usePathname } from "next/navigation";
 import { api } from "@giggle/core";
+import { publishScreenPresence } from "./screenPresence";
 import { createCallSession, createVideoClient, preloadVideoSdk } from "@giggle/agora";
 
 export const squadCall = createCallSession({
   createClient: createVideoClient,
+  setScreenPresence: publishScreenPresence,
   async getToken(squadId, encounterId) {
     if (!encounterId) return api.lobbyToken(squadId);
     await api.setEncounterVideo(squadId, true);

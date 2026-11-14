@@ -49,7 +49,7 @@ test("game panel takes an optional encounter scope without changing the protocol
   assert.match(panel, /encounter\?: \{ encounterId: string \};/);
   assert.match(panel, /const encounterId = encounter\?\.encounterId \?\? null;/);
   assert.match(panel, /const \{ gameUrl, ticket \} = encounterId !== null\s*\? await api\.encounterGameToken\(encounterId\)\s*: await api\.gameToken\(squadId\);/);
-  assert.match(panel, /}, \[configured, postToChild, sendContext, squadId, encounterId\]\);/);
+  assert.match(panel, /}, \[configured, postToChild, sendContext, squadId, encounterId, initialGame, initialLibrary\]\);/);
   // Honest per-scope denial message.
   assert.match(panel, /Games aren't available for this call right now\./);
   assert.match(panel, /Games aren't available for this squad right now\./);
@@ -87,7 +87,7 @@ test("encounter games mount beside the video stage, which stays mounted", () => 
   assert.match(encounter, /data-testid="encounter-game-stage"/);
   assert.match(
     encounter,
-    /<GamePanel squadId=\{squadId\} encounter=\{\{ encounterId: encId \}\} onClose=\{\(\) => setGameOpen\(false\)\} onPresentation=\{handlePresentation\} onCameraScene=\{handleCameraScene\} layout=\{layoutOverride\} onLayoutChange=\{setLayoutOverride\} floatingCall=\{effectiveLayout === "floating" \? \{ collapsed: callCollapsed, onExpand: \(\) => toggleFloatingCall\(false\), expandButtonRef: callExpandRef \} : undefined\} voice=\{\{ mic: mapCaptureToVoiceMic\(captureState\.audio\), onEnableMic: toggleMic \}\} \/>/
+    /<GamePanel initialLibrary=\{initialLibrary\} initialGame=\{initialGame\} squadId=\{squadId\} encounter=\{\{ encounterId: encId \}\} onClose=\{\(\) => setGameOpen\(false\)\} onPresentation=\{handlePresentation\} onCameraScene=\{handleCameraScene\} layout=\{layoutOverride\} onLayoutChange=\{setLayoutOverride\} floatingCall=\{effectiveLayout === "floating" \? \{ collapsed: callCollapsed, onExpand: \(\) => toggleFloatingCall\(false\), expandButtonRef: callExpandRef \} : undefined\} voice=\{\{ mic: mapCaptureToVoiceMic\(captureState\.audio\), onEnableMic: toggleMic \}\} \/>/
   );
   // On a phone the game hides (nodes stay mounted) while chat takes over.
   assert.match(encounter, /hidden=\{chatTakesStage && chatOpen\}/);

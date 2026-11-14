@@ -15,3 +15,5 @@
   transition: left .28s cubic-bezier(.2, .8, .2, 1), top .28s cubic-bezier(.2, .8, .2, 1), width .28s cubic-bezier(.2, .8, .2, 1), height .28s cubic-bezier(.2, .8, .2, 1);
 }
 @media (prefers-reduced-motion: reduce) { .stage[data-animating] .cell { transition: none; } }
+
+.cell[data-screen-hidden] { visibility:hidden; pointer-events:none; }

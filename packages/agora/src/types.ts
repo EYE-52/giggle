@@ -46,9 +46,15 @@ export type CaptureDeviceState = "pending" | "active" | "off" | "denied" | "unav
 export interface CaptureState {
   audio: CaptureDeviceState;
   video: CaptureDeviceState;
+  /** Camera capture stays separate from the temporary outgoing screen source. */
+  screen?: CaptureDeviceState;
+  videoSource?: "camera" | "screen";
 }
 
 export interface VideoClient {
+  readonly supportsScreenShare?: boolean;
+  startScreenShare?(): Promise<void>;
+  stopScreenShare?(): Promise<void>;
   /** Join a channel using a server-issued token. */
   join(token: AgoraToken, opts?: { audio?: boolean; video?: boolean }): Promise<void>;
   leave(): Promise<void>;

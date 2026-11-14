@@ -377,7 +377,7 @@ test("encounter keeps the approved flat stage and puts blur inside full-view til
   const page = encounterSource();
   const tile = readFileSync(path.join(__dirname, "../components/ParticipantVideoTile.tsx"), "utf8");
   assert.equal(page.includes("<EncounterAtmosphere"), false);
-  assert.match(tile, /hasVideo && fit === "fit" && <video/);
+  assert.match(tile, /hasVideo && !screenSharing && fit === "fit" && <video/);
   assert.match(tile, /data-media-backdrop/);
 });
 
@@ -899,7 +899,7 @@ test("desktop encounter lays out one focus stage from stable participant identit
   // tiles are siblings keyed by person, so layout changes never remount video
   assert.equal(stage.includes("key={id}"), true);
   const tile = readFileSync(path.join(__dirname, "../components/ParticipantVideoTile.tsx"), "utf8");
-  assert.equal(tile.includes("data-media-fit={fit}"), true);
+  assert.equal(tile.includes('data-media-fit={screenSharing ? "fit" : fit}'), true);
   assert.equal(tile.includes('aria-haspopup="dialog"'), true);
   assert.equal(tile.includes("Keep this size"), true);
   assert.equal(page.includes("setRemoteAudioMuted"), true);
@@ -1646,8 +1646,8 @@ test("desktop home resumes active squad journeys instead of reopening their lobb
 
   assert.equal(page.includes("function squadDestination"), true);
   assert.equal(page.includes('["searching", "matched", "in_encounter"].includes(squad.status)'), true);
-  assert.equal(page.includes("router.push(squadDestination(s, WEB_DISCOVERY_ENABLED))"), true);
-  assert.equal(page.includes("router.push(squadDestination(active, WEB_DISCOVERY_ENABLED))"), true);
+  assert.equal(page.includes("router.push(withGameIntent(squadDestination(s, WEB_DISCOVERY_ENABLED), readGameIntent(window.location.search), readGamesIntent(window.location.search)))"), true);
+  assert.equal(page.includes("router.push(withGameIntent(squadDestination(active, WEB_DISCOVERY_ENABLED), readGameIntent(window.location.search), readGamesIntent(window.location.search)))"), true);
 });
 
 test("desktop home loading state mirrors squad-card content", () => {
@@ -1763,7 +1763,7 @@ test("squad preview auth gate runs before join loading state", () => {
 
 test("desktop social and invite surfaces do not create dev sessions", () => {
   assert.equal(friendsPageSource().includes("await session.devSignIn();"), false);
-  assert.equal(appLayoutSource().includes('router.replace("/signin")'), true);
+  assert.equal(appLayoutSource().includes('router.replace(`/signin?next=${encodeURIComponent(window.location.pathname + window.location.search)}`)'), true);
   for (const page of [inviteToSquadSource(), squadPreviewSource()]) {
     assert.equal(page.includes("await session.devSignIn();"), false);
     assert.equal(page.includes('router.push("/signin")'), true);

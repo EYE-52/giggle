@@ -5,6 +5,7 @@ const User = require('../models/User');
 const jwt = require('jsonwebtoken');
 const { Server } = require('socket.io');
 const { createAdapter } = require('@socket.io/redis-adapter');
+const memberMedia = require('./memberMediaService');
 const { randomBase36 } = require('../utils/random');
 const { buildAllowedOrigins } = require('../config/corsOrigins');
 const {
@@ -386,6 +387,49 @@ const init = (server) => {
       socket.join(`user_${socket.userId}`);
     }
 
+    let ownedMedia = null;
+    let mediaOperation = Promise.resolve();
+
+    socket.on('member_media', (input = {}, ack) => {
+      mediaOperation = mediaOperation.then(async () => {
+        const reply = typeof ack === 'function' ? ack : () => {};
+        try {
+          const squadId = normalizeRealtimeId(input.squadId);
+          const encounterId = normalizeRealtimeId(input.encounterId);
+          if (!socket.userId || !squadId || !['begin', 'update', 'end'].includes(input.action) || (input.encounterId && !encounterId)) return reply({ok:false});
+          const authorization = await authorizeRealtimeSend({squadId, encounterId, userId:socket.userId, isProduction:IS_PROD, Squad, Encounter, User});
+          if (!authorization.allowed || !socket.rooms.has(authorization.room)) return reply({ok:false});
+          if (encounterId && (authorization.encounter.status !== 'active' || authorization.ownSquadId !== squadId)) return reply({ok:false});
+          const ownSquad = encounterId
+            ? [authorization.squadA, authorization.squadB].find(s => s.squadId === squadId)
+            : await Squad.findOne({squadId, 'members.userId':String(socket.userId)});
+          const ownMember = ownSquad?.members.find(m => String(m.userId) === String(socket.userId));
+          if (!ownMember) return reply({ok:false});
+          const scope = `${encounterId ? `encounter:${encounterId}` : `squad:${squadId}`}:${ownMember.memberId}`;
+          if (input.action === 'begin') {
+            const generation = await memberMedia.begin(socket.userId, socket.id, scope);
+            ownedMedia = {generation, scope, squadId, encounterId, authorization};
+            emitToSquad(squadId, 'SQUAD_UPDATED', {});
+            if (encounterId) io.to(authorization.room).emit('SQUAD_UPDATED', {});
+            return reply({ok:true, mediaSessionId:generation});
+          }
+          if (!ownedMedia || input.mediaSessionId !== ownedMedia.generation || scope !== ownedMedia.scope || (input.action === 'update' && typeof input.screenSharing !== 'boolean')) return reply({ok:false, error:'CALL_REPLACED'});
+          const changed = input.action === 'end'
+            ? await memberMedia.end(socket.userId, socket.id, ownedMedia.generation)
+            : await memberMedia.update(socket.userId, socket.id, ownedMedia.generation, scope, input.screenSharing);
+          if (!changed) return reply({ok:false, error:'CALL_REPLACED'});
+          if (input.action === 'end') ownedMedia = null;
+          emitToSquad(squadId, 'SQUAD_UPDATED', {});
+          if (encounterId) io.to(authorization.room).emit('SQUAD_UPDATED', {});
+          reply({ok:true});
+        } catch (err) {
+          console.error('member_media error:', err);
+          reply({ok:false});
+        }
+      });
+      return mediaOperation;
+    });
+
     socket.on('join_squad', async (squadId) => {
       try {
         const result = await authorizeSquadRoomJoin({
@@ -561,6 +605,16 @@ const init = (server) => {
     socket.on('disconnect', async () => {
       logRealtimeDebug('Client disconnected:', socket.id);
       if (presenceHeartbeat) clearInterval(presenceHeartbeat);
+      await mediaOperation;
+      if (ownedMedia) {
+        const owner = ownedMedia; ownedMedia = null;
+        try {
+          if (await memberMedia.end(socket.userId, socket.id, owner.generation)) {
+            emitToSquad(owner.squadId, 'SQUAD_UPDATED', {});
+            if (owner.encounterId) io.to(owner.authorization.room).emit('SQUAD_UPDATED', {});
+          }
+        } catch (err) { console.error('member_media disconnect cleanup:', err); }
+      }
       chatLimiter.forget(socket.id);
       reactionLimiter.forget(socket.id);
       reportLimiter.forget(socket.id);

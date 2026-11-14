@@ -268,7 +268,7 @@ function MatchInner() {
   const myRoster = squad?.members ?? encounterMembers;
   const mySide = encounter || squad ? {
     name: squad?.squadName ?? (encounter ? (mineIsA ? encounter.squadAName : encounter.squadBName) : "Your squad"),
-    people: myRoster.map(member => ({ userId: member.userId, uid: member.uid, displayName: member.displayName, avatar: member.avatar })),
+    people: myRoster.map(member => ({ userId: member.userId, uid: member.uid, screenSharing: member.screenSharing, screenSharingExpiresAt: member.screenSharingExpiresAt, displayName: member.displayName, avatar: member.avatar })),
   } : null;
   const theirSide = encounter ? {
     name: mineIsA ? encounter.squadBName : encounter.squadAName,

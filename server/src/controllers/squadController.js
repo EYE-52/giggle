@@ -1,3 +1,4 @@
+const memberMedia = require('../services/memberMediaService');
 const { hashStringToUid } = require("../services/agoraTokenService");
 const mongoose = require("mongoose");
 const { Squad } = require("../models/Squad");
@@ -654,12 +655,13 @@ const getSquadHandler = async (req, res) => {
       MAX_SQUAD_MEMBERS
     );
 
-    const mergedMembers = squad.members.map(member => {
+    const mergedMembers = await Promise.all(squad.members.map(async member => {
       const live = sessionData[member.memberId] || {};
       const u = demoById.get(String(member.userId));
       return {
         ...member.toObject(),
         uid: hashStringToUid(`${squad.squadId}:${member.userId}`),
+        ...await memberMedia.publicState(member.userId, `squad:${squad.squadId}:${member.memberId}`),
         ready: live.ready !== undefined ? live.ready : member.ready,
         inLobbyVideo: live.inLobbyVideo !== undefined ? live.inLobbyVideo : member.inLobbyVideo,
         inEncounterVideo: live.inEncounterVideo !== undefined ? live.inEncounterVideo : member.inEncounterVideo,
@@ -670,7 +672,7 @@ const getSquadHandler = async (req, res) => {
         country: u ? u.country : undefined,
         avatar: publicAvatar(u?.avatar),
       };
-    });
+    }));
 
     return res.status(200).json({
       ok: true,
@@ -1574,6 +1576,7 @@ const kickMemberHandler = async (req, res) => {
 
     squad.members.splice(targetIndex, 1);
     await squad.save();
+    await memberMedia.clearMember(targetMember.userId, targetMember.memberId);
     socketService.revokeUserRealtimeAccess({
       userId: targetMember.userId,
       squadId: squad.squadId,

@@ -11,18 +11,22 @@ export type CallSnapshot = {
   remotes: RemoteParticipant[];
   error: unknown;
 };
+type ScreenLease = { shareId: string; encounterId: string | null; ready: Promise<void>; timer?: ReturnType<typeof setTimeout> };
+type OwnedCall = { squadId: string; encounterId: string | null; client: VideoClient; unsubscribe: (() => void)[]; screenQueue: Promise<void>; screenCleanup: Promise<void>; screenLease: ScreenLease | null };
 
 /** A squad owns its call; pages only subscribe and attach playback surfaces. */
 export function createCallSession(deps: {
   createClient: () => VideoClient;
-  getToken: (squadId: string, encounterId: string | null) => Promise<AgoraToken>;
+  getToken: (squadId: string, encounterId: string | null, options?: { renew?: boolean }) => Promise<AgoraToken>;
   setPresence: (squadId: string, encounterId: string | null, on: boolean) => Promise<unknown>;
+  setScreenPresence?: (squadId: string, encounterId: string | null, on: boolean, context?: { shareId: string }) => Promise<void>;
 }) {
   const empty: CallSnapshot = { squadId: null, encounterId: null, client: null, uid: null, joined: false, pending: false, capture: { audio: "off", video: "off" }, remotes: [], error: null };
   let snapshot = empty;
   let epoch = 0;
   let queue: Promise<unknown> = Promise.resolve();
-  let record: { squadId: string; encounterId: string | null; client: VideoClient; unsubscribe: (() => void)[] } | null = null;
+  let record: OwnedCall | null = null;
+  let screenSequence=0;
   const listeners = new Set<() => void>();
   const update = (patch: Partial<CallSnapshot>) => {
     snapshot = { ...snapshot, ...patch };
@@ -34,12 +38,49 @@ export function createCallSession(deps: {
     return next;
   };
 
+  function screenMessage(owned:OwnedCall,run:()=>Promise<void>){
+    const next=owned.screenQueue.catch(()=>{}).then(run);
+    owned.screenQueue=next.catch(()=>{});return next;
+  }
+  function retireScreen(owned:OwnedCall):Promise<void>{
+    const lease=owned.screenLease;
+    if(!lease)return owned.screenCleanup;
+    owned.screenLease=null;clearTimeout(lease.timer);
+    // Keep the retired share identity through late acknowledgements. A new
+    // call in the same room must never be cleared by this old cleanup.
+    owned.screenCleanup=screenMessage(owned,async()=>{await deps.setScreenPresence?.(owned.squadId,lease.encounterId,false,{shareId:lease.shareId});}).catch(()=>{});
+    return owned.screenCleanup;
+  }
+  async function screenFailure(owned:OwnedCall,lease:ScreenLease,error:unknown):Promise<never>{
+    if(record===owned&&owned.screenLease===lease){
+      void retireScreen(owned);update({error});
+      await owned.client.stopScreenShare?.().catch(()=>{});
+    }
+    throw error;
+  }
+  function announceScreen(owned:OwnedCall):Promise<void>{
+    if(!deps.setScreenPresence)return Promise.resolve();
+    if(owned.screenLease)return owned.screenLease.ready;
+    const lease:ScreenLease={shareId:`screen:${++screenSequence}`,encounterId:owned.encounterId,ready:Promise.resolve()};
+    owned.screenLease=lease;
+    const active=()=>record===owned&&owned.screenLease===lease&&snapshot.capture.screen==='active';
+    const publish=()=>screenMessage(owned,async()=>{if(active())await deps.setScreenPresence!(owned.squadId,lease.encounterId,true,{shareId:lease.shareId});});
+    const heartbeat=()=>{
+      if(!active())return;
+      lease.timer=setTimeout(()=>{void publish().then(heartbeat,error=>screenFailure(owned,lease,error)).catch(()=>{});},10000);
+      (lease.timer as {unref?:()=>void}).unref?.();
+    };
+    lease.ready=publish().then(()=>{if(!active())throw new Error('Screen sharing cancelled.');heartbeat();},error=>screenFailure(owned,lease,error));
+    return lease.ready;
+  }
+
   function stop(): Promise<void> {
     epoch += 1;
     const old = record;
     const oldScope = snapshot.squadId ? { squadId: snapshot.squadId, encounterId: snapshot.encounterId } : null;
     record = null;
     old?.unsubscribe.forEach(off => off());
+    if(old)void retireScreen(old);
     // Release capture immediately, even if a token, prompt or transfer is pending.
     const closing = old?.client.leave().catch(() => {});
     // A dismissed browser prompt may resolve much later. New calls must not
@@ -58,7 +99,7 @@ export function createCallSession(deps: {
       const current = record, attempt = epoch;
       if (!current || !snapshot.joined || !current.client.renewToken) return;
       try {
-        const token = await deps.getToken(current.squadId, current.encounterId);
+        const token = await deps.getToken(current.squadId, current.encounterId, { renew: true });
         if (current !== record || attempt !== epoch) return;
         await current.client.renewToken(token);
       } catch (error) {
@@ -79,18 +120,27 @@ export function createCallSession(deps: {
         assertCurrent();
         update({ pending: true });
         if (current && current.squadId === squadId && current.encounterId === encounterId && snapshot.joined) return current.client;
+        if(current){
+          void retireScreen(current);
+          await current.client.stopScreenShare?.().catch(error=>{if(attempt===epoch)update({error});});
+          assertCurrent();
+        }
         const token = await deps.getToken(squadId, encounterId);
         assertCurrent();
         if (!current) {
           fresh = true;
-          current = { squadId, encounterId, client: deps.createClient(), unsubscribe: [] };
+          current = { squadId, encounterId, client: deps.createClient(), unsubscribe: [],screenQueue:Promise.resolve(),screenCleanup:Promise.resolve(),screenLease:null };
           record = current;
           const owned = current;
           update({ squadId, encounterId, client: current.client, uid: token.uid });
           current.unsubscribe.push(current.client.onRemoteChange(remotes => { if (record === owned) update({ remotes }); }));
-          const offCapture = current.client.onCaptureState?.(capture => { if (record === owned) update({ capture }); });
+          const offCapture = current.client.onCaptureState?.(capture => { if (record === owned) {update({ capture });if(capture.screen!=='active')void retireScreen(owned);} });
           const offToken = current.client.onTokenExpiring?.(() => { void renew(); });
           const offConnection = current.client.onConnectionState?.(state => {
+            if(record===owned && (state==='RECONNECTING'||state==='DISCONNECTED')){
+              void retireScreen(owned);
+              void owned.client.stopScreenShare?.().catch(error=>{if(record===owned)update({error});});
+            }
             if (record === owned && state === "DISCONNECTED") update({ joined: false });
             if (record === owned && state === "CONNECTED" && !snapshot.pending) update({ joined: true });
           });
@@ -184,6 +234,26 @@ export function createCallSession(deps: {
     subscribe(cb: () => void) { listeners.add(cb); return () => listeners.delete(cb); },
     connect,
     setDevice,
+    startScreenShare(squadId: string): Promise<void> {
+      const current=record,attempt=epoch;
+      if(!current || current.squadId!==squadId || !snapshot.joined || !current.client.supportsScreenShare || !current.client.startScreenShare)return Promise.reject(new Error("Screen sharing is not available in this call."));
+      update({error:null});
+      // Start capture in the click stack. Queueing it behind connection work
+      // can lose the browser's required user activation.
+      return current.client.startScreenShare().then(async()=>{
+        if(current!==record || attempt!==epoch || snapshot.capture.screen!=='active')throw new Error('Screen sharing cancelled.');
+        await announceScreen(current);
+      }).catch(error=>{
+        if(current===record && attempt===epoch && snapshot.capture.screen!=="off")update({error});
+        throw error;
+      });
+    },
+    stopScreenShare(squadId: string): Promise<void> {
+      const current=record,attempt=epoch;
+      if(!current || current.squadId!==squadId || !current.client.stopScreenShare)return Promise.resolve();
+      const stopping=current.client.stopScreenShare(),cleanup=retireScreen(current);
+      return stopping.then(()=>cleanup).catch(error=>{if(current===record && attempt===epoch)update({error});throw error;});
+    },
     stop,
     returnToSquad: () => record && (record.encounterId || !snapshot.joined) ? connect(record.squadId) : Promise.resolve(record?.client ?? null),
     bindSquad(squadId: string) { if (snapshot.squadId && snapshot.squadId !== squadId) void stop(); },

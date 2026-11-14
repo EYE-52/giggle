@@ -1,4 +1,5 @@
 "use client";
+import { readGamesIntent, readGameIntent, withGameIntent } from "@/lib/gameIntent";
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -100,7 +101,7 @@ export default function HomePage() {
           const approved = data.squads.find(squad => requested.includes(squad.squadId) || requested.includes(squad.squadCode));
           if (approved) {
             setRequested([]);
-            router.replace(`/lobby?squad=${approved.squadId}`);
+            router.replace(withGameIntent(`/lobby?squad=${approved.squadId}`, readGameIntent(window.location.search), readGamesIntent(window.location.search)));
           }
         }
       } catch (error) {
@@ -226,7 +227,7 @@ export default function HomePage() {
       const squad = await api.createSquad({ squadName: name.trim(), tags: topics });
       if (inviteAfterCreate) await api.inviteUserToSquad(squad.squadId, inviteAfterCreate.userId).catch(() => {});
       setCreateOpen(false);
-      router.push(`/lobby?squad=${squad.squadId}`);
+      router.push(withGameIntent(`/lobby?squad=${squad.squadId}`, readGameIntent(window.location.search), readGamesIntent(window.location.search)));
     } catch (error) {
       setCreateError(message(error, "Couldn't create your squad. Try again."));
     } finally {
@@ -251,7 +252,7 @@ export default function HomePage() {
       if ("status" in result && result.status === "requested") {
         setRequested((previous) => [...previous, squad?.squadId ?? formatSquadCodeInput(code)]);
         toast("Request sent. You will enter if the leader approves.", "success");
-      } else router.push(`/lobby?squad=${result.squadId}`);
+      } else router.push(withGameIntent(`/lobby?squad=${result.squadId}`, readGameIntent(window.location.search), readGamesIntent(window.location.search)));
     } catch (error) {
       const text = message(error, "Couldn't join. Check the code and try again.");
       if (squad) toast(text, "error");
@@ -372,7 +373,7 @@ export default function HomePage() {
                       {s.myRole === "leader" ? " · You lead" : ""}
                     </small>
                   </span>
-                  <Button size="sm" variant="ghost" onClick={() => router.push(squadDestination(s, WEB_DISCOVERY_ENABLED))}>Open <Icon.arrowRight size={15} /></Button>
+                  <Button size="sm" variant="ghost" onClick={() => router.push(withGameIntent(squadDestination(s, WEB_DISCOVERY_ENABLED), readGameIntent(window.location.search), readGamesIntent(window.location.search)))}>Open <Icon.arrowRight size={15} /></Button>
                   <button type="button" className={styles.iconBtn} aria-label={`${s.myRole === "leader" ? "End" : "Leave"} ${s.squadName}`} onClick={() => setLeaving(s)}>
                     <Icon.close size={16} />
                   </button>
@@ -446,7 +447,7 @@ export default function HomePage() {
                           variant="secondary"
                           loading={pending === s.squadId}
                           disabled={!member && (!!pending || full || requested.includes(s.squadId))}
-                          onClick={() => (member ? router.push(squadDestination(s, WEB_DISCOVERY_ENABLED)) : void join(s))}
+                          onClick={() => (member ? router.push(withGameIntent(squadDestination(s, WEB_DISCOVERY_ENABLED), readGameIntent(window.location.search), readGamesIntent(window.location.search))) : void join(s))}
                         >
                           {member ? "Open" : requested.includes(s.squadId) ? "Requested" : full ? "Full" : s.joinPolicy === "request" ? "Ask to join" : "Join"}
                         </Button>
@@ -493,7 +494,7 @@ export default function HomePage() {
             <small className="muted">Start one, then invite friends.</small>
           </span>
         )}
-        <Button onClick={() => (active ? router.push(squadDestination(active, WEB_DISCOVERY_ENABLED)) : openCreate())}>
+        <Button onClick={() => (active ? router.push(withGameIntent(squadDestination(active, WEB_DISCOVERY_ENABLED), readGameIntent(window.location.search), readGamesIntent(window.location.search))) : openCreate())}>
           {trayAction}
           <Icon.arrowRight size={18} />
         </Button>

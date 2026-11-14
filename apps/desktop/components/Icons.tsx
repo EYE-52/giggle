@@ -55,6 +55,7 @@ function makeIcon(name: string, defaults: Partial<P> = {}) {
 }
 
 export const Icon = {
+  screenShare: makeIcon("screenShare"),
   hangup: makeIcon("hangup"),
   home: makeIcon("home"),
   discover: makeIcon("discover"),

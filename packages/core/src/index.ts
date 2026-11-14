@@ -14,11 +14,12 @@ export {
   reportOpponentSquad,
   sendChatMessage,
   sendReaction,
+  sendMemberMedia,
   subscribeChat,
   subscribeNotifications,
   subscribeReaction,
 } from "./socket";
-export type { ChatMessage, ChatScope, ChatSendResult, ReactionEvent } from "./socket";
+export type { ChatMessage, ChatScope, ChatSendResult, ReactionEvent, MemberMediaInput, MemberMediaResult } from "./socket";
 export * from "./report";
 export * from "./session";
 export * from "./names";

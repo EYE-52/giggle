@@ -1,0 +1,13 @@
+.button { flex:none; min-height:44px; height:44px; display:inline-flex; align-items:center; justify-content:center; gap:6px; padding:0 10px; border:1px solid var(--line, var(--border)); border-radius:12px; background:var(--surface); color:var(--text); font:600 12px/1.2 var(--font-body); cursor:pointer; box-shadow:none; white-space:nowrap; }
+.button[data-active] { background:var(--accent-soft); color:var(--accent-ink, var(--accent)); border-color:transparent; }
+.button:disabled { opacity:.55; cursor:wait; }
+.button:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
+.button svg { flex:none; }
+.shortLabel { display:none; }
+
+@media(max-width:720px) { .button { width:44px; padding:2px; flex-direction:column; gap:2px; white-space:normal; } .button span { font-size:12px; line-height:12px; } .button .fullLabel { display:none; } .button .shortLabel { display:inline; } }
+
+/* In a call toolbar, use its neighboring tools’ flat surface and short label. */
+:global(.call-controls) .button { border:0; background:var(--surface-2); }
+:global(.call-controls) .button[data-active] { background:var(--accent-soft); }
+@media(max-width:720px) { :global(.call-controls) .button { width:44px; } :global(.call-controls) .button span { font-size:12px; line-height:12px; } }

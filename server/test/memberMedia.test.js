@@ -1,0 +1,38 @@
+const test = require('node:test');
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const os = require('node:os');
+const path = require('node:path');
+const {spawn} = require('node:child_process');
+const Redis = require('ioredis');
+const media = require('../src/services/memberMediaService');
+
+test('real Redis source state is scoped, leased, and only its socket generation can clear it', async t => {
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'giggle-media-'));
+  const socket = path.join(directory, 'redis.sock');
+  const server = spawn('redis-server', ['--port','0','--unixsocket',socket,'--save','','--appendonly','no'], {stdio:'ignore'});
+  let spawnError;
+  server.on('error',error=>{spawnError=error;});
+  t.after(()=>{server.kill(); fs.rmSync(directory,{recursive:true,force:true});});
+  for(let attempt=0;attempt<100&&!fs.existsSync(socket)&&!spawnError;attempt++) await new Promise(r=>setTimeout(r,10));
+  if(spawnError?.code === 'ENOENT') return t.skip('redis-server is not installed');
+  assert.equal(spawnError,undefined); assert.ok(fs.existsSync(socket));
+  const redis = new Redis(socket);
+  t.after(()=>redis.disconnect());
+  const scope='squad:room:member';
+  const first=await media.begin('user','socket-a',scope,redis);
+  assert.equal(await media.update('user','socket-b',first,scope,true,redis,1000),false);
+  assert.equal(await media.update('user','socket-a',first,scope,true,redis,1000),true);
+  assert.deepEqual(await media.publicState('user',scope,redis,1001),{screenSharing:true,screenSharingExpiresAt:31000});
+  assert.equal((await media.publicState('user','squad:other:member',redis,1001)).screenSharing,false);
+  assert.equal((await media.publicState('user',scope,redis,31000)).screenSharing,false);
+  const second=await media.begin('user','socket-b','encounter:call:member',redis);
+  assert.equal(await media.end('user','socket-a',first,redis),false);
+  assert.equal(await media.update('user','socket-a',first,scope,true,redis,2000),false);
+  assert.equal(await media.update('user','socket-b',second,'encounter:call:member',true,redis,2000),true);
+  assert.equal(await media.clearMember('user','old-member',redis),false);
+  assert.equal((await media.publicState('user','encounter:call:member',redis,2001)).screenSharing,true);
+  assert.equal(await media.clearMember('user','member',redis),true);
+  assert.equal(await media.end('user','socket-b',second,redis),false);
+  assert.equal((await media.publicState('user','encounter:call:member',redis,2001)).screenSharing,false);
+});

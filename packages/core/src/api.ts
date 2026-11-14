@@ -415,6 +415,8 @@ export interface SquadMemberState {
   ready: boolean;
   inLobbyVideo: boolean;
   inEncounterVideo: boolean;
+  screenSharing?: boolean;
+  screenSharingExpiresAt?: number;
   online?: boolean;
   joinedAt?: string;
   gender?: string;

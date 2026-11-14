@@ -1,10 +1,8 @@
 import type { Metadata } from "next";
+import { publicPageMetadata } from "@/lib/siteMetadata";
 import { LegalPage } from "@/components/LegalPage";
 
-export const metadata: Metadata = {
-  title: "Support · Giggle",
-  description: "Contact Giggle for account, age-verification, safety, export, or deletion help.",
-};
+export const metadata: Metadata = publicPageMetadata("/support");
 
 const sections = [
   { title: "Account help", body: <a href="mailto:support@gigglemeet.com?subject=Account%20help" className="gg-focusable" style={{ minHeight: 44, display: "inline-flex", alignItems: "center", color: "var(--text-body)" }}>Email account support</a> },

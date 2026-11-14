@@ -87,6 +87,7 @@ export const SOCKET_EMIT = {
   SEND_MESSAGE: "send_message",
   SEND_REACTION: "send_reaction",
   REPORT_SQUAD: "report_squad",
+  MEMBER_MEDIA: "member_media",
 } as const;
 
 // --- Chat transport (lobby + encounter) ---
@@ -302,4 +303,15 @@ export function subscribeNotifications(
       s.off("connect", onChanged);
     }
   };
+}
+
+/** Screen source metadata uses the joined call scope; camera presence is separate. */
+export type MemberMediaInput = {squadId:string; encounterId?:string} & ({action:"begin"} | {action:"update"; mediaSessionId:string; screenSharing:boolean} | {action:"end"; mediaSessionId:string});
+export type MemberMediaResult = {ok:boolean; mediaSessionId?:string; error?:string};
+export function sendMemberMedia(input: MemberMediaInput): Promise<MemberMediaResult> {
+  const s = getSocket();
+  if (!s.connected) return Promise.resolve({ok:false, error:"DISCONNECTED"});
+  return new Promise(resolve => {
+    s.timeout(5000).emit(SOCKET_EMIT.MEMBER_MEDIA, input, (error: Error | null, result: MemberMediaResult) => resolve(error ? {ok:false, error:"TIMEOUT"} : result));
+  });
 }

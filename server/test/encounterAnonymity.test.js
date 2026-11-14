@@ -1,3 +1,7 @@
+// Source metadata has its own Redis integration and socket authorization tests.
+const memberMedia = require('../src/services/memberMediaService');
+memberMedia.publicState = async () => ({screenSharing:false, screenSharingExpiresAt:0});
+memberMedia.clearMember = async () => false;
 const assert = require("node:assert/strict");
 const test = require("node:test");
 
@@ -112,6 +116,8 @@ test("encounter payload hides an anonymous opponent's real identity", async () =
     callId: brunoId,
     uid: encounterRtcUid(ENC, BRUNO),
     anonymous: true,
+    screenSharing: false,
+    screenSharingExpiresAt: 0,
   });
   // A non-anonymous opponent looks as before.
   assert.equal(ben.userId, BEN);
@@ -501,4 +507,19 @@ test("squad discovery shows an anonymous leader only by alias", async () => {
     assert.equal(res.body.data.squads[0].leaderName, "Quiet Fox");
     assert.ok(!JSON.stringify(res.body).includes("Bruno Real"));
   });
+});
+
+test('screen source follows the projected anonymous seat without revealing its owner', async () => {
+  const original=memberMedia.publicState, queries=[];
+  memberMedia.publicState=async (userId,scope)=>{queries.push([userId,scope]);return {screenSharing:userId===BRUNO,screenSharingExpiresAt:userId===BRUNO?123456:0};};
+  try {
+    const res=await getHandoff(ALICE);
+    assert.equal(res.statusCode,200);
+    const screen=res.body.data.squadBMembers[0];
+    assert.equal(screen.screenSharing,true);assert.equal(screen.screenSharingExpiresAt,123456);
+    assert.equal(screen.memberId,opaqueEncounterId(ENC,BRUNO));
+    assert.ok(queries.some(([id,scope])=>id===BRUNO&&scope===`encounter:${ENC}:m-b1`));
+    assert.equal(JSON.stringify(screen).includes(BRUNO),false);
+    assert.equal('mediaSessionId' in screen,false);
+  } finally {memberMedia.publicState=original;}
 });

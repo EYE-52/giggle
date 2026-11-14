@@ -60,10 +60,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             setAuthReady(true);
           }
         } catch {
-          if (!cancelled) router.replace("/signin");
+          if (!cancelled) router.replace(`/signin?next=${encodeURIComponent(window.location.pathname + window.location.search)}`);
         }
       } else {
-        router.replace("/signin");
+        router.replace(`/signin?next=${encodeURIComponent(window.location.pathname + window.location.search)}`);
       }
     }
     ensureSession();

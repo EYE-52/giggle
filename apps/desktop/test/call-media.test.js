@@ -13,8 +13,8 @@ test('the lobby self-view plays into whichever seat element mounts, even after t
   assert.match(lobby, /useState<HTMLDivElement \| null>\(null\)/);
   assert.match(lobby, /ref=\{setLocalVideoHost\}/);
   assert.match(lobby, /media\.client\?\.playLocal\(localVideoHost\)/);
-  assert.match(lobby, /\}, \[camOn, localVideoHost, media\.client\]\);/);
-  assert.match(lobby, /const showVideo = isMe \? camOn : !!remote\?\.hasVideo;/);
+  assert.match(lobby, /\}, \[camOn, screenOn, localVideoHost, media\.client\]\);/);
+  assert.match(lobby, /const showVideo = isMe \? screenOn \|\| camOn : !!remote\?\.hasVideo;/);
 });
 
 test('a dropped lobby call still turns devices off instead of reconnecting', () => {

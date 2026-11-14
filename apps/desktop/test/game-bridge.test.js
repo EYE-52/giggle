@@ -280,7 +280,7 @@ test("lobby adds games inside the page without disturbing the call", () => {
   // Strong entry gated on the API switch; games open in-page, not away.
   assert.match(lobby, /useGamesEnabled\(\) === true/);
   assert.match(lobby, /Play together/);
-  assert.match(lobby, /<GamePanel squadId=\{squadId\} onClose=\{\(\) => setGameOpen\(false\)\} onPresentation=\{handlePresentation\} onCameraScene=\{handleCameraScene\} layout=\{layoutOverride\} onLayoutChange=\{setLayoutOverride\} floatingCall=\{effectiveLayout === "floating" \? \{ collapsed: callCollapsed, onExpand: \(\) => toggleFloatingCall\(false\), expandButtonRef: callExpandRef \} : undefined\} voice=\{\{ mic: micCapture, onEnableMic: \(\) => void toggleDevice\("audio"\) \}\} \/>/);
+  assert.match(lobby, /<GamePanel initialLibrary=\{initialLibrary\} initialGame=\{initialGame\} squadId=\{squadId\} onClose=\{\(\) => setGameOpen\(false\)\} onPresentation=\{handlePresentation\} onCameraScene=\{handleCameraScene\} layout=\{layoutOverride\} onLayoutChange=\{setLayoutOverride\} floatingCall=\{effectiveLayout === "floating" \? \{ collapsed: callCollapsed, onExpand: \(\) => toggleFloatingCall\(false\), expandButtonRef: callExpandRef \} : undefined\} voice=\{\{ mic: micCapture, onEnableMic: \(\) => void toggleDevice\("audio"\) \}\} \/>/);
   assert.doesNotMatch(lobby, /router\.push\([^)]*[Gg]ame/);
   // The seats (media nodes) stay mounted: no conditional around them.
   assert.match(lobby, /<section className=\{`\$\{styles\.seats\} \$\{floatingStyles\.shell\} \$\{cameraStyles\.shell\}`\}/);
@@ -317,4 +317,10 @@ test("lobby adds games inside the page without disturbing the call", () => {
   assert.match(css, /\.focusBtn \{ position:absolute; top:6px; left:6px;/);
   assert.match(css, /\.personOptions \{ position:absolute; top:6px; right:6px;/);
   assert.doesNotMatch(css, /\.personOptions \{ position:absolute; inset:0;/);
+});
+
+test('embed selection is a slug only and does not change the authorization URL',()=>{
+ const {buildEmbedUrl}=loadBridge();
+ assert.equal(buildEmbedUrl('http://games.test','http://meet.test','charades'),'http://games.test/?embed=1&parentOrigin=http%3A%2F%2Fmeet.test&game=charades');
+ assert.equal(new URL(buildEmbedUrl('http://games.test','http://meet.test','https://evil.test')).searchParams.has('game'),false);
 });

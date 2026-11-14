@@ -131,6 +131,9 @@ const getSquadAccessContext = async ({ squadId, identity }) => {
 const deleteSquadAndNotifications = async (squad) => {
   const sessionService = require("../services/sessionService");
   await deleteNotifications({ squadId: squad.squadId });
+  await Promise.all((squad.members || []).map(member =>
+    require('../services/memberMediaService').clearMember(member.userId, member.memberId)
+  ));
   await sessionService.clearSquadSession(squad.squadId);
   await squad.deleteOne();
   await deleteSquadCoversQuietly(squad.squadId);
@@ -188,6 +191,7 @@ const removeSquadMember = async (squad, memberIndex) => {
     squadId: squad.squadId,
     encounterId,
   });
+  await require('../services/memberMediaService').clearMember(removedMember.userId, removedMember.memberId);
   await sessionService.clearMemberSession(squad.squadId, removedMember.memberId);
 
   if (wasSearching || willDeleteSquad) await queueService.removeFromQueue(squad.squadId);

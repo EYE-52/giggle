@@ -18,7 +18,7 @@ export function FaceOffBar({ onBack, backLabel, title, busy = false }: { onBack:
   );
 }
 
-export type FaceOffPerson = { userId?: string; uid?: number; displayName: string; avatar?: string | null };
+export type FaceOffPerson = { userId?: string; uid?: number; screenSharing?: boolean; screenSharingExpiresAt?: number; displayName: string; avatar?: string | null };
 export type FaceOffSide = { name: string; people: FaceOffPerson[] };
 
 /**

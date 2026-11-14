@@ -98,6 +98,12 @@ export function createVideoClient(loadSdk = loadAgoraSdk): VideoClient {
   let channelEpoch = 0;
   let localVideoTrack: any = null;
   let localAudioTrack: any = null;
+  let screenTrack: any = null;
+  let screenEpoch = 0;
+  let cameraEpoch = 0;
+  let cameraWanted = false;
+  let screenRequest: Promise<void> | null = null;
+  let videoQueue: Promise<unknown> = Promise.resolve();
   let localUid: string | number = 0;
   let remotes: RemoteParticipant[] = [];
   let capture: CaptureState = { audio: "off", video: "off" };
@@ -144,12 +150,114 @@ export function createVideoClient(loadSdk = loadAgoraSdk): VideoClient {
     try { track?.close(); } catch {}
   }
 
+  function serialVideo<T>(job: () => Promise<T>): Promise<T> {
+    const next = videoQueue.catch(() => {}).then(job);
+    videoQueue = next;
+    return next;
+  }
+
+  async function restoreCamera(owner: any, attempt: number, room: number) {
+    if (owner !== client || attempt !== generation || room !== channelEpoch || moving || screenTrack) return;
+    const camera = localVideoTrack;
+    if (!cameraWanted || capture.video !== "active" || !camera || publishedTracks.has(camera)) return;
+    try {
+      await owner.publish([camera]);
+      if (owner !== client || attempt !== generation || room !== channelEpoch || camera !== localVideoTrack || !cameraWanted) {
+        try { await owner.unpublish?.([camera]); } catch {}
+        return;
+      }
+      publishedTracks.add(camera);
+    } catch (error) {
+      if (owner === client && attempt === generation && camera === localVideoTrack) {
+        localVideoTrack = null;
+        localPlayback = null;
+        closeTrack(camera);
+        setCapture({ video: captureErrorKind(error) });
+      }
+      try { await owner.unpublish?.([camera]); } catch {}
+      throw error;
+    }
+  }
+
+  function stopSharing(restore = true): Promise<void> {
+    screenEpoch += 1;
+    screenRequest = null;
+    const track = screenTrack, owner = client, attempt = generation, room = channelEpoch;
+    screenTrack = null;
+    closeTrack(track); // Stop capture before awaiting any network or pending publish.
+    localPlayback = null;
+    if (capture.screen !== undefined) setCapture({ screen: "off", videoSource: "camera" });
+    return serialVideo(async () => {
+      if (track && owner) { try { await owner.unpublish?.([track]); } catch {} }
+      publishedTracks.delete(track);
+      if (restore) await restoreCamera(owner, attempt, room);
+    });
+  }
+
+  function startSharing(): Promise<void> {
+    if (!client || joining || moving) return Promise.reject(new Error("Join the call before sharing your screen."));
+    if (screenRequest) return screenRequest;
+    if (screenTrack && capture.screen === "active") return Promise.resolve();
+    if (!sdk?.createScreenVideoTrack) return Promise.reject(new Error("Screen sharing is not supported on this device."));
+    const owner = client, attempt = generation, room = channelEpoch, share = ++screenEpoch;
+    const current = () => owner === client && attempt === generation && room === channelEpoch && share === screenEpoch && !moving;
+    setCapture({ screen: "pending", videoSource: "camera" });
+    let requested: Promise<any>;
+    try {
+      // Invoke the native picker in the original click stack, before any await.
+      requested = sdk.createScreenVideoTrack({ optimizationMode: "detail" }, "disable");
+    } catch (error) { requested = Promise.reject(error); }
+    let owned: any = null;
+    const operation = Promise.resolve(requested).then(async result => {
+      owned = Array.isArray(result) ? result[0] : result;
+      if (Array.isArray(result)) result.slice(1).forEach(closeTrack);
+      if (!current()) { closeTrack(owned); throw new Error("Screen sharing cancelled."); }
+      if (!owned || owned.getMediaStreamTrack?.().readyState === "ended") throw new Error("The selected screen is no longer available.");
+      screenTrack = owned;
+      try { owned.on?.("track-ended", () => { if (screenTrack === owned) void stopSharing().catch(() => {}); }); } catch {}
+      await serialVideo(async () => {
+        if (!current() || screenTrack !== owned) throw new Error("Screen sharing cancelled.");
+        const camera = localVideoTrack;
+        if (camera && publishedTracks.has(camera)) {
+          await owner.unpublish([camera]);
+          publishedTracks.delete(camera);
+        }
+        if (!current() || screenTrack !== owned) throw new Error("Screen sharing cancelled.");
+        await owner.publish([owned]);
+        if (!current() || screenTrack !== owned) {
+          try { await owner.unpublish?.([owned]); } catch {}
+          throw new Error("Screen sharing cancelled.");
+        }
+        publishedTracks.add(owned);
+        localPlayback = null;
+        setCapture({ screen: "active", videoSource: "screen" });
+      });
+    }).catch(async error => {
+      if (screenTrack === owned) screenTrack = null;
+      closeTrack(owned);
+      if (owned) { try { await owner.unpublish?.([owned]); } catch {} publishedTracks.delete(owned); }
+      if (current()) {
+        setCapture({ screen: captureErrorKind(error), videoSource: "camera" });
+        await serialVideo(() => restoreCamera(owner, attempt, room));
+      }
+      throw error;
+    }).finally(() => { if (screenRequest === operation) screenRequest = null; });
+    screenRequest = operation;
+    return operation;
+  }
+
   function resetState() {
     localPlayback = null;
     remotePlayback.clear();
     sdk = null;
     localAudioTrack = null;
     localVideoTrack = null;
+    screenTrack = null;
+    screenRequest = null;
+    screenEpoch += 1;
+    cameraEpoch += 1;
+    cameraWanted = false;
+    videoQueue = Promise.resolve();
     remoteUsers.clear();
     remoteEpochs.clear();
     remoteMediaEpochs.clear();
@@ -157,7 +265,7 @@ export function createVideoClient(loadSdk = loadAgoraSdk): VideoClient {
     mutedRemoteUids.clear();
     publishedTracks.clear();
     emit();
-    setCapture({ audio: "off", video: "off" });
+    setCapture({ audio: "off", video: "off", ...(capture.screen !== undefined ? { screen: "off" as const, videoSource: "camera" as const } : {}) });
   }
 
   const currentTrack = (kind: "audio" | "video") => kind === "audio" ? localAudioTrack : localVideoTrack;
@@ -197,6 +305,8 @@ export function createVideoClient(loadSdk = loadAgoraSdk): VideoClient {
 
   async function setDeviceEnabled(kind: "audio" | "video", on: boolean) {
     const attempt = generation;
+    const cameraAttempt = kind === "video" ? ++cameraEpoch : cameraEpoch;
+    if (kind === "video") cameraWanted = on;
     const joinedClient = client, AgoraRTC = sdk;
     const label = kind === "audio" ? "Microphone" : "Camera";
     let track = currentTrack(kind);
@@ -204,17 +314,19 @@ export function createVideoClient(loadSdk = loadAgoraSdk): VideoClient {
     if (on && (!joinedClient || joining || moving)) throw new Error("Video is not connected yet.");
     const assertTrack = () => {
       if (attempt !== generation) throw new Error("Call cancelled.");
+      if (kind === "video" && cameraAttempt !== cameraEpoch) throw new Error("Camera request cancelled.");
       if (on && currentTrack(kind) !== track) throw new Error(`${label} was disconnected. Try turning it on again.`);
     };
     if (!track && on) {
       setCapture({ [kind]: "pending" });
       try {
         track = await (kind === "audio" ? AgoraRTC.createMicrophoneAudioTrack() : AgoraRTC.createCameraVideoTrack());
-        if (attempt !== generation) throw new Error("Call cancelled.");
+        if (attempt !== generation || kind === "video" && cameraAttempt !== cameraEpoch) throw new Error("Call cancelled.");
         adoptTrack(kind, track);
-        await joinedClient.publish([track]);
+        if (kind === "video") await serialVideo(async () => { assertTrack();if (!screenTrack) { await joinedClient.publish([track]);assertTrack();publishedTracks.add(track); } });
+        else await joinedClient.publish([track]);
         assertTrack();
-        publishedTracks.add(track);
+        if (kind === "audio") publishedTracks.add(track);
       } catch (error) {
         closeTrack(track);
         if (attempt === generation && currentTrack(kind) === track) {
@@ -226,7 +338,8 @@ export function createVideoClient(loadSdk = loadAgoraSdk): VideoClient {
       }
     } else if (track) {
       try {
-        await setTrackEnabled(track, on, label, kind === "video");
+        if (kind === "video") await serialVideo(async () => { assertTrack();await setTrackEnabled(track, on, label, true);assertTrack(); });
+        else await setTrackEnabled(track, on, label);
       } catch (error) {
         // A camera re-enable captures again and can be refused or find the
         // device busy; report that instead of leaving a silent "off".
@@ -235,9 +348,10 @@ export function createVideoClient(loadSdk = loadAgoraSdk): VideoClient {
       }
       assertTrack();
       if (on && !publishedTracks.has(track)) {
-        await joinedClient.publish([track]);
+        if (kind === "video") await serialVideo(async () => { assertTrack();if (!screenTrack) { await joinedClient.publish([track]);assertTrack();publishedTracks.add(track); } });
+        else await joinedClient.publish([track]);
         assertTrack();
-        publishedTracks.add(track);
+        if (kind === "audio") publishedTracks.add(track);
       }
     }
     assertTrack();
@@ -246,6 +360,9 @@ export function createVideoClient(loadSdk = loadAgoraSdk): VideoClient {
   }
 
   return {
+    get supportsScreenShare() { return typeof navigator !== "undefined" && typeof navigator.mediaDevices?.getDisplayMedia === "function"; },
+    startScreenShare: startSharing,
+    stopScreenShare: () => stopSharing(),
     get remotes() {
       return remotes;
     },
@@ -279,11 +396,13 @@ export function createVideoClient(loadSdk = loadAgoraSdk): VideoClient {
       if (!client || joining || moving) throw new Error("Video is not connected yet.");
       moving = true;
       const attempt = generation, movingClient = client;
-      channelEpoch += 1;
       const assertCurrent = () => {
         if (attempt !== generation || client !== movingClient) throw new Error("Call cancelled.");
       };
       try {
+        await stopSharing(false);
+        assertCurrent();
+        channelEpoch += 1;
         // Stop listening to the old room before joining the next one. Capture
         // and its on/off choices stay owned by this client throughout the move.
         for (const user of remoteUsers.values()) { try { user.audioTrack?.stop(); } catch {} }
@@ -309,6 +428,7 @@ export function createVideoClient(loadSdk = loadAgoraSdk): VideoClient {
     async join(token: AgoraToken, opts = { audio: true, video: true }) {
       if (joining || client) throw new Error("This client is already joining or in a call.");
       joining = true;
+      cameraWanted = !!opts.video;
       const joinedGeneration = ++generation;
       const assertCurrent = () => {
         if (joinedGeneration !== generation) throw new Error("Call cancelled.");
@@ -502,7 +622,7 @@ export function createVideoClient(loadSdk = loadAgoraSdk): VideoClient {
     async leave() {
       generation += 1;
       const leavingClient = client;
-      const audio = localAudioTrack, video = localVideoTrack;
+      const audio = localAudioTrack, video = localVideoTrack, screen = screenTrack;
       client = null;
       joining = false;
       moving = false;
@@ -510,6 +630,7 @@ export function createVideoClient(loadSdk = loadAgoraSdk): VideoClient {
       // Clear synchronously: a later leave completion cannot clear a new call.
       resetState();
       closeTrack(video);
+      closeTrack(screen);
       closeTrack(audio);
       try { leavingClient?.removeAllListeners?.(); } catch {}
       try { await leavingClient?.leave(); } catch {}
@@ -532,10 +653,11 @@ export function createVideoClient(loadSdk = loadAgoraSdk): VideoClient {
       emit();
     },
     playLocal(el?: unknown) {
-      if (!localVideoTrack || !el) return;
-      if (localPlayback && localPlayback.track === localVideoTrack && localPlayback.element === el) return;
-      localVideoTrack.play(el as HTMLElement);
-      localPlayback = { track: localVideoTrack, element: el };
+      const track = capture.screen === "active" ? screenTrack : localVideoTrack;
+      if (!track || !el) return;
+      if (localPlayback && localPlayback.track === track && localPlayback.element === el) return;
+      track.play(el as HTMLElement);
+      localPlayback = { track, element: el };
     },
     playRemote(uid, el?: unknown) {
       const key = String(uid), track = remoteUsers.get(key)?.videoTrack;

@@ -1,3 +1,4 @@
+const memberMedia = require('../services/memberMediaService');
 const { getRequesterIdentity, getSquadAccessContext, isSameMember } = require("../app/squadAccess");
 const { Squad } = require("../models/Squad");
 const User = require("../models/User");
@@ -109,6 +110,12 @@ const getEncounterHandoffHandler = async (req, res) => {
       viewerSquadId: viewerSquad.squadId,
       users,
     });
+
+    for (const [squad, roster] of [[squadA, squadAMembers], [squadB, squadBMembers]]) {
+      await Promise.all((squad?.members || []).map(async (member, index) => {
+        Object.assign(roster[index], await memberMedia.publicState(member.userId, `encounter:${encounter.encounterId}:${member.memberId}`));
+      }));
+    }
 
     return res.status(200).json({
       ok: true,

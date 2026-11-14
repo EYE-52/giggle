@@ -138,6 +138,7 @@ export function createVideoClient(loadSdk = () => require("react-native-agora"))
   }
 
   return {
+    supportsScreenShare: false,
     get remotes() {
       return remotes;
     },

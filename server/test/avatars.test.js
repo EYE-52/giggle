@@ -1,3 +1,7 @@
+// Source metadata has its own Redis integration and socket authorization tests.
+const memberMedia = require('../src/services/memberMediaService');
+memberMedia.publicState = async () => ({screenSharing:false, screenSharingExpiresAt:0});
+memberMedia.clearMember = async () => false;
 const assert = require("node:assert/strict");
 const { readFileSync } = require("node:fs");
 const path = require("node:path");

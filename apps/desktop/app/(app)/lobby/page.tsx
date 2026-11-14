@@ -1,4 +1,5 @@
 "use client";
+import { readGamesIntent, readGameIntent } from "@/lib/gameIntent";
 import { describeVideoError } from "@/lib/videoError";
 import { useState, useEffect, useRef, useCallback, Suspense } from "react";
 import Link from "next/link";
@@ -13,6 +14,8 @@ import { GamePanel, type GameLayoutOverride } from "@/components/GamePanel";
 import { FloatingCallTools, type CallCorner } from "@/components/FloatingCallTools";
 import floatingStyles from "@/components/FloatingCallTools.module.css";
 import { CameraGameCaption, useCameraTiles } from "@/components/CameraGameStage";
+import { ScreenShareButton } from "@/components/ScreenShareButton";
+import { isScreenSharing, useScreenSharingClock } from "@/lib/screenShareView";
 import cameraStyles from "@/components/CameraGameStage.module.css";
 import { CAMERA_GALLERY_SCENE, mapCaptureToVoiceMic, resolveGameLayout, type GameCameraScene, type GamePresentation } from "@/lib/gameBridge";
 import { CoverPicker } from "@/components/CoverPicker";
@@ -52,6 +55,8 @@ function LobbyInner() {
   const micOn = media.capture.audio === "active";
   const micCapture = mapCaptureToVoiceMic(media.capture.audio);
   const camOn = media.capture.video === "active";
+  const screenOn = media.capture.screen === "active";
+  const screenClock = useScreenSharingClock(squad?.members ?? []);
   const [settingReady, setSettingReady] = useState(false);
   const [findingMatch, setFindingMatch] = useState(false);
   const [matchError, setMatchError] = useState<string | null>(null);
@@ -107,6 +112,14 @@ function LobbyInner() {
   // Squad games open INSIDE this lobby (no navigation): the stage mounts
   // beside the seats while vcRef, media nodes, and call controls stay put.
   const [gameOpen, setGameOpen] = useState(false);
+  const [initialGame, setInitialGame] = useState<string | null>(null);
+  const [initialLibrary, setInitialLibrary] = useState(false);
+  const intentPanelOpened = useRef(false);
+  useEffect(() => {
+    if (gameOpen) intentPanelOpened.current = true;
+    else if (intentPanelOpened.current) { setInitialGame(null); setInitialLibrary(false); }
+  }, [gameOpen]);
+  useEffect(() => { if (typeof window === "undefined" || !window.location) return; const game = readGameIntent(window.location.search); if (readGamesIntent(window.location.search)) { setInitialGame(game); setInitialLibrary(!game); setGameOpen(true); } }, []);
   const chatTakesStage = chatUsesStage(width, height, gameOpen, true);
   // Contextual video: the child's hint (auto), the user's override pin, and
   // the focused seat. The override persists across game changes until Auto;
@@ -296,9 +309,9 @@ function LobbyInner() {
   }, [squadId]);
 
   useEffect(() => {
-    if (!camOn || !localVideoHost) return;
+    if ((!camOn && !screenOn) || !localVideoHost) return;
     try { media.client?.playLocal(localVideoHost); } catch {}
-  }, [camOn, localVideoHost, media.client]);
+  }, [camOn, screenOn, localVideoHost, media.client]);
 
   // Unread chat tracking — runs even when the chat surface isn't mounted, so the
   // collapsed rail / header can show an unread dot. We join the lobby room and
@@ -812,7 +825,7 @@ function LobbyInner() {
       <div className={styles.body} data-games={gameOpen || undefined} data-layout={gameOpen ? effectiveLayout : undefined} data-chat-stage={chatTakesStage && chatVisible || undefined}>
         {gameOpen && (
           <section className={styles.stage} hidden={chatTakesStage && chatVisible} aria-label="Squad games">
-            <GamePanel squadId={squadId} onClose={() => setGameOpen(false)} onPresentation={handlePresentation} onCameraScene={handleCameraScene} layout={layoutOverride} onLayoutChange={setLayoutOverride} floatingCall={effectiveLayout === "floating" ? { collapsed: callCollapsed, onExpand: () => toggleFloatingCall(false), expandButtonRef: callExpandRef } : undefined} voice={{ mic: micCapture, onEnableMic: () => void toggleDevice("audio") }} />
+            <GamePanel initialLibrary={initialLibrary} initialGame={initialGame} squadId={squadId} onClose={() => setGameOpen(false)} onPresentation={handlePresentation} onCameraScene={handleCameraScene} layout={layoutOverride} onLayoutChange={setLayoutOverride} floatingCall={effectiveLayout === "floating" ? { collapsed: callCollapsed, onExpand: () => toggleFloatingCall(false), expandButtonRef: callExpandRef } : undefined} voice={{ mic: micCapture, onEnableMic: () => void toggleDevice("audio") }} />
           </section>
         )}
         <section className={`${styles.seats} ${floatingStyles.shell} ${cameraStyles.shell}`} ref={(el) => { seatsRef.current = el; }} data-count={memberCount + Math.min(openSeats, 7)} hidden={chatTakesStage && chatVisible} aria-label="Squad members"
@@ -826,15 +839,16 @@ function LobbyInner() {
             const remote = remotes.find(r => String(r.uid) === String(member.uid));
             const offline = member.online === false && !isMe;
             // Your own preview is local capture: it stays up while the call reconnects.
-            const showVideo = isMe ? camOn : !!remote?.hasVideo;
+            const showVideo = isMe ? screenOn || camOn : !!remote?.hasVideo;
+            const screenSharing = isMe ? screenOn : isScreenSharing(member, screenClock);
             const focused = focusedMemberId === member.memberId;
-            return <article className={`${styles.seat} ${isMe ? styles.me : ""}`} key={member.memberId} data-testid="lobby-person" data-offline={offline || undefined} data-video={showVideo} data-focused={focused || undefined}
+            return <article className={`${styles.seat} ${isMe ? styles.me : ""}`} key={member.memberId} data-video-source={screenSharing ? "screen" : "camera"} data-testid="lobby-person" data-offline={offline || undefined} data-video={showVideo} data-focused={focused || undefined}
               data-camera-featured={stageScene?.mode === "spotlight" && stageScene.featured === member.userId || undefined}
               style={stageScene ? cameraTiles.get(member.userId) : undefined}>
               <div className={styles.face}><PersonAvatar userId={member.userId} name={member.displayName} avatar={member.avatar} isMe={isMe} size="fill" /></div>
               {isMe ? <div ref={setLocalVideoHost} className={styles.video} style={{ opacity: showVideo ? 1 : 0 }} /> : <div className={styles.video} style={{ opacity: showVideo ? 1 : 0 }} ref={el => { if (el && remote?.hasVideo && member.uid !== undefined) { try { vcRef.current?.playRemote(member.uid, el); } catch { setVideoError("Couldn’t show their video. Try reconnecting your devices."); } } }} />}
               <div className={styles.seatLabel} data-call-person-label>
-                <span className={styles.seatName} data-call-person-name><span className={styles.nameText}>{isMe ? "You" : member.displayName}</span>{member.memberId === squad.leaderMemberId && <span className={styles.memberRole}>Leader</span>}</span>
+                <span className={styles.seatName} data-call-person-name><span className={styles.nameText}>{screenSharing ? (isMe ? "Your screen" : `${member.displayName} · Screen`) : isMe ? "You" : member.displayName}</span>{member.memberId === squad.leaderMemberId && <span className={styles.memberRole}>Leader</span>}</span>
                 {WEB_DISCOVERY_ENABLED && member.ready && <span className={styles.ready} data-call-person-ready><Icon.check size={12} weight="regular" />Ready</span>}
                 {(isMe ? videoJoined && !micOn : remote && !remote.hasAudio) && <span className={styles.state}>Mic off</span>}
                 {remote?.mutedForMe && <span className={styles.state}>Muted for you</span>}
@@ -863,6 +877,8 @@ function LobbyInner() {
             <div className={styles.devices} role="group" aria-label="Camera and microphone">
               <button type="button" className={styles.devBtn} disabled={videoJoining || deviceBusy.audio} aria-pressed={!micOn} onClick={() => void toggleDevice("audio")} aria-label={micOn ? "Mute microphone" : "Turn on microphone"} title={micOn ? "Mute microphone" : "Turn on microphone"} data-off={!micOn || undefined}>{micOn ? <Icon.mic size={22} weight="regular" /> : <Icon.micOff size={22} weight="regular" />}</button>
               <button type="button" className={styles.devBtn} disabled={videoJoining || deviceBusy.video} aria-pressed={!camOn} onClick={() => void toggleDevice("video")} aria-label={camOn ? "Turn camera off" : "Turn camera on"} title={camOn ? "Turn camera off" : "Turn camera on"} data-off={!camOn || undefined}>{camOn ? <Icon.cam size={22} weight="regular" /> : <Icon.camOff size={22} weight="regular" />}</button>
+              <ScreenShareButton client={media.client} capture={media.capture} disabled={videoJoining || !videoJoined}
+                onStart={() => squadCall.startScreenShare(squadId)} onStop={() => squadCall.stopScreenShare(squadId)} onError={setVideoError} />
             </div>
             <span id="lobby-match-status" className={`muted ${styles.readyLine}`} data-joining={videoJoining || undefined} role="status">{videoJoining ? <><span className="gg-spinner" aria-hidden="true" /> Connecting your devices…</> : readyLine}</span>
             {WEB_DISCOVERY_ENABLED && !isLeader && <Button variant={myReady ? "secondary" : "primary"} loading={settingReady} onClick={handleReady}>{myReady ? "Not ready" : <><span className={styles.wide}>I&apos;m ready to join</span><span className={styles.narrow}>I&apos;m ready</span></>}</Button>}

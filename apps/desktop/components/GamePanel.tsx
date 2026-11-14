@@ -40,6 +40,8 @@ const READY_TIMEOUT_MS = 20_000;
 export type GameLayoutOverride = "auto" | "faces" | "compact" | "floating" | "stage";
 
 interface Props {
+  initialGame?: string | null;
+  initialLibrary?: boolean;
   squadId: string;
   onClose: () => void;
   // Stable presentation updates for the lobby rail (deduped; authed only).
@@ -63,7 +65,7 @@ interface Props {
 // Squad games inside the lobby (or encounter games inside the call): frames
 // Game Night and passes single-use tickets over postMessage v1. The iframe
 // gets NO camera/mic permission — media stays entirely in this parent page.
-export function GamePanel({ squadId, onClose, onPresentation, onCameraScene, layout = "auto", onLayoutChange, floatingCall, encounter, voice }: Props) {
+export function GamePanel({ initialGame, initialLibrary = false, squadId, onClose, onPresentation, onCameraScene, layout = "auto", onLayoutChange, floatingCall, encounter, voice }: Props) {
   const themeMode = useTheme();
   const [status, setStatus] = useState<"loading" | "live" | "unavailable" | "error">("loading");
   const [detail, setDetail] = useState<string | null>(null);
@@ -176,7 +178,7 @@ export function GamePanel({ squadId, onClose, onPresentation, onCameraScene, lay
         return;
       }
       originRef.current = served.origin;
-      const src = buildEmbedUrl(served.gamesUrl, window.location.origin);
+      const src = buildEmbedUrl(served.gamesUrl, window.location.origin, initialGame, initialLibrary);
       if (!src) {
         authedRef.current = false;
         pendingAuthRef.current = null; // failed attempt authorizes nothing
@@ -220,7 +222,7 @@ export function GamePanel({ squadId, onClose, onPresentation, onCameraScene, lay
         setDetail("Couldn't reach the game service. Try again.");
       }
     }
-  }, [configured, postToChild, sendContext, squadId, encounterId]);
+  }, [configured, postToChild, sendContext, squadId, encounterId, initialGame, initialLibrary]);
 
   // Serialize auth sends so rapid ready/auth-needed events don't race.
   const requestAuth = useCallback(() => {

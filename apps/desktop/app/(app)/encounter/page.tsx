@@ -1,4 +1,5 @@
 "use client";
+import { readGamesIntent, readGameIntent } from "@/lib/gameIntent";
 import { describeVideoError } from "@/lib/videoError";
 import { useState, useEffect, useRef, useCallback, Suspense, type CSSProperties } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -34,6 +35,8 @@ import { CameraGameCaption } from "@/components/CameraGameStage";
 import cameraStyles from "@/components/CameraGameStage.module.css";
 import { CAMERA_GALLERY_SCENE, mapCaptureToVoiceMic, resolveGameLayout, sceneForCallTiles, type GameCameraScene, type GamePresentation } from "@/lib/gameBridge";
 import { Button } from "@/components/Button";
+import { ScreenShareButton } from "@/components/ScreenShareButton";
+import { isScreenSharing, useScreenSharingClock } from "@/lib/screenShareView";
 import { ParticipantVideoTile as VideoTile } from "@/components/ParticipantVideoTile";
 import { FocusVideoStage, type TileSizeControls } from "@/components/FocusVideoStage";
 import { Modal } from "@/components/Modal";
@@ -161,6 +164,8 @@ interface FloatingReaction {
 
 
 interface EncounterParticipant {
+  screenSharing?: boolean;
+  screenSharingExpiresAt?: number;
   id: string;
   memberId: string;
   name: string;
@@ -191,6 +196,14 @@ function EncounterInner() {
   // call controls stay put. Both squads share one game room; opening games
   // requests no camera/mic permission.
   const [gameOpen, setGameOpen] = useState(false);
+  const [initialGame, setInitialGame] = useState<string | null>(null);
+  const [initialLibrary, setInitialLibrary] = useState(false);
+  const intentPanelOpened = useRef(false);
+  useEffect(() => {
+    if (gameOpen) intentPanelOpened.current = true;
+    else if (intentPanelOpened.current) { setInitialGame(null); setInitialLibrary(false); }
+  }, [gameOpen]);
+  useEffect(() => { if (typeof window === "undefined" || !window.location) return; const game = readGameIntent(window.location.search); if (readGamesIntent(window.location.search)) { setInitialGame(game); setInitialLibrary(!game); setGameOpen(true); } }, []);
   // Contextual video: the child's hint (auto) plus the user's override pin.
   // The override persists across game changes until Auto; closing games
   // resets both (see the gameOpen effect below). Layout changes restyle the
@@ -383,6 +396,7 @@ function EncounterInner() {
   const [captureState, setCaptureState] = useState<CaptureState>({ audio: "off", video: "off" });
   const micOn = captureState.audio === "active";
   const camOn = captureState.video === "active";
+  const screenOn = captureState.screen === "active";
   const [deviceBusy, setDeviceBusy] = useState(false);
   const deviceBusyRef = useRef(false);
   // Full remote participant state (uid + hasVideo/hasAudio) — drives truthful
@@ -517,9 +531,10 @@ function EncounterInner() {
       }, 5000);
     };
     const onActive = () => {
+      if (cancelled || endedSeen) return;
       api
         .getEncounter(encId)
-        .then(setEncounter)
+        .then(detail => { if (!cancelled && !endedSeen) setEncounter(detail); })
         .catch(() => {});
     };
 
@@ -569,13 +584,17 @@ function EncounterInner() {
       // then return home so the user isn't stuck on a dead call.
       socket.on(endedEvent, onEnded);
       socket.on(activeEvent, onActive);
+      socket.on(SOCKET_EVENTS.SQUAD_UPDATED, onActive);
       // A missed ENCOUNTER_ENDED (dropped socket, sleeping tab) must not leave
       // this squad on a dead call, so check the encounter now and then.
       stopEndedPoll = pollWhileVisible(async () => {
         if (cancelled || endedSeen) return;
         try {
           const latest = await api.getEncounter(encId);
-          if (!cancelled && !endedSeen && latest.status === "ended") onEnded({ encounterId: encId });
+          if (!cancelled && !endedSeen) {
+            if (latest.status === "ended") onEnded({ encounterId: encId });
+            else setEncounter(latest);
+          }
         } catch {}
       }, 15000);
     };
@@ -590,6 +609,7 @@ function EncounterInner() {
       stopEndedPoll?.();
       socket?.off(endedEvent, onEnded);
       socket?.off(activeEvent, onActive);
+      socket?.off(SOCKET_EVENTS.SQUAD_UPDATED, onActive);
       // Detach this page without dropping the squad call during navigation.
       cancelled = true;
       videoGenerationRef.current += 1;
@@ -699,6 +719,8 @@ function EncounterInner() {
     avatar: resolveAvatar(m.avatar, m.userId),
     uid: m.uid,
     callId: m.callId,
+    screenSharing: m.screenSharing,
+    screenSharingExpiresAt: m.screenSharingExpiresAt,
     isLocal:
       m.userId === myUserId ||
       (myUidRef.current != null && String(m.uid) === String(myUidRef.current)),
@@ -712,9 +734,12 @@ function EncounterInner() {
     avatar: resolveAvatar(m.avatar, m.userId),
     uid: m.uid,
     callId: m.callId,
+    screenSharing: m.screenSharing,
+    screenSharingExpiresAt: m.screenSharingExpiresAt,
     isLocal: false,
   }));
   const participants = [...mineParticipants, ...theirParticipants];
+  const screenClock = useScreenSharingClock(participants);
   // Game seats name people by callId; call tiles by participant id.
   const tileScene = sceneForCallTiles(stageScene, participants);
   // The stage shows who is actually here. Someone not seen yet gets a
@@ -786,12 +811,12 @@ function EncounterInner() {
   };
 
   useEffect(() => {
-    if (videoJoined && camOn && localElRef.current) {
+    if (videoJoined && (camOn || screenOn) && localElRef.current) {
       try {
         vcRef.current?.playLocal(localElRef.current);
       } catch {}
     }
-  }, [videoJoined, camOn, participantIdsKey]);
+  }, [videoJoined, camOn, screenOn, participantIdsKey]);
 
   useEffect(() => {
     if (!videoJoined) return;
@@ -1076,7 +1101,7 @@ function EncounterInner() {
 
   const participantById = new Map(participants.map((person) => [person.id, person]));
   const hasVideoFor = (person: EncounterParticipant) =>
-    videoJoined && (person.isLocal ? camOn && captureState.video === "active" : !!remoteFor(person.uid)?.hasVideo);
+    videoJoined && (person.isLocal ? camOn || screenOn : !!remoteFor(person.uid)?.hasVideo);
   const videoOnById = Object.fromEntries(participants.map((person) => [person.id, hasVideoFor(person)]));
 
   function renderParticipant(id: string, size: TileSizeControls) {
@@ -1089,6 +1114,7 @@ function EncounterInner() {
         colorIndex={person.colorIndex}
         micOn={micOnFor(person.isLocal, person.uid)}
         hasVideo={hasVideoFor(person)}
+        screenSharing={person.isLocal ? screenOn : isScreenSharing(person, screenClock)}
         mutedForMe={remoteFor(person.uid)?.mutedForMe}
         onMute={!person.isLocal && person.uid != null && remoteFor(person.uid) ? async muted => {
           if (!vcRef.current) throw new Error("The call is reconnecting. Try again.");
@@ -1513,7 +1539,7 @@ function EncounterInner() {
               (never unmounts) while chat takes the screen. */}
           {gameOpen && GAMES_ENABLED && (
             <section data-testid="encounter-game-stage" className={`gg-encounter-game ${cameraStyles.companion}`} hidden={chatTakesStage && chatOpen} aria-label="Encounter games">
-              <GamePanel squadId={squadId} encounter={{ encounterId: encId }} onClose={() => setGameOpen(false)} onPresentation={handlePresentation} onCameraScene={handleCameraScene} layout={layoutOverride} onLayoutChange={setLayoutOverride} floatingCall={effectiveLayout === "floating" ? { collapsed: callCollapsed, onExpand: () => toggleFloatingCall(false), expandButtonRef: callExpandRef } : undefined} voice={{ mic: mapCaptureToVoiceMic(captureState.audio), onEnableMic: toggleMic }} />
+              <GamePanel initialLibrary={initialLibrary} initialGame={initialGame} squadId={squadId} encounter={{ encounterId: encId }} onClose={() => setGameOpen(false)} onPresentation={handlePresentation} onCameraScene={handleCameraScene} layout={layoutOverride} onLayoutChange={setLayoutOverride} floatingCall={effectiveLayout === "floating" ? { collapsed: callCollapsed, onExpand: () => toggleFloatingCall(false), expandButtonRef: callExpandRef } : undefined} voice={{ mic: mapCaptureToVoiceMic(captureState.audio), onEnableMic: toggleMic }} />
             </section>
           )}
           {/* ── VIDEO STAGE ─────────────────────────────────────────────── */}
@@ -1770,6 +1796,8 @@ function EncounterInner() {
               opacity: 1,
             }}
           >
+            <ScreenShareButton client={vcRef.current} capture={captureState} disabled={!videoJoined || videoRetrying}
+              onStart={() => squadCall.startScreenShare(squadId)} onStop={() => squadCall.stopScreenShare(squadId)} onError={setVideoError} />
             {ctrlBtns.map(({ id, icon, active, danger, onClick, title, badge }) => {
               const hovered = hoveredCtrl === id;
               const off = danger && active === false;

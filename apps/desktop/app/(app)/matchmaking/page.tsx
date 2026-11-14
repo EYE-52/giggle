@@ -199,7 +199,7 @@ function MatchmakingInner() {
 
   const mine = squad ? {
     name: squad.squadName,
-    people: squad.members.map(member => ({ userId: member.userId, uid: member.uid, displayName: member.displayName, avatar: member.avatar })),
+    people: squad.members.map(member => ({ userId: member.userId, uid: member.uid, screenSharing: member.screenSharing, screenSharingExpiresAt: member.screenSharingExpiresAt, displayName: member.displayName, avatar: member.avatar })),
   } : null;
   const status = matchFound
     ? `Found ${matchFound.opponentName ?? "a squad"}…`

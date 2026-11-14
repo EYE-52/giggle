@@ -1,10 +1,8 @@
 import type { Metadata } from "next";
+import { publicPageMetadata } from "@/lib/siteMetadata";
 import { LegalPage } from "@/components/LegalPage";
 
-export const metadata: Metadata = {
-  title: "Privacy · Giggle",
-  description: "How Giggle handles data for squad discovery, matching, video sessions, and safety.",
-};
+export const metadata: Metadata = publicPageMetadata("/privacy");
 
 const sections = [
   {

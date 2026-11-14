@@ -31,6 +31,7 @@ import "./skins/soft-real.css";
 import "./meet-theme.css";
 import "./call-room.css";
 import { SketchLayer } from "@/components/SketchLayer";
+import { publicPageMetadata, SITE_NAME, SITE_ORIGIN } from "@/lib/siteMetadata";
 
 const cabinet = localFont({
   src: [
@@ -76,16 +77,16 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: "Giggle — Good to be together",
-  description: "A little place to hang out with your people. Start a squad, share an invite, and settle into a group video call.",
+  ...publicPageMetadata("/"),
+  metadataBase: new URL(SITE_ORIGIN),
   manifest: "/manifest.webmanifest",
-  applicationName: "Giggle",
+  applicationName: SITE_NAME,
   // Installable, fullscreen "Add to Home Screen" behaviour on iOS — makes the
   // web app launch chrome-less like a native app, with a translucent status bar
   // over the app's own header.
   appleWebApp: {
     capable: true,
-    title: "Giggle",
+    title: SITE_NAME,
     statusBarStyle: "black-translucent",
   },
   formatDetection: { telephone: false },

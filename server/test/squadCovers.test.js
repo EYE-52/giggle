@@ -1,3 +1,7 @@
+// Source metadata has its own Redis integration and socket authorization tests.
+const memberMedia = require('../src/services/memberMediaService');
+memberMedia.publicState = async () => ({screenSharing:false, screenSharingExpiresAt:0});
+memberMedia.clearMember = async () => false;
 // Env must be set before any src module (appConfig reads it at load time).
 process.env.JWT_SECRET = process.env.JWT_SECRET || "test-secret";
 process.env.MONGODB_URI = process.env.MONGODB_URI || "mongodb://127.0.0.1:27017/giggle-test";

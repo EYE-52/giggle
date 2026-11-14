@@ -299,3 +299,5 @@
 @container (max-height: 120px) {
   .face { top: 36%; width: min(44cqw, 44cqh); }
 }
+
+.seat[data-video-source=screen] .video video { object-fit:contain !important; transform:none !important; }

@@ -223,7 +223,7 @@ export function parseGamesUrl(raw: string | undefined, nodeEnv = process.env.NOD
 
 // Embed src for the iframe: embed mode + our exact origin so the child can
 // enforce origin/source. The ticket is NEVER a query param.
-export function buildEmbedUrl(gameUrl: string, parentOrigin: string): string | null {
+export function buildEmbedUrl(gameUrl: string, parentOrigin: string, initialGame?: string | null, initialLibrary = false): string | null {
   const parsed = parseGamesUrl(gameUrl);
   if (!parsed) return null;
   let parent: URL;
@@ -233,5 +233,6 @@ export function buildEmbedUrl(gameUrl: string, parentOrigin: string): string | n
     return null;
   }
   if (parent.origin !== parentOrigin) return null;
-  return `${parsed.gamesUrl}/?embed=1&parentOrigin=${encodeURIComponent(parent.origin)}`;
+  const selection = initialGame && initialGame.length <= 48 && /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(initialGame) ? `&game=${encodeURIComponent(initialGame)}` : initialLibrary ? "&games=1" : "";
+  return `${parsed.gamesUrl}/?embed=1&parentOrigin=${encodeURIComponent(parent.origin)}${selection}`;
 }

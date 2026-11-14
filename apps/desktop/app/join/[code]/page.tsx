@@ -1,4 +1,5 @@
 "use client";
+import { readGamesIntent, readGameIntent, withGameIntent } from "@/lib/gameIntent";
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
@@ -40,7 +41,7 @@ export default function JoinByLinkPage() {
           try { await session.devSignIn(); } catch { /* fall through to signin */ }
         }
         if (!session.isAuthed()) {
-          router.replace(`/signin?next=${encodeURIComponent(`/join/${code}`)}`);
+          router.replace(`/signin?next=${encodeURIComponent(withGameIntent(`/join/${code}`, readGameIntent(window.location.search), readGamesIntent(window.location.search)))}`);
           return;
         }
       }
@@ -68,7 +69,7 @@ export default function JoinByLinkPage() {
         }
         const joinedId = (squad as { squadId?: string }).squadId;
         if (!joinedId) throw new Error("Couldn't open that squad's lobby.");
-        router.replace(`/lobby?squad=${joinedId}`);
+        router.replace(withGameIntent(`/lobby?squad=${joinedId}`, readGameIntent(window.location.search), readGamesIntent(window.location.search)));
       } catch (e: unknown) {
         if (cancelled) return;
         setErrorMsg((e as { message?: string })?.message || "Couldn't join that squad — the code may be wrong or the squad is full.");
@@ -87,7 +88,7 @@ export default function JoinByLinkPage() {
       try {
         const result = await api.mySquads();
         const joined = result.squads.find(squad => squad.squadCode === code);
-        if (!cancelled && joined) router.replace(`/lobby?squad=${joined.squadId}`);
+        if (!cancelled && joined) router.replace(withGameIntent(`/lobby?squad=${joined.squadId}`, readGameIntent(window.location.search), readGamesIntent(window.location.search)));
       } catch { /* Keep the request screen; retry on the next poll. */ }
     };
     void check();

@@ -4,6 +4,8 @@ import { session } from "@giggle/core";
 import { squadCall, useSquadCall } from "@/lib/squadCall";
 import { describeVideoError } from "@/lib/videoError";
 import { ParticipantVideoTile } from "./ParticipantVideoTile";
+import { ScreenShareButton } from "./ScreenShareButton";
+import { isScreenSharing, useScreenSharingClock } from "@/lib/screenShareView";
 import { Button } from "./Button";
 import { Icon } from "./Icons";
 import type { FaceOffPerson } from "./FaceOff";
@@ -12,6 +14,8 @@ import styles from "./SquadCallPanel.module.css";
 /** The same squad call and capture sources used by lobby and encounter. */
 export function SquadCallPanel({ squadId, people }: { squadId: string; people: FaceOffPerson[] }) {
   const media = useSquadCall(squadId);
+  const now = useScreenSharingClock(people);
+  const screenOn = media.capture.screen === "active";
   const micOn = media.capture.audio === "active", camOn = media.capture.video === "active";
   const [error, setError] = useState("");
   const busyRef = useRef(false);
@@ -39,11 +43,11 @@ export function SquadCallPanel({ squadId, people }: { squadId: string; people: F
       {people.map((person, index) => {
         const isMe = person.userId === session.user?.id;
         const remote = media.remotes.find(remote => String(remote.uid) === String(person.uid));
-        const hasVideo = isMe ? camOn : !!remote?.hasVideo;
+        const hasVideo = isMe ? screenOn || camOn : !!remote?.hasVideo;
         const uid = isMe ? media.uid : person.uid;
         return <div key={person.userId ?? index} className={styles.tile}>
           <ParticipantVideoTile name={person.displayName} colorIndex={index} avatarValue={person.avatar ?? undefined}
-            isLocal={isMe} hasVideo={hasVideo} micOn={isMe ? micOn : remote?.hasAudio}
+            isLocal={isMe} hasVideo={hasVideo} screenSharing={isMe ? screenOn : isScreenSharing(person, now)} micOn={isMe ? micOn : remote?.hasAudio}
             isSpeaking={uid != null && speaking.includes(String(uid))} mutedForMe={remote?.mutedForMe}
             videoRef={element => {
               if (!element || !hasVideo) return;
@@ -64,6 +68,8 @@ export function SquadCallPanel({ squadId, people }: { squadId: string; people: F
         aria-label={camOn ? "Turn camera off" : "Turn camera on"} onClick={() => void toggle("video")}>
         {camOn ? <Icon.cam size={19} /> : <Icon.camOff size={19} />}<span>{camOn ? "Camera" : "Camera off"}</span>
       </button>
+      <ScreenShareButton client={media.client} capture={media.capture} disabled={media.pending || !media.joined}
+        onStart={() => squadCall.startScreenShare(squadId)} onStop={() => squadCall.stopScreenShare(squadId)} onError={setError} />
       {!media.joined && !media.pending && <Button size="sm" variant="secondary" onClick={() => {
         setError(""); void squadCall.connect(squadId, null, { audio: true, video: true }).catch(error => setError(describeVideoError(error)));
       }}>Start squad call</Button>}

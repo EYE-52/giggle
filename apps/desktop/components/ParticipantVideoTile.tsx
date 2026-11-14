@@ -13,7 +13,7 @@ type Fit = "fit" | "crop";
 type Props = {
   name: string; colorIndex: number; micOn?: boolean; isLocal?: boolean; isSpeaking?: boolean;
   videoRef?: (el: HTMLDivElement | null) => void;
-  hasVideo: boolean; mutedForMe?: boolean; onMute?: (muted: boolean) => Promise<void>;
+  hasVideo: boolean; screenSharing?: boolean; mutedForMe?: boolean; onMute?: (muted: boolean) => Promise<void>;
   onClick?: () => void; focused?: boolean; showFocusHint?: boolean; compact?: boolean;
   fit?: Fit; backdrop?: boolean; animClass?: string; avatarValue?: string; statusText?: string;
   reactions?: { id: number; emoji: string }[];
@@ -50,7 +50,7 @@ function PersonMenu({ anchor, onClose, children, name }: {
 }
 
 /** Stable media host: framing and menus never rejoin, resubscribe or move a track. */
-export function ParticipantVideoTile({ name, colorIndex, micOn, isLocal, isSpeaking, videoRef, hasVideo,
+export function ParticipantVideoTile({ name, colorIndex, micOn, isLocal, isSpeaking, videoRef, hasVideo, screenSharing = false,
   mutedForMe, onMute, onClick, focused, fit: initialFit = "crop", avatarValue, statusText = "Camera off", reactions = [], size }: Props) {
   const host = useRef<HTMLDivElement>(null), button = useRef<HTMLButtonElement>(null);
   const backdrop = useRef<HTMLVideoElement>(null), preview = useRef<HTMLVideoElement>(null);
@@ -120,7 +120,7 @@ export function ParticipantVideoTile({ name, colorIndex, micOn, isLocal, isSpeak
     catch (e) { setError(e instanceof Error ? e.message : "Could not change audio. Try again."); }
     finally { setPending(false); }
   }
-  const frameStyle = { "--person-zoom": zoom } as CSSProperties;
+  const frameStyle = { "--person-zoom": screenSharing ? 1 : zoom } as CSSProperties;
   const chooseFit = (value: Fit) => { setFit(value); setZoom(1); };
   const tileClasses = [
     styles.tile,
@@ -128,14 +128,14 @@ export function ParticipantVideoTile({ name, colorIndex, micOn, isLocal, isSpeak
     hasVideo ? "cam" : "off",
     isSpeaking ? "speaking" : "",
   ].filter(Boolean).join(" ");
-  return <div className={tileClasses} data-media-frame data-local={isLocal} data-media-fit={fit} data-pinned={size?.pinned || undefined} style={frameStyle}>
+  return <div className={tileClasses} data-media-frame data-local={isLocal} data-media-fit={screenSharing ? "fit" : fit} data-video-source={screenSharing ? "screen" : "camera"} data-pinned={size?.pinned || undefined} style={frameStyle}>
     <div className={styles.fallback} aria-hidden={hasVideo}>
       <span className={styles.face}><AvatarArt value={avatarValue || name} size="fill" /></span>
       <span>{statusText}</span>
     </div>
-    {hasVideo && fit === "fit" && <video ref={backdrop} data-media-backdrop className={styles.backdrop} muted playsInline aria-hidden="true" />}
+    {hasVideo && !screenSharing && fit === "fit" && <video ref={backdrop} data-media-backdrop className={styles.backdrop} muted playsInline aria-hidden="true" />}
     <div ref={el => { host.current = el; videoRef?.(el); }} data-media-host className={styles.media} style={{ visibility: hasVideo ? "visible" : "hidden" }} />
-    <span className={`${styles.name} vname`}><span className={styles.personName}>{isLocal ? "You" : name}</span>{micOn === false && <span aria-label="Microphone off"> · Mic off</span>}{mutedForMe && <span aria-label="Muted for you"> · Muted for you</span>}{isSpeaking && !mutedForMe && <span className={styles.speaking} aria-label="Speaking" />}</span>
+    <span className={`${styles.name} vname`}><span className={styles.personName}>{screenSharing ? (isLocal ? "Your screen" : `${name} · Screen`) : isLocal ? "You" : name}</span>{micOn === false && <span aria-label="Microphone off"> · Mic off</span>}{mutedForMe && <span aria-label="Muted for you"> · Muted for you</span>}{isSpeaking && !mutedForMe && <span className={styles.speaking} aria-label="Speaking" />}</span>
     <button ref={button} type="button" className={styles.trigger} aria-label={`${isLocal ? "Your" : `${name}'s`} options`} aria-haspopup="dialog" aria-expanded={panel !== null}
       onClick={e => {
         if (!size || e.detail === 0) { openMenu(); return; } // keyboard opens at once
@@ -144,22 +144,22 @@ export function ParticipantVideoTile({ name, colorIndex, micOn, isLocal, isSpeak
       }}
       onDoubleClick={() => { if (clickTimer.current) { clearTimeout(clickTimer.current); clickTimer.current = null; } size?.cycle(); }}><span className={`${styles.dots} vdots`} aria-hidden="true">•••</span></button>
     {size && <div className={`${styles.sizeBar} vsize`} role="group" aria-label={`${isLocal ? "Your" : `${name}'s`} tile size`} data-open={size.pinned || size.weight > 1 || undefined}>
-      <button type="button" aria-label={`Make ${isLocal ? "yourself" : name} smaller`} disabled={!size.canShrink} onClick={size.shrink}><Icon.minus size={16} weight="bold" /></button>
-      <button type="button" aria-label={`Make ${isLocal ? "yourself" : name} bigger`} disabled={!size.canGrow} onClick={size.grow}><Icon.plus size={16} weight="bold" /></button>
-      <button type="button" aria-label={size.pinned ? `Let ${isLocal ? "your" : `${name}'s`} size change again` : `Keep ${isLocal ? "your" : `${name}'s`} size`} aria-pressed={size.pinned} onClick={size.togglePin}><Icon.pin size={16} weight={size.pinned ? "fill" : "bold"} color="currentColor" /></button>
+      <button type="button" aria-label={size.screenMode ? "Restore screen and people" : `Make ${isLocal ? "yourself" : name} smaller`} disabled={!size.canShrink} onClick={size.shrink}><Icon.minus size={16} weight="bold" /></button>
+      <button type="button" aria-label={size.screenMode ? "Expand screen" : `Make ${isLocal ? "yourself" : name} bigger`} disabled={!size.canGrow} onClick={size.grow}><Icon.plus size={16} weight="bold" /></button>
+      <button type="button" aria-label={size.screenMode ? `Focus ${isLocal ? "your screen" : `${name}’s screen`}` : size.pinned ? `Let ${isLocal ? "your" : `${name}'s`} size change again` : `Keep ${isLocal ? "your" : `${name}'s`} size`} aria-pressed={size.pinned} onClick={size.togglePin}><Icon.pin size={16} weight={size.pinned ? "fill" : "bold"} color="currentColor" /></button>
     </div>}
     <div className={styles.reactions} aria-live="polite">{reactions.map(r => <span key={r.id} data-reaction aria-label={reactionLabel(r.emoji)}><ReactionGlyph value={r.emoji} size={26} /></span>)}</div>
     {panel === "menu" && <PersonMenu anchor={button.current} onClose={() => setPanel(null)} name={isLocal ? "You" : name}>
-      <button disabled={!hasVideo} onClick={() => setPanel("framing")}>Adjust view{!hasVideo && <small>Camera off</small>}</button>
+      <button disabled={!hasVideo || screenSharing} onClick={() => setPanel("framing")}>Adjust view{screenSharing && <small>Screen always shown in full</small>}{!hasVideo && <small>Camera off</small>}</button>
       {!isLocal && <button disabled={!onMute || pending} onClick={() => void mute()}>{pending ? "Updating…" : mutedForMe ? "Unmute for me" : "Mute for me"}</button>}
-      {size && <button disabled={!size.canGrow} onClick={() => { size.grow(); setPanel(null); }}>Make bigger{size.pinned && <small>Size is kept</small>}</button>}
-      {size && <button disabled={!size.canShrink} onClick={() => { size.shrink(); setPanel(null); }}>Make smaller</button>}
-      {size && <button aria-pressed={size.pinned} onClick={() => { size.togglePin(); setPanel(null); }}>{size.pinned ? "Let size change again" : "Keep this size"}<small>{size.pinned ? "Others can resize around them" : "Stays put while you resize others"}</small></button>}
+      {size && <button disabled={!size.canGrow} onClick={() => { size.grow(); setPanel(null); }}>{size.screenMode ? "Expand screen" : "Make bigger"}{!size.screenMode && size.pinned && <small>Size is kept</small>}</button>}
+      {size && <button disabled={!size.canShrink} onClick={() => { size.shrink(); setPanel(null); }}>{size.screenMode ? "Restore screen and people" : "Make smaller"}</button>}
+      {size && <button aria-pressed={size.pinned} onClick={() => { size.togglePin(); setPanel(null); }}>{size.screenMode ? "Focus this screen" : size.pinned ? "Let size change again" : "Keep this size"}<small>{size.screenMode ? "Only your view changes" : size.pinned ? "Others can resize around them" : "Stays put while you resize others"}</small></button>}
       {!size && onClick && <button onClick={() => { setPanel(null); onClick(); }}>{focused ? "Back to grid" : "Focus on this person"}</button>}
       {error && <p role="alert">{error}</p>}
       {!isLocal && <p>Listening changes affect only you.</p>}
     </PersonMenu>}
-    {panel === "framing" && <Modal title={isLocal ? "Your view" : `${name}'s view`} subtitle="Adjust what you see. Everyone else's view stays the same." onClose={() => setPanel(null)} width={380} style={{ animation: "none" } as CSSProperties}>
+    {panel === "framing" && !screenSharing && <Modal title={isLocal ? "Your view" : `${name}'s view`} subtitle="Adjust what you see. Everyone else's view stays the same." onClose={() => setPanel(null)} width={380} style={{ animation: "none" } as CSSProperties}>
       <div className={styles.settings}>
         <div className={styles.preview} style={{ aspectRatio: ratio, width: `min(100%, ${Math.min(220 * ratio, 336)}px)` }}><video ref={preview} muted playsInline aria-label={`${name}, framing preview`} style={{ objectFit: fit === "fit" ? "contain" : "cover", transform: `scale(${zoom})${isLocal ? " scaleX(-1)" : ""}` }} /></div>
         <div className={styles.fit}><button aria-pressed={fit === "fit"} onClick={() => chooseFit("fit")}>Full view</button><button aria-pressed={fit === "crop"} onClick={() => chooseFit("crop")}>Fill</button></div>
