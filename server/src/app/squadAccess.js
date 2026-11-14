@@ -65,7 +65,7 @@ const memberJoinedAtMs = (squad, identity) => {
 
 // Find ALL squads the identity belongs to, sorted newest-first by the
 // requester's own membership (most recently joined/created first).
-const findSquadsForIdentity = async ({ userId, providerAccountId, excludeSquadId } = {}) => {
+const findSquadsForIdentity = async ({ userId, providerAccountId, excludeSquadId, metadataQuery = {} } = {}) => {
   const orConditions = [];
 
   if (userId) {
@@ -81,6 +81,7 @@ const findSquadsForIdentity = async ({ userId, providerAccountId, excludeSquadId
   }
 
   const query = {
+    ...metadataQuery,
     members: {
       $elemMatch: {
         $or: orConditions,
@@ -110,6 +111,7 @@ const getSquadAccessContext = async ({ squadId, identity }) => {
     return { error: { status: 404, code: "SQUAD_NOT_FOUND", message: "Squad not found" } };
   }
 
+  if ((squad.bannedMembers || []).some(member => String(member.userId) === String(identity.userId))) return {error:{status:403,code:"GROUP_BANNED",message:"This group is unavailable."}};
   const memberIndex = squad.members.findIndex((member) => isSameMember(member, identity));
   if (memberIndex === -1) {
     return { error: { status: 403, code: "FORBIDDEN", message: "Not a member of this squad" } };
@@ -130,12 +132,15 @@ const getSquadAccessContext = async ({ squadId, identity }) => {
 
 const deleteSquadAndNotifications = async (squad) => {
   const sessionService = require("../services/sessionService");
+  const guarded = require("../services/squadAdmissionService").isAdmissionGuarded(squad);
+  // A failed version fence must not erase notifications for a newer group.
+  if (guarded) await squad.deleteOne();
   await deleteNotifications({ squadId: squad.squadId });
   await Promise.all((squad.members || []).map(member =>
     require('../services/memberMediaService').clearMember(member.userId, member.memberId)
   ));
   await sessionService.clearSquadSession(squad.squadId);
-  await squad.deleteOne();
+  if (!guarded) await squad.deleteOne();
   await deleteSquadCoversQuietly(squad.squadId);
 };
 

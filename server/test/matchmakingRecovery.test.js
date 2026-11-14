@@ -1,3 +1,6 @@
+require('../src/services/memberMediaService').clearMember = async () => false;
+require('../src/config/redisConfig').redis.hkeys = async () => [];
+require('../src/config/redisConfig').redis.hdel = async () => 0;
 const assert = require("node:assert/strict");
 const { after, afterEach, test } = require("node:test");
 
@@ -537,7 +540,7 @@ test("disbanding mid-call ends the encounter and requeues the other squad", asyn
   stubLock();
 
   const res = response();
-  await disbandSquadHandler({ squadAccess: { isLeader: true, squad: disbanding } }, res);
+  await disbandSquadHandler({ user:{userId:USER_A}, squadAccess: { isLeader: true, squad: disbanding } }, res);
 
   assert.equal(res.statusCode, 200);
   assert.equal(statuses.get("enc_live"), "ended");

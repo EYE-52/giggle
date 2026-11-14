@@ -315,3 +315,34 @@ export function sendMemberMedia(input: MemberMediaInput): Promise<MemberMediaRes
     s.timeout(5000).emit(SOCKET_EMIT.MEMBER_MEDIA, input, (error: Error | null, result: MemberMediaResult) => resolve(error ? {ok:false, error:"TIMEOUT"} : result));
   });
 }
+
+
+/** Scoped to an actively viewed group; call the returned cleanup on route exit. */
+export function activateGroupPresence(squadId: string): () => void {
+  const socket = connectSocket(squadId);
+  let retired = false, generation: string | undefined;
+  let operation: Promise<void> = Promise.resolve();
+  const send = (action: "begin" | "update" | "end", ownedGeneration?: string) => new Promise<{ok:boolean;generation?:string}>(resolve => {
+    if (!socket.connected) return resolve({ok:false});
+    socket.timeout(5000).emit("group_presence", {squadId,action,generation:ownedGeneration}, (error:Error|null,result:{ok:boolean;generation?:string}) => resolve(error ? {ok:false} : result));
+  });
+  const refresh = () => {
+    if (retired) return;
+    operation = operation.then(async () => {
+      if (retired || !socket.connected) return;
+      const result = await send(generation ? "update" : "begin",generation);
+      if (result.ok) generation = result.generation ?? generation;
+      else generation = undefined;
+    });
+  };
+  const reconnect = () => { generation = undefined;refresh(); };
+  socket.on("connect",reconnect);
+  const timer = setInterval(refresh,25_000);
+  if (typeof document !== "undefined") document.addEventListener("visibilitychange",refresh);
+  refresh();
+  return () => {
+    retired = true;clearInterval(timer);socket.off("connect",reconnect);
+    if (typeof document !== "undefined") document.removeEventListener("visibilitychange",refresh);
+    void operation.then(() => generation ? send("end",generation).then(() => {}) : undefined);
+  };
+}

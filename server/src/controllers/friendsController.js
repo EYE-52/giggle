@@ -1,3 +1,4 @@
+const { aliasGroup,groupHandle,groupAlias,resolveGroupMember } = require("../services/groupIdentityService");
 const mongoose = require("mongoose");
 const User = require("../models/User");
 const { Squad } = require("../models/Squad");
@@ -399,7 +400,14 @@ const blockUsers = async (req, res) => {
   if (!requestedIds) return err(res, 400, "INVALID_REQUEST", "Provide 1 to 8 unique valid account ids");
 
   try {
-    const resolution = await resolveEncounterOpaqueIds({
+    let groupResolution;
+    if (req.body?.squadId) {
+      const squad=await Squad.findOne({squadId:req.body.squadId,"members.userId":myId});
+      const targets=squad ? requestedIds.map(id=>resolveGroupMember(squad,id)) : [];
+      if (!squad || targets.length!==requestedIds.length || targets.some(member=>!member)) return err(res,404,"NOT_FOUND","One or more accounts were not found");
+      groupResolution={userIds:targets.map(member=>String(member.userId)),anonymousTargets:aliasGroup(squad)?targets.map(member=>({userId:String(member.userId),handle:groupHandle(squad,member),alias:groupAlias(member)})):[]};
+    }
+    const resolution = groupResolution || await resolveEncounterOpaqueIds({
       ids: requestedIds,
       encounterId: req.body?.encounterId,
       requesterId: myId,

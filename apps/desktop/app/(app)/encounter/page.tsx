@@ -1,4 +1,7 @@
 "use client";
+import { useNormalPrivateChats } from "@/components/groups/useNormalPrivateChats";
+import {groupViewerId,isOwnGroupMember} from "@giggle/core";
+import {useGroupPresence} from "@/lib/useGroupPresence";
 import { readGamesIntent, readGameIntent } from "@/lib/gameIntent";
 import { describeVideoError } from "@/lib/videoError";
 import { useState, useEffect, useRef, useCallback, Suspense, type CSSProperties } from "react";
@@ -188,6 +191,8 @@ function EncounterInner() {
   const router = useRouter();
   const params = useSearchParams();
   const squadId = params.get("squad") ?? "";
+  const privateChats=useNormalPrivateChats(squadId || undefined);
+  useGroupPresence(squadId);
   const encId = params.get("enc") ?? "";
 
   const [chatOpen, setChatOpen] = useState(false);
@@ -705,7 +710,8 @@ function EncounterInner() {
 
   const myMembers = mySquad?.members ?? [];
   const oppMembers = oppSquad?.members ?? [];
-  const myUserId = session.user?.id ?? "";
+  useEffect(()=>{if(!encounter)return;void vcRef.current?.setAllowedRemoteUids?.([...encounter.squadAMembers,...encounter.squadBMembers].filter(member=>!isOwnGroupMember(encounter,member,session.user?.id)).flatMap(member=>member.uid===undefined?[]:[member.uid])).catch(()=>setVideoError("Could not update room playback. Reconnect your call."));},[encounter?.squadAMembers,encounter?.squadBMembers,videoJoined]);
+  const myUserId = groupViewerId(encounter,session.user?.id);
   // When the user stays anonymous with other squads, remind them which name
   // the other squad sees (own-squad rosters carry the alias).
   const myMember = myMembers.find((m) => m.userId === myUserId);
@@ -1116,6 +1122,7 @@ function EncounterInner() {
         hasVideo={hasVideoFor(person)}
         screenSharing={person.isLocal ? screenOn : isScreenSharing(person, screenClock)}
         mutedForMe={remoteFor(person.uid)?.mutedForMe}
+        onInvitePrivateChat={!person.isLocal && myMembers.some(member=>member.userId===person.id) ? ()=>privateChats.invite(myMembers.find(member=>member.userId===person.id)!.memberId) : undefined}
         onMute={!person.isLocal && person.uid != null && remoteFor(person.uid) ? async muted => {
           if (!vcRef.current) throw new Error("The call is reconnecting. Try again.");
           await vcRef.current.setRemoteAudioMuted(person.uid!, muted);
@@ -1312,6 +1319,7 @@ function EncounterInner() {
 
   const moreActions = moreOpen ? (
     <div ref={moreMenuRef} role="group" aria-label="More call actions" className="gg-call-menu" data-placement={isPhoneChrome ? "center" : "end"}>
+      <button type="button" onClick={()=>{closeMore(false);privateChats.show();}}>Private chats{privateChats.count?` (${privateChats.count})`:""}</button>
       <div className="gg-call-menu-reactions">{reactionChoices(() => closeMore(true))}</div>
       <button type="button" onClick={() => { setReportError(""); closeMore(false); setReportOpen(true); }} disabled={reported || reporting} data-tone={reported ? "ok" : undefined}>
         <Icon.flag size={18} color="currentColor" />
@@ -1729,6 +1737,7 @@ function EncounterInner() {
           {/* Kept mounted so closing chat preserves drafts and never moves video hosts. */}
           <aside className="gg-encounter-chat" hidden={!chatOpen} aria-label="Call chat">
             <ChatPanel
+              externalUserId={myUserId}
               active={chatOpen}
               scope={chatScope}
               title="Chat"
@@ -1900,6 +1909,7 @@ function EncounterInner() {
             </button>
           </div>
           {isPhoneChrome && moreActions}
+          {privateChats.panel}
         </div>
       </div>
 

@@ -18,7 +18,7 @@ export function FaceOffBar({ onBack, backLabel, title, busy = false }: { onBack:
   );
 }
 
-export type FaceOffPerson = { userId?: string; uid?: number; screenSharing?: boolean; screenSharingExpiresAt?: number; displayName: string; avatar?: string | null };
+export type FaceOffPerson = { userId?: string; isSelf?:boolean; uid?: number; screenSharing?: boolean; screenSharingExpiresAt?: number; displayName: string; avatar?: string | null };
 export type FaceOffSide = { name: string; people: FaceOffPerson[] };
 
 /**
@@ -65,14 +65,14 @@ function Side({ side, placeholder = "", kind, content }: { side: FaceOffSide | n
         {side
           ? people.map((person, index) => (
               <span key={person.userId ?? `${person.displayName}-${index}`} className={styles.face} title={person.displayName}>
-                <PersonAvatar userId={person.userId} name={person.displayName} avatar={person.avatar} isMe={!!me && person.userId === me} size="fill" />
+                <PersonAvatar userId={person.userId} name={person.displayName} avatar={person.avatar} isMe={person.isSelf || !!me && person.userId === me} size="fill" />
               </span>
             ))
           : Array.from({ length: 3 }, (_, index) => <span key={index} className={`${styles.face} ${styles.empty}`} style={{ animationDelay: `${index * 0.35}s` }} />)}
       </div>}
       <div className={styles.name}>{side ? side.name : placeholder || " "}</div>
       <div className={`muted ${styles.who}`}>
-        {side ? people.map(person => (person.userId && person.userId === me ? "You" : person.displayName)).join(", ") : " "}
+        {side ? people.map(person => (person.isSelf || person.userId && person.userId === me ? "You" : person.displayName)).join(", ") : " "}
       </div>
     </section>
   );

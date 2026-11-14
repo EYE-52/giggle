@@ -1,7 +1,12 @@
+require('../src/services/queueService').removeFromQueue = async () => {};
+require('../src/config/redisConfig').redis.del = async () => 0;
 // Source metadata has its own Redis integration and socket authorization tests.
 const memberMedia = require('../src/services/memberMediaService');
 memberMedia.publicState = async () => ({screenSharing:false, screenSharingExpiresAt:0});
 memberMedia.clearMember = async () => false;
+require('../src/services/groupPresenceService').onlineUserIds = async () => new Set();
+require('../src/config/redisConfig').redis.hkeys = async () => [];
+require('../src/config/redisConfig').redis.hdel = async () => 0;
 const assert = require("node:assert/strict");
 const { readFileSync } = require("node:fs");
 const path = require("node:path");

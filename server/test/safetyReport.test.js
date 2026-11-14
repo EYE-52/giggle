@@ -23,8 +23,9 @@ test("SafetyReport stores only the bounded review record with an idempotency ind
 
   const uniqueIndex = SafetyReport.schema.indexes().find(([fields, options]) =>
     fields.reporterUserId === 1 &&
-    fields.encounterId === 1 &&
-    fields.targetSquadId === 1 &&
+    fields.scope === 1 &&
+    fields.scopeId === 1 &&
+    fields.targetKey === 1 &&
     options.unique === true
   );
   assert.ok(uniqueIndex);

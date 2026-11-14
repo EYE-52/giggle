@@ -22,9 +22,9 @@ async function authorizeSquadRoomJoin({ squadId, userId, isProduction, Squad, Us
     "members.userId": String(userId),
   });
 
-  if (!squad) return { allowed: false };
+  if (!squad || (squad.bannedMembers || []).some(member=>String(member.userId)===String(userId))) return { allowed: false };
   const blocked = await anyBlockedPair(squad.members.map((member) => member.userId), { User });
-  return blocked ? { allowed: false } : { allowed: true, room };
+  return blocked ? { allowed: false } : { allowed: true, room, squad };
 }
 
 async function authorizeEncounterRoomJoin({ encounterId, userId, isProduction, Squad, Encounter, User }) {

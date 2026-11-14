@@ -1,3 +1,4 @@
+const { aliasGroup, groupHandle, groupAlias } = require("../services/groupIdentityService");
 const express = require("express");
 const { issueGameTicket, issueEncounterGameTicket, getGamesConfig } = require("../services/gameBridgeService");
 const { anyBlockedPair } = require("../services/interactionSafetyService");
@@ -43,8 +44,8 @@ const postGameTokenHandler = async (req, res) => {
     const displayName = member.displayName || identity.name || "Player";
     const { ticket, gameUrl } = issueGameTicket({
       squadId: squad.squadId,
-      userId,
-      displayName,
+      userId:aliasGroup(squad) ? groupHandle(squad,member) : userId,
+      displayName:aliasGroup(squad) ? groupAlias(member) : displayName,
     });
 
     return res.status(200).json({
@@ -193,6 +194,7 @@ const postEncounterGameTokenHandler = async (req, res) => {
     const seat = publicEncounterIdentity({
       viewerSquadId: otherSquad.squadId,
       memberSquadId: ownSquad.squadId,
+      identityMode: ownSquad.identityMode,
       member,
       user: identityUserFor(users, member.userId),
       encounterId,

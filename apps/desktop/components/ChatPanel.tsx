@@ -39,6 +39,7 @@ function relTime(ts: number): string {
 
 export function ChatPanel({
   scope,
+  externalUserId,
   onClose,
   title = "Chat",
   active = true,
@@ -53,6 +54,7 @@ export function ChatPanel({
   draft?: string;
   onDraftChange?: (value: string) => void;
   scope: ChatScope;
+  externalUserId?:string;
   onClose?: () => void;
   title?: string;
   active?: boolean;
@@ -77,7 +79,7 @@ export function ChatPanel({
   const nearBottomRef = useRef(true);
   const lastMessageKeyRef = useRef<string | null>(null);
   const sentMessageRef = useRef(false);
-  const myId = session.user?.id;
+  const myId = externalUserId ?? session.user?.id;
   const allMessages = controlledMessages ?? localMessages;
   const controlled = controlledMessages !== undefined;
 
@@ -179,7 +181,7 @@ export function ChatPanel({
     const sent = onSend
       ? onSend(text)
       : sendChatMessage(scope, text, {
-          id: session.user?.id ?? "",
+          id: myId ?? "",
           name: session.user?.name ?? "You",
         });
     if (!sent) {

@@ -42,6 +42,10 @@ export interface Encounter {
 }
 
 export interface AgoraToken {
+  /** Server grants audio publication only; never acquire camera/display. */
+  audioOnly?: boolean;
+  /** Initial server-authorized receiving roster, refreshed by the call view. */
+  allowedRemoteUids?: Array<string | number>;
   appId: string;
   channelName: string;
   rtcToken: string;

@@ -1,7 +1,12 @@
+require("../src/config/redisConfig").redlock.using = async (_resources, _duration, work) => work({aborted:false});
+require('../src/config/redisConfig').redlock.acquire = async () => ({release:async()=>{}});
 // Source metadata has its own Redis integration and socket authorization tests.
 const memberMedia = require('../src/services/memberMediaService');
 memberMedia.publicState = async () => ({screenSharing:false, screenSharingExpiresAt:0});
 memberMedia.clearMember = async () => false;
+require('../src/services/groupPresenceService').onlineUserIds = async () => new Set();
+require('../src/config/redisConfig').redis.hkeys = async () => [];
+require('../src/config/redisConfig').redis.hdel = async () => 0;
 const assert = require("node:assert/strict");
 const { readFileSync } = require("node:fs");
 const path = require("node:path");
@@ -364,7 +369,7 @@ test("my squad, join, preview and join requests include member avatars with one 
 });
 
 test("approving a join request returns members with avatars", async () => {
-  const originals = { find: User.find, findById: User.findById, deleteMany: Notification.deleteMany };
+  const originals = { find: User.find, findById: User.findById, deleteMany: Notification.deleteMany, squadFindOne: Squad.findOne };
   const squad = {
     squadId: "sq_approve",
     status: "idle",
@@ -372,6 +377,7 @@ test("approving a join request returns members with avatars", async () => {
     joinRequests: [{ userId: OTHER_ID, name: "Requester" }],
     async save() {},
   };
+  Squad.findOne = async () => squad;
   const { find } = mockUserFind(USERS);
   User.find = find;
   User.findById = async (userId) => USERS.find((user) => user._id === String(userId));
@@ -392,6 +398,7 @@ test("approving a join request returns members with avatars", async () => {
     assert.equal("avatar" in res.body.data.member, false);
     assert.equal(squad.members.every((member) => !("avatar" in member)), true);
   } finally {
+    Squad.findOne = originals.squadFindOne;
     User.find = originals.find;
     User.findById = originals.findById;
     Notification.deleteMany = originals.deleteMany;

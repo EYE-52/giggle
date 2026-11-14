@@ -11,7 +11,7 @@ const getConfiguredAdminEmail = () => normalizeAdminEmail(process.env.ADMIN_EMAI
 const ADMIN_USER_FIELDS =
   "_id email name image isApproved ageConfirmed isAdult ageVerified ageVerification.status isSuspended isShadowBanned deletionStatus createdAt";
 const ADMIN_REPORT_FIELDS =
-  "_id reporterUserId reporterSquadId targetSquadId targetUserIds encounterId category details status reviewedBy reviewedAt actionNote createdAt updatedAt";
+  "_id reporterUserId reporterSquadId targetSquadId targetUserIds scope scopeId targetKey encounterId category details status reviewedBy reviewedAt actionNote createdAt updatedAt";
 const REPORT_STATUSES = new Set(["open", "reviewing", "actioned", "dismissed"]);
 
 const toAdminUser = (user) => ({
@@ -59,6 +59,8 @@ const toAdminReport = (report, usersById) => ({
   reporterSquadId: report.reporterSquadId,
   targetSquadId: report.targetSquadId,
   targetUserIds: (report.targetUserIds || []).map(String),
+  scope:report.scope || "encounter",
+  scopeId:report.scopeId || report.encounterId,
   encounterId: report.encounterId,
   category: report.category,
   details: report.details || "",

@@ -31,11 +31,14 @@ export class ApiError extends Error {
 
 export async function backendRequest<T>(
   path: string,
-  options: { method?: string; body?: unknown; timeoutMs?: number } = {}
+  options: { method?: string; body?: unknown; timeoutMs?: number; signal?:AbortSignal } = {}
 ): Promise<T> {
   const token = await tokenGetter();
   const url = `${BACKEND_URL}${path.startsWith("/") ? path : `/${path}`}`;
   const controller = new AbortController();
+  const abort = () => controller.abort(options.signal?.reason);
+  options.signal?.addEventListener("abort",abort,{once:true});
+  if(options.signal?.aborted)abort();
   const timeout = setTimeout(() => controller.abort(), options.timeoutMs ?? 10000);
 
   let res: Response;
@@ -58,10 +61,12 @@ export async function backendRequest<T>(
       // Preserve HTTP handling for a non-JSON response.
     }
   } catch (e: any) {
+    if(options.signal?.aborted)throw new DOMException("Request cancelled.","AbortError");
     const timedOut = controller.signal.aborted || e?.name === "AbortError";
     throw new ApiError("network_error", timedOut ? "Request timed out. Check your connection." : e?.message || "Network request failed", 0);
   } finally {
     clearTimeout(timeout);
+    options.signal?.removeEventListener("abort",abort);
   }
 
   if (!res.ok || (json && json.ok === false)) {

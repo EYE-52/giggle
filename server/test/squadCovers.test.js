@@ -1,7 +1,13 @@
+require("../src/config/redisConfig").redlock.using = async (_resources, _duration, work) => work({aborted:false});
+require('../src/services/queueService').removeFromQueue = async () => {};
+require('../src/config/redisConfig').redis.del = async () => 0;
 // Source metadata has its own Redis integration and socket authorization tests.
 const memberMedia = require('../src/services/memberMediaService');
 memberMedia.publicState = async () => ({screenSharing:false, screenSharingExpiresAt:0});
 memberMedia.clearMember = async () => false;
+require('../src/services/groupPresenceService').onlineUserIds = async () => new Set();
+require('../src/config/redisConfig').redis.hkeys = async () => [];
+require('../src/config/redisConfig').redis.hdel = async () => 0;
 // Env must be set before any src module (appConfig reads it at load time).
 process.env.JWT_SECRET = process.env.JWT_SECRET || "test-secret";
 process.env.MONGODB_URI = process.env.MONGODB_URI || "mongodb://127.0.0.1:27017/giggle-test";
@@ -492,6 +498,7 @@ test("a failed cover save keeps the previous cover; replaced and orphaned images
 
 test("disbanding a squad deletes its stored covers, and storage failures never fail it", async () => {
   const originals = {
+    findOne: Squad.findOne,
     revoke: socketService.revokeUserRealtimeAccess,
     emitUser: socketService.emitToUser,
     error: console.error,
@@ -510,7 +517,8 @@ test("disbanding a squad deletes its stored covers, and storage failures never f
   console.error = () => {};
   const disband = async () => {
     const res = createResponse();
-    await disbandSquadHandler({
+    const request = {
+      user: {userId:LEADER_ID},
       squadAccess: {
         isLeader: true,
         squad: {
@@ -518,10 +526,13 @@ test("disbanding a squad deletes its stored covers, and storage failures never f
           status: "idle",
           coverImage: `upload:${PNG_KEY}`,
           members: [{ memberId: "m1", userId: LEADER_ID, role: "leader" }],
+          save: async () => {},
           deleteOne: async () => {},
         },
       },
-    }, res);
+    };
+    Squad.findOne = async () => request.squadAccess.squad;
+    await disbandSquadHandler(request, res);
     return res;
   };
 
@@ -535,6 +546,7 @@ test("disbanding a squad deletes its stored covers, and storage failures never f
     assert.equal(res.statusCode, 200);
     assert.equal(res.body.data.disbanded, true);
   } finally {
+    Squad.findOne = originals.findOne;
     socketService.revokeUserRealtimeAccess = originals.revoke;
     socketService.emitToUser = originals.emitUser;
     console.error = originals.error;

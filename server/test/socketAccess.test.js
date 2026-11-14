@@ -383,7 +383,9 @@ test("authorizeSquadRoomJoin requires membership for authenticated sockets", asy
     User,
   });
 
-  assert.deepEqual(allowed, { allowed: true, room: "squad_sq_a" });
+  assert.equal(allowed.allowed,true);
+  assert.equal(allowed.room,"squad_sq_a");
+  assert.equal(allowed.squad.squadId,"sq_a");
   assert.equal(denied.allowed, false);
 });
 
@@ -565,7 +567,7 @@ test("chat broadcasts include scope, client ids, and explicit acknowledgements",
   assert.match(messageBlock, /squadId: normalizedSquadId \|\| undefined,/);
   assert.match(messageBlock, /clientMessageId: normalizedClientMessageId \|\| undefined,/);
   assert.match(messageBlock, /reply\(\{ ok: false, error:/);
-  assert.match(messageBlock, /reply\(\{ ok: true, message: delivery\.message \}\);/);
+  assert.match(messageBlock, /reply\(\{ ok: true, message: publicMessage \}\);/);
   assert.match(messageBlock, /claimOrGetChatMessage/);
   assert.match(messageBlock, /redis: getRedisClient\(\)/);
   assert.match(messageBlock, /classifyVibe\(normalizedText\) !== 'ok'/);

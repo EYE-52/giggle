@@ -1,4 +1,5 @@
 "use client";
+import { authContinuationHref } from "@/lib/authLinks";
 import { useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { TopNav } from "@/components/TopNav";
@@ -60,10 +61,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             setAuthReady(true);
           }
         } catch {
-          if (!cancelled) router.replace(`/signin?next=${encodeURIComponent(window.location.pathname + window.location.search)}`);
+          if (!cancelled) router.replace(authContinuationHref(window.location.pathname + window.location.search + window.location.hash));
         }
       } else {
-        router.replace(`/signin?next=${encodeURIComponent(window.location.pathname + window.location.search)}`);
+        router.replace(authContinuationHref(window.location.pathname + window.location.search + window.location.hash));
       }
     }
     ensureSession();

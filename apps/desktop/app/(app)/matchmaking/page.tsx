@@ -1,4 +1,6 @@
 "use client";
+import {groupViewerId,isOwnGroupMember} from "@giggle/core";
+import {useGroupPresence} from "@/lib/useGroupPresence";
 import { useEffect, useState, useRef, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Icon } from "@/components/Icons";
@@ -14,6 +16,7 @@ function MatchmakingInner() {
   const router = useRouter();
   const params = useSearchParams();
   const squadId = params.get("squad") ?? "";
+  useGroupPresence(squadId);
 
   const [elapsed, setElapsed] = useState(0);
   const [squad, setSquad] = useState<SquadState | null>(null);
@@ -194,12 +197,12 @@ function MatchmakingInner() {
 
   // Cancelling the search is leader-only on the server. Other members get a
   // plain way out instead; their lobby would send a searching squad back here.
-  const isNonLeader = !!squad && !squad.members.some(member => member.userId === session.user?.id && member.role === "leader");
+  const isNonLeader = !!squad && !squad.members.some(member => isOwnGroupMember(squad,member,session.user?.id) && member.role === "leader");
   const leaveForHome = () => router.push("/home");
 
   const mine = squad ? {
     name: squad.squadName,
-    people: squad.members.map(member => ({ userId: member.userId, uid: member.uid, screenSharing: member.screenSharing, screenSharingExpiresAt: member.screenSharingExpiresAt, displayName: member.displayName, avatar: member.avatar })),
+    people: squad.members.map(member => ({ userId: member.userId, isSelf:isOwnGroupMember(squad,member,session.user?.id), uid: member.uid, screenSharing: member.screenSharing, screenSharingExpiresAt: member.screenSharingExpiresAt, displayName: member.displayName, avatar: member.avatar })),
   } : null;
   const status = matchFound
     ? `Found ${matchFound.opponentName ?? "a squad"}…`
@@ -215,7 +218,7 @@ function MatchmakingInner() {
         ? <FaceOffBar onBack={leaveForHome} backLabel="Back to home" title={squad?.squadName} busy={!!matchFound} />
         : <FaceOffBar onBack={handleCancel} backLabel="Back to lobby" title={squad?.squadName} busy={cancelling || !!matchFound} />}
       mine={mine}
-      mineContent={mine && <SquadCallPanel squadId={squadId} people={mine.people} />}
+      mineContent={mine && <SquadCallPanel selfUserId={groupViewerId(squad,session.user?.id)} communicationMode={squad?.communicationMode} squadId={squadId} people={mine.people} />}
       theirs={null}
       searching
       status={status}

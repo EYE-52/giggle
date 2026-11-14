@@ -1,4 +1,6 @@
 "use client";
+import { readRoomCreateIntent, type CommunicationMode } from "@/lib/roomIntent";
+import { authContinuationHref } from "@/lib/authLinks";
 import { readGamesIntent, readGameIntent, withGameIntent } from "@/lib/gameIntent";
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
@@ -60,6 +62,7 @@ export default function HomePage() {
   const [pending, setPending] = useState("");
   const action = useRef(false);
   const [createOpen, setCreateOpen] = useState(false);
+  const [communicationMode, setCommunicationMode] = useState<CommunicationMode>("video");
   const [name, setName] = useState("");
   const [topics, setTopics] = useState<string[]>([]);
   const [createError, setCreateError] = useState("");
@@ -73,7 +76,9 @@ export default function HomePage() {
   const [inviteAfterCreate, setInviteAfterCreate] = useState<Friend | null>(null);
   const active = squads?.[0];
   useEffect(() => {
-    if (new URLSearchParams(window.location.search).get("create") === "1") {
+    const intent = readRoomCreateIntent(window.location.search);
+    if (intent.requested) {
+      setCommunicationMode(intent.communicationMode);
       setName("");
       setCreateOpen(true);
     }
@@ -81,7 +86,7 @@ export default function HomePage() {
   function ensureAuthed() {
     if (session.isAuthed()) return true;
     setJoinError("Sign in to continue.");
-    router.push("/signin");
+    router.push(authContinuationHref(window.location.pathname + window.location.search));
     return false;
   }
   useEffect(() => {
@@ -211,6 +216,7 @@ export default function HomePage() {
     setName("");
     setTopics([]);
     setCreateError("");
+    setCommunicationMode(readRoomCreateIntent(window.location.search).communicationMode);
     setCreateOpen(true);
   }
   async function create() {
@@ -224,7 +230,7 @@ export default function HomePage() {
     setPending("create");
     setCreateError("");
     try {
-      const squad = await api.createSquad({ squadName: name.trim(), tags: topics });
+      const squad = await api.createSquad({ squadName: name.trim(), tags: topics, communicationMode });
       if (inviteAfterCreate) await api.inviteUserToSquad(squad.squadId, inviteAfterCreate.userId).catch(() => {});
       setCreateOpen(false);
       router.push(withGameIntent(`/lobby?squad=${squad.squadId}`, readGameIntent(window.location.search), readGamesIntent(window.location.search)));

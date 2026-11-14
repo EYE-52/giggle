@@ -1,4 +1,6 @@
 "use client";
+import {groupViewerId,isOwnGroupMember} from "@giggle/core";
+import {useGroupPresence} from "@/lib/useGroupPresence";
 import { useEffect, useState, useRef, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/Button";
@@ -17,6 +19,7 @@ function MatchInner() {
   const router = useRouter();
   const params = useSearchParams();
   const squadId = params.get("squad") ?? "";
+  useGroupPresence(squadId);
   const encId = params.get("enc") ?? "";
 
   const [encounter, setEncounter] = useState<EncounterDetail | null>(null);
@@ -59,11 +62,11 @@ function MatchInner() {
     : [];
   // The encounter roster preserves leader authority if the secondary squad
   // detail request fails while the handoff itself is still available.
-  const myMember = squad?.members.find(m => m.userId === session.user?.id)
-    ?? encounterMembers.find(m => m.userId === session.user?.id);
+  const myMember = squad?.members.find(m => m.userId === groupViewerId(squad || encounter,session.user?.id))
+    ?? encounterMembers.find(m => m.userId === groupViewerId(squad || encounter,session.user?.id));
   const isLeader = !!myMember && myMember.role === "leader";
   // Own-squad encounter rosters carry the alias the other squad sees.
-  const myEncounterMember = encounterMembers.find(m => m.userId === session.user?.id);
+  const myEncounterMember = encounterMembers.find(m => m.userId === groupViewerId(squad || encounter,session.user?.id));
   const myEncounterAlias = myEncounterMember?.anonymous ? myEncounterMember.alias ?? null : null;
   const isLeaderRef = useRef(false);
   useEffect(() => { isLeaderRef.current = isLeader; }, [isLeader]);
@@ -268,7 +271,7 @@ function MatchInner() {
   const myRoster = squad?.members ?? encounterMembers;
   const mySide = encounter || squad ? {
     name: squad?.squadName ?? (encounter ? (mineIsA ? encounter.squadAName : encounter.squadBName) : "Your squad"),
-    people: myRoster.map(member => ({ userId: member.userId, uid: member.uid, screenSharing: member.screenSharing, screenSharingExpiresAt: member.screenSharingExpiresAt, displayName: member.displayName, avatar: member.avatar })),
+    people: myRoster.map(member => ({ userId: member.userId, isSelf:isOwnGroupMember(squad,member,session.user?.id), uid: member.uid, screenSharing: member.screenSharing, screenSharingExpiresAt: member.screenSharingExpiresAt, displayName: member.displayName, avatar: member.avatar })),
   } : null;
   const theirSide = encounter ? {
     name: mineIsA ? encounter.squadBName : encounter.squadAName,
@@ -290,7 +293,7 @@ function MatchInner() {
         compactHandoff
         top={<FaceOffBar onBack={() => router.push(squadId ? `/lobby?squad=${squadId}` : "/home")} backLabel="Back to lobby" title={mySide?.name} />}
         mine={mySide}
-        mineContent={mySide && <SquadCallPanel squadId={squadId} people={mySide.people} />}
+        mineContent={mySide && <SquadCallPanel selfUserId={groupViewerId(squad || encounter,session.user?.id)} communicationMode={squad?.communicationMode} squadId={squadId} people={mySide.people} />}
         theirs={null}
         status={handoffExpired ? "That match expired before both squads joined." : handoffError ?? "This room is no longer available."}
         actions={
@@ -320,7 +323,7 @@ function MatchInner() {
       compactHandoff
       top={<FaceOffBar onBack={back} backLabel="Skip this squad" title={mySide?.name} busy={!isLeader || skipping || joining} />}
       mine={mySide}
-      mineContent={mySide && <SquadCallPanel squadId={squadId} people={mySide.people} />}
+      mineContent={mySide && <SquadCallPanel selfUserId={groupViewerId(squad || encounter,session.user?.id)} communicationMode={squad?.communicationMode} squadId={squadId} people={mySide.people} />}
       theirs={theirSide}
       status={<>
         <span role="timer" aria-label={`${countdown} of ${countdownTotal} seconds left to join`}>{status}</span>

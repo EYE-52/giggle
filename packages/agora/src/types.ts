@@ -65,6 +65,8 @@ export interface VideoClient {
   setMicEnabled(on: boolean): Promise<void>;
   setCamEnabled(on: boolean): Promise<void>;
   /** Change this listener only; do not alter the sender or other listeners. */
+  /** Immediately retire playback/subscriptions for removed roster members. */
+  setAllowedRemoteUids?(uids: Array<string | number>): Promise<void>;
   setRemoteAudioMuted(uid: string | number, muted: boolean): Promise<void>;
   /** Switch between front and rear cameras when supported by the native SDK. */
   switchCamera?(): Promise<void>;

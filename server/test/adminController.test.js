@@ -305,6 +305,8 @@ const rawSafetyReport = () => ({
 });
 
 const expectedAdminReport = {
+  scope:"encounter",
+  scopeId:"enc_1",
   id: "507f1f77bcf86cd799439012",
   reporterUserId: "507f1f77bcf86cd799439011",
   reporterSquadId: "sq_a",

@@ -18,11 +18,18 @@ test("api exposes typed age verification session and status wrappers", () => {
   assert.match(api, /getAgeVerificationStatus:\s*\(\)\s*=>\s*\n?\s*backendRequest<AgeVerificationResult>\("\/api\/me\/age\/verification-status"\)/);
 });
 
-test("api exposes typed block, unblock, and blocked-account wrappers", () => {
+test("api exposes typed block, unblock, and blocked-account wrappers", async () => {
   const api = readFileSync(path.join(__dirname, "../src/api.ts"), "utf8");
 
   assert.match(api, /export interface BlockedAccount/);
-  assert.match(api, /blockUsers:\s*\(userIds: string\[\], encounterId\?: string\).*"\/api\/users\/block".*encounterId \? \{ userIds, encounterId \} : \{ userIds \}/s);
+  const ts = require("typescript"), module = { exports: {} }, sent = [];
+  const code = ts.transpileModule(api, { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText;
+  new Function("require", "module", "exports", code)(() => ({ backendRequest: async (url, options) => { sent.push({ url, ...options }); } }), module, module.exports);
+  await module.exports.api.blockUsers(["opaque-target"]);
+  await module.exports.api.blockUsers(["opaque-target"], "encounter");
+  await module.exports.api.blockUsers(["opaque-target"], undefined, "group");
+  assert.deepEqual(sent.map(row => row.body), [{userIds:["opaque-target"]}, {userIds:["opaque-target"], encounterId:"encounter"}, {userIds:["opaque-target"], squadId:"group"}]);
+  assert(sent.every(row => row.url === "/api/users/block" && row.method === "POST"));
   assert.match(api, /unblockUser:\s*\(userId: string\).*`\/api\/users\/\$\{userId\}\/block`/s);
   assert.match(api, /listBlockedUsers:\s*\(\).*"\/api\/me\/blocks"/s);
 });

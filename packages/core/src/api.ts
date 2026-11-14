@@ -54,17 +54,17 @@ export const api = {
     backendRequest<AgeVerificationResult>("/api/me/age/verification-status"),
 
   // --- squads ---
-  createSquad: (body: { squadName?: string; displayName?: string; tags?: string[] }) =>
+  createSquad: (body: { squadName?: string; displayName?: string; tags?: string[]; visibility?:"private"|"open"; joinPolicy?:"open"|"request"|"invite"; identityMode?:"names"|"aliases"; communicationMode?:"chat"|"voice"|"video"; alias?:string }) =>
     backendRequest<SquadSummary>("/api/squads/create", { method: "POST", body }),
-  joinSquad: (body: { squadCode: string; displayName?: string }) =>
+  joinSquad: (body: { squadCode: string; displayName?: string; alias?:string }) =>
     backendRequest<SquadSummary | { status: "requested" }>("/api/squads/join", { method: "POST", body }),
-  joinSquadById: (squadId: string) =>
-    backendRequest<SquadSummary | { status: "requested" }>(`/api/squads/${squadId}/join`, { method: "POST" }),
-  discoverSquads: () => backendRequest<{ squads: PublicSquad[] }>("/api/squads/discover"),
+  joinSquadById: (squadId: string, body: {alias?:string} = {}) =>
+    backendRequest<SquadSummary | { status: "requested" }>(`/api/squads/${squadId}/join`, { method: "POST", body }),
+  discoverSquads: (filters:GroupSearch={},options:{signal?:AbortSignal}={}) => backendRequest<{ squads: PublicSquad[] }>("/api/squads/discover"+groupSearchQuery(filters),options),
   joinRandomSquad: (body?: { displayName?: string }) =>
     backendRequest<SquadSummary>("/api/squads/join-random", { method: "POST", body: body ?? {} }),
   mySquad: () => backendRequest<MySquad>("/api/squads/me"),
-  mySquads: () => backendRequest<{ squads: MySquadLite[] }>("/api/squads/mine"),
+  mySquads: (filters:GroupSearch={},options:{signal?:AbortSignal}={}) => backendRequest<{ squads: MySquadLite[] }>("/api/squads/mine"+groupSearchQuery(filters),options),
   getSquad: (squadId: string) => backendRequest<SquadState>(`/api/squads/${squadId}`),
   // Public preview — works WITHOUT being a member (powers the two-step join).
   getSquadPreview: (squadId: string) => backendRequest<SquadState>(`/api/squads/${squadId}/preview`),
@@ -108,6 +108,25 @@ export const api = {
     backendRequest<{ memberId: string; inLobbyVideo: boolean }>(`/api/squads/${squadId}/lobby-video`, { method: "POST", body: { inLobbyVideo } }),
   setEncounterVideo: (squadId: string, inEncounterVideo: boolean) =>
     backendRequest<{ memberId: string; inEncounterVideo: boolean }>(`/api/squads/${squadId}/encounter-video`, { method: "POST", body: { inEncounterVideo } }),
+
+  reportGroupMember:(squadId:string,memberId:string,category:"harassment"|"hate"|"sexual"|"minor_safety"|"spam"|"other",details="") => backendRequest<{reportId:string;status:string}>(`/api/squads/${squadId}/members/${memberId}/report`,{method:"POST",body:{category,details}}),
+  createGroup:(body:GroupDraft)=>backendRequest<SquadState>("/api/squads/create-group",{method:"POST",body}),
+  getGroup:(id:string)=>backendRequest<SquadState>(`/api/squads/${id}`),
+  previewGroup:(id:string,invite?:string)=>backendRequest<GroupPreview>(`/api/squads/${id}/group-preview`,{method:"POST",body:{invite}}),
+  joinGroup:(id:string,body:{invite?:string;alias?:string}={})=>backendRequest<SquadState|{status:"requested"}>(`/api/squads/${id}/group-join`,{method:"POST",body}),
+  updateGroup:(id:string,body:Partial<GroupDraft>)=>backendRequest<SquadState>(`/api/squads/${id}/group-settings`,{method:"POST",body}),
+  groupInvite:(id:string,rotate=false)=>backendRequest<{invite:string}>(`/api/squads/${id}/group-invite`,{method:"POST",body:{rotate}}),
+  groupBans:(id:string)=>backendRequest<{bans:GroupBan[]}>(`/api/squads/${id}/group-bans`),
+  banGroupMember:(id:string,memberId:string)=>backendRequest<{status:string}>(`/api/squads/${id}/group-ban/${memberId}`,{method:"POST"}),
+  unbanGroupMember:(id:string,memberId:string)=>backendRequest<{status:string}>(`/api/squads/${id}/group-unban/${memberId}`,{method:"POST"}),
+  cancelGroupJoin:(id:string)=>backendRequest<{status:string}>(`/api/squads/${id}/group-cancel-join`,{method:"POST"}),
+  leaveGroup:(id:string,transferToMemberId?:string)=>backendRequest<{status:string}>(`/api/squads/${id}/group-leave`,{method:"POST",body:{transferToMemberId}}),
+  deleteGroup:(id:string)=>backendRequest<{status:string}>(`/api/squads/${id}/group-delete`,{method:"POST"}),
+  requestPrivateGroup: (squadId:string,memberId:string) => backendRequest<{request:PrivateGroupRequest}>(`/api/squads/${squadId}/private-requests`,{method:"POST",body:{memberId}}),
+  privateGroupRequests: (squadId:string) => backendRequest<{requests:PrivateGroupRequest[]}>(`/api/squads/${squadId}/private-requests`),
+  acceptPrivateGroup: (requestId:string) => backendRequest<{squadId:string}>(`/api/private-requests/${requestId}/accept`,{method:"POST"}),
+  declinePrivateGroup: (requestId:string) => backendRequest<{status:string}>(`/api/private-requests/${requestId}/decline`,{method:"POST"}),
+  cancelPrivateGroup: (requestId:string) => backendRequest<{status:string}>(`/api/private-requests/${requestId}/cancel`,{method:"POST"}),
 
   // --- matchmaking ---
   matchStatus: (squadId: string) =>
@@ -165,8 +184,8 @@ export const api = {
     backendRequest<{ status: "removed" }>("/api/friends/remove", { method: "POST", body: { userId } }),
   // From a call, pass the encounter: anonymous opponents are listed under
   // opaque per-encounter ids that only the server can map back.
-  blockUsers: (userIds: string[], encounterId?: string) =>
-    backendRequest<{ status: "blocked"; userIds: string[] }>("/api/users/block", { method: "POST", body: encounterId ? { userIds, encounterId } : { userIds } }),
+  blockUsers: (userIds: string[], encounterId?: string, squadId?:string) =>
+    backendRequest<{ status: "blocked"; userIds: string[] }>("/api/users/block", { method: "POST", body: {userIds,...(encounterId ? {encounterId} : {}),...(squadId ? {squadId} : {})} }),
   unblockUser: (userId: string) =>
     backendRequest<{ status: "unblocked"; userId: string }>(`/api/users/${userId}/block`, { method: "DELETE" }),
   listBlockedUsers: () =>
@@ -198,6 +217,7 @@ export type NotificationType =
   | "info";
 
 export interface AppNotification {
+  requestId?:string;
   id: string;
   type: NotificationType;
   title: string;
@@ -424,6 +444,17 @@ export interface SquadMemberState {
   country?: string;
 }
 export interface SquadState {
+  managedGroup?:boolean;
+  modeMutable?:boolean;
+  description?:string;
+  publicTopic?:GroupTopic;
+  language?:GroupLanguage;
+  isPrivatePair?:boolean;
+  identityMode?:"names"|"aliases";
+  communicationMode?:"chat"|"voice"|"video";
+  selfMemberId?:string;
+  selfUserId?:string;
+  onlineCount?:number;
   squadId: string;
   squadCode: string;
   squadName: string;
@@ -457,6 +488,12 @@ export interface EncounterGameTicket {
 }
 export type SquadSummary = SquadState;
 export interface PublicSquad {
+  description?:string;
+  publicTopic?:GroupTopic;
+  language?:GroupLanguage;
+  identityMode?:"names"|"aliases";
+  communicationMode?:"chat"|"voice"|"video";
+  onlineCount:number;
   squadId: string;
   squadName: string;
   memberCount: number;
@@ -478,6 +515,15 @@ export interface MySquad {
   members?: SquadMemberState[];
 }
 export interface MySquadLite {
+  onlineCount?:number;
+  description?:string;
+  publicTopic?:GroupTopic;
+  language?:GroupLanguage;
+  managedGroup?:boolean;
+  modeMutable?:boolean;
+  identityMode?:"names"|"aliases";
+  communicationMode?:"chat"|"voice"|"video";
+  isPrivatePair?:boolean;
   squadId: string;
   squadCode: string;
   squadName: string;
@@ -496,6 +542,10 @@ export interface MatchStatus {
   match?: { encounterId: string; opponentSquadId: string; opponentSquadName?: string; status: string };
 }
 export interface EncounterDetail {
+  identityMode?:"names"|"aliases";
+  communicationMode?:"chat"|"voice"|"video";
+  selfUserId?:string;
+  selfMemberId?:string;
   encounterId: string;
   ack?: Record<string, boolean>;
   status: "awaiting_ack" | "active" | "ended";
@@ -508,4 +558,19 @@ export interface EncounterDetail {
   squadBCover?: string | null;
   squadBMembers: SquadMemberState[];
   expiresAt: string;
+}
+
+export interface PrivateGroupRequest {requestId:string;squadId:string;status:"pending"|"accepted"|"declined"|"cancelled";direction:"incoming"|"outgoing";expiresAt:string;identityMode:"names"|"aliases";communicationMode:"chat"|"voice"|"video";member:SquadMemberState|null;resultSquadId?:string;}
+
+export type GroupTopic="games"|"dating"|"relationships"|"banter"|"deep-talks";
+export type GroupLanguage="any"|"en"|"hi"|"es"|"fr"|"de"|"pt";
+export interface GroupDraft {squadName:string;description?:string;publicTopic?:GroupTopic;language?:GroupLanguage;visibility:"private"|"open";joinPolicy:"open"|"request"|"invite";identityMode:"names"|"aliases";communicationMode:"chat"|"voice"|"video";alias?:string;tags?:string[];}
+export interface GroupPreview {viewerMembership:"none"|"pending"|"member"|"owner";squadId:string;squadName:string;description:string;publicTopic:GroupTopic;language:GroupLanguage;identityMode:"names"|"aliases";communicationMode:"chat"|"voice"|"video";visibility:"private"|"open";joinPolicy:"open"|"request"|"invite";memberCount:number;maxSlots:number;onlineCount:number;modeMutable:false;}
+export interface GroupBan {memberId:string;displayName:string;bannedAt:string;avatar:null;}
+
+export interface GroupSearch {search?:string;communicationMode?:"chat"|"voice"|"video";publicTopic?:GroupTopic;language?:GroupLanguage;}
+function groupSearchQuery(filters:GroupSearch):string {
+ const query=new URLSearchParams();
+ for(const key of ["search","communicationMode","publicTopic","language"] as const)if(filters[key])query.set(key,filters[key]!);
+ return query.size ? "?"+query.toString() : "";
 }

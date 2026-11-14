@@ -122,3 +122,27 @@ test("only an active encounter can issue a media token, even with stale squad me
     User.find = originals.userFind;
   }
 });
+
+test("managed encounters seed only current permitted peers and expire their tokens in90seconds", async () => {
+  const originals = { squadFindOne: Squad.findOne, encounterFindOne: Encounter.findOne, userFind: User.find };
+  const removed = "507f1f77bcf86cd799439013";
+  const squadA = { squadId: "sq_a", identityMode: "aliases", managedGroup: true, currentEncounterId: "enc_1", members: [{ memberId: "mem_a", userId: USER_A, alias: "Quiet Fox" }] };
+  const squadB = { squadId: "sq_b", members: [{ memberId: "mem_b", userId: USER_B }, { memberId: "removed", userId: removed }], bannedMembers: [{ userId: removed }] };
+  Squad.findOne = async ({ squadId }) => squadId === "sq_a" ? squadA : squadB;
+  Encounter.findOne = async () => ({ encounterId: "enc_1", squadAId: "sq_a", squadBId: "sq_b", status: "active" });
+  const users = [USER_A, USER_B, removed].map(_id => ({ _id, ageConfirmed: true, isAdult: true, ageVerified: true, blockedUserIds: [] }));
+  User.find = () => ({ lean: async () => users, select: () => ({ lean: async () => users }) });
+  try {
+    const res = response();
+    await issueEncounterTokenHandler({ body: { squadId: "sq_a", encounterId: "enc_1" }, user: { userId: USER_A } }, res);
+    assert.equal(res.statusCode, 200);
+    const { encounterRtcUid } = require("../src/services/encounterIdentityService");
+    assert.deepEqual(res.body.data.allowedRemoteUids, [encounterRtcUid("enc_1", USER_B)]);
+    assert.equal(res.body.data.expiresIn, 90);
+    assert.notEqual(res.body.data.memberId, "mem_a");
+  } finally {
+    Squad.findOne = originals.squadFindOne;
+    Encounter.findOne = originals.encounterFindOne;
+    User.find = originals.userFind;
+  }
+});

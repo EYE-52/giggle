@@ -15,15 +15,10 @@ const crypto = require("crypto");
 const { canonicalUserId } = require("./interactionSafetyService");
 const { publicAvatar } = require("../utils/avatars");
 const { firstDisplayName } = require("../utils/identityValidation");
-const { classifyVibe } = require("../utils/moderation");
+const { ENCOUNTER_ALIAS_MIN_LENGTH, ENCOUNTER_ALIAS_MAX_LENGTH, normalizeEncounterAlias } = require("../utils/groupIdentityValidation");
 
 const OPAQUE_ID_PREFIX = "anon_";
 const OPAQUE_ID_PATTERN = /^anon_[a-f0-9]{24}$/;
-const ENCOUNTER_ALIAS_MIN_LENGTH = 2;
-const ENCOUNTER_ALIAS_MAX_LENGTH = 24;
-// Letters and numbers (any script), with inner spaces, dots, dashes,
-// underscores and apostrophes. Must start and end with a letter or number.
-const ENCOUNTER_ALIAS_PATTERN = /^[\p{L}\p{N}](?:[\p{L}\p{N} ._'-]*[\p{L}\p{N}])?$/u;
 const IDENTITY_USER_FIELDS = "_id avatar anonymousInEncounters encounterAlias";
 
 const identitySecret = (env = process.env) =>
@@ -56,20 +51,7 @@ const fallbackEncounterAlias = (userId) =>
 /**
  * Validate a user-chosen alias. Returns { value } ("" clears it) or { error }.
  */
-const normalizeEncounterAlias = (raw) => {
-  if (raw === null) return { value: "" };
-  if (typeof raw !== "string") return { error: "encounterAlias must be a string" };
-  const value = raw.normalize("NFC").replace(/\s+/g, " ").trim();
-  if (!value) return { value: "" };
-  if (value.length < ENCOUNTER_ALIAS_MIN_LENGTH || value.length > ENCOUNTER_ALIAS_MAX_LENGTH) {
-    return { error: `encounterAlias must be ${ENCOUNTER_ALIAS_MIN_LENGTH} to ${ENCOUNTER_ALIAS_MAX_LENGTH} characters` };
-  }
-  if (!ENCOUNTER_ALIAS_PATTERN.test(value)) {
-    return { error: "encounterAlias can use letters, numbers, spaces and . _ ' -" };
-  }
-  if (classifyVibe(value) !== "ok") return { error: "That name isn't allowed" };
-  return { value };
-};
+
 
 /** The user's anonymity choice, with the alias they appear under. */
 const encounterAnonymity = (user, userId) => {
@@ -88,7 +70,7 @@ const encounterAnonymity = (user, userId) => {
  *   Anonymous members come back as alias + no avatar + opaque ids. A member
  *   whose user record could not be loaded is treated as anonymous (fail closed).
  */
-const publicEncounterIdentity = ({ viewerSquadId, memberSquadId, member, user, encounterId, scope } = {}) => {
+const publicEncounterIdentity = ({ viewerSquadId, memberSquadId, member, user, encounterId, scope, identityMode } = {}) => {
   const idScope = scope || encounterId;
   const userId = String(member?.userId || "");
   const callId = opaqueEncounterId(idScope, userId);
@@ -98,6 +80,11 @@ const publicEncounterIdentity = ({ viewerSquadId, memberSquadId, member, user, e
     ? encounterAnonymity(user, userId)
     : { anonymous: !sameSquad, alias: fallbackEncounterAlias(userId) };
   const rtc = encounterId ? { uid: encounterRtcUid(encounterId, userId) } : {};
+  if (identityMode === "aliases" || member?.alias) {
+    const handle = opaqueEncounterId(`group:${memberSquadId}`, userId);
+    const alias = normalizeEncounterAlias(member.alias).value || "Guest";
+    return {memberId:handle,userId:handle,displayName:alias,role,avatar:null,callId:encounterId ? callId : handle,...rtc,anonymous:true};
+  }
   const real = {
     memberId: member?.memberId,
     userId,
@@ -144,6 +131,7 @@ const projectEncounterRosters = ({ encounter, squadA, squadB, viewerSquadId, use
   const project = (squad) => (squad?.members || []).map((member) => publicEncounterIdentity({
     viewerSquadId,
     memberSquadId: squad.squadId,
+    identityMode: squad.identityMode,
     member,
     user: identityUserFor(users, member.userId),
     encounterId: encounter.encounterId,

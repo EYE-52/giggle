@@ -67,7 +67,7 @@ test("the API switch hides stranger matching without hiding private squads", () 
   assert.match(home, /const WEB_DISCOVERY_ENABLED = useDiscoveryEnabled\(\) === true;/);
   assert.match(home, /if \(!discovery\) return `\/lobby\?squad=\$\{squad\.squadId\}`/);
   assert.match(home, /aria-label="Squad invite code"/i);
-  assert.match(lobby, /disabled=\{!WEB_DISCOVERY_ENABLED \|\| !isLeader/);
+  assert.match(lobby, /disabled=\{squad\.isPrivatePair \|\| squad\.communicationMode && squad\.communicationMode !== "video" \|\| !WEB_DISCOVERY_ENABLED \|\| !isLeader/);
   assert.match(encounter, /WEB_DISCOVERY_ENABLED && \(/);
   assert.doesNotMatch(config, /AGE|country|Country/);
 });
@@ -556,7 +556,7 @@ test("desktop matchmaking cancel stays put when backend cancel fails", () => {
 test("desktop matchmaking offers cancel only to the squad leader", () => {
   const page = matchmakingSource();
 
-  assert.match(page, /const isNonLeader = !!squad && !squad\.members\.some\(member => member\.userId === session\.user\?\.id && member\.role === "leader"\);/);
+  assert.match(page, /const isNonLeader = !!squad && !squad\.members\.some\(member => isOwnGroupMember\(squad,member,session\.user\?\.id\) && member\.role === "leader"\);/);
   assert.match(page, /\{isNonLeader \? \([\s\S]*?Back to home[\s\S]*?Your squad leader can cancel the search\.[\s\S]*?\) : \([\s\S]*?Cancel search/);
   assert.equal(page.includes('<FaceOffBar onBack={leaveForHome} backLabel="Back to home"'), true);
 });
@@ -644,7 +644,7 @@ test("desktop match preserves leader and roster data when squad detail is unavai
   const page = matchSource();
 
   assert.equal(page.includes("const encounterMembers = encounter"), true);
-  assert.equal(page.includes("?? encounterMembers.find(m => m.userId === session.user?.id)"), true);
+  assert.equal(page.includes("?? encounterMembers.find(m => m.userId === groupViewerId(squad || encounter,session.user?.id))"), true);
   assert.equal(page.includes("const myRoster = squad?.members ?? encounterMembers;"), true);
 });
 
@@ -1601,7 +1601,7 @@ test("desktop protected home actions do not create dev sessions", () => {
   const page = desktopHomeSource();
 
   assert.equal(page.includes("await session.devSignIn();"), false);
-  assert.equal(page.includes('router.push("/signin")'), true);
+  assert.equal(page.includes('router.push(authContinuationHref(window.location.pathname + window.location.search))'), true);
   assert.equal(page.includes("Sign in to continue."), true);
   assert.equal(page.includes("function ensureAuthed()"), true);
   assert.equal(page.includes("return false;"), true);
@@ -1610,7 +1610,7 @@ test("desktop protected home actions do not create dev sessions", () => {
 test("desktop home creates a squad with explicitly selected topics", () => {
   const page = desktopHomeSource();
 
-  assert.equal(page.includes("api.createSquad({ squadName: name.trim(), tags: topics })"), true);
+  assert.equal(page.includes("api.createSquad({ squadName: name.trim(), tags: topics, communicationMode })"), true);
   assert.equal(page.includes("selectedVibes"), false);
   assert.equal(page.includes("VIBE_OPTIONS"), false);
 });
@@ -1694,39 +1694,17 @@ test("desktop home leave squad failures restore the squad and show an error toas
   assert.equal(page.includes("catch { /* refetch will resync if it failed */ }"), false);
 });
 
-test("desktop discover opens the shared named squad form", () => {
-  const page = desktopDiscoverSource();
-
-  assert.equal(page.includes('router.push("/home?create=1")'), true);
-  assert.equal(page.includes("await api.setTags(squad.squadId, [vibe]);"), false);
-  assert.equal(page.includes("Try another interest, or create your own squad."), true);
-});
-
-test("desktop discover keeps creation in the filtered empty state", () => {
-  const page = desktopDiscoverSource();
-
-  assert.equal(page.includes("primaryCtaCreates"), false);
-  assert.equal(page.includes("handlePrimaryCta"), false);
-  assert.equal(page.includes("shown.length === 0"), true);
-  assert.equal(page.includes("primary={{ label: \"Create a squad\", onClick: handleCreate, disabled: creating }}"), true);
-  // "Surprise me" sits with the filters only when there are squads to pick from
-  assert.equal(page.includes("{(loading || hasOpenSquads) && ("), true);
-});
-
-test("desktop discover presents load failures without logging handled errors", () => {
-  const page = desktopDiscoverSource();
-
-  assert.equal(page.includes('console.error("discoverSquads failed:", e);'), false);
-  assert.equal(page.includes("setError(true);"), true);
-});
-
-test("desktop protected discover actions do not create dev sessions", () => {
-  const page = desktopDiscoverSource();
-
-  assert.equal(page.includes("await session.devSignIn();"), false);
-  assert.equal(page.includes('router.push("/signin")'), true);
-  assert.equal(page.includes("Sign in to continue."), true);
-  assert.equal(page.includes("return false;"), true);
+test("desktop discover uses the managed group directory and composer", () => {
+  assert.match(desktopDiscoverSource(), /NormalGroups/);
+  const controller = readFileSync(path.join(__dirname, "../components/groups/GroupPages.tsx"), "utf8");
+  const directory = readFileSync(path.join(__dirname, "../components/groups/GroupDirectory.tsx"), "utf8");
+  assert.match(controller, /GroupComposer/);
+  assert.match(controller, /navigate\(base\s*\+\s*"\/new"\)/);
+  assert.match(directory, /Start a group/);
+  assert.match(directory, /Rooms could not load/);
+  assert.match(directory, /onRetry/);
+  assert.equal(controller.includes("session.devSignIn"), false);
+  assert.match(appLayoutSource(), /authContinuationHref/);
 });
 
 test("desktop home auth gate runs before create and join loading states", () => {
@@ -1763,7 +1741,7 @@ test("squad preview auth gate runs before join loading state", () => {
 
 test("desktop social and invite surfaces do not create dev sessions", () => {
   assert.equal(friendsPageSource().includes("await session.devSignIn();"), false);
-  assert.equal(appLayoutSource().includes('router.replace(`/signin?next=${encodeURIComponent(window.location.pathname + window.location.search)}`)'), true);
+  assert.equal(appLayoutSource().includes('router.replace(authContinuationHref(window.location.pathname + window.location.search + window.location.hash))'), true);
   for (const page of [inviteToSquadSource(), squadPreviewSource()]) {
     assert.equal(page.includes("await session.devSignIn();"), false);
     assert.equal(page.includes('router.push("/signin")'), true);

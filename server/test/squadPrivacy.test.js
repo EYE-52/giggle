@@ -1,7 +1,12 @@
+require("../src/config/redisConfig").redlock.using = async (_resources, _duration, work) => work({aborted:false});
+require('../src/config/redisConfig').redlock.acquire = async () => ({release:async()=>{}});
 // Source metadata has its own Redis integration and socket authorization tests.
 const memberMedia = require('../src/services/memberMediaService');
 memberMedia.publicState = async () => ({screenSharing:false, screenSharingExpiresAt:0});
 memberMedia.clearMember = async () => false;
+require('../src/services/groupPresenceService').onlineUserIds = async () => new Set();
+require('../src/config/redisConfig').redis.hkeys = async () => [];
+require('../src/config/redisConfig').redis.hdel = async () => 0;
 const assert = require("node:assert/strict");
 const { readFileSync } = require("node:fs");
 const path = require("node:path");
@@ -450,10 +455,12 @@ test("request and invite final block decisions run under the auto-extending lock
     assert.equal(res.statusCode, 403);
     assert.deepEqual(requestSquad.joinRequests, []);
     assert.deepEqual(events, [
+      ["using:start", ["lock:squad:request_squad:admission"], 10000],
       "block-read:1",
       ["using:start", ["lock:matchmaking"], 5000],
       "transaction",
       "block-read:2",
+      "using:end",
       "using:end",
     ]);
 
@@ -726,7 +733,7 @@ test("member squad reads parallelize live state and reuse the member query for c
     userFind: User.find,
     userFindById: User.findById,
     session: sessionService.getSquadSession,
-    online: socketService.getOnlineUserIds,
+    online: require("../src/services/groupPresenceService").onlineUserIds,
   };
   const starts = [];
   let capacityReads = 0;
@@ -783,7 +790,7 @@ test("member squad reads parallelize live state and reuse the member query for c
     starts.push("session");
     return sessionResult.promise;
   };
-  socketService.getOnlineUserIds = async () => {
+  require("../src/services/groupPresenceService").onlineUserIds = async () => {
     starts.push("presence");
     return onlineResult.promise;
   };
@@ -815,7 +822,7 @@ test("member squad reads parallelize live state and reuse the member query for c
     User.find = originals.userFind;
     User.findById = originals.userFindById;
     sessionService.getSquadSession = originals.session;
-    socketService.getOnlineUserIds = originals.online;
+    require("../src/services/groupPresenceService").onlineUserIds = originals.online;
   }
 });
 
@@ -901,7 +908,8 @@ test("public squad discovery and preview normalize stale display fields", () => 
   assert.equal(controller.includes("const publicSquadTags = (squad) =>"), true);
   assert.equal(publicSerializer.includes("squadName: publicSquadName(squad),"), true);
   assert.equal(publicSerializer.includes("tags: publicSquadTags(squad),"), true);
-  assert.equal(publicSerializer.includes("leaderName: leader ? publicMemberView(squad, leader, users).displayName : undefined,"), true);
+  assert.equal(publicSerializer.includes("leaderName:"), false);
+  assert.equal(publicSerializer.includes("onlineCount:"), true);
   assert.equal(controller.includes(": { memberId: member.memberId, displayName: publicMemberName(member), avatar: view.avatar };"), true);
   assert.equal(previewHandler.includes("squadName: publicSquadName(squad),"), true);
   assert.equal(previewHandler.includes("displayName: publicMemberName(member),"), true);
@@ -988,7 +996,7 @@ test("squad creation accepts normalized initial tags atomically", () => {
   const controller = read("src/controllers/squadController.js");
   const createHandler = section(controller, "const createSquadHandler", "const joinSquadHandler");
 
-  assert.equal(createHandler.includes("const { displayName, squadName, tags, visibility } = req.body;"), true);
+  assert.equal(createHandler.includes("const { displayName, squadName, tags, visibility,"), true);
   assert.equal(createHandler.includes("const normalizedTags = normalizeSquadTags(tags ?? []);"), true);
   assert.equal(createHandler.includes("tags: normalizedTags.tags,"), true);
 });
@@ -997,7 +1005,7 @@ test("squad creation validates and persists optional initial visibility", () => 
   const controller = read("src/controllers/squadController.js");
   const createHandler = section(controller, "const createSquadHandler", "const joinSquadHandler");
 
-  assert.equal(createHandler.includes("const { displayName, squadName, tags, visibility } = req.body;"), true);
+  assert.equal(createHandler.includes("const { displayName, squadName, tags, visibility,"), true);
   assert.equal(createHandler.includes('const normalizedVisibility = visibility ?? "private";'), true);
   assert.equal(createHandler.includes('["private", "open"].includes(normalizedVisibility)'), true);
   assert.equal(createHandler.includes('code: "INVALID_VISIBILITY"'), true);
@@ -1060,6 +1068,7 @@ test("joining a squad resolves any matching invite notification", () => {
 
 test("join approval rejects a missing target without mutating the request or roster", async () => {
   const originalFindById = User.findById;
+  const originalSquadFindOne = Squad.findOne;
   const originalDeleteMany = Notification.deleteMany;
   const targetUserId = "507f1f77bcf86cd799439012";
   let saves = 0;
@@ -1069,6 +1078,7 @@ test("join approval rejects a missing target without mutating the request or ros
     joinRequests: [{ userId: targetUserId, name: "Missing" }],
     async save() { saves += 1; },
   };
+  Squad.findOne = async () => squad;
   User.findById = async (userId) => userId === targetUserId ? null : { isPremium: false };
   Notification.deleteMany = async () => ({ deletedCount: 0 });
 
@@ -1086,6 +1096,7 @@ test("join approval rejects a missing target without mutating the request or ros
     assert.equal(squad.members.length, 1);
     assert.equal(squad.joinRequests.length, 1);
   } finally {
+    Squad.findOne = originalSquadFindOne;
     User.findById = originalFindById;
     Notification.deleteMany = originalDeleteMany;
   }
@@ -1093,6 +1104,7 @@ test("join approval rejects a missing target without mutating the request or ros
 
 test("join approval rejects a self-attested-only target before roster mutation", async () => {
   const originalFindById = User.findById;
+  const originalSquadFindOne = Squad.findOne;
   const originalDeleteMany = Notification.deleteMany;
   const targetUserId = "507f1f77bcf86cd799439012";
   let saves = 0;
@@ -1102,6 +1114,7 @@ test("join approval rejects a self-attested-only target before roster mutation",
     joinRequests: [{ userId: targetUserId, name: "Pending" }],
     async save() { saves += 1; },
   };
+  Squad.findOne = async () => squad;
   User.findById = async (userId) => userId === targetUserId
     ? { _id: targetUserId, ageConfirmed: true, isAdult: true, ageVerified: false }
     : { isPremium: false };
@@ -1121,6 +1134,7 @@ test("join approval rejects a self-attested-only target before roster mutation",
     assert.equal(squad.members.length, 1);
     assert.equal(squad.joinRequests.length, 1);
   } finally {
+    Squad.findOne = originalSquadFindOne;
     User.findById = originalFindById;
     Notification.deleteMany = originalDeleteMany;
   }
@@ -1128,6 +1142,7 @@ test("join approval rejects a self-attested-only target before roster mutation",
 
 test("join approval admits a verified-adult target", async () => {
   const originalFindById = User.findById;
+  const originalSquadFindOne = Squad.findOne;
   const originalFind = User.find;
   const originalDeleteMany = Notification.deleteMany;
   const leaderUserId = "507f1f77bcf86cd799439011";
@@ -1139,6 +1154,7 @@ test("join approval admits a verified-adult target", async () => {
     joinRequests: [{ userId: targetUserId, name: "Verified" }],
     async save() { saves += 1; },
   };
+  Squad.findOne = async () => squad;
   User.findById = async (userId) => userId === targetUserId
     ? { _id: targetUserId, name: "Verified", ageConfirmed: true, isAdult: true, ageVerified: true }
     : { isPremium: false };
@@ -1163,6 +1179,7 @@ test("join approval admits a verified-adult target", async () => {
     assert.equal(squad.members.length, 2);
     assert.equal(squad.joinRequests.length, 0);
   } finally {
+    Squad.findOne = originalSquadFindOne;
     User.findById = originalFindById;
     User.find = originalFind;
     Notification.deleteMany = originalDeleteMany;
@@ -1327,7 +1344,8 @@ async function runSearchWithUsers(users, tags = ["gaming"], members) {
     find: User.find,
     findById: User.findById,
     session: sessionService.getSquadSession,
-    online: socketService.getOnlineUserIds,
+    online: require("../src/services/groupPresenceService").onlineUserIds,
+    globalOnline: socketService.getOnlineUserIds,
     add: queueService.addToQueue,
     queued: queueService.getQueuedSquadsByRegion,
   };
@@ -1356,7 +1374,8 @@ async function runSearchWithUsers(users, tags = ["gaming"], members) {
   sessionService.getSquadSession = async () => Object.fromEntries(
     roster.map((member) => [member.memberId, { ready: true, inLobbyVideo: true }])
   );
-  socketService.getOnlineUserIds = async () => new Set(roster.map((member) => member.userId));
+  require("../src/services/groupPresenceService").onlineUserIds = async () => new Set(roster.map((member) => member.userId));
+  socketService.getOnlineUserIds = async () => new Set(roster.map(member=>member.userId));
   queueService.addToQueue = async () => { queued += 1; };
   queueService.getQueuedSquadsByRegion = async () => [];
 
@@ -1373,7 +1392,8 @@ async function runSearchWithUsers(users, tags = ["gaming"], members) {
     User.find = originals.find;
     User.findById = originals.findById;
     sessionService.getSquadSession = originals.session;
-    socketService.getOnlineUserIds = originals.online;
+    require("../src/services/groupPresenceService").onlineUserIds = originals.online;
+    socketService.getOnlineUserIds = originals.globalOnline;
     queueService.addToQueue = originals.add;
     queueService.getQueuedSquadsByRegion = originals.queued;
   }

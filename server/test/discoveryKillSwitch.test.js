@@ -1,3 +1,4 @@
+require("../src/config/redisConfig").redlock.using = async (_resources, _duration, work) => work({aborted:false});
 const assert = require("node:assert/strict");
 const { after, afterEach, test } = require("node:test");
 
@@ -98,11 +99,13 @@ test("private squad creation and code join are not disabled with discovery", asy
   const userId = "507f1f77bcf86cd799439011";
   const member = { memberId: "mem_private", userId, role: "member" };
   const originals = {
+    acquire: redlock.acquire,
     findById: User.findById,
     find: User.find,
     findOne: Squad.findOne,
     deleteMany: Notification.deleteMany,
   };
+  redlock.acquire = async () => ({ release:async()=>{} });
   User.findById = async () => ({ _id: userId });
   User.find = () => ({ lean: async () => [{ _id: userId, blockedUserIds: [] }] });
   Squad.findOne = async () => ({
@@ -111,6 +114,7 @@ test("private squad creation and code join are not disabled with discovery", asy
     squadName: "Private room",
     status: "idle",
     members: [member],
+    async save() {},
   });
   Notification.deleteMany = async () => ({ deletedCount: 0 });
 
@@ -125,6 +129,7 @@ test("private squad creation and code join are not disabled with discovery", asy
     assert.equal(joinRes.body.data.squadId, "sq_private");
     assert.deepEqual(joinRes.body.data.member, member);
   } finally {
+    redlock.acquire = originals.acquire;
     User.findById = originals.findById;
     User.find = originals.find;
     Squad.findOne = originals.findOne;

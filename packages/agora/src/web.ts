@@ -92,6 +92,22 @@ export async function preloadVideoSdk(): Promise<void> { await loadAgoraSdk(); }
 export function createVideoClient(loadSdk = loadAgoraSdk): VideoClient {
   let client: any = null;
   let sdk: any = null;
+  let audioOnly = false;
+  let allowedRemoteUids: Set<string> | null = null;
+  let remotePublished: ((user: any, kind: "video" | "audio") => Promise<void>) | null = null;
+  const allowedRemote = (uid: string | number) => !allowedRemoteUids || allowedRemoteUids.has(String(uid));
+  const remoteOperations = new Map<string, Promise<unknown>>();
+  function serialRemote(uid: string | number, operation: () => Promise<unknown>) {
+    const key = String(uid);
+    const previous = remoteOperations.get(key);
+    let next: Promise<unknown>;
+    try { next = previous ? previous.catch(() => {}).then(operation) : Promise.resolve(operation()); }
+    catch (error) { next = Promise.reject(error); }
+    remoteOperations.set(key,next);
+    void next.finally(() => {if(remoteOperations.get(key) === next)remoteOperations.delete(key);}).catch(() => {});
+    return next;
+  }
+
   let generation = 0;
   let joining = false;
   let moving = false;
@@ -195,6 +211,7 @@ export function createVideoClient(loadSdk = loadAgoraSdk): VideoClient {
   }
 
   function startSharing(): Promise<void> {
+    if (audioOnly) return Promise.reject(new Error("This call is audio only."));
     if (!client || joining || moving) return Promise.reject(new Error("Join the call before sharing your screen."));
     if (screenRequest) return screenRequest;
     if (screenTrack && capture.screen === "active") return Promise.resolve();
@@ -360,7 +377,7 @@ export function createVideoClient(loadSdk = loadAgoraSdk): VideoClient {
   }
 
   return {
-    get supportsScreenShare() { return typeof navigator !== "undefined" && typeof navigator.mediaDevices?.getDisplayMedia === "function"; },
+    get supportsScreenShare() { return !audioOnly && typeof navigator !== "undefined" && typeof navigator.mediaDevices?.getDisplayMedia === "function"; },
     startScreenShare: startSharing,
     stopScreenShare: () => stopSharing(),
     get remotes() {
@@ -401,6 +418,9 @@ export function createVideoClient(loadSdk = loadAgoraSdk): VideoClient {
       };
       try {
         await stopSharing(false);
+        audioOnly = token.audioOnly === true;
+        allowedRemoteUids = token.allowedRemoteUids ? new Set(token.allowedRemoteUids.map(String)) : null;
+        if (audioOnly) { cameraWanted = false; cameraEpoch += 1; closeTrack(localVideoTrack); localVideoTrack = null; setCapture({video:"off"}); }
         assertCurrent();
         channelEpoch += 1;
         // Stop listening to the old room before joining the next one. Capture
@@ -428,6 +448,9 @@ export function createVideoClient(loadSdk = loadAgoraSdk): VideoClient {
     async join(token: AgoraToken, opts = { audio: true, video: true }) {
       if (joining || client) throw new Error("This client is already joining or in a call.");
       joining = true;
+      allowedRemoteUids = token.allowedRemoteUids ? new Set(token.allowedRemoteUids.map(String)) : null;
+      audioOnly = token.audioOnly === true;
+      opts = {...opts,video:opts.video && !audioOnly};
       cameraWanted = !!opts.video;
       const joinedGeneration = ++generation;
       const assertCurrent = () => {
@@ -457,19 +480,23 @@ export function createVideoClient(loadSdk = loadAgoraSdk): VideoClient {
           if (joinedGeneration !== generation) return;
           const key = String(user.uid);
           remoteUsers.set(key, user);
+          if (!allowedRemote(user.uid)) return;
           remoteState.set(key, mergeRemoteParticipant(remoteState.get(key), user.uid, {
             mutedForMe: mutedRemoteUids.has(key),
           }));
           emit();
         });
-        client.on("user-published", async (user: any, mediaType: "video" | "audio") => {
+        remotePublished = async (user: any, mediaType: "video" | "audio") => {
+          remoteUsers.set(String(user.uid),user);
+          if (!allowedRemote(user.uid)) return;
           if (joinedGeneration !== generation) return;
           // A UID can rejoin while its previous subscription is still resolving.
           const key = String(user.uid), epoch = remoteEpochs.get(key) ?? 0, room = channelEpoch;
           const mediaKey = `${key}:${mediaType}`, mediaEpoch = remoteMediaEpochs.get(mediaKey) ?? 0;
-          try { await joinedClient.subscribe(user, mediaType); } catch { return; }
+          try { await serialRemote(user.uid, () => joinedClient.subscribe(user, mediaType)); } catch { return; }
           if (joinedGeneration !== generation || room !== channelEpoch || epoch !== (remoteEpochs.get(key) ?? 0)) return;
           if (mediaEpoch !== (remoteMediaEpochs.get(mediaKey) ?? 0)) return;
+          if (!allowedRemote(user.uid)) return;
           if (mediaType === "video" ? user.hasVideo === false : user.hasAudio === false) return;
           remoteUsers.set(String(user.uid), user);
           const previous = remoteState.get(String(user.uid));
@@ -483,7 +510,8 @@ export function createVideoClient(loadSdk = loadAgoraSdk): VideoClient {
             user.audioTrack.play();
           }
           emit();
-        });
+        };
+        client.on("user-published",remotePublished);
         client.on("user-unpublished", (user: any, mediaType: "video" | "audio") => {
           if (joinedGeneration !== generation) return;
           const mediaKey = `${String(user.uid)}:${mediaType}`;
@@ -497,6 +525,7 @@ export function createVideoClient(loadSdk = loadAgoraSdk): VideoClient {
           emit();
         });
         client.on("user-left", (user: any) => {
+          remoteOperations.delete(String(user.uid));
           if (joinedGeneration !== generation) return;
           const key = String(user.uid);
           remoteEpochs.set(key, (remoteEpochs.get(key) ?? 0) + 1);
@@ -639,7 +668,28 @@ export function createVideoClient(loadSdk = loadAgoraSdk): VideoClient {
       await setDeviceEnabled("audio", on);
     },
     async setCamEnabled(on: boolean) {
+      if (on && audioOnly) throw new Error("This call is audio only.");
       await setDeviceEnabled("video", on);
+    },
+    async setAllowedRemoteUids(uids) {
+      const previous = allowedRemoteUids;
+      allowedRemoteUids = new Set(uids.map(String));
+      const owner = client, attempt = generation;
+      const jobs: Promise<unknown>[] = [];
+      for (const [key,user] of remoteUsers) {
+        if (!allowedRemoteUids.has(key)) {
+          try {user.audioTrack?.setVolume(0);user.audioTrack?.stop();user.videoTrack?.stop();} catch {}
+          remoteState.delete(key);remotePlayback.delete(key);
+          for (const kind of ["audio","video"]) {
+            const mediaKey = `${key}:${kind}`;remoteMediaEpochs.set(mediaKey,(remoteMediaEpochs.get(mediaKey) ?? 0)+1);
+            if (owner?.unsubscribe) jobs.push(serialRemote(user.uid, () => owner.unsubscribe(user,kind)).catch(()=>{}));
+          }
+        } else if (owner && attempt === generation && (!previous || !previous.has(key))) {
+          if (user.hasAudio) jobs.push(remotePublished?.(user,"audio") ?? Promise.resolve());
+          if (user.hasVideo) jobs.push(remotePublished?.(user,"video") ?? Promise.resolve());
+        }
+      }
+      emit();await Promise.all(jobs);
     },
     async setRemoteAudioMuted(uid, muted) {
       const key = String(uid);

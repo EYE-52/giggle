@@ -98,3 +98,33 @@ test('network reconnect retires screen metadata and never automatically reopens 
   const messages=[],{session,clients}=await metadataSession(async(s,e,on)=>{messages.push(on);});
   try{await session.startScreenShare('squad');clients[0].handlers.get('connection-state-change')('RECONNECTING');await flush();assert.equal(session.getSnapshot().capture.screen,'off');assert.equal(messages.at(-1),false);clients[0].handlers.get('connection-state-change')('CONNECTED');await flush();assert.equal(clients[0].calls.screen,1);assert.equal(session.getSnapshot().capture.screen,'off');}finally{await session.stop();}
 });
+
+test('server audio-only policy never captures camera or display, including a video-room transfer',async()=>{
+ const {createVideoClient}=await import('../src/web.ts');
+ const f=fixture(),client=createVideoClient(async()=>f.sdk),states=[];client.onCaptureState(s=>states.push(s));
+ try{await client.join({...token,audioOnly:true},{audio:true,video:true});assert.equal(f.calls.camera,0);assert.equal(client.supportsScreenShare,false);await assert.rejects(client.setCamEnabled(true),/audio only/);await assert.rejects(client.startScreenShare(),/audio only/);assert.equal(f.calls.screen,0);assert.equal(states.at(-1).video,'off');}
+ finally{await client.leave();}
+ const g=fixture(),joinedCall=await joined(g);try{await joinedCall.client.moveToChannel({...token,channelName:'voice',audioOnly:true});assert(g.camera.closed>0);assert.equal(joinedCall.states.at(-1).video,'off');assert(!g.published.has(g.camera));assert(g.published.has(g.audio));await assert.rejects(joinedCall.client.startScreenShare(),/audio only/);}finally{await joinedCall.client.leave();}
+});
+
+
+test('authoritative receiving roster blocks unknown audio and retires late subscriptions before playback',async()=>{
+ const {createVideoClient}=await import('../src/web.ts'),f=fixture(),waiting=deferred(),unsubscribed=[];
+ const audio=track('audio','remote microphone');audio.setVolume=value=>{audio.volume=value;};audio.stop=()=>{audio.stops=(audio.stops||0)+1;};
+ const user={uid:2,hasAudio:true,hasVideo:false,audioTrack:audio};f.rtc.subscribe=async()=>waiting.promise;f.rtc.unsubscribe=async(user,kind)=>unsubscribed.push([user.uid,kind]);
+ const client=createVideoClient(async()=>f.sdk),remotes=[];client.onRemoteChange(list=>remotes.push(list));
+ try{await client.join({...token,allowedRemoteUids:[]},{audio:false,video:false});f.handlers.get('user-joined')(user);await f.handlers.get('user-published')(user,'audio');assert.equal(audio.plays,0);assert.deepEqual(remotes.at(-1),[]);
+  const allowed=client.setAllowedRemoteUids([2]);await flush();const retired=client.setAllowedRemoteUids([]);assert.equal(audio.volume,0);assert(audio.stops>0);waiting.resolve();await Promise.all([allowed,retired]);assert.equal(audio.plays,0);assert.deepEqual(remotes.at(-1),[]);assert(unsubscribed.some(([uid,kind])=>uid===2&&kind==='audio'));
+  await client.setAllowedRemoteUids([2]);assert.equal(audio.plays,1);assert.equal(audio.volume,100);assert.equal(remotes.at(-1)[0].uid,2);
+ }finally{await client.leave();}
+});
+
+test('a late unsubscribe finishes before the same authorized UID is subscribed again',async()=>{
+ const {createVideoClient}=await import('../src/web.ts'),f=fixture(),gate=deferred(),events=[];
+ const user={uid:2,hasAudio:true,hasVideo:false,audioTrack:{setVolume(){},stop(){},play(){events.push('play');}}};
+ f.rtc.subscribe=async()=>{events.push('subscribe');};f.rtc.unsubscribe=async()=>{events.push('unsubscribe-start');await gate.promise;events.push('unsubscribe-end');};
+ const client=createVideoClient(async()=>f.sdk);try{await client.join({...token,allowedRemoteUids:[2]},{audio:false,video:false});await f.handlers.get('user-published')(user,'audio');events.length=0;
+  const removed=client.setAllowedRemoteUids([]);await flush();const returned=client.setAllowedRemoteUids([2]);await flush();assert(!events.includes('subscribe'));
+  gate.resolve();await Promise.all([removed,returned]);assert(events.lastIndexOf('unsubscribe-end')<events.indexOf('subscribe'));assert.equal(events.at(-1),'play');
+ }finally{await client.leave();}
+});

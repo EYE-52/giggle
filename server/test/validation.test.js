@@ -1,7 +1,13 @@
+require("../src/config/redisConfig").redlock.using = async (_resources, _duration, work) => work({aborted:false});
+require('../src/services/queueService').removeFromQueue = async () => {};
+require('../src/config/redisConfig').redis.del = async () => 0;
 // Source metadata has its own Redis integration and socket authorization tests.
 const memberMedia = require('../src/services/memberMediaService');
 memberMedia.publicState = async () => ({screenSharing:false, screenSharingExpiresAt:0});
 memberMedia.clearMember = async () => false;
+require('../src/services/groupPresenceService').onlineUserIds = async () => new Set();
+require('../src/config/redisConfig').redis.hkeys = async () => [];
+require('../src/config/redisConfig').redis.hdel = async () => 0;
 const assert = require("node:assert/strict");
 const { after, test } = require("node:test");
 const mongoose = require("mongoose");
@@ -233,6 +239,7 @@ test("deleting an empty squad also deletes its notifications and stored covers",
 });
 
 test("disbanding a squad also deletes its notifications and stored covers", async () => {
+  const originalFindOne = Squad.findOne;
   const socketService = require("../src/services/socketService");
   const originalDistinct = Notification.distinct;
   const originalDeleteMany = Notification.deleteMany;
@@ -254,6 +261,7 @@ test("disbanding a squad also deletes its notifications and stored covers", asyn
 
   try {
     const req = {
+      user: {userId:"user_a"},
       squadAccess: {
         isLeader: true,
         squad: {
@@ -264,10 +272,12 @@ test("disbanding a squad also deletes its notifications and stored covers", asyn
             { memberId: "member_a", userId: "user_a", role: "leader" },
             { memberId: "member_b", userId: "user_b", role: "member" },
           ],
+          save: async () => {},
           deleteOne: async () => {},
         },
       },
     };
+    Squad.findOne = async () => req.squadAccess.squad;
     const res = createResponse();
 
     await disbandSquadHandler(req, res);
@@ -281,6 +291,7 @@ test("disbanding a squad also deletes its notifications and stored covers", asyn
       { userId: "user_b", squadId: "squad_disbanded", encounterId: "enc_active" },
     ]);
   } finally {
+    Squad.findOne = originalFindOne;
     Notification.distinct = originalDistinct;
     Notification.deleteMany = originalDeleteMany;
     SquadCover.deleteMany = originalDeleteCovers;
@@ -289,6 +300,7 @@ test("disbanding a squad also deletes its notifications and stored covers", asyn
 });
 
 test("kicking a member revokes their live squad and encounter rooms", async () => {
+  const originalFindOne = Squad.findOne;
   const socketService = require("../src/services/socketService");
   const originalRevoke = socketService.revokeUserRealtimeAccess;
   const revoked = [];
@@ -305,20 +317,25 @@ test("kicking a member revokes their live squad and encounter rooms", async () =
       ],
       save: async () => {},
     };
+    Squad.findOne = async () => squad;
     const res = createResponse();
 
-    await kickMemberHandler({ params: { memberId: "member_b" }, squadAccess: { squad } }, res);
+    await kickMemberHandler({ user:{userId:"user_a"}, params: { memberId: "member_b" }, squadAccess: { squad } }, res);
 
     assert.equal(res.statusCode, 200);
     assert.deepEqual(revoked, [
       { userId: "user_b", squadId: "squad_a", encounterId: "enc_1" },
     ]);
   } finally {
+    Squad.findOne = originalFindOne;
     socketService.revokeUserRealtimeAccess = originalRevoke;
   }
 });
 
 test("leaving a squad revokes every socket owned by the leaving user", async () => {
+  const { redlock } = require("../src/config/redisConfig");
+  const originalAcquire = redlock.acquire, originalFindOne = Squad.findOne;
+  redlock.acquire = async () => ({release:async()=>{}});
   const socketService = require("../src/services/socketService");
   const originalRevoke = socketService.revokeUserRealtimeAccess;
   const revoked = [];
@@ -335,15 +352,18 @@ test("leaving a squad revokes every socket owned by the leaving user", async () 
       ],
       save: async () => {},
     };
+    Squad.findOne = async () => squad;
     const res = createResponse();
 
-    await leaveSquadHandler({ squadAccess: { squad, memberIndex: 1 } }, res);
+    await leaveSquadHandler({ user:{userId:"user_b"}, squadAccess: { squad, memberIndex: 1 } }, res);
 
     assert.equal(res.statusCode, 200);
     assert.deepEqual(revoked, [
       { userId: "user_b", squadId: "squad_a", encounterId: "enc_1" },
     ]);
   } finally {
+    redlock.acquire = originalAcquire;
+    Squad.findOne = originalFindOne;
     socketService.revokeUserRealtimeAccess = originalRevoke;
   }
 });

@@ -32,3 +32,7 @@ export * from "./encounterAlias";
 export * from "./chat";
 export * from "./videoLayout";
 export * from "./focusLayout";
+
+export { activateGroupPresence } from "./socket";
+
+export {groupViewerId,isOwnGroupMember} from "./groupIdentity";

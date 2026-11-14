@@ -36,6 +36,26 @@ const {
 } = require("../middlewares/squadAccessMiddleware");
 
 const router = express.Router();
+const groups=require("../controllers/groupManagementController");
+router.post("/squads/create-group",requireApiAuth,(req,res)=>createSquadHandler({...req,body:{...req.body,managedGroup:true}},res));
+router.post("/squads/:squadId/group-preview",requireApiAuth,groups.previewGroup);
+router.post("/squads/:squadId/group-join",requireApiAuth,groups.joinGroup);
+router.post("/squads/:squadId/group-settings",requireApiAuth,requireSquadLeaderAccess,groups.updateGroup);
+router.post("/squads/:squadId/group-invite",requireApiAuth,requireSquadMemberAccess,groups.groupInvite);
+router.get("/squads/:squadId/group-bans",requireApiAuth,requireSquadLeaderAccess,groups.groupBans);
+router.post("/squads/:squadId/group-ban/:memberId",requireApiAuth,requireSquadLeaderAccess,groups.banGroupMember);
+router.post("/squads/:squadId/group-unban/:memberId",requireApiAuth,requireSquadLeaderAccess,groups.unbanGroupMember);
+router.post("/squads/:squadId/group-cancel-join",requireApiAuth,groups.cancelGroupJoin);
+router.post("/squads/:squadId/group-leave",requireApiAuth,requireSquadMemberAccess,groups.leaveGroup);
+router.post("/squads/:squadId/group-delete",requireApiAuth,requireSquadLeaderAccess,groups.deleteGroup);
+
+router.post("/squads/:squadId/members/:memberId/report",requireApiAuth,requireSquadMemberAccess,require("../controllers/groupSafetyController").reportGroupMember);
+const privateGroups = require("../controllers/privateGroupController");
+router.post("/squads/:squadId/private-requests",requireApiAuth,requireSquadMemberAccess,privateGroups.requestPrivateGroup);
+router.get("/squads/:squadId/private-requests",requireApiAuth,requireSquadMemberAccess,privateGroups.listPrivateGroups);
+router.post("/private-requests/:requestId/accept",requireApiAuth,privateGroups.acceptPrivateGroup);
+router.post("/private-requests/:requestId/decline",requireApiAuth,privateGroups.declinePrivateGroup);
+router.post("/private-requests/:requestId/cancel",requireApiAuth,privateGroups.cancelPrivateGroup);
 
 /**
  * @swagger

@@ -12,7 +12,7 @@ type OAuthAttempt = { controller: AbortController; watchdog: number };
 const AUTH_NEXT_KEY = "giggle.auth.next";
 
 function safeNextPath(value: string | null) {
-  if (!value || !value.startsWith("/") || value.startsWith("//")) return "/home";
+  if (!value || !value.startsWith("/") || value.startsWith("//") || /[\\\u0000-\u001f]/.test(value)) return "/home";
   return value;
 }
 

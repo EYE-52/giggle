@@ -2,6 +2,7 @@
 const memberMedia = require('../src/services/memberMediaService');
 memberMedia.publicState = async () => ({screenSharing:false, screenSharingExpiresAt:0});
 memberMedia.clearMember = async () => false;
+require('../src/services/groupPresenceService').onlineUserIds = async () => new Set();
 const assert = require("node:assert/strict");
 const test = require("node:test");
 
@@ -499,12 +500,13 @@ test("squad previews show anonymous members to outsiders only by alias", async (
   });
 });
 
-test("squad discovery shows an anonymous leader only by alias", async () => {
+test("squad directory contains group metadata without member names or identities", async () => {
   await withSquadStubs(async () => {
     const res = createResponse();
     await discoverSquadsHandler({ user: { userId: ALICE } }, res);
     assert.equal(res.statusCode, 200);
-    assert.equal(res.body.data.squads[0].leaderName, "Quiet Fox");
+    assert.equal(res.body.data.squads[0].leaderName, undefined);
+    assert.equal(res.body.data.squads[0].identityMode,"names");
     assert.ok(!JSON.stringify(res.body).includes("Bruno Real"));
   });
 });

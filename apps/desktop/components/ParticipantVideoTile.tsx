@@ -14,7 +14,7 @@ type Props = {
   name: string; colorIndex: number; micOn?: boolean; isLocal?: boolean; isSpeaking?: boolean;
   videoRef?: (el: HTMLDivElement | null) => void;
   hasVideo: boolean; screenSharing?: boolean; mutedForMe?: boolean; onMute?: (muted: boolean) => Promise<void>;
-  onClick?: () => void; focused?: boolean; showFocusHint?: boolean; compact?: boolean;
+  onInvitePrivateChat?: () => Promise<void>; onClick?: () => void; focused?: boolean; showFocusHint?: boolean; compact?: boolean;
   fit?: Fit; backdrop?: boolean; animClass?: string; avatarValue?: string; statusText?: string;
   reactions?: { id: number; emoji: string }[];
   /** Viewer-local size controls from FocusVideoStage (bigger / smaller / keep this size). */
@@ -51,7 +51,7 @@ function PersonMenu({ anchor, onClose, children, name }: {
 
 /** Stable media host: framing and menus never rejoin, resubscribe or move a track. */
 export function ParticipantVideoTile({ name, colorIndex, micOn, isLocal, isSpeaking, videoRef, hasVideo, screenSharing = false,
-  mutedForMe, onMute, onClick, focused, fit: initialFit = "crop", avatarValue, statusText = "Camera off", reactions = [], size }: Props) {
+  mutedForMe, onMute, onInvitePrivateChat, onClick, focused, fit: initialFit = "crop", avatarValue, statusText = "Camera off", reactions = [], size }: Props) {
   const host = useRef<HTMLDivElement>(null), button = useRef<HTMLButtonElement>(null);
   const backdrop = useRef<HTMLVideoElement>(null), preview = useRef<HTMLVideoElement>(null);
   const [fit, setFit] = useState<Fit>(initialFit), [zoom, setZoom] = useState(1);
@@ -151,6 +151,7 @@ export function ParticipantVideoTile({ name, colorIndex, micOn, isLocal, isSpeak
     <div className={styles.reactions} aria-live="polite">{reactions.map(r => <span key={r.id} data-reaction aria-label={reactionLabel(r.emoji)}><ReactionGlyph value={r.emoji} size={26} /></span>)}</div>
     {panel === "menu" && <PersonMenu anchor={button.current} onClose={() => setPanel(null)} name={isLocal ? "You" : name}>
       <button disabled={!hasVideo || screenSharing} onClick={() => setPanel("framing")}>Adjust view{screenSharing && <small>Screen always shown in full</small>}{!hasVideo && <small>Camera off</small>}</button>
+      {!isLocal && onInvitePrivateChat && <button disabled={pending} onClick={async()=>{setPending(true);setError("");try{await onInvitePrivateChat();setPanel(null);}catch(e){setError(e instanceof Error?e.message:"Could not send invitation.");}finally{setPending(false);}}}>Invite to private chat</button>}
       {!isLocal && <button disabled={!onMute || pending} onClick={() => void mute()}>{pending ? "Updating…" : mutedForMe ? "Unmute for me" : "Mute for me"}</button>}
       {size && <button disabled={!size.canGrow} onClick={() => { size.grow(); setPanel(null); }}>{size.screenMode ? "Expand screen" : "Make bigger"}{!size.screenMode && size.pinned && <small>Size is kept</small>}</button>}
       {size && <button disabled={!size.canShrink} onClick={() => { size.shrink(); setPanel(null); }}>{size.screenMode ? "Restore screen and people" : "Make smaller"}</button>}

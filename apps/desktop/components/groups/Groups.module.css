@@ -1,0 +1,76 @@
+.directory, .composer { width: min(100%, 1120px); margin-inline: auto; padding: 28px 24px 48px; color: var(--text); font-family: var(--font-body), system-ui, sans-serif; }
+.directory *, .composer * { box-sizing: border-box; }
+.heading { display: flex; align-items: center; justify-content: space-between; gap: 24px; margin-bottom: 28px; }
+.heading h1, .composer h1 { margin: 0 0 8px; font-family: inherit; font-size: clamp(28px, 3vw, 36px); font-weight: 750; line-height: 1.15; letter-spacing: -.03em; }
+.heading p, .composer > p { margin: 0; font-size: 15px; line-height: 1.5; color: var(--text-muted); }
+.primary, .secondary { display: inline-flex; justify-content: center; align-items: center; gap: 9px; min-height: 44px; border: 0; border-radius: 12px; padding: 10px 16px; font: inherit; font-size: 14px; font-weight: 700; cursor: pointer; text-decoration: none; }
+.primary { background: var(--accent); color: var(--on-accent); }
+.secondary { background: color-mix(in srgb, var(--text) 7%, transparent); color: var(--text); }
+.directory button:focus-visible, .directory summary:focus-visible, .composer button:focus-visible, .composer summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.directory button:disabled, .composer button:disabled { opacity: .5; cursor: wait; }
+.views { display: flex; gap: 24px; margin-bottom: 20px; border-bottom: 1px solid var(--border); }
+.views button { min-height: 44px; padding: 0 3px 10px; border: 0; border-bottom: 2px solid transparent; background: transparent; color: var(--text-muted); font: inherit; font-size: 15px; font-weight: 650; cursor: pointer; }
+.views button[aria-pressed=true] { color: var(--text); border-bottom-color: var(--accent); }
+.toolbar { display: flex; align-items: flex-start; flex-wrap: wrap; gap: 12px; margin-bottom: 24px; }
+.directory .search { display: flex; flex-direction: row; align-items: center; flex: 1; min-width: 200px; gap: 10px; margin: 0; padding: 0 13px; border-radius: 12px; background: var(--surface); border: 1px solid var(--border); color: var(--text-muted); }
+.directory .search input { min-width: 0; width: 100%; min-height: 44px; margin: 0; padding: 10px 0; border: 0; outline-offset: 0; background: transparent; color: var(--text); font: inherit; font-size: 15px; box-shadow: none; }
+.modeFilters { display: flex; gap: 2px; }
+.modeFilters button { min-height: 44px; padding: 0 14px; border: 0; border-radius: 11px; background: transparent; color: var(--text-muted); font: inherit; font-size: 14px; font-weight: 650; cursor: pointer; }
+.modeFilters button[aria-pressed=true] { background: color-mix(in srgb, var(--accent) 13%, var(--surface)); color: var(--text); }
+.filters { min-width: 90px; }
+.filters summary { display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; padding-inline: 10px; font-size: 14px; font-weight: 650; cursor: pointer; list-style: none; }
+.filters summary::-webkit-details-marker { display: none; }
+.filters[open] { flex-basis: 100%; }
+.filters[open] summary { width: fit-content; }
+.filterFields { display: flex; flex-wrap: wrap; gap: 14px; padding-top: 12px; }
+.directory .filterFields label { display: flex; flex: 1; flex-direction: column; gap: 6px; min-width: 160px; font-size: 13px; font-weight: 650; }
+.filterFields select, .composer select { width: 100%; min-height: 44px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); color: var(--text); padding: 10px 12px; font: inherit; font-size: 14px; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(270px, 1fr)); gap: 16px; }
+.directory .room { display: flex; flex-direction: column; gap: 11px; min-width: 0; padding: 22px; border: 1px solid var(--border); border-radius: 18px; background: var(--surface); color: var(--text); text-align: start; font: inherit; cursor: pointer; box-shadow: none; transition: border-color 150ms ease, background-color 150ms ease; }
+.roomTop, .roomFoot { display: flex; align-items: center; justify-content: space-between; gap: 12px; font-size: 12px; color: var(--text-muted); }
+.roomTop > span, .roomFoot > span:last-child { display: inline-flex; align-items: center; gap: 7px; }
+.online { white-space: nowrap; font-size: 11px; }
+.online[data-active]::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--live, #58a37c); }
+.roomTitle { margin-top: 4px; font-size: 20px; font-weight: 750; letter-spacing: -.02em; line-height: 1.25; overflow-wrap: anywhere; }
+.description { color: var(--text-muted); font-size: 14px; line-height: 1.5; overflow-wrap: anywhere; }
+.tags { color: var(--text-muted); font-size: 12px; line-height: 1.5; }
+.roomFoot { margin-top: auto; padding-top: 9px; }
+.roomFoot > span:last-child { color: var(--text); font-weight: 650; }
+.empty { max-width: 520px; margin: 64px auto; text-align: center; color: var(--text-muted); font-size: 15px; line-height: 1.6; }
+.empty h2 { font: 700 24px/1.25 var(--font-body), sans-serif; color: var(--text); margin: 0 0 10px; letter-spacing: -.02em; }
+.empty p { margin: 0 0 18px; }
+.srOnly { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; border: 0; clip-path: inset(50%); overflow: hidden; white-space: nowrap; }
+@media (hover: hover) { .directory .room:hover { border-color: color-mix(in srgb, var(--accent) 55%, var(--border)); background: color-mix(in srgb, var(--accent) 4%, var(--surface)); } }
+@media (max-width: 640px) { .directory, .composer { padding: 22px 18px 32px; } .heading { align-items: flex-start; flex-direction: column; gap: 16px; margin-bottom: 22px; } .heading h1 { font-size: 29px; } .toolbar { gap: 8px; } .directory .search { flex-basis: 100%; } .modeFilters { flex: 1; } .modeFilters button { flex: 1; padding-inline: 9px; } .grid { grid-template-columns: minmax(0, 1fr); gap: 12px; } .directory .room { padding: 20px; } .roomTop { gap: 6px; } .empty { margin-block: 40px; } }
+@media (prefers-reduced-motion: reduce) { .directory .room { transition: none; } }
+.composer { max-width: 680px; }
+.composer .back { display: inline-flex; align-items: center; gap: 7px; min-height: 44px; margin: 0 0 20px; padding: 0; border: 0; background: transparent; color: var(--text-muted); font: inherit; font-size: 14px; cursor: pointer; }
+.back > svg { transform: rotate(180deg); }
+.form { display: flex; flex-direction: column; gap: 22px; margin-top: 28px; }
+.composer .field { display: flex; flex-direction: column; gap: 8px; margin: 0; font-size: 14px; font-weight: 650; }
+.composer input:not([type=radio]):not([type=checkbox]), .composer textarea { width: 100%; min-height: 46px; padding: 11px 13px; border: 1px solid var(--border); border-radius: 11px; background: var(--surface); color: var(--text); font: inherit; font-size: 15px; font-weight: 400; box-shadow: none; }
+.composer textarea { resize: vertical; min-height: 80px; }
+.composer .field small, .optional { color: var(--text-muted); font-size: 12px; font-weight: 400; }
+.composer .optional { margin-top: -5px; }
+.composer .choices { padding: 0; margin: 0; border: 0; }
+.composer .choices legend { margin-bottom: 9px; padding: 0; font-size: 14px; font-weight: 650; }
+.choiceRow, .accessChoices { display: flex; gap: 9px; }
+.composer .choiceRow label, .composer .accessChoices label { position: relative; display: flex; flex-direction: row; justify-content: center; align-items: center; gap: 9px; flex: 1; min-height: 48px; margin: 0; padding: 12px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); color: var(--text-muted); cursor: pointer; font-size: 14px; font-weight: 600; }
+.composer .accessChoices label { align-items: flex-start; justify-content: flex-start; padding: 15px; }
+.composer .accessChoices span { display: flex; flex-direction: column; gap: 5px; }
+.composer .accessChoices strong { color: var(--text); font-size: 15px; }
+.composer .accessChoices small { font-size: 12px; font-weight: 400; line-height: 1.45; }
+.choiceRow input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.accessChoices input { width: 16px; height: 16px; margin: 3px 0 0; flex-shrink: 0; accent-color: var(--accent); }
+.composer .choices label:has(input:checked) { color: var(--text); border-color: color-mix(in srgb, var(--accent) 65%, var(--border)); background: color-mix(in srgb, var(--accent) 8%, var(--surface)); }
+.composer .choices label:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 3px; }
+.composer .checkRow { display: flex; flex-direction: row; align-items: center; gap: 10px; min-height: 44px; margin: -10px 0 0; font-size: 14px; color: var(--text-muted); cursor: pointer; }
+.checkRow input { width: 17px; height: 17px; margin: 0; flex-shrink: 0; accent-color: var(--accent); }
+.moreOptions summary { display: flex; justify-content: space-between; align-items: center; min-height: 44px; font-size: 14px; font-weight: 650; list-style: none; cursor: pointer; }
+.moreOptions summary::-webkit-details-marker { display: none; }
+.moreOptions[open] summary > svg { transform: rotate(90deg); }
+.moreOptions .filterFields > label { min-width: 140px; flex: 1; }
+.error { color: var(--coral, #c23e57); font-size: 14px; line-height: 1.5; margin: 0; }
+.formActions { display: flex; justify-content: flex-end; padding-top: 2px; }
+.formActions .primary { min-width: 180px; min-height: 48px; }
+@media (max-width: 400px) { .composer .choiceRow label { flex-direction: column; gap: 6px; padding-inline: 7px; } .composer .accessChoices label { padding: 12px 9px; gap: 7px; } .formActions .primary { width: 100%; } }

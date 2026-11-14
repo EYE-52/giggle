@@ -5,6 +5,7 @@ const squadMemberSchema = new mongoose.Schema({
   userId: { type: String, required: true },
   providerAccountId: { type: String, required: true },
   displayName: { type: String, trim: true, maxlength: 48 },
+  alias: { type: String, trim: true, maxlength: 24 },
   role: { type: String, enum: ["leader", "member"], default: "member" },
   ready: { type: Boolean, default: false },
   inLobbyVideo: { type: Boolean, default: false },
@@ -22,6 +23,16 @@ const squadSchema = new mongoose.Schema({
     default: "idle",
   },
   members: [squadMemberSchema],
+  managedGroup: {type:Boolean,default:false},
+  description: {type:String,maxlength:160,default:""},
+  publicTopic: {type:String,enum:["games","dating","relationships","banter","deep-talks"],default:"banter"},
+  language: {type:String,enum:["any","en","hi","es","fr","de","pt"],default:"any"},
+  groupInvite: {type:String},
+  bannedMembers: [{memberId:String,userId:String,displayName:String,alias:String,bannedAt:Date}],
+  identityMode: { type: String, enum: ["names", "aliases"], default: "names", immutable: true },
+  communicationMode: { type: String, enum: ["chat", "voice", "video"], default: "video", immutable: true },
+  // Set only by an accepted mutual request; invites and upgrades cannot add a third principal.
+  authorizedPrincipalPair: { type: [String], default: undefined, immutable: true },
   visibility: { type: String, enum: ["private", "open"], default: "private" },
   joinPolicy: { type: String, enum: ["open", "request", "invite"], default: "open" },
   // Invite-only allow-list. When joinPolicy === "invite", only userIds present
@@ -31,6 +42,7 @@ const squadSchema = new mongoose.Schema({
     {
       userId: { type: String, required: true },
       name: { type: String, trim: true, maxlength: 48 },
+      alias: { type: String, trim: true, maxlength: 24 },
       requestedAt: { type: Date, default: Date.now },
     },
   ],

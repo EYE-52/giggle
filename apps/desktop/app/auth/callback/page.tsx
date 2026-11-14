@@ -9,7 +9,7 @@ const AUTH_NEXT_KEY = "giggle.auth.next";
 
 function safeStoredNext() {
   const value = sessionStorage.getItem(AUTH_NEXT_KEY);
-  if (!value || !value.startsWith("/") || value.startsWith("//")) return "/home";
+  if (!value || !value.startsWith("/") || value.startsWith("//") || /[\\\u0000-\u001f]/.test(value)) return "/home";
   return value;
 }
 

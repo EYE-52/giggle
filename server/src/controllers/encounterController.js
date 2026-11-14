@@ -1,4 +1,8 @@
 const { getRequesterIdentity, getSquadAccessContext } = require("../app/squadAccess");
+const User = require("../models/User");
+const { hasAdultAccess } = require("../services/ageAccessService");
+const { publicMemberId } = require("../services/groupIdentityService");
+const { encounterRtcUid } = require("../services/encounterIdentityService");
 const { createEncounterRtcToken } = require("../services/agoraTokenService");
 const {
   getEncounterById,
@@ -34,6 +38,7 @@ const issueEncounterTokenHandler = async (req, res) => {
     }
 
     const { squad, member } = context;
+    if (squad.communicationMode && squad.communicationMode !== "video") return res.status(409).json({ok:false,error:{code:"GROUP_ROOM_ONLY",message:"Use this group room for its chosen call mode.",squadId:squad.squadId}});
     if (squad.currentEncounterId !== encounterId) {
       return res.status(403).json({
         ok: false,
@@ -64,16 +69,33 @@ const issueEncounterTokenHandler = async (req, res) => {
         },
       });
     }
-    if (!(await getEncounterRosterContext({ encounter })).allowed) {
+    const roster = await getEncounterRosterContext({ encounter });
+    if (!roster.allowed) {
       return res.status(403).json({
         ok: false,
         error: { code: "INTERACTION_BLOCKED", message: "This encounter is unavailable" },
       });
     }
 
+    const squads = [roster.squadA, roster.squadB].filter(Boolean);
+    const managed = squads.some(group => group.managedGroup || group.identityMode === "aliases" || group.visibility === "open");
+    const candidates = squads.flatMap(group => group.members.filter(candidate =>
+      !(group.bannedMembers || []).some(banned => String(banned.userId) === String(candidate.userId))
+    ));
+    let permitted = candidates;
+    if (managed) {
+      const accounts = await User.find({ _id: { $in: candidates.map(candidate => candidate.userId) } })
+        .select("_id ageConfirmed isAdult ageVerified isSuspended isShadowBanned deletionStatus").lean();
+      const eligible = new Set(accounts.filter(user => hasAdultAccess(user)).map(user => String(user._id)));
+      permitted = candidates.filter(candidate => eligible.has(String(candidate.userId)));
+    }
+    const allowedRemoteUids = [...new Set(permitted
+      .filter(candidate => String(candidate.userId) !== String(member.userId))
+      .map(candidate => encounterRtcUid(encounterId, candidate.userId)))];
     const tokenPayload = createEncounterRtcToken({
       encounterId,
       userId: member.userId,
+      ...(managed ? { expiresIn: 90 } : {}),
     });
 
     return res.status(200).json({
@@ -81,8 +103,9 @@ const issueEncounterTokenHandler = async (req, res) => {
       data: {
         encounterId,
         squadId,
-        memberId: member.memberId,
+        memberId: publicMemberId(squad, member),
         ...tokenPayload,
+        allowedRemoteUids,
       },
     });
   } catch (error) {

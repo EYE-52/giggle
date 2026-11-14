@@ -1,5 +1,11 @@
+const { withSquadAdmissionLock, guardSquadWrites } = require("../services/squadAdmissionService");
+const { validGroupInvite } = require("../utils/groupInviteValidation");
+const {groupMetadata,directoryQuery} = require("../utils/groupSettingsValidation");
+const groupPresence = require("../services/groupPresenceService");
+const { aliasGroup, groupAlias, groupHandle, publicMemberId, publicUserId, publicGroupMember, groupFields, resolveGroupMember } = require("../services/groupIdentityService");
+const { normalizeEncounterAlias } = require("../utils/groupIdentityValidation");
 const memberMedia = require('../services/memberMediaService');
-const { hashStringToUid } = require("../services/agoraTokenService");
+const { hashStringToUid, lobbyRtcUid } = require("../services/agoraTokenService");
 const mongoose = require("mongoose");
 const { Squad } = require("../models/Squad");
 const User = require("../models/User");
@@ -82,6 +88,7 @@ const capacityForPremium = (isPremium) =>
   Math.min(isPremium ? PREMIUM_MAX_MEMBERS : FREE_MAX_MEMBERS, MAX_SQUAD_MEMBERS);
 
 const getSquadCapacity = async (squad) => {
+  if (squad.authorizedPrincipalPair?.length === 2) return 2;
   try {
     const leader = findCapacityLeader(squad);
     if (!leader || !leader.userId) return FREE_MAX_MEMBERS;
@@ -110,7 +117,7 @@ const getSquadCapacities = async (squads) => {
       console.warn("getSquadCapacities failed:", error.message);
     }
   }
-  return leaderIds.map((id) => capacityForPremium(Boolean(id && premiumById.get(id))));
+  return leaderIds.map((id, index) => squads[index].authorizedPrincipalPair?.length === 2 ? 2 : capacityForPremium(Boolean(id && premiumById.get(id))));
 };
 
 const getUserPremiumStatus = async (userId) => {
@@ -138,7 +145,7 @@ const normalizeSquadName = (value) => {
   return value.replace(/\s+/g, " ").trim();
 };
 
-const publicSquadName = (squad) => normalizeSquadName(squad?.squadName).slice(0, 60) || "Untitled squad";
+const publicSquadName = (squad) => normalizeSquadName(squad?.squadName) === `Squad ${squad?.squadCode}` ? "Untitled squad" : normalizeSquadName(squad?.squadName).slice(0, 60) || "Untitled squad";
 
 const publicMemberName = (member) => firstDisplayName(member?.displayName, "Someone");
 
@@ -158,9 +165,11 @@ const loadPublicIdentityUsers = async (members) => {
 // discovery): members who stay anonymous with other squads show only their
 // alias, no avatar, and an opaque id scoped to this squad's public views.
 const publicMemberView = (squad, member, users) => {
+  if (aliasGroup(squad)) return publicGroupMember(squad, member);
   const view = publicEncounterIdentity({
     viewerSquadId: null,
     memberSquadId: squad.squadId,
+      identityMode: squad.identityMode,
     member,
     user: users ? identityUserFor(users, member?.userId) : undefined,
     scope: `squad-public:${squad.squadId}`,
@@ -173,7 +182,8 @@ const publicMemberView = (squad, member, users) => {
 // Members with each user's chosen illustrated avatar. Looked up live from User
 // (never persisted on member subdocs, where it would go stale) in one batched
 // query; avatar is null when unset or when the lookup fails.
-const withMemberAvatars = async (members) => {
+const withMemberAvatars = async (members, squad) => {
+  if (aliasGroup(squad)) return members.map(member => publicGroupMember(squad, member));
   const list = [...(members || [])];
   const avatars = await loadAvatarsByUserId(list.map((member) => member?.userId), { User });
   return list.map((member) => ({
@@ -240,10 +250,11 @@ const getMySquadHandler = async (req, res) => {
         squadCode: squad.squadCode,
         squadName: squad.squadName,
         status: squad.status,
-        member,
-        leaderMemberId: leader ? leader.memberId : null,
+        ...groupFields(squad, getRequesterIdentity(req).userId),
+        member: publicGroupMember(squad, member),
+        leaderMemberId: leader ? publicMemberId(squad, leader) : null,
         maxSlots: await getSquadCapacity(squad),
-        members: await withMemberAvatars(squad.members),
+        members: await withMemberAvatars(squad.members, squad),
       },
     });
   } catch (error) {
@@ -256,6 +267,8 @@ const getMySquadHandler = async (req, res) => {
 };
 
 const getMySquadsHandler = async (req, res) => {
+  const filters=directoryQuery(req.query);
+  if(filters.error)return res.status(400).json({ok:false,error:{code:"INVALID_SEARCH",message:filters.error}});
   const identity = getRequesterIdentity(req);
 
   if (!identity.userId) {
@@ -269,6 +282,7 @@ const getMySquadsHandler = async (req, res) => {
     const squads = await findSquadsForIdentity({
       userId: identity.userId,
       providerAccountId: identity.providerAccountId,
+      metadataQuery:filters.query,
     });
 
     // One block-state query for every member of every squad (was one per squad);
@@ -285,6 +299,7 @@ const getMySquadsHandler = async (req, res) => {
     );
     const visibleSquads = squads.filter((_squad, index) => !blocked[index]);
     const capacities = await getSquadCapacities(visibleSquads);
+    const online = await Promise.all(visibleSquads.map(squad => groupPresence.onlineUserIds(squad.squadId, squad.members.map(member => member.userId))));
     const data = visibleSquads.map((squad, index) => {
       const leader = squad.members.find((m) => m.role === "leader");
       const myMember = squad.members.find((m) => isSameMember(m, identity));
@@ -293,11 +308,13 @@ const getMySquadsHandler = async (req, res) => {
         squadCode: squad.squadCode,
         squadName: squad.squadName,
         status: squad.status,
+        ...groupFields(squad, getRequesterIdentity(req).userId),
         memberCount: squad.members.length,
+        onlineCount: online[index].size,
         maxSlots: capacities[index],
         coverImage: publicCoverImage(squad),
         tags: squad.tags || [],
-        leaderName: leader ? leader.displayName : undefined,
+        leaderName: leader ? (aliasGroup(squad) ? groupAlias(leader) : leader.displayName) : undefined,
         myRole: myMember ? myMember.role : undefined,
         joinPolicy: squad.joinPolicy || "open",
       };
@@ -314,7 +331,14 @@ const getMySquadsHandler = async (req, res) => {
 };
 
 const createSquadHandler = async (req, res) => {
-  const { displayName, squadName, tags, visibility } = req.body;
+  const { displayName, squadName, tags, visibility, identityMode = "names", communicationMode = "video", alias, joinPolicy = "open" } = req.body;
+  if (!["names", "aliases"].includes(identityMode) || !["chat", "voice", "video"].includes(communicationMode) || !["open", "request", "invite"].includes(joinPolicy)) return res.status(400).json({ok:false,error:{code:"INVALID_GROUP_SETTINGS",message:"Choose a valid identity, call mode and join policy."}});
+  const metadata=groupMetadata(req.body);
+  if(metadata.error)return res.status(400).json({ok:false,error:{code:"INVALID_GROUP_SETTINGS",message:metadata.error}});
+  const managedGroup=req.body.managedGroup === true || identityMode === "aliases";
+  const chosenAlias = identityMode === "aliases" ? normalizeEncounterAlias(alias) : null;
+  if (chosenAlias && (!chosenAlias.value || chosenAlias.error)) return res.status(400).json({ok:false,error:{code:"INVALID_ALIAS",message:chosenAlias.error || "Choose an alias for this group."}});
+  if (visibility === "open" && !isStrangerDiscoveryEnabled()) return discoveryDisabled(res);
   const identity = getRequesterIdentity(req);
   const { userId, providerAccountId, name, email } = identity;
 
@@ -331,7 +355,7 @@ const createSquadHandler = async (req, res) => {
     const squadId = generateId("sq");
     const squadCode = generateSquadCode();
     const memberId = generateId("mem");
-    const normalizedSquadName = normalizeSquadName(squadName) || `Squad ${squadCode}`;
+    const normalizedSquadName = normalizeSquadName(squadName) || (managedGroup ? "New group" : `Squad ${squadCode}`);
 
     if (normalizedSquadName.length < 2 || normalizedSquadName.length > 32) {
       return res.status(400).json({
@@ -367,7 +391,8 @@ const createSquadHandler = async (req, res) => {
       memberId,
       userId,
       providerAccountId,
-      displayName: firstDisplayName(displayName, name, email),
+      displayName: chosenAlias?.value || firstDisplayName(displayName, name, email),
+      ...(chosenAlias ? {alias:chosenAlias.value} : {}),
       role: "leader",
       ready: false,
       joinedAt: new Date().toISOString(),
@@ -380,7 +405,7 @@ const createSquadHandler = async (req, res) => {
       status: "idle",
       isPremiumSquad: await getUserPremiumStatus(userId),
       tags: normalizedTags.tags,
-      visibility: normalizedVisibility,
+      visibility: normalizedVisibility, identityMode, communicationMode, joinPolicy, managedGroup, ...metadata.value,
       members: [newMember],
       createdAt: new Date().toISOString(),
     });
@@ -394,9 +419,10 @@ const createSquadHandler = async (req, res) => {
         squadCode: newSquad.squadCode,
         squadName: newSquad.squadName,
         tags: newSquad.tags,
-        member: newMember,
-        members: await withMemberAvatars([newMember]),
+        member: publicGroupMember(newSquad, newMember),
+        members: await withMemberAvatars([newMember], newSquad),
         status: newSquad.status,
+        ...groupFields(newSquad, userId),
       },
     });
   } catch (error) {
@@ -445,179 +471,209 @@ const joinSquadHandler = async (req, res) => {
       });
     }
 
-    const squad = await Squad.findOne(
+    const locatedSquad = await Squad.findOne(
       pathSquadId ? { squadId: pathSquadId } : { squadCode: normalizedSquadCode }
     );
-    if (!squad) {
-      return res.status(404).json({
-        ok: false,
-        error: { code: "SQUAD_NOT_FOUND", message: "Squad not found" },
-      });
+    if (!locatedSquad) {
+      return res.status(404).json({ok:false,error:{code:"SQUAD_NOT_FOUND",message:"Squad not found"}});
     }
+    return await withSquadAdmissionLock(locatedSquad.squadId, async admissionSignal => {
+      const squad = guardSquadWrites(await Squad.findOne({ squadId: locatedSquad.squadId }), admissionSignal);
+      if (!squad || (!pathSquadId && normalizedSquadCode && squad.squadCode !== normalizedSquadCode)) {
+        return res.status(404).json({
+          ok: false,
+          error: { code: "SQUAD_NOT_FOUND", message: "Squad not found" },
+        });
+      }
 
-    if (await anyBlockedPairInSquad(squad, [userId])) return interactionBlocked(res);
+      if (squad.visibility === "open" && !isStrangerDiscoveryEnabled()) return discoveryDisabled(res);
+      if (squad.authorizedPrincipalPair?.length && !squad.authorizedPrincipalPair.includes(userId)) return res.status(403).json({ok:false,error:{code:"PAIR_ONLY",message:"This private group is only for its two participants."}});
+      if (await anyBlockedPairInSquad(squad, [userId])) return interactionBlocked(res);
 
-    const existingMember = squad.members.find((candidate) => isSameMember(candidate, { userId, providerAccountId }));
-    if (existingMember) {
+      if ((squad.bannedMembers || []).some(member=>String(member.userId)===userId)) return res.status(403).json({ok:false,error:{code:"GROUP_BANNED",message:"This group is unavailable."}});
+      const existingMember = squad.members.find((candidate) => isSameMember(candidate, { userId, providerAccountId }));
+      if (existingMember) {
+        await resolveSquadInviteNotification(userId, squad.squadId);
+        return res.status(200).json({
+          ok: true,
+          data: {
+            squadId: squad.squadId,
+            squadCode: squad.squadCode,
+            squadName: squad.squadName,
+            member: publicGroupMember(squad, existingMember),
+            members: await withMemberAvatars(squad.members, squad),
+            status: squad.status,
+          ...groupFields(squad, getRequesterIdentity(req).userId),
+          },
+        });
+      }
+
+      const inviteValidated = validGroupInvite(squad, req.body?.invite);
+      if (squad.managedGroup && squad.visibility === "private" &&
+          !inviteValidated && !hasIdentityId(squad.invitedUserIds, userId)) {
+        return res.status(403).json({
+          ok: false,
+          error: { code: "INVITE_REQUIRED", message: "Use a current invite link to join this private group." },
+        });
+      }
+      const chosenAlias = aliasGroup(squad) ? normalizeEncounterAlias(req.body?.alias) : null;
+      if (chosenAlias && (!chosenAlias.value || chosenAlias.error)) return res.status(400).json({ok:false,error:{code:"INVALID_ALIAS",message:chosenAlias.error || "Choose an alias for this group."}});
+
+      // Invite-only: the squad accepts neither instant joins nor requests. Only
+      // users the leader explicitly invited (present in invitedUserIds) may join.
+      if (squad.joinPolicy === "invite") {
+        const invited = inviteValidated || hasIdentityId(squad.invitedUserIds, userId);
+        if (!invited) {
+          return res.status(403).json({
+            ok: false,
+            error: {
+              code: "INVITE_ONLY",
+              message: "This squad is invite-only. Ask the leader for an invite.",
+            },
+          });
+        }
+        // Invited user falls through to the normal capacity/status checks + join.
+      }
+
+      // Request-to-join: if the squad gates joins behind leader approval, the
+      // requester (not already a member, not the leader) is added to the pending
+      // joinRequests list (deduped by userId) instead of becoming a member.
+      if (squad.joinPolicy === "request") {
+        const outcome = await withMatchmakingLock(async (signal) => {
+          return mongoose.connection.transaction(async (session) => {
+            const currentSquad = guardSquadWrites(await Squad.findOne(
+              { squadId: squad.squadId },
+              null,
+              { session }
+            ), admissionSignal);
+            if (!currentSquad) {
+              return { error: { status: 404, code: "SQUAD_NOT_FOUND", message: "Squad not found" } };
+            }
+            if ((currentSquad.bannedMembers || []).some(member=>String(member.userId)===userId)) return {error:{status:403,code:"GROUP_BANNED",message:"This group is unavailable."}};
+            if (currentSquad.joinPolicy !== "request") {
+              return { error: { status: 409, code: "SQUAD_CHANGED", message: "Squad join settings changed" } };
+            }
+            if (await anyBlockedPairInSquad(currentSquad, [userId], { session })) {
+              return { blocked: true };
+            }
+            if (hasIdentityId(currentSquad.joinRequests, userId, "userId")) {
+              return { added: false, squadId: currentSquad.squadId };
+            }
+            if (signal.aborted) throw signal.error || new Error("Matchmaking lock was lost");
+
+            currentSquad.joinRequests.push({
+              userId,
+              name: (chosenAlias?.value || firstDisplayName(displayName, name, email)),
+              ...(chosenAlias ? {alias:chosenAlias.value} : {}),
+              requestedAt: new Date(),
+            });
+            await currentSquad.save({ session });
+
+            const leader = currentSquad.members.find((member) => member.role === "leader");
+            const notification = leader?.userId
+              ? await createNotification({
+                  userId: leader.userId,
+                  type: "join_request",
+                  title: "New join request",
+                  body: `${(chosenAlias?.value || firstDisplayName(displayName, name, email))} wants to join ${currentSquad.squadName}`,
+                  fromUserId: userId,
+                  ...(aliasGroup(currentSquad) ? {publicFromId:groupHandle(currentSquad,{userId}),publicFromName:chosenAlias.value} : {}),
+                  fromName: (chosenAlias?.value || firstDisplayName(displayName, name, email)),
+                  squadId: currentSquad.squadId,
+                  squadCode: currentSquad.squadCode,
+                  squadName: currentSquad.squadName,
+                }, { session, required: true, emit: false })
+              : null;
+            if (signal.aborted) throw signal.error || new Error("Matchmaking lock was lost");
+            return { added: true, notification, squadId: currentSquad.squadId };
+          });
+        });
+        if (outcome.blocked) return interactionBlocked(res);
+        if (outcome.error) {
+          return res.status(outcome.error.status).json({
+            ok: false,
+            error: { code: outcome.error.code, message: outcome.error.message },
+          });
+        }
+        if (outcome.added) {
+          if (outcome.notification) emitNotification(outcome.notification);
+          socketService.emitToSquad(outcome.squadId, "SQUAD_UPDATED", {});
+        }
+        await resolveSquadInviteNotification(userId, outcome.squadId || squad.squadId);
+        return res.status(200).json({ ok: true, data: { status: "requested" } });
+      }
+
+      // Multi-squad membership: being in another squad no longer blocks joining
+      // this one. Other validations (already in THIS squad handled above; full;
+      // closed) still apply below.
+      const capacity = await getSquadCapacity(squad);
+      if (squad.members.length >= capacity) {
+        // A free squad (capacity 4) that is full prompts an upgrade; a premium
+        // squad at its 8-seat cap returns the plain full error.
+        if (capacity !== 2 && capacity <= FREE_MAX_MEMBERS) {
+          return res.status(403).json({
+            ok: false,
+            error: {
+              code: "SQUAD_FULL_UPGRADE",
+              message:
+                "This squad is full at 4. The leader can upgrade to Giggle+ to open up to 8 seats.",
+            },
+          });
+        }
+        return res.status(409).json({
+          ok: false,
+          error: { code: "SQUAD_FULL", message: `Squad is full (max ${capacity} members)` },
+        });
+      }
+
+      if (squad.status !== "idle") {
+        return res.status(409).json({
+          ok: false,
+          error: { code: "SQUAD_CLOSED", message: "Squad is already in a match or encounter" },
+        });
+      }
+
+      const memberId = generateId("mem");
+      const newMember = {
+        memberId,
+        userId,
+        providerAccountId,
+        displayName: (chosenAlias?.value || firstDisplayName(displayName, name, email)),
+        ...(chosenAlias ? {alias:chosenAlias.value} : {}),
+        role: "member",
+        ready: false,
+        joinedAt: new Date().toISOString(),
+      };
+
+      squad.members.push(newMember);
+      await squad.save();
+      if (await anyBlockedPairInSquad(squad)) {
+        const addedIndex = squad.members.findIndex((member) => member.memberId === memberId);
+        if (addedIndex >= 0) squad.members.splice(addedIndex, 1);
+        await squad.save();
+        return interactionBlocked(res);
+      }
+      socketService.emitToSquad(squad.squadId, "SQUAD_UPDATED", {});
       await resolveSquadInviteNotification(userId, squad.squadId);
+
       return res.status(200).json({
         ok: true,
         data: {
           squadId: squad.squadId,
           squadCode: squad.squadCode,
           squadName: squad.squadName,
-          member: existingMember,
-          members: await withMemberAvatars(squad.members),
+          member: publicGroupMember(squad, newMember),
+          members: await withMemberAvatars(squad.members, squad),
           status: squad.status,
+          ...groupFields(squad, getRequesterIdentity(req).userId),
         },
       });
-    }
-
-    // Invite-only: the squad accepts neither instant joins nor requests. Only
-    // users the leader explicitly invited (present in invitedUserIds) may join.
-    if (squad.joinPolicy === "invite") {
-      const invited = hasIdentityId(squad.invitedUserIds, userId);
-      if (!invited) {
-        return res.status(403).json({
-          ok: false,
-          error: {
-            code: "INVITE_ONLY",
-            message: "This squad is invite-only. Ask the leader for an invite.",
-          },
-        });
-      }
-      // Invited user falls through to the normal capacity/status checks + join.
-    }
-
-    // Request-to-join: if the squad gates joins behind leader approval, the
-    // requester (not already a member, not the leader) is added to the pending
-    // joinRequests list (deduped by userId) instead of becoming a member.
-    if (squad.joinPolicy === "request") {
-      const outcome = await withMatchmakingLock(async (signal) => {
-        return mongoose.connection.transaction(async (session) => {
-          const currentSquad = await Squad.findOne(
-            { squadId: squad.squadId },
-            null,
-            { session }
-          );
-          if (!currentSquad) {
-            return { error: { status: 404, code: "SQUAD_NOT_FOUND", message: "Squad not found" } };
-          }
-          if (currentSquad.joinPolicy !== "request") {
-            return { error: { status: 409, code: "SQUAD_CHANGED", message: "Squad join settings changed" } };
-          }
-          if (await anyBlockedPairInSquad(currentSquad, [userId], { session })) {
-            return { blocked: true };
-          }
-          if (hasIdentityId(currentSquad.joinRequests, userId, "userId")) {
-            return { added: false, squadId: currentSquad.squadId };
-          }
-          if (signal.aborted) throw signal.error || new Error("Matchmaking lock was lost");
-
-          currentSquad.joinRequests.push({
-            userId,
-            name: firstDisplayName(displayName, name, email),
-            requestedAt: new Date(),
-          });
-          await currentSquad.save({ session });
-
-          const leader = currentSquad.members.find((member) => member.role === "leader");
-          const notification = leader?.userId
-            ? await createNotification({
-                userId: leader.userId,
-                type: "join_request",
-                title: "New join request",
-                body: `${firstDisplayName(displayName, name, email)} wants to join ${currentSquad.squadName}`,
-                fromUserId: userId,
-                fromName: firstDisplayName(displayName, name, email),
-                squadId: currentSquad.squadId,
-                squadCode: currentSquad.squadCode,
-                squadName: currentSquad.squadName,
-              }, { session, required: true, emit: false })
-            : null;
-          if (signal.aborted) throw signal.error || new Error("Matchmaking lock was lost");
-          return { added: true, notification, squadId: currentSquad.squadId };
-        });
-      });
-      if (outcome.blocked) return interactionBlocked(res);
-      if (outcome.error) {
-        return res.status(outcome.error.status).json({
-          ok: false,
-          error: { code: outcome.error.code, message: outcome.error.message },
-        });
-      }
-      if (outcome.added) {
-        if (outcome.notification) emitNotification(outcome.notification);
-        socketService.emitToSquad(outcome.squadId, "SQUAD_UPDATED", {});
-      }
-      await resolveSquadInviteNotification(userId, outcome.squadId || squad.squadId);
-      return res.status(200).json({ ok: true, data: { status: "requested" } });
-    }
-
-    // Multi-squad membership: being in another squad no longer blocks joining
-    // this one. Other validations (already in THIS squad handled above; full;
-    // closed) still apply below.
-    const capacity = await getSquadCapacity(squad);
-    if (squad.members.length >= capacity) {
-      // A free squad (capacity 4) that is full prompts an upgrade; a premium
-      // squad at its 8-seat cap returns the plain full error.
-      if (capacity <= FREE_MAX_MEMBERS) {
-        return res.status(403).json({
-          ok: false,
-          error: {
-            code: "SQUAD_FULL_UPGRADE",
-            message:
-              "This squad is full at 4. The leader can upgrade to Giggle+ to open up to 8 seats.",
-          },
-        });
-      }
-      return res.status(409).json({
-        ok: false,
-        error: { code: "SQUAD_FULL", message: `Squad is full (max ${capacity} members)` },
-      });
-    }
-
-    if (squad.status !== "idle") {
-      return res.status(409).json({
-        ok: false,
-        error: { code: "SQUAD_CLOSED", message: "Squad is already in a match or encounter" },
-      });
-    }
-
-    const memberId = generateId("mem");
-    const newMember = {
-      memberId,
-      userId,
-      providerAccountId,
-      displayName: firstDisplayName(displayName, name, email),
-      role: "member",
-      ready: false,
-      joinedAt: new Date().toISOString(),
-    };
-
-    squad.members.push(newMember);
-    await squad.save();
-    if (await anyBlockedPairInSquad(squad)) {
-      const addedIndex = squad.members.findIndex((member) => member.memberId === memberId);
-      if (addedIndex >= 0) squad.members.splice(addedIndex, 1);
-      await squad.save();
-      return interactionBlocked(res);
-    }
-    socketService.emitToSquad(squad.squadId, "SQUAD_UPDATED", {});
-    await resolveSquadInviteNotification(userId, squad.squadId);
-
-    return res.status(200).json({
-      ok: true,
-      data: {
-        squadId: squad.squadId,
-        squadCode: squad.squadCode,
-        squadName: squad.squadName,
-        member: newMember,
-        members: await withMemberAvatars(squad.members),
-        status: squad.status,
-      },
     });
   } catch (error) {
+    if (res.headersSent) return res;
+    if (error.status === 409) {
+      return res.status(409).json({ok:false,error:{code:error.code,message:error.message}});
+    }
     console.error("Error joining squad:", error);
     return res.status(500).json({
       ok: false,
@@ -638,10 +694,10 @@ const getSquadHandler = async (req, res) => {
       sessionService.getSquadSession(squad.squadId),
       memberUserIds.length
         ? User.find({ _id: { $in: memberUserIds } })
-            .select("_id gender languages country isPremium premiumExpiresAt avatar")
+            .select("_id gender languages country isPremium premiumExpiresAt avatar ageConfirmed isAdult ageVerified isSuspended isShadowBanned deletionStatus")
             .lean()
         : Promise.resolve([]),
-      socketService.getOnlineUserIds(memberUserIds),
+      groupPresence.onlineUserIds(squad.squadId, memberUserIds),
     ]);
     const demoById = new Map(demoUsers.map((u) => [u._id.toString(), u]));
     const capacityLeader = leader ||
@@ -650,17 +706,18 @@ const getSquadHandler = async (req, res) => {
     const leaderUser = capacityLeader?.userId
       ? demoById.get(String(capacityLeader.userId))
       : undefined;
-    const maxSlots = Math.min(
+    const maxSlots = squad.authorizedPrincipalPair?.length === 2 ? 2 : Math.min(
       hasActivePremium(leaderUser) ? PREMIUM_MAX_MEMBERS : FREE_MAX_MEMBERS,
       MAX_SQUAD_MEMBERS
     );
 
-    const mergedMembers = await Promise.all(squad.members.map(async member => {
+    const visibleMembers = squad.members.filter(member => !(squad.bannedMembers||[]).some(banned=>String(banned.userId)===String(member.userId)) && (!squad.managedGroup && !aliasGroup(squad) || hasAdultAccess(demoById.get(String(member.userId)))));
+    const mergedMembers = await Promise.all(visibleMembers.map(async member => {
       const live = sessionData[member.memberId] || {};
       const u = demoById.get(String(member.userId));
-      return {
+      return publicGroupMember(squad, member, {
         ...member.toObject(),
-        uid: hashStringToUid(`${squad.squadId}:${member.userId}`),
+        uid: lobbyRtcUid({squadId:squad.squadId,userId:member.userId,identityMode:squad.identityMode}),
         ...await memberMedia.publicState(member.userId, `squad:${squad.squadId}:${member.memberId}`),
         ready: live.ready !== undefined ? live.ready : member.ready,
         inLobbyVideo: live.inLobbyVideo !== undefined ? live.inLobbyVideo : member.inLobbyVideo,
@@ -671,7 +728,7 @@ const getSquadHandler = async (req, res) => {
         languages: u ? u.languages || [] : undefined,
         country: u ? u.country : undefined,
         avatar: publicAvatar(u?.avatar),
-      };
+      });
     }));
 
     return res.status(200).json({
@@ -681,15 +738,17 @@ const getSquadHandler = async (req, res) => {
         squadCode: squad.squadCode,
         squadName: squad.squadName,
         status: squad.status,
+        ...groupFields(squad, getRequesterIdentity(req).userId),
         members: mergedMembers,
+        onlineCount: onlineMemberIds.size,
         maxSlots,
-        leaderMemberId: leader ? leader.memberId : undefined,
+        leaderMemberId: leader ? publicMemberId(squad, leader) : undefined,
         tags: squad.tags,
         coverImage: publicCoverImage(squad),
         visibility: squad.visibility || "private",
         joinPolicy: squad.joinPolicy || "open",
         invitedCount: (squad.invitedUserIds || []).length,
-        invitedUserIds: squad.invitedUserIds || [],
+        ...(aliasGroup(squad) ? {} : {invitedUserIds:squad.invitedUserIds || []}),
       },
     });
   } catch (error) {
@@ -716,6 +775,8 @@ const getSquadPreviewHandler = async (req, res) => {
     }
 
     const viewerId = getRequesterIdentity(req).userId;
+    if ((squad.bannedMembers || []).some(member=>String(member.userId)===String(viewerId))) return res.status(404).json({ok:false,error:{code:"NOT_FOUND",message:"This group is unavailable."}});
+    if (squad.managedGroup && squad.visibility === "private" && !squad.members.some(member=>isSameMember(member,getRequesterIdentity(req)))) return res.status(404).json({ok:false,error:{code:"NOT_FOUND",message:"Use a current invite link to preview this group."}});
     if (await anyBlockedPairInSquad(squad, [viewerId])) return interactionBlocked(res);
 
     const leader =
@@ -730,7 +791,7 @@ const getSquadPreviewHandler = async (req, res) => {
     const users = await loadPublicIdentityUsers(squad.members);
     const views = new Map(squad.members.map((member) => [
       member,
-      viewerIsMember
+      aliasGroup(squad) ? publicGroupMember(squad, member) : viewerIsMember
         ? {
             memberId: member.memberId,
             displayName: publicMemberName(member),
@@ -741,7 +802,7 @@ const getSquadPreviewHandler = async (req, res) => {
     const members = squad.members.map((member) => ({
       ...views.get(member),
       role: member.role,
-      avatarId: member.avatarId,
+      ...(aliasGroup(squad) ? {} : {avatarId:member.avatarId}),
     }));
 
     return res.status(200).json({
@@ -750,6 +811,7 @@ const getSquadPreviewHandler = async (req, res) => {
         squadId: squad.squadId,
         squadName: publicSquadName(squad),
         status: squad.status,
+        ...groupFields(squad, getRequesterIdentity(req).userId),
         members,
         memberCount: squad.members.length,
         maxSlots: await getSquadCapacity(squad),
@@ -810,7 +872,7 @@ const updateReadyStateHandler = async (req, res) => {
     await sessionService.setSessionField(squad.squadId, member.memberId, 'ready', ready);
 
     socketService.emitToSquad(squad.squadId, "SQUAD_UPDATED", {
-      memberId: member.memberId,
+      memberId: publicMemberId(squad,member),
       ready,
     });
 
@@ -818,7 +880,7 @@ const updateReadyStateHandler = async (req, res) => {
       ok: true,
       data: {
         squadId: squad.squadId,
-        memberId: member.memberId,
+        memberId: publicMemberId(squad,member),
         providerAccountId: member.providerAccountId,
         ready,
       },
@@ -874,7 +936,9 @@ const updateSquadNameHandler = async (req, res) => {
 };
 
 const updateSquadVisibilityHandler = async (req, res) => {
-  const { squad } = req.squadAccess;
+  if (req.squadAccess?.squad?.authorizedPrincipalPair?.length === 2) return res.status(403).json({ok:false,error:{code:"PAIR_ONLY",message:"This private conversation stays invite-only."}});
+  if (req.body?.visibility === "open" && !isStrangerDiscoveryEnabled()) return discoveryDisabled(res);
+  const squadId = req.squadAccess.squad.squadId;
   const { visibility } = req.body || {};
 
   if (visibility !== "private" && visibility !== "open") {
@@ -885,18 +949,39 @@ const updateSquadVisibilityHandler = async (req, res) => {
   }
 
   try {
-    squad.visibility = visibility;
-    await squad.save();
-    socketService.emitToSquad(squad.squadId, "SQUAD_UPDATED", {});
+    return await withSquadAdmissionLock(squadId, async admissionSignal => {
+      const squad = guardSquadWrites(await Squad.findOne({ squadId }), admissionSignal);
+      if (!squad || !squad.members.some(member =>
+        member.role === "leader" && isSameMember(member, getRequesterIdentity(req))
+      )) {
+        return res.status(403).json({
+          ok: false,
+          error: { code: "LEADER_ONLY", message: "Only the current group owner can change who can join." },
+        });
+      }
+      if (squad.authorizedPrincipalPair?.length === 2) {
+        return res.status(403).json({
+          ok: false,
+          error: { code: "PAIR_ONLY", message: "This private conversation stays invite-only." },
+        });
+      }
+      squad.visibility = visibility;
+      await squad.save();
+      socketService.emitToSquad(squad.squadId, "SQUAD_UPDATED", {});
 
-    return res.status(200).json({
-      ok: true,
-      data: {
-        squadId: squad.squadId,
-        visibility: squad.visibility,
-      },
+      return res.status(200).json({
+        ok: true,
+        data: {
+          squadId: squad.squadId,
+          visibility: squad.visibility,
+        },
+      });
     });
   } catch (error) {
+    if (res.headersSent) return res;
+    if (error.status === 409) {
+      return res.status(409).json({ok:false,error:{code:error.code,message:error.message}});
+    }
     console.error("Error updating squad visibility:", error);
     return res.status(500).json({
       ok: false,
@@ -906,7 +991,8 @@ const updateSquadVisibilityHandler = async (req, res) => {
 };
 
 const updateSquadJoinPolicyHandler = async (req, res) => {
-  const { squad } = req.squadAccess;
+  if (req.squadAccess?.squad?.authorizedPrincipalPair?.length === 2) return res.status(403).json({ok:false,error:{code:"PAIR_ONLY",message:"This private conversation stays invite-only."}});
+  const squadId = req.squadAccess.squad.squadId;
   const { joinPolicy } = req.body || {};
 
   if (joinPolicy !== "open" && joinPolicy !== "request" && joinPolicy !== "invite") {
@@ -917,18 +1003,39 @@ const updateSquadJoinPolicyHandler = async (req, res) => {
   }
 
   try {
-    squad.joinPolicy = joinPolicy;
-    await squad.save();
-    socketService.emitToSquad(squad.squadId, "SQUAD_UPDATED", {});
+    return await withSquadAdmissionLock(squadId, async admissionSignal => {
+      const squad = guardSquadWrites(await Squad.findOne({ squadId }), admissionSignal);
+      if (!squad || !squad.members.some(member =>
+        member.role === "leader" && isSameMember(member, getRequesterIdentity(req))
+      )) {
+        return res.status(403).json({
+          ok: false,
+          error: { code: "LEADER_ONLY", message: "Only the current group owner can change who can join." },
+        });
+      }
+      if (squad.authorizedPrincipalPair?.length === 2) {
+        return res.status(403).json({
+          ok: false,
+          error: { code: "PAIR_ONLY", message: "This private conversation stays invite-only." },
+        });
+      }
+      squad.joinPolicy = joinPolicy;
+      await squad.save();
+      socketService.emitToSquad(squad.squadId, "SQUAD_UPDATED", {});
 
-    return res.status(200).json({
-      ok: true,
-      data: {
-        squadId: squad.squadId,
-        joinPolicy: squad.joinPolicy,
-      },
+      return res.status(200).json({
+        ok: true,
+        data: {
+          squadId: squad.squadId,
+          joinPolicy: squad.joinPolicy,
+        },
+      });
     });
   } catch (error) {
+    if (res.headersSent) return res;
+    if (error.status === 409) {
+      return res.status(409).json({ok:false,error:{code:error.code,message:error.message}});
+    }
     console.error("Error updating squad join policy:", error);
     return res.status(500).json({
       ok: false,
@@ -962,6 +1069,7 @@ const getJoinRequestsHandler = async (req, res) => {
       });
     }).map((r) => {
       const u = byId.get(canonicalUserId(r.userId));
+      if (aliasGroup(squad)) return {userId:groupHandle(squad,r),name:r.alias || "Guest",requestedAt:r.requestedAt,avatar:null};
       return {
         userId: r.userId,
         name: r.name,
@@ -984,92 +1092,114 @@ const getJoinRequestsHandler = async (req, res) => {
 };
 
 const approveJoinRequestHandler = async (req, res) => {
-  const { userId: targetUserId } = req.params;
+  let { userId: targetUserId } = req.params;
   const { userId: leaderUserId } = getRequesterIdentity(req);
 
   try {
-    const { squad } = req.squadAccess;
-    const reqIndex = (squad.joinRequests || []).findIndex((r) =>
-      hasIdentityId([r], targetUserId, "userId")
-    );
+    const squadId = req.squadAccess.squad.squadId;
+    return await withSquadAdmissionLock(squadId, async admissionSignal => {
+      const squad = guardSquadWrites(await Squad.findOne({ squadId }), admissionSignal);
+      if (!squad || !squad.members.some(member =>
+        member.role === "leader" && isSameMember(member, getRequesterIdentity(req))
+      )) {
+        return res.status(403).json({
+          ok: false,
+          error: { code: "LEADER_ONLY", message: "Only the current group owner can approve requests." },
+        });
+      }
+      if (aliasGroup(squad)) targetUserId = (squad.joinRequests || []).find(r => groupHandle(squad,r) === targetUserId)?.userId;
+      if (!targetUserId) return res.status(404).json({ok:false,error:{code:"REQUEST_NOT_FOUND",message:"Join request not found"}});
+      if (squad.visibility === "open" && !isStrangerDiscoveryEnabled()) return discoveryDisabled(res);
+      const reqIndex = (squad.joinRequests || []).findIndex((r) =>
+        hasIdentityId([r], targetUserId, "userId")
+      );
 
-    if (reqIndex === -1) {
-      return res.status(404).json({
-        ok: false,
-        error: { code: "REQUEST_NOT_FOUND", message: "Join request not found" },
-      });
-    }
+      if (reqIndex === -1) {
+        return res.status(404).json({
+          ok: false,
+          error: { code: "REQUEST_NOT_FOUND", message: "Join request not found" },
+        });
+      }
 
-    const request = squad.joinRequests[reqIndex];
+      const request = squad.joinRequests[reqIndex];
 
-    const targetUser = await User.findById(targetUserId);
-    if (!targetUser) {
-      return res.status(404).json({
-        ok: false,
-        error: { code: "REQUEST_USER_NOT_FOUND", message: "Join request user no longer exists" },
-      });
-    }
-    if (!hasAdultAccess(targetUser)) {
-      return res.status(403).json({
-        ok: false,
-        error: { code: "AGE_RESTRICTED", message: "This user must complete adult age verification" },
-      });
-    }
-    if (await anyBlockedPairInSquad(squad, [targetUserId])) return interactionBlocked(res);
+      if ((squad.bannedMembers || []).some(member=>String(member.userId)===targetUserId)) return res.status(403).json({ok:false,error:{code:"GROUP_BANNED",message:"This group is unavailable."}});
+      const targetUser = await User.findById(targetUserId);
+      if (!targetUser) {
+        return res.status(404).json({
+          ok: false,
+          error: { code: "REQUEST_USER_NOT_FOUND", message: "Join request user no longer exists" },
+        });
+      }
+      if (!hasAdultAccess(targetUser)) {
+        return res.status(403).json({
+          ok: false,
+          error: { code: "AGE_RESTRICTED", message: "This user must complete adult age verification" },
+        });
+      }
+      if (await anyBlockedPairInSquad(squad, [targetUserId])) return interactionBlocked(res);
 
-    // If already a member, just clear the stale request.
-    const alreadyMember = hasIdentityId(squad.members, targetUserId, "userId");
-    if (alreadyMember) {
+      // If already a member, just clear the stale request.
+      const alreadyMember = hasIdentityId(squad.members, targetUserId, "userId");
+      if (alreadyMember) {
+        squad.joinRequests.splice(reqIndex, 1);
+        await squad.save();
+        socketService.emitToSquad(squad.squadId, "SQUAD_UPDATED", {});
+        await resolveJoinRequestNotification(leaderUserId, targetUserId, squad.squadId);
+        return res.status(200).json({
+          ok: true,
+          data: { squadId: squad.squadId, userId: aliasGroup(squad) ? groupHandle(squad,{userId:targetUserId}) : targetUserId, status: "member" },
+        });
+      }
+
+      if (squad.authorizedPrincipalPair?.length && !squad.authorizedPrincipalPair.includes(targetUserId)) return res.status(403).json({ok:false,error:{code:"PAIR_ONLY",message:"This private group is only for its two participants."}});
+      const capacity = await getSquadCapacity(squad);
+      if (squad.members.length >= capacity) {
+        return res.status(409).json({
+          ok: false,
+          error: { code: "SQUAD_FULL", message: `Squad is full (max ${capacity} members)` },
+        });
+      }
+
+      const newMember = {
+        memberId: generateId("mem"),
+        userId: targetUserId,
+        providerAccountId: targetUserId,
+        displayName: aliasGroup(squad) ? (request.alias || "Guest") : request.name || targetUser.name || targetUser.email,
+        ...(aliasGroup(squad) ? {alias:request.alias} : {}),
+        role: "member",
+        ready: false,
+        joinedAt: new Date().toISOString(),
+      };
+
+      squad.members.push(newMember);
       squad.joinRequests.splice(reqIndex, 1);
       await squad.save();
+      if (await anyBlockedPairInSquad(squad)) {
+        const addedIndex = squad.members.findIndex((member) => member.memberId === newMember.memberId);
+        if (addedIndex >= 0) squad.members.splice(addedIndex, 1);
+        await squad.save();
+        return interactionBlocked(res);
+      }
       socketService.emitToSquad(squad.squadId, "SQUAD_UPDATED", {});
       await resolveJoinRequestNotification(leaderUserId, targetUserId, squad.squadId);
+
       return res.status(200).json({
         ok: true,
-        data: { squadId: squad.squadId, userId: targetUserId, status: "member" },
+        data: {
+          squadId: squad.squadId,
+          member: publicGroupMember(squad, newMember),
+          members: await withMemberAvatars(squad.members, squad),
+          status: squad.status,
+          ...groupFields(squad, getRequesterIdentity(req).userId),
+        },
       });
-    }
-
-    const capacity = await getSquadCapacity(squad);
-    if (squad.members.length >= capacity) {
-      return res.status(409).json({
-        ok: false,
-        error: { code: "SQUAD_FULL", message: `Squad is full (max ${capacity} members)` },
-      });
-    }
-
-    const newMember = {
-      memberId: generateId("mem"),
-      userId: targetUserId,
-      providerAccountId: targetUserId,
-      displayName: request.name || targetUser.name || targetUser.email,
-      role: "member",
-      ready: false,
-      joinedAt: new Date().toISOString(),
-    };
-
-    squad.members.push(newMember);
-    squad.joinRequests.splice(reqIndex, 1);
-    await squad.save();
-    if (await anyBlockedPairInSquad(squad)) {
-      const addedIndex = squad.members.findIndex((member) => member.memberId === newMember.memberId);
-      if (addedIndex >= 0) squad.members.splice(addedIndex, 1);
-      await squad.save();
-      return interactionBlocked(res);
-    }
-    socketService.emitToSquad(squad.squadId, "SQUAD_UPDATED", {});
-    await resolveJoinRequestNotification(leaderUserId, targetUserId, squad.squadId);
-
-    return res.status(200).json({
-      ok: true,
-      data: {
-        squadId: squad.squadId,
-        member: newMember,
-        members: await withMemberAvatars(squad.members),
-        status: squad.status,
-      },
     });
   } catch (error) {
+    if (res.headersSent) return res;
+    if (error.status === 409) {
+      return res.status(409).json({ok:false,error:{code:error.code,message:error.message}});
+    }
     console.error("Error approving join request:", error);
     return res.status(500).json({
       ok: false,
@@ -1079,11 +1209,14 @@ const approveJoinRequestHandler = async (req, res) => {
 };
 
 const declineJoinRequestHandler = async (req, res) => {
-  const { userId: targetUserId } = req.params;
+  let { userId: targetUserId } = req.params;
   const { userId: leaderUserId } = getRequesterIdentity(req);
 
   try {
     const { squad } = req.squadAccess;
+    if (aliasGroup(squad)) targetUserId = (squad.joinRequests || []).find(r => groupHandle(squad,r) === targetUserId)?.userId;
+    if (!targetUserId) return res.status(404).json({ok:false,error:{code:"REQUEST_NOT_FOUND",message:"Join request not found"}});
+    if (squad.visibility === "open" && !isStrangerDiscoveryEnabled()) return discoveryDisabled(res);
     const reqIndex = (squad.joinRequests || []).findIndex((r) =>
       hasIdentityId([r], targetUserId, "userId")
     );
@@ -1102,7 +1235,7 @@ const declineJoinRequestHandler = async (req, res) => {
 
     return res.status(200).json({
       ok: true,
-      data: { squadId: squad.squadId, userId: targetUserId, status: "declined" },
+      data: { squadId: squad.squadId, userId: aliasGroup(squad) ? groupHandle(squad,{userId:targetUserId}) : targetUserId, status: "declined" },
     });
   } catch (error) {
     console.error("Error declining join request:", error);
@@ -1167,6 +1300,7 @@ const inviteToSquadHandler = async (req, res) => {
           null,
           { session }
         );
+        if (currentSquad?.authorizedPrincipalPair?.length && !currentSquad.authorizedPrincipalPair.includes(targetUserId)) return {error:{status:403,code:"PAIR_ONLY",message:"This private group is only for its two participants."}};
         if (!currentSquad) {
           return { error: { status: 404, code: "SQUAD_NOT_FOUND", message: "Squad not found" } };
         }
@@ -1213,7 +1347,7 @@ const inviteToSquadHandler = async (req, res) => {
       ok: true,
       data: {
         squadId: outcome.squadId,
-        invitedUserId: targetUserId,
+        invitedUserId: aliasGroup(squad) ? groupHandle(squad,{userId:targetUserId}) : targetUserId,
         invitedCount: outcome.invitedCount,
       },
     });
@@ -1228,10 +1362,12 @@ const inviteToSquadHandler = async (req, res) => {
 
 // Leader revokes a previously-issued invite (removes from the allow-list).
 const revokeInviteHandler = async (req, res) => {
-  const { userId: targetUserId } = req.params;
+  let { userId: targetUserId } = req.params;
 
   try {
     const { squad } = req.squadAccess;
+    if (aliasGroup(squad)) targetUserId = (squad.invitedUserIds || []).find(userId => groupHandle(squad,{userId}) === targetUserId);
+    if (!targetUserId) return res.status(404).json({ok:false,error:{code:"NOT_FOUND",message:"Invite not found"}});
     const idx = (squad.invitedUserIds || []).findIndex((id) => hasIdentityId([id], targetUserId));
     if (idx !== -1) {
       squad.invitedUserIds.splice(idx, 1);
@@ -1244,7 +1380,7 @@ const revokeInviteHandler = async (req, res) => {
       ok: true,
       data: {
         squadId: squad.squadId,
-        revokedUserId: targetUserId,
+        revokedUserId: aliasGroup(squad) ? groupHandle(squad,{userId:targetUserId}) : targetUserId,
         invitedCount: (squad.invitedUserIds || []).length,
       },
     });
@@ -1280,7 +1416,8 @@ const inviteUserToSquadHandler = async (req, res) => {
   try {
     const { squad } = req.squadAccess;
     const inviterIdentity = getRequesterIdentity(req);
-    const inviterName = req.giggleIdentity?.name || inviterIdentity.name;
+    const ownMember = squad.members.find(member => isSameMember(member,inviterIdentity));
+    const inviterName = aliasGroup(squad) ? groupAlias(ownMember) : req.giggleIdentity?.name || inviterIdentity.name;
     const targetUser = await User.findById(targetUserId).select(
       "_id ageConfirmed isAdult ageVerified isSuspended isShadowBanned deletionStatus"
     );
@@ -1303,6 +1440,7 @@ const inviteUserToSquadHandler = async (req, res) => {
           null,
           { session }
         );
+        if (currentSquad?.authorizedPrincipalPair?.length && !currentSquad.authorizedPrincipalPair.includes(targetUserId)) return {error:{status:403,code:"PAIR_ONLY",message:"This private group is only for its two participants."}};
         if (!currentSquad) {
           return { error: { status: 404, code: "SQUAD_NOT_FOUND", message: "Squad not found" } };
         }
@@ -1328,6 +1466,7 @@ const inviteUserToSquadHandler = async (req, res) => {
           title: "Squad invite",
           body: `${inviterName || "Someone"} invited you to ${currentSquad.squadName}`,
           fromUserId: inviterIdentity.userId,
+          ...(aliasGroup(currentSquad) ? {publicFromId:groupHandle(currentSquad,ownMember),publicFromName:inviterName} : {}),
           fromName: inviterName,
           squadId: currentSquad.squadId,
           squadCode: currentSquad.squadCode,
@@ -1368,6 +1507,7 @@ const startSearchHandler = async (req, res) => {
 
   try {
     const { member, squad: accessedSquad } = req.squadAccess;
+    if (accessedSquad.authorizedPrincipalPair?.length || accessedSquad.communicationMode && accessedSquad.communicationMode !== "video") return res.status(409).json({ok:false,error:{code:"GROUP_ROOM_ONLY",message:"Use this group room for its chosen call mode.",squadId:accessedSquad.squadId}});
     admissionLock = await redlock.acquire([`lock:squad:${accessedSquad.squadId}:admission`], 10_000);
     squad = await Squad.findOne({ squadId: accessedSquad.squadId });
 
@@ -1556,45 +1696,78 @@ const kickMemberHandler = async (req, res) => {
   const { memberId } = req.params;
 
   try {
-    const { squad } = req.squadAccess;
-    const targetIndex = squad.members.findIndex((candidate) => candidate.memberId === memberId);
+    const squadId = req.squadAccess.squad.squadId;
+    return await withSquadAdmissionLock(squadId, async admissionSignal => {
+      const squad = guardSquadWrites(await Squad.findOne({ squadId }), admissionSignal);
+      if (!squad || !squad.members.some(member =>
+        member.role === "leader" && isSameMember(member, getRequesterIdentity(req))
+      )) {
+        return res.status(403).json({
+          ok: false,
+          error: { code: "LEADER_ONLY", message: "Only the current group owner can remove members." },
+        });
+      }
+      const targetIndex = squad.members.findIndex((candidate) => candidate === resolveGroupMember(squad, memberId));
 
-    if (targetIndex === -1) {
-      return res.status(404).json({
-        ok: false,
-        error: { code: "MEMBER_NOT_FOUND", message: "Target member not found in squad" },
+      if (targetIndex === -1) {
+        return res.status(404).json({
+          ok: false,
+          error: { code: "MEMBER_NOT_FOUND", message: "Target member not found in squad" },
+        });
+      }
+
+      const targetMember = squad.members[targetIndex];
+      if (targetMember.role === "leader") {
+        return res.status(409).json({
+          ok: false,
+          error: { code: "LEADER_CANNOT_BE_KICKED", message: "Leader cannot be kicked" },
+        });
+      }
+
+      if (squad.managedGroup) {
+        if (!squad.bannedMembers) {
+          squad.bannedMembers = [];
+        }
+        if (!squad.bannedMembers.some(member => String(member.userId) === String(targetMember.userId))) {
+          squad.bannedMembers.push({
+            memberId: targetMember.memberId,
+            userId: targetMember.userId,
+            displayName: targetMember.displayName,
+            alias: targetMember.alias,
+            bannedAt: new Date(),
+          });
+        }
+        await squad.save();
+        await removeSquadMember(squad, targetIndex);
+      } else {
+        squad.members.splice(targetIndex, 1);
+        await squad.save();
+        await memberMedia.clearMember(targetMember.userId, targetMember.memberId);
+        socketService.revokeUserRealtimeAccess({
+          userId: targetMember.userId,
+          squadId: squad.squadId,
+          encounterId: squad.currentEncounterId,
+        });
+        socketService.emitToUser(targetMember.userId, "SQUAD_UPDATED", { squadId: squad.squadId, removed: true });
+        socketService.emitToSquad(squad.squadId, "SQUAD_UPDATED", {});
+      }
+
+      return res.status(200).json({
+        ok: true,
+        data: {
+          squadId: squad.squadId,
+          kickedMemberId: publicMemberId(squad, targetMember),
+          remainingCount: squad.members.length,
+          status: squad.status,
+          ...groupFields(squad, getRequesterIdentity(req).userId),
+        },
       });
-    }
-
-    const targetMember = squad.members[targetIndex];
-    if (targetMember.role === "leader") {
-      return res.status(409).json({
-        ok: false,
-        error: { code: "LEADER_CANNOT_BE_KICKED", message: "Leader cannot be kicked" },
-      });
-    }
-
-    squad.members.splice(targetIndex, 1);
-    await squad.save();
-    await memberMedia.clearMember(targetMember.userId, targetMember.memberId);
-    socketService.revokeUserRealtimeAccess({
-      userId: targetMember.userId,
-      squadId: squad.squadId,
-      encounterId: squad.currentEncounterId,
-    });
-    socketService.emitToUser(targetMember.userId, "SQUAD_UPDATED", { squadId: squad.squadId, removed: true });
-    socketService.emitToSquad(squad.squadId, "SQUAD_UPDATED", {});
-
-    return res.status(200).json({
-      ok: true,
-      data: {
-        squadId: squad.squadId,
-        kickedMemberId: targetMember.memberId,
-        remainingCount: squad.members.length,
-        status: squad.status,
-      },
     });
   } catch (error) {
+    if (res.headersSent) return res;
+    if (error.status === 409) {
+      return res.status(409).json({ok:false,error:{code:error.code,message:error.message}});
+    }
     console.error("Error kicking member:", error);
     return res.status(500).json({
       ok: false,
@@ -1607,46 +1780,61 @@ const promoteMemberHandler = async (req, res) => {
   const { memberId } = req.params;
 
   try {
-    const { squad } = req.squadAccess;
-    const targetMember = squad.members.find((candidate) => candidate.memberId === memberId);
+    const squadId = req.squadAccess.squad.squadId;
+    return await withSquadAdmissionLock(squadId, async admissionSignal => {
+      const squad = guardSquadWrites(await Squad.findOne({ squadId }), admissionSignal);
+      if (!squad || !squad.members.some(member =>
+        member.role === "leader" && isSameMember(member, getRequesterIdentity(req))
+      )) {
+        return res.status(403).json({
+          ok: false,
+          error: { code: "LEADER_ONLY", message: "Only the current group owner can transfer ownership." },
+        });
+      }
+      const targetMember = resolveGroupMember(squad, memberId);
 
-    if (!targetMember) {
-      return res.status(404).json({
-        ok: false,
-        error: { code: "MEMBER_NOT_FOUND", message: "Target member not found in squad" },
+      if (!targetMember) {
+        return res.status(404).json({
+          ok: false,
+          error: { code: "MEMBER_NOT_FOUND", message: "Target member not found in squad" },
+        });
+      }
+
+      if (targetMember.role === "leader") {
+        return res.status(409).json({
+          ok: false,
+          error: { code: "ALREADY_LEADER", message: "Target member is already leader" },
+        });
+      }
+
+      const currentLeader = squad.members.find((candidate) => candidate.role === "leader");
+      if (!currentLeader) {
+        return res.status(500).json({
+          ok: false,
+          error: { code: "INTERNAL_ERROR", message: "No leader found in squad" },
+        });
+      }
+
+      currentLeader.role = "member";
+      targetMember.role = "leader";
+
+      await squad.save();
+      socketService.emitToSquad(squad.squadId, "SQUAD_UPDATED", {});
+
+      return res.status(200).json({
+        ok: true,
+        data: {
+          squadId: squad.squadId,
+          newLeaderMemberId: publicMemberId(squad,targetMember),
+          previousLeaderMemberId: publicMemberId(squad,currentLeader),
+        },
       });
-    }
-
-    if (targetMember.role === "leader") {
-      return res.status(409).json({
-        ok: false,
-        error: { code: "ALREADY_LEADER", message: "Target member is already leader" },
-      });
-    }
-
-    const currentLeader = squad.members.find((candidate) => candidate.role === "leader");
-    if (!currentLeader) {
-      return res.status(500).json({
-        ok: false,
-        error: { code: "INTERNAL_ERROR", message: "No leader found in squad" },
-      });
-    }
-
-    currentLeader.role = "member";
-    targetMember.role = "leader";
-
-    await squad.save();
-    socketService.emitToSquad(squad.squadId, "SQUAD_UPDATED", {});
-
-    return res.status(200).json({
-      ok: true,
-      data: {
-        squadId: squad.squadId,
-        newLeaderMemberId: targetMember.memberId,
-        previousLeaderMemberId: currentLeader.memberId,
-      },
     });
   } catch (error) {
+    if (res.headersSent) return res;
+    if (error.status === 409) {
+      return res.status(409).json({ok:false,error:{code:error.code,message:error.message}});
+    }
     console.error("Error promoting member:", error);
     return res.status(500).json({
       ok: false,
@@ -1657,22 +1845,50 @@ const promoteMemberHandler = async (req, res) => {
 
 const leaveSquadHandler = async (req, res) => {
   try {
-    const { squad, memberIndex } = req.squadAccess;
-    const result = await removeSquadMember(squad, memberIndex);
-    if (!result) throw new Error("Squad member no longer exists");
-    const { removedMember: leavingMember, squadDeleted, newLeaderMemberId } = result;
+    const squadId = req.squadAccess.squad.squadId;
+    return await withSquadAdmissionLock(squadId, async admissionSignal => {
+      const squad = guardSquadWrites(await Squad.findOne({ squadId }), admissionSignal);
+      const memberIndex = squad?.members.findIndex(member =>
+        isSameMember(member, getRequesterIdentity(req))
+      ) ?? -1;
+      if (!squad || memberIndex < 0) {
+        return res.status(404).json({
+          ok: false,
+          error: { code: "MEMBER_NOT_FOUND", message: "You are no longer in this group." },
+        });
+      }
+      if (squad.managedGroup && squad.members[memberIndex].role === "leader" && squad.members.length > 1) {
+        return res.status(409).json({
+          ok: false,
+          error: {
+            code: "OWNER_TRANSFER_REQUIRED",
+            message: "Choose the next group owner in group settings before leaving.",
+            squadId: squad.squadId,
+          },
+        });
+      }
+      const result = await removeSquadMember(squad, memberIndex);
+      if (!result) throw new Error("Squad member no longer exists");
+      const { removedMember: leavingMember, squadDeleted, newLeaderMemberId } = result;
 
-    return res.status(200).json({
-      ok: true,
-      data: {
-        squadId: squad.squadId,
-        leftMemberId: leavingMember.memberId,
-        newLeaderMemberId,
-        remainingCount: squad.members.length,
-        squadDeleted,
-      },
+      return res.status(200).json({
+        ok: true,
+        data: {
+          squadId: squad.squadId,
+          leftMemberId: publicMemberId(squad, leavingMember),
+          newLeaderMemberId: newLeaderMemberId
+            ? publicMemberId(squad, squad.members.find(member => member.memberId === newLeaderMemberId))
+            : null,
+          remainingCount: squad.members.length,
+          squadDeleted,
+        },
+      });
     });
   } catch (error) {
+    if (res.headersSent) return res;
+    if (error.status === 409) {
+      return res.status(409).json({ok:false,error:{code:error.code,message:error.message}});
+    }
     console.error("Error leaving squad:", error);
     return res.status(500).json({
       ok: false,
@@ -1686,39 +1902,48 @@ const leaveSquadHandler = async (req, res) => {
 // leadership and keeps the squad alive).
 const disbandSquadHandler = async (req, res) => {
   try {
-    const { squad, isLeader } = req.squadAccess;
-    if (!isLeader) {
-      return res.status(403).json({
-        ok: false,
-        error: { code: "NOT_LEADER", message: "Only the squad leader can delete the squad." },
-      });
-    }
+    const squadId = req.squadAccess.squad.squadId;
+    return await withSquadAdmissionLock(squadId, async admissionSignal => {
+      const squad = guardSquadWrites(await Squad.findOne({ squadId }), admissionSignal);
+      if (!squad || !squad.members.some(member =>
+        member.role === "leader" && isSameMember(member, getRequesterIdentity(req))
+      )) {
+        return res.status(403).json({
+          ok: false,
+          error: { code: "NOT_LEADER", message: "Only the squad leader can delete the squad." },
+        });
+      }
 
-    // Pull it out of matchmaking before it disappears.
-    if (squad.status === "searching") {
-      try { await queueService.removeFromQueue(squad.squadId); } catch (e) { console.error("Error dequeuing squad on disband:", e); }
-    }
+      // Pull it out of matchmaking before it disappears.
+      if (squad.status === "searching") {
+        try { await queueService.removeFromQueue(squad.squadId); } catch (e) { console.error("Error dequeuing squad on disband:", e); }
+      }
 
-    // Mid-call: end the encounter for the other squad (and requeue it) first,
-    // as when the last member leaves; otherwise it sits in a dead call.
-    if (squad.currentEncounterId && ["matched", "in_encounter"].includes(squad.status)) {
-      const encounter = await getEncounterById(squad.currentEncounterId);
-      if (encounter) await endEncounterAsymmetric({ encounter, disconnectingSquadId: squad.squadId });
-    }
+      // Mid-call: end the encounter for the other squad (and requeue it) first,
+      // as when the last member leaves; otherwise it sits in a dead call.
+      if (squad.currentEncounterId && ["matched", "in_encounter"].includes(squad.status)) {
+        const encounter = await getEncounterById(squad.currentEncounterId);
+        if (encounter) await endEncounterAsymmetric({ encounter, disconnectingSquadId: squad.squadId });
+      }
 
-    const removedMembers = [...squad.members];
-    await deleteSquadAndNotifications(squad);
-    for (const member of removedMembers) {
-      socketService.revokeUserRealtimeAccess({
-        userId: member.userId,
-        squadId: squad.squadId,
-        encounterId: squad.currentEncounterId,
-      });
-      socketService.emitToUser(member.userId, "SQUAD_UPDATED", { squadId: squad.squadId, disbanded: true });
-    }
+      const removedMembers = [...squad.members];
+      await deleteSquadAndNotifications(squad);
+      for (const member of removedMembers) {
+        socketService.revokeUserRealtimeAccess({
+          userId: member.userId,
+          squadId: squad.squadId,
+          encounterId: squad.currentEncounterId,
+        });
+        socketService.emitToUser(member.userId, "SQUAD_UPDATED", { squadId: squad.squadId, disbanded: true });
+      }
 
-    return res.status(200).json({ ok: true, data: { squadId: squad.squadId, disbanded: true } });
+      return res.status(200).json({ ok: true, data: { squadId: squad.squadId, disbanded: true } });
+    });
   } catch (error) {
+    if (res.headersSent) return res;
+    if (error.status === 409) {
+      return res.status(409).json({ok:false,error:{code:error.code,message:error.message}});
+    }
     console.error("Error disbanding squad:", error);
     return res.status(500).json({
       ok: false,
@@ -1742,6 +1967,7 @@ const updateLobbyVideoPresenceHandler = async (req, res) => {
     const member = squad.members[memberIndex];
 
     // High-speed update in Redis
+    if (inLobbyVideo && squad.communicationMode === "chat") return res.status(403).json({ok:false,error:{code:"CHAT_ONLY",message:"This group uses text chat."}});
     await sessionService.setSessionField(squad.squadId, member.memberId, 'inLobbyVideo', inLobbyVideo);
     // Leaving the lobby video also means leaving the encounter video
     if (!inLobbyVideo) {
@@ -1752,7 +1978,7 @@ const updateLobbyVideoPresenceHandler = async (req, res) => {
 
     return res.status(200).json({
       ok: true,
-      data: { memberId: member.memberId, inLobbyVideo },
+      data: { memberId: publicMemberId(squad,member), inLobbyVideo },
     });
   } catch (error) {
     console.error("Error updating lobby video presence:", error);
@@ -1784,7 +2010,7 @@ const updateEncounterVideoPresenceHandler = async (req, res) => {
 
     return res.status(200).json({
       ok: true,
-      data: { memberId: member.memberId, inEncounterVideo },
+      data: { memberId: publicMemberId(squad,member), inEncounterVideo },
     });
   } catch (error) {
     console.error("Error updating encounter video presence:", error);
@@ -1926,12 +2152,12 @@ const toPublicSquad = async (squad, users) => {
     status: squad.status,
     visibility: squad.visibility || "private",
     joinPolicy: squad.joinPolicy || "open",
-    // Viewers are never members here; anonymous leaders show only their alias.
-    leaderName: leader ? publicMemberView(squad, leader, users).displayName : undefined,
+    ...groupFields(squad),
+    onlineCount: (await groupPresence.onlineUserIds(squad.squadId,squad.members.map(member=>member.userId))).size,
   };
 };
 
-const findJoinableSquads = async (identity) => {
+const findJoinableSquads = async (identity, metadataQuery = {}) => {
   // Joinable by strangers: idle status (join handler rejects anything else),
   // visibility "open", not full, and not already containing the requester.
   // Do the filtering in Mongo instead of fetching 200 and filtering in JS.
@@ -1940,6 +2166,7 @@ const findJoinableSquads = async (identity) => {
   if (identity.providerAccountId) exclude.push(identity.providerAccountId);
 
   const query = {
+    ...metadataQuery,
     status: "idle",
     visibility: "open",
     joinPolicy: { $in: ["open", "request"] },
@@ -1951,6 +2178,7 @@ const findJoinableSquads = async (identity) => {
     query["members.providerAccountId"] = { $nin: exclude };
   }
 
+  if (identity.userId) query["bannedMembers.userId"] = {$ne:String(identity.userId)};
   const squads = await Squad.find(query).sort({ createdAt: -1 }).limit(30);
   const memberUserIds = squads.flatMap((squad) =>
     (squad.members || []).map((member) => member.userId)
@@ -1964,6 +2192,8 @@ const findJoinableSquads = async (identity) => {
 };
 
 const discoverSquadsHandler = async (req, res) => {
+  const filters=directoryQuery(req.query);
+  if(filters.error)return res.status(400).json({ok:false,error:{code:"INVALID_SEARCH",message:filters.error}});
   const identity = getRequesterIdentity(req);
 
   if (!identity.userId) {
@@ -1975,7 +2205,7 @@ const discoverSquadsHandler = async (req, res) => {
   if (!isStrangerDiscoveryEnabled()) return discoveryDisabled(res);
 
   try {
-    const joinable = await findJoinableSquads(identity);
+    const joinable = await findJoinableSquads(identity,filters.query);
     const listed = joinable.slice(0, 30);
     const users = await loadPublicIdentityUsers(
       listed.map((squad) => squad.members.find((member) => member.role === "leader")).filter(Boolean)
@@ -1991,40 +2221,45 @@ const discoverSquadsHandler = async (req, res) => {
   }
 };
 
-// Attempt to join a single squad atomically-ish. Returns the new member on
+// Attempt to join a single squad under the shared admission lock. Returns the new member on
 // success, or null if the squad became full/closed/gone (so the caller can
 // try the next candidate). Re-reads the squad fresh to minimize race windows.
 const tryJoinSquadOnce = async (squadId, identity, displayName) => {
   try {
-    const squad = await Squad.findOne({ squadId });
-    if (!squad) return null;
-    if (squad.status !== "idle") return null;
-    // Treat both free-full (4) and premium-full (8) as "full, try next" — never
-    // surface the upgrade prompt from random matching.
-    const capacity = await getSquadCapacity(squad);
-    if (squad.members.length >= capacity) return null;
-    if (squad.members.some((m) => isSameMember(m, identity))) return null;
-    if (await anyBlockedPairInSquad(squad, [identity.userId])) return null;
-    const newMember = {
-      memberId: generateId("mem"),
-      userId: identity.userId,
-      providerAccountId: identity.providerAccountId,
-      displayName: firstDisplayName(displayName, identity.name, identity.email),
-      role: "member",
-      ready: false,
-      joinedAt: new Date().toISOString(),
-    };
+    return await withSquadAdmissionLock(squadId, async admissionSignal => {
+      const squad = guardSquadWrites(await Squad.findOne({ squadId }), admissionSignal);
+      if (!squad || squad.visibility !== "open" || (squad.joinPolicy || "open") !== "open") {
+        return null;
+      }
+      if (squad.status !== "idle" || aliasGroup(squad) || squad.authorizedPrincipalPair?.length || (squad.bannedMembers || []).some(member=>String(member.userId)===String(identity.userId))) return null;
+      // Treat both free-full (4) and premium-full (8) as "full, try next" — never
+      // surface the upgrade prompt from random matching.
+      const capacity = await getSquadCapacity(squad);
+      if (squad.members.length >= capacity) return null;
+      if (squad.members.some((m) => isSameMember(m, identity))) return null;
+      if (await anyBlockedPairInSquad(squad, [identity.userId])) return null;
+      const newMember = {
+        memberId: generateId("mem"),
+        userId: identity.userId,
+        providerAccountId: identity.providerAccountId,
+        displayName: firstDisplayName(displayName, identity.name, identity.email),
+        role: "member",
+        ready: false,
+        joinedAt: new Date().toISOString(),
+      };
 
-    squad.members.push(newMember);
-    await squad.save();
-    if (await anyBlockedPairInSquad(squad)) {
-      const addedIndex = squad.members.findIndex((member) => member.memberId === newMember.memberId);
-      if (addedIndex >= 0) squad.members.splice(addedIndex, 1);
+      squad.members.push(newMember);
       await squad.save();
-      return null;
-    }
-    return newMember;
+      if (await anyBlockedPairInSquad(squad)) {
+        const addedIndex = squad.members.findIndex((member) => member.memberId === newMember.memberId);
+        if (addedIndex >= 0) squad.members.splice(addedIndex, 1);
+        await squad.save();
+        return null;
+      }
+      return newMember;
+    });
   } catch (error) {
+    if (error.status === 409) throw error;
     // VersionError or other concurrent-write conflict — treat as a failed
     // attempt so the caller falls through to the next candidate.
     console.warn(`tryJoinSquadOnce failed for ${squadId}:`, error.message);
@@ -2071,9 +2306,9 @@ const joinRandomSquadHandler = async (req, res) => {
             squadCode: fresh.squadCode,
             squadName: fresh.squadName,
             member,
-            members: await withMemberAvatars(fresh.members),
+            members: await withMemberAvatars(fresh.members,fresh),
             status: fresh.status,
-            leaderMemberId: leader ? leader.memberId : undefined,
+            leaderMemberId: leader ? publicMemberId(fresh, leader) : undefined,
           },
         });
       }
@@ -2085,6 +2320,10 @@ const joinRandomSquadHandler = async (req, res) => {
     req.body = { displayName, squadName: undefined };
     return createSquadHandler(req, res);
   } catch (error) {
+    if (res.headersSent) return res;
+    if (error.status === 409) {
+      return res.status(409).json({ok:false,error:{code:error.code,message:error.message}});
+    }
     console.error("Error joining random squad:", error);
     return res.status(500).json({
       ok: false,
@@ -2094,6 +2333,7 @@ const joinRandomSquadHandler = async (req, res) => {
 };
 
 module.exports = {
+  getSquadCapacity,
   createSquadHandler,
   joinSquadHandler,
   discoverSquadsHandler,

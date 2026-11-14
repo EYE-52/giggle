@@ -1,4 +1,7 @@
 "use client";
+import { useNormalPrivateChats } from "@/components/groups/useNormalPrivateChats";
+import {groupViewerId,isOwnGroupMember} from "@giggle/core";
+import {useGroupPresence} from "@/lib/useGroupPresence";
 import { readGamesIntent, readGameIntent } from "@/lib/gameIntent";
 import { describeVideoError } from "@/lib/videoError";
 import { useState, useEffect, useRef, useCallback, Suspense } from "react";
@@ -46,11 +49,13 @@ function LobbyInner() {
   const router = useRouter();
   const params = useSearchParams();
   const squadId = params.get("squad") ?? "";
+  useGroupPresence(squadId);
 
   const media = useSquadCall(squadId);
   const remotes = media.remotes;
   const [inviteSheetOpen, setInviteSheetOpen] = useState(false);
   const [squad, setSquad] = useState<SquadState | null>(null);
+  const privateChats=useNormalPrivateChats(squad && !squad.isPrivatePair ? squadId : undefined);
   const [loading, setLoading] = useState(true);
   const micOn = media.capture.audio === "active";
   const micCapture = mapCaptureToVoiceMic(media.capture.audio);
@@ -69,6 +74,7 @@ function LobbyInner() {
   const pollFailsRef = useRef(0);
   const [connTrouble, setConnTrouble] = useState(false);
   const [leavingSquad, setLeavingSquad] = useState(false);
+  const [ownerTransferRequired, setOwnerTransferRequired] = useState(false);
   const [leaveMenuOpen, setLeaveMenuOpen] = useState(false);
   const [memberToRemove, setMemberToRemove] = useState<SquadMemberState | null>(null);
   const [removingMember, setRemovingMember] = useState(false);
@@ -316,7 +322,7 @@ function LobbyInner() {
   // Unread chat tracking — runs even when the chat surface isn't mounted, so the
   // collapsed rail / header can show an unread dot. We join the lobby room and
   // count messages from others while chat isn't currently visible.
-  const myUserId = session.user?.id;
+  const myUserId = groupViewerId(squad,session.user?.id);
   useEffect(() => {
     if (!squadId) return;
     try { joinChat({ kind: "lobby", squadId }); } catch {}
@@ -400,9 +406,7 @@ function LobbyInner() {
   // Identify the current user's own membership by matching the session user id
   // against squad members (falls back to first member only if session is missing).
   const myMember = squad
-    ? (session.user?.id
-        ? squad.members.find(m => m.userId === session.user!.id)
-        : squad.members[0])
+    ? squad.members.find(member => isOwnGroupMember(squad,member,session.user?.id))
     : undefined;
   const isLeader = !!(squad && myMember && myMember.memberId === squad.leaderMemberId);
 
@@ -521,16 +525,18 @@ function LobbyInner() {
     : "";
 
   async function handleInvite() {
-    if (!squad || !inviteUrl) return;
+    if (!squad || !inviteUrl || squad.isPrivatePair) return;
+    let sharedUrl=inviteUrl;
+    if(squad.managedGroup){try{const {invite}=await api.groupInvite(squadId);sharedUrl=`${window.location.origin}/groups/${squadId}#invite=${invite}`;}catch(e){setMatchError(e instanceof Error?e.message:"Could not create invite.");return;}}
     // Prefer the native share sheet on phones; fall back to copying the link.
     if (typeof navigator !== "undefined" && typeof navigator.share === "function" && isPhone) {
       try {
-        await navigator.share({ title: "Join my Giggle squad", text: `Join my squad "${squad.squadName}" on Giggle`, url: inviteUrl });
+        await navigator.share({ title: "Join my Giggle squad", text: `Join my squad "${squad.squadName}" on Giggle`, url: sharedUrl });
         return;
       } catch { /* user dismissed or unsupported — fall through to copy */ }
     }
     await copyToClipboard(
-      inviteUrl,
+      sharedUrl,
       () => {
         setInviteCopied(true);
         setTimeout(() => setInviteCopied(false), 1800);
@@ -541,9 +547,7 @@ function LobbyInner() {
 
   async function handleReady() {
     if (!squadId || settingReady) return;
-    const myM = (session.user?.id
-      ? squad?.members.find(m => m.userId === session.user!.id)
-      : undefined) ?? squad?.members[0];
+    const myM = squad?.members.find(member => isOwnGroupMember(squad,member,session.user?.id));
     const previousReady = myM?.ready ?? false;
     const nextReady = !previousReady;
     const setLocalReady = (ready: boolean) => setSquad(current => current ? {
@@ -662,6 +666,11 @@ function LobbyInner() {
 
   async function handleLeaveSquad() {
     if (!squadId || leavingSquad) return;
+    if (squad?.managedGroup && isLeader && memberCount > 1) {
+      setOwnerTransferRequired(true);
+      setMatchError("Choose the next group owner in group settings before leaving.");
+      return;
+    }
     setLeavingSquad(true);
     setMatchError(null);
     const mediaExit = leaveLobbyMedia();
@@ -670,6 +679,7 @@ function LobbyInner() {
       await api.leaveSquad(squadId);
       router.push("/home");
     } catch (e) {
+      if ((e as { code?: string }).code === "OWNER_TRANSFER_REQUIRED") setOwnerTransferRequired(true);
       setMatchError((e as { message?: string })?.message || "Couldn't leave squad.");
       setLeavingSquad(false);
     }
@@ -709,6 +719,8 @@ function LobbyInner() {
   const memberCount = squad?.members.length ?? 0;
   // Capacity comes from the backend: 4 free, up to 8 when the leader is premium.
   const MAX_SLOTS = (squad as { maxSlots?: number } | null)?.maxSlots ?? 4;
+
+  useEffect(()=>{if(!squad)return;void vcRef.current?.setAllowedRemoteUids?.(squad.members.filter(member=>!isOwnGroupMember(squad,member,session.user?.id)).flatMap(member=>member.uid===undefined?[]:[member.uid])).catch(()=>setVideoError("Could not update room playback. Reconnect your call."));},[squad?.members,videoJoined]);
 
   if (loading) {
     return (
@@ -759,7 +771,7 @@ function LobbyInner() {
   }
 
   const currentTags = normalizeVibeLabels(squad.tags ?? []);
-  const canInvite = memberCount < MAX_SLOTS;
+  const canInvite = !squad?.isPrivatePair && memberCount < MAX_SLOTS;
   const onlineMembers = squad.members.filter(m => m.online !== false);
   const othersOnline = onlineMembers.filter(m => m.userId !== myUserId);
   const othersReady = othersOnline.every(m => m.ready);
@@ -867,7 +879,7 @@ function LobbyInner() {
           ))}
         </section>
         <aside className={styles.chat} hidden={!chatVisible} aria-label="Squad chat">
-          <ChatPanel active={chatVisible} scope={{ kind: "lobby", squadId }} title="Squad chat" onClose={closeChat} />
+          <ChatPanel externalUserId={myUserId} active={chatVisible} scope={{ kind: "lobby", squadId }} title="Squad chat" onClose={closeChat} />
         </aside>
       </div>
 
@@ -875,22 +887,24 @@ function LobbyInner() {
         <div className={`card ${styles.dock}`}>
           <div className={styles.dockRow}>
             <div className={styles.devices} role="group" aria-label="Camera and microphone">
-              <button type="button" className={styles.devBtn} disabled={videoJoining || deviceBusy.audio} aria-pressed={!micOn} onClick={() => void toggleDevice("audio")} aria-label={micOn ? "Mute microphone" : "Turn on microphone"} title={micOn ? "Mute microphone" : "Turn on microphone"} data-off={!micOn || undefined}>{micOn ? <Icon.mic size={22} weight="regular" /> : <Icon.micOff size={22} weight="regular" />}</button>
-              <button type="button" className={styles.devBtn} disabled={videoJoining || deviceBusy.video} aria-pressed={!camOn} onClick={() => void toggleDevice("video")} aria-label={camOn ? "Turn camera off" : "Turn camera on"} title={camOn ? "Turn camera off" : "Turn camera on"} data-off={!camOn || undefined}>{camOn ? <Icon.cam size={22} weight="regular" /> : <Icon.camOff size={22} weight="regular" />}</button>
+              <button type="button" className={styles.devBtn} disabled={squad.communicationMode === "chat" || videoJoining || deviceBusy.audio} aria-pressed={!micOn} onClick={() => void toggleDevice("audio")} aria-label={micOn ? "Mute microphone" : "Turn on microphone"} title={micOn ? "Mute microphone" : "Turn on microphone"} data-off={!micOn || undefined}>{micOn ? <Icon.mic size={22} weight="regular" /> : <Icon.micOff size={22} weight="regular" />}</button>
+              <button type="button" className={styles.devBtn} disabled={squad.communicationMode === "voice" || squad.communicationMode === "chat" || videoJoining || deviceBusy.video} aria-pressed={!camOn} onClick={() => void toggleDevice("video")} aria-label={camOn ? "Turn camera off" : "Turn camera on"} title={camOn ? "Turn camera off" : "Turn camera on"} data-off={!camOn || undefined}>{camOn ? <Icon.cam size={22} weight="regular" /> : <Icon.camOff size={22} weight="regular" />}</button>
               <ScreenShareButton client={media.client} capture={media.capture} disabled={videoJoining || !videoJoined}
                 onStart={() => squadCall.startScreenShare(squadId)} onStop={() => squadCall.stopScreenShare(squadId)} onError={setVideoError} />
             </div>
             <span id="lobby-match-status" className={`muted ${styles.readyLine}`} data-joining={videoJoining || undefined} role="status">{videoJoining ? <><span className="gg-spinner" aria-hidden="true" /> Connecting your devices…</> : readyLine}</span>
             {WEB_DISCOVERY_ENABLED && !isLeader && <Button variant={myReady ? "secondary" : "primary"} loading={settingReady} onClick={handleReady}>{myReady ? "Not ready" : <><span className={styles.wide}>I&apos;m ready to join</span><span className={styles.narrow}>I&apos;m ready</span></>}</Button>}
-            <Button variant={isLeader ? "primary" : "secondary"} disabled={!WEB_DISCOVERY_ENABLED || !isLeader || !othersReady || findingMatch} loading={findingMatch} onClick={handleFindMatch} aria-describedby="lobby-match-status">Find a squad<Icon.arrowRight size={18} weight="regular" /></Button>
+            <Button variant={isLeader ? "primary" : "secondary"} disabled={squad.isPrivatePair || squad.communicationMode && squad.communicationMode !== "video" || !WEB_DISCOVERY_ENABLED || !isLeader || !othersReady || findingMatch} loading={findingMatch} onClick={handleFindMatch} aria-describedby="lobby-match-status">Find a squad<Icon.arrowRight size={18} weight="regular" /></Button>
           </div>
           {videoError && <p role="alert" className={styles.error}>{videoError}</p>}
         </div>
       </footer>
+      {privateChats.panel}
       {personOptions && <Modal title={personOptions.displayName} onClose={() => { if (!listeningBusy) setPersonOptionsId(null); }} width={380}>
         <div className="gg-sheet">
           <section className="gg-sheet-section" aria-label="Listening">
             <div className="gg-list">
+              {!squad.isPrivatePair && <button type="button" className="gg-list-row" disabled={listeningBusy} onClick={async()=>{setListeningBusy(true);setListeningError("");try{await privateChats.invite(personOptions.memberId);setPersonOptionsId(null);}catch(e){setListeningError(e instanceof Error?e.message:"Could not send invitation.");}finally{setListeningBusy(false);}}}>Invite to private chat</button>}
               <button type="button" className="gg-list-row" disabled={!personRemote || !videoJoined || listeningBusy} aria-busy={listeningBusy || undefined} onClick={() => void toggleListening()}>
                 <span className="gg-list-main"><span className="gg-list-title">{personRemote?.mutedForMe ? "Unmute for me" : "Mute for me"}</span><span className="gg-list-sub">Only you hear the change.{!videoJoined ? " Connect your microphone or camera first." : !personRemote ? " They haven't connected their devices yet." : ""}</span></span>
               </button>
@@ -904,14 +918,15 @@ function LobbyInner() {
       </Modal>}
       {inviteSheetOpen && <Modal title="Invite friends" subtitle={`Join ${squad.squadName} with this code or link.`} onClose={() => setInviteSheetOpen(false)} width={420}>
         <div className={styles.modalStack}>
-          <div className={styles.code}><strong>{squad.squadCode}</strong><Button variant="ghost" onClick={() => void copyToClipboard(squad.squadCode, () => setCodeCopied(true), "Couldn't copy the code.")}>{codeCopied ? "Copied" : "Copy code"}</Button></div>
+          {!squad.managedGroup && <div className={styles.code}><strong>{squad.squadCode}</strong><Button variant="ghost" onClick={() => void copyToClipboard(squad.squadCode, () => setCodeCopied(true), "Couldn't copy the code.")}>{codeCopied ? "Copied" : "Copy code"}</Button></div>}
           <Button onClick={handleInvite}>{inviteCopied ? "Link copied" : "Copy invite link"}</Button>
-          <Button variant="secondary" onClick={() => { setInviteSheetOpen(false); setInvitePeopleOpen(true); }}>Choose friends on Giggle</Button>
+          {!squad.managedGroup && <Button variant="secondary" onClick={() => { setInviteSheetOpen(false); setInvitePeopleOpen(true); }}>Choose friends on Giggle</Button>}
           {matchError && <p role="alert" className={styles.error}>{matchError}</p>}
         </div>
       </Modal>}
       {settingsOpen && <Modal title="Squad settings" subtitle={`${squad.squadName} · ${memberCount} of ${MAX_SLOTS} members`} onClose={() => setSettingsOpen(false)} width={460}>
         <div className="gg-sheet">
+          {!squad.isPrivatePair && <button className="gg-list-row" onClick={()=>{setSettingsOpen(false);privateChats.show();}}>Private chats{privateChats.count?` (${privateChats.count})`:""}</button>}
           {matchError && <p role="alert" className={styles.error}>{matchError}</p>}
           {isLeader && <section className="gg-sheet-section" aria-label="Squad details">
             <h3 className="gg-sheet-label">Squad</h3>
@@ -962,6 +977,7 @@ function LobbyInner() {
               {squad.members.map(m => <div className="gg-list-row" key={m.memberId}>
                 <PersonAvatar userId={m.userId} name={m.displayName} avatar={m.avatar} isMe={m.userId === myUserId} size={32} />
                 <span className="gg-list-main"><span className="gg-list-title">{m.displayName}{m.userId === myUserId ? " (you)" : ""}</span></span>
+                {!squad.isPrivatePair && m.userId !== myUserId && <button type="button" className="gg-row-action" aria-label={`${m.displayName}'s options`} onClick={()=>{setSettingsOpen(false);setPersonOptionsId(m.memberId);}}>Options</button>}
                 {m.memberId === squad.leaderMemberId && <span className="gg-tag">Leader</span>}
                 {isLeader && m.userId !== myUserId && <button type="button" className="gg-row-action gg-row-action--danger" aria-label={`Remove ${m.displayName}`} onClick={() => { setSettingsOpen(false); setMemberToRemove(m); }}>Remove</button>}
               </div>)}
@@ -973,8 +989,8 @@ function LobbyInner() {
         </div>
       </Modal>}
       {editingName && <Modal title="Rename squad" onClose={() => { if (!savingName) setEditingName(false); }} width={420}><form className={styles.modalStack} onSubmit={e => { e.preventDefault(); void saveName(); }}><label className={styles.field}>Squad name<input autoFocus maxLength={32} value={nameDraft} onChange={e => setNameDraft(e.target.value)} /></label>{matchError && <p role="alert" className={styles.error}>{matchError}</p>}<div className="gg-dialog-actions"><Button variant="secondary" disabled={savingName} onClick={() => setEditingName(false)}>Cancel</Button><Button type="submit" loading={savingName}>Save</Button></div></form></Modal>}
-      {memberToRemove && <Modal title={`Remove ${memberToRemove.displayName}?`} onClose={() => { if (!removingMember) setMemberToRemove(null); }} width={420}><div className={styles.modalStack}><p className="gg-dialog-text">They will leave this squad. You can invite them again later.</p><div className="gg-dialog-actions"><Button variant="secondary" disabled={removingMember} onClick={() => setMemberToRemove(null)}>Cancel</Button><Button variant="danger" loading={removingMember} onClick={handleRemoveMember}>Remove</Button></div></div></Modal>}
-      {leaveMenuOpen && <Modal title="Leave this squad?" onClose={() => { if (!leavingSquad) setLeaveMenuOpen(false); }} width={440}><div className={styles.modalStack}><p className="gg-dialog-text">{isLeader ? memberCount > 1 ? "Leadership will pass to another member. You can also end the squad for everyone." : "You are the only member. Leaving will close this squad." : "The rest of your squad can keep talking."}</p>{matchError && <p role="alert" className={styles.error}>{matchError}</p>}<div className="gg-dialog-actions">{isLeader && memberCount > 1 ? <Button variant="secondary" loading={leavingSquad} onClick={handleDisbandSquad}>End for everyone</Button> : <Button variant="secondary" disabled={leavingSquad} onClick={() => setLeaveMenuOpen(false)}>Cancel</Button>}<Button variant="danger" loading={leavingSquad} onClick={handleLeaveSquad}>Leave squad</Button></div></div></Modal>}
+      {memberToRemove && <Modal title={`Remove ${memberToRemove.displayName}?`} onClose={() => { if (!removingMember) setMemberToRemove(null); }} width={420}><div className={styles.modalStack}><p className="gg-dialog-text">{squad.managedGroup ? "They will be removed and cannot rejoin until you unban them in group settings." : "They will leave this squad. You can invite them again later."}</p><div className="gg-dialog-actions"><Button variant="secondary" disabled={removingMember} onClick={() => setMemberToRemove(null)}>Cancel</Button><Button variant="danger" loading={removingMember} onClick={handleRemoveMember}>Remove</Button></div></div></Modal>}
+      {leaveMenuOpen && <Modal title="Leave this squad?" onClose={() => { if (!leavingSquad) setLeaveMenuOpen(false); }} width={440}><div className={styles.modalStack}><p className="gg-dialog-text">{isLeader ? memberCount > 1 ? squad.managedGroup ? "Choose the next group owner in group settings before leaving. You can also end the group for everyone." : "Leadership will pass to another member. You can also end the squad for everyone." : "You are the only member. Leaving will close this squad." : "The rest of your squad can keep talking."}</p>{matchError && <p role="alert" className={styles.error}>{matchError}</p>}<div className="gg-dialog-actions">{isLeader && memberCount > 1 ? <Button variant="secondary" loading={leavingSquad} onClick={handleDisbandSquad}>End for everyone</Button> : <Button variant="secondary" disabled={leavingSquad} onClick={() => setLeaveMenuOpen(false)}>Cancel</Button>}{ownerTransferRequired || squad.managedGroup && isLeader && memberCount > 1 ? <Button onClick={() => router.push(`/groups/${squadId}`)}>Choose next owner</Button> : <Button variant="danger" loading={leavingSquad} onClick={handleLeaveSquad}>Leave squad</Button>}</div></div></Modal>}
       {noCamConfirmOpen && <Modal title="Connect your devices" subtitle="Choose how you want to join the call." onClose={() => { if (!noCamEnabling) setNoCamConfirmOpen(false); }} width={440}><div className={styles.modalStack}>{videoError && <p role="alert" className={styles.error}>{videoError}</p>}<div className="gg-dialog-actions"><Button loading={noCamEnabling} onClick={async () => { setNoCamEnabling(true); const ok = await enableLobbyMedia(); setNoCamEnabling(false); if (!ok) return; setNoCamConfirmOpen(false); await proceedFindMatch(); }}>Turn on camera &amp; mic</Button><Button variant="secondary" loading={noCamEnabling} onClick={async () => { setNoCamEnabling(true); const ok = await enableLobbyMedia(false); setNoCamEnabling(false); if (!ok) return; setNoCamConfirmOpen(false); await proceedFindMatch(); }}>Audio only</Button></div></div></Modal>}
       {invitePeopleOpen && <InviteToSquad squadId={squadId} squadName={squad.squadName} onClose={() => setInvitePeopleOpen(false)} />}
       {coverPickerOpen && <CoverPicker squadId={squadId} currentCover={squad.coverImage} onClose={() => setCoverPickerOpen(false)} onSaved={async () => { await fetchSquad(); setCoverPickerOpen(false); }} />}

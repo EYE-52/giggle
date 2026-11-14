@@ -12,10 +12,12 @@ import type { FaceOffPerson } from "./FaceOff";
 import styles from "./SquadCallPanel.module.css";
 
 /** The same squad call and capture sources used by lobby and encounter. */
-export function SquadCallPanel({ squadId, people }: { squadId: string; people: FaceOffPerson[] }) {
+export function SquadCallPanel({ squadId, people, selfUserId = session.user?.id, communicationMode = "video" }: { squadId: string; people: FaceOffPerson[]; selfUserId?:string; communicationMode?:"chat"|"voice"|"video" }) {
   const media = useSquadCall(squadId);
   const now = useScreenSharingClock(people);
   const screenOn = media.capture.screen === "active";
+  const allowedKey=people.filter(person=>person.userId!==selfUserId && person.uid!=null).map(person=>person.uid).join("|");
+  useEffect(()=>{void media.client?.setAllowedRemoteUids?.(allowedKey ? allowedKey.split("|") : []).catch(()=>{});},[media.client,allowedKey]);
   const micOn = media.capture.audio === "active", camOn = media.capture.video === "active";
   const [error, setError] = useState("");
   const busyRef = useRef(false);
@@ -41,7 +43,7 @@ export function SquadCallPanel({ squadId, people }: { squadId: string; people: F
   return <div className={styles.panel} data-testid="search-squad-call" aria-label="Your squad call">
     <div className={styles.tiles} data-count={people.length}>
       {people.map((person, index) => {
-        const isMe = person.userId === session.user?.id;
+        const isMe = person.userId === selfUserId;
         const remote = media.remotes.find(remote => String(remote.uid) === String(person.uid));
         const hasVideo = isMe ? screenOn || camOn : !!remote?.hasVideo;
         const uid = isMe ? media.uid : person.uid;
@@ -60,18 +62,18 @@ export function SquadCallPanel({ squadId, people }: { squadId: string; people: F
       })}
     </div>
     <div className={styles.controls} role="group" aria-label="Squad camera and microphone" aria-busy={media.pending}>
-      <button type="button" className={styles.control} data-off={!micOn || undefined} disabled={media.pending} aria-pressed={!micOn}
+      <button type="button" className={styles.control} data-off={!micOn || undefined} disabled={media.pending || communicationMode === "chat"} aria-pressed={!micOn}
         aria-label={micOn ? "Mute microphone" : "Turn on microphone"} onClick={() => void toggle("audio")}>
         {micOn ? <Icon.mic size={19} /> : <Icon.micOff size={19} />}<span>{micOn ? "Mic" : "Mic off"}</span>
       </button>
-      <button type="button" className={styles.control} data-off={!camOn || undefined} disabled={media.pending} aria-pressed={camOn}
+      <button type="button" className={styles.control} data-off={!camOn || undefined} disabled={media.pending || communicationMode !== "video"} aria-pressed={camOn}
         aria-label={camOn ? "Turn camera off" : "Turn camera on"} onClick={() => void toggle("video")}>
         {camOn ? <Icon.cam size={19} /> : <Icon.camOff size={19} />}<span>{camOn ? "Camera" : "Camera off"}</span>
       </button>
       <ScreenShareButton client={media.client} capture={media.capture} disabled={media.pending || !media.joined}
         onStart={() => squadCall.startScreenShare(squadId)} onStop={() => squadCall.stopScreenShare(squadId)} onError={setError} />
-      {!media.joined && !media.pending && <Button size="sm" variant="secondary" onClick={() => {
-        setError(""); void squadCall.connect(squadId, null, { audio: true, video: true }).catch(error => setError(describeVideoError(error)));
+      {communicationMode !== "chat" && !media.joined && !media.pending && <Button size="sm" variant="secondary" onClick={() => {
+        setError(""); void squadCall.connect(squadId, null, { audio: true, video: communicationMode === "video" }).catch(error => setError(describeVideoError(error)));
       }}>Start squad call</Button>}
     </div>
     <p className={styles.status} role="status">{media.pending ? <><span className="gg-spinner" aria-hidden="true" />Connecting your devices…</> : media.joined ? "Keep chatting with your squad." : "Your devices stay off until you turn them on."}</p>

@@ -6,6 +6,8 @@ const jwt = require('jsonwebtoken');
 const { Server } = require('socket.io');
 const { createAdapter } = require('@socket.io/redis-adapter');
 const memberMedia = require('./memberMediaService');
+const groupPresence = require('./groupPresenceService');
+const { aliasGroup, publicGroupMember } = require('./groupIdentityService');
 const { randomBase36 } = require('../utils/random');
 const { buildAllowedOrigins } = require('../config/corsOrigins');
 const {
@@ -194,6 +196,7 @@ const persistSquadReport = async ({
   const update = {
     $setOnInsert: {
       ...filter,
+      scope:"encounter",scopeId:filter.encounterId,targetKey:filter.targetSquadId,
       reporterSquadId: normalizeRealtimeId(payload.squadId),
       targetUserIds,
       category,
@@ -241,7 +244,9 @@ const emitRealtimeProjection = async ({
   const { room, encounter, squadA, squadB } = authorization || {};
   const sender = canonicalUserId(senderUserId);
   if (!encounter || !squadA || !squadB || !sender) {
-    server.to(room).emit(event, payload);
+    const squad = authorization?.squad;
+    const member = squad?.members?.find(member => String(member.userId) === sender);
+    server.to(room).emit(event, aliasGroup(squad) && member ? projectRealtimeSender(payload, publicGroupMember(squad,member)) : payload);
     return;
   }
   const findSender = (squad) =>
@@ -253,13 +258,14 @@ const emitRealtimeProjection = async ({
   const users = await loadEncounterIdentityUsers([sender], { User: UserModel });
   for (const viewerSquad of [squadA, squadB]) {
     const sideRoom = encounterSideRoom(encounter.encounterId, viewerSquad.squadId);
-    if (viewerSquad.squadId === senderSquad.squadId) {
+    if (viewerSquad.squadId === senderSquad.squadId && !aliasGroup(senderSquad)) {
       server.to(sideRoom).emit(event, payload);
       continue;
     }
     const view = publicEncounterIdentity({
       viewerSquadId: viewerSquad.squadId,
       memberSquadId: senderSquad.squadId,
+      identityMode: senderSquad.identityMode,
       member: senderMember,
       user: identityUserFor(users, sender),
       encounterId: encounter.encounterId,
@@ -390,6 +396,31 @@ const init = (server) => {
     let ownedMedia = null;
     let mediaOperation = Promise.resolve();
 
+    let ownedPresence = null, presenceOperation = Promise.resolve();
+    socket.on('group_presence', (input = {}, ack) => {
+      presenceOperation = presenceOperation.then(async () => {
+        const reply = typeof ack === 'function' ? ack : () => {};
+        try {
+          const squadId = normalizeRealtimeId(input.squadId);
+          if (!socket.userId || !squadId || !['begin','update','end'].includes(input.action)) return reply({ok:false});
+          if (input.action === 'end') {
+            if (!ownedPresence || ownedPresence.squadId !== squadId || ownedPresence.generation !== input.generation) return reply({ok:false});
+            await groupPresence.end(squadId,socket.userId,socket.id,ownedPresence.generation);ownedPresence=null;
+          } else {
+            const authorization=await authorizeSquadRoomJoin({squadId,userId:socket.userId,isProduction:IS_PROD,Squad,User});
+            if (!authorization.allowed) return reply({ok:false});
+            await socket.join(authorization.room);
+            if (input.action === 'begin') {
+              if (ownedPresence) await groupPresence.end(ownedPresence.squadId,socket.userId,socket.id,ownedPresence.generation);
+              ownedPresence={squadId,generation:await groupPresence.begin(squadId,socket.userId,socket.id)};
+            } else if (!ownedPresence || ownedPresence.squadId !== squadId || ownedPresence.generation !== input.generation || !await groupPresence.update(squadId,socket.userId,socket.id,input.generation)) return reply({ok:false});
+          }
+          emitToSquad(squadId,'SQUAD_UPDATED',{});reply({ok:true,generation:ownedPresence?.generation});
+        } catch {reply({ok:false});}
+      });
+      return presenceOperation;
+    });
+
     socket.on('member_media', (input = {}, ack) => {
       mediaOperation = mediaOperation.then(async () => {
         const reply = typeof ack === 'function' ? ack : () => {};
@@ -404,7 +435,7 @@ const init = (server) => {
             ? [authorization.squadA, authorization.squadB].find(s => s.squadId === squadId)
             : await Squad.findOne({squadId, 'members.userId':String(socket.userId)});
           const ownMember = ownSquad?.members.find(m => String(m.userId) === String(socket.userId));
-          if (!ownMember) return reply({ok:false});
+          if (!ownMember || (input.action !== "end" && ownSquad.communicationMode && ownSquad.communicationMode !== "video")) return reply({ok:false});
           const scope = `${encounterId ? `encounter:${encounterId}` : `squad:${squadId}`}:${ownMember.memberId}`;
           if (input.action === 'begin') {
             const generation = await memberMedia.begin(socket.userId, socket.id, scope);
@@ -531,7 +562,10 @@ const init = (server) => {
           event: 'new_message',
           payload: delivery.message,
         });
-        reply({ ok: true, message: delivery.message });
+        const ownSquad = authorization.squad || [authorization.squadA,authorization.squadB].find(squad => squad?.members.some(member => String(member.userId) === String(socket.userId)));
+        const ownMember = ownSquad?.members.find(member => String(member.userId) === String(socket.userId));
+        const publicMessage = aliasGroup(ownSquad) && ownMember ? projectRealtimeSender(delivery.message,publicGroupMember(ownSquad,ownMember)) : delivery.message;
+        reply({ ok: true, message: publicMessage });
       } catch (err) {
         console.error('send_message error:', err);
         reply({
@@ -603,6 +637,11 @@ const init = (server) => {
     });
 
     socket.on('disconnect', async () => {
+      await presenceOperation;
+      if (ownedPresence) {
+        await groupPresence.end(ownedPresence.squadId,socket.userId,socket.id,ownedPresence.generation).catch(() => {});
+        emitToSquad(ownedPresence.squadId,'SQUAD_UPDATED',{});ownedPresence=null;
+      }
       logRealtimeDebug('Client disconnected:', socket.id);
       if (presenceHeartbeat) clearInterval(presenceHeartbeat);
       await mediaOperation;

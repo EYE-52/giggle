@@ -1,3 +1,4 @@
+const {groupFields} = require("../services/groupIdentityService");
 const memberMedia = require('../services/memberMediaService');
 const { getRequesterIdentity, getSquadAccessContext, isSameMember } = require("../app/squadAccess");
 const { Squad } = require("../models/Squad");
@@ -121,6 +122,7 @@ const getEncounterHandoffHandler = async (req, res) => {
       ok: true,
       data: {
         encounterId: encounter.encounterId,
+        ...groupFields(viewerSquad,identity.userId),
         status: encounter.status,
         squadAId: encounter.squadAId,
         squadAName: squadA?.squadName || "Unknown squad",
