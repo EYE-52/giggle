@@ -40,7 +40,13 @@ for (const game of require('../games/registry').list()) {
     assert(hasClass(art, 'home-card-art') && hasClass(copy, 'home-card-copy'), game.id + ' shares art and copy wrappers');
     assert.equal(art.children[0].attrs['data-art'], game.id);
     assert.equal(art.children.length, 1, 'art is unobstructed');
-    assert.deepEqual(copy.children.map(node => node.attrs.class), ['t', 'd', 'p'], 'title, tagline and player count stay together');
+    const copyClasses = ['t', 'd', 'p'];
+    if (game.communication === 'voice' || game.communication === 'video') {
+      copyClasses.push('communication-hint');
+      const label = game.communication === 'video' ? 'Video' : 'Voice';
+      assert(html.includes(`${label} call needed for online play`), 'required call type is clear');
+    }
+    assert.deepEqual(copy.children.map(node => node.attrs.class), copyClasses, 'game details and call requirements stay together');
     assert.equal(card.children.length, 2, 'no loose badge or action can form an extra grid row');
   }
 }
