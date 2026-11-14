@@ -64,4 +64,20 @@ assert.match(css, /overflow-y:\s*auto;\s*overscroll-behavior:\s*contain/);
 assert.match(css, /#howtoPlayPanel, \.howto-body\)\s*\{[^}]*overflow:\s*visible/s, 'individual tab panels do not create nested scroll boxes');
 assert.match(css, /\.howto-dlg\.controls-dlg\s*\{\s*overflow-y:\s*auto/, 'in-game Controls has its own single scroller');
 assert.match(css, /\.howto-dlg \.howto-controls\s*\{[^}]*repeat\(2, minmax\(0, 1fr\)\)/s, 'start menu and Controls share the two-column tiles');
+// Compact room totals reserve space for whole numbers; only names may wrap.
+const frameCss = fs.readFileSync(require.resolve('../public/css/app-frame.css'), 'utf8');
+const scoreStart = app.indexOf('function renderScores()');
+const scoreEnd = app.indexOf('\nfunction ', scoreStart + 1);
+const scoreElement = {};
+const scoreContext = {
+  document: { getElementById: () => scoreElement },
+  lastState: { players: [{ id: 'a', name: 'Preview partner' }, { id: 'b', name: 'Jo' }], totals: { a: 150, b: 123456 } },
+  avatar: () => '<span class="avatar">P</span>', esc: value => value, renderRoomMembers() {},
+};
+vm.runInNewContext(app.slice(scoreStart, scoreEnd) + '\nrenderScores();', scoreContext);
+assert.match(scoreElement.innerHTML, /<span class="score-name">Preview partner<\/span><b>150<\/b>/);
+assert.match(scoreElement.innerHTML, /<span class="score-name">Jo<\/span><b>123456<\/b>/);
+assert.match(frameCss, /#roomMenu \.score-name\s*\{[^}]*flex:1 1 0;[^}]*min-width:0;/);
+assert.match(frameCss, /#roomMenu \.score > :is\(\.avatar,b\)\s*\{[^}]*flex:none;/);
+assert.match(frameCss, /#roomMenu \.score b\s*\{[^}]*white-space:nowrap;[^}]*overflow-wrap:normal;/);
 console.log('CONTROLS_UI_PASS: manifest sheet, fullscreen, focus and dismissals, shortcut and single scroll');

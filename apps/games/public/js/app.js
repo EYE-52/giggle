@@ -3092,7 +3092,7 @@ function renderScores() {
   const top = sorted.length ? (lastState.totals[sorted[0].id] || 0) : 0;
   const html = '<span class="scorelabel">Night totals</span>' + sorted.map((p) => {
     const pts = lastState.totals[p.id] || 0;
-    return `<span class="score ${pts === top && top > 0 ? 'leader' : ''}">${avatar(p.id, p.name)}${esc(p.name)} <b>${pts}</b></span>`;
+    return `<span class="score ${pts === top && top > 0 ? 'leader' : ''}">${avatar(p.id, p.name)}<span class="score-name">${esc(p.name)}</span><b>${pts}</b></span>`;
   }).join('') + ((lastState.spectators && lastState.spectators.length)
     ? `<span class="watching-chip">Watching: ${lastState.spectators.map((s) => esc(s.name)).join(', ')}</span>` : '');
   if (el._scoresHtml !== html) {

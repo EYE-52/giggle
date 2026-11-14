@@ -71,3 +71,8 @@ body.game-playing:not(.game-immersive) .play-toolbar .play-title { flex: 1; min-
 @media (max-width: 599px) {
  body.game-playing .play-toolbar .play-title :is(.gthumb, .art-fallback) { display: none; }
 }
+
+/* Names may wrap in the compact drawer; each numeric total stays whole. */
+body.game-playing #roomMenu .score-name { flex:1 1 0; min-width:0; overflow-wrap:anywhere; }
+body.game-playing #roomMenu .score > :is(.avatar,b) { flex:none; }
+body.game-playing #roomMenu .score b { white-space:nowrap; overflow-wrap:normal; }
