@@ -10,6 +10,14 @@ const ROOT = path.resolve(__dirname, '..');
 const MANIFEST = path.join(ROOT, 'public/release.json');
 const OMIT = new Set(['public/release.json', 'public/test', 'public/fixtures', 'sdk/dist']);
 
+function stableJSON(value) {
+  if (Array.isArray(value)) return value.map(stableJSON);
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(Object.keys(value).sort().map(key => [key, stableJSON(value[key])]));
+  }
+  return value;
+}
+
 function buildHash(root = ROOT) {
   const files = [];
   function visit(rel) {
@@ -25,7 +33,13 @@ function buildHash(root = ROOT) {
     'package.json', 'package-lock.json', 'railway.json', 'vercel.json']) visit(rel);
   const hash = crypto.createHash('sha256');
   for (const rel of files.sort()) {
-    const bytes = fs.readFileSync(path.join(root, rel));
+    let bytes = fs.readFileSync(path.join(root, rel));
+    if (rel === 'vercel.json') {
+      // Verified Vercel builds reserialize this config; name/version are now
+      // explicit in source. Hash every parsed value with stable object keys.
+      // Array order stays significant, and all other files keep their raw bytes.
+      bytes = Buffer.from(JSON.stringify(stableJSON(JSON.parse(bytes.toString('utf8')))));
+    }
     hash.update(rel + '\0' + bytes.length + '\0');
     hash.update(bytes);
   }

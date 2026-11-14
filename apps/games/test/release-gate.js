@@ -92,9 +92,57 @@ async function main() {
   for (const file of ['package-lock.json', 'railway.json', 'vercel.json']) fs.writeFileSync(path.join(scratch, file), '{}');
   fs.writeFileSync(path.join(scratch, 'package.json'), JSON.stringify({ version: '0.1.38' }));
   assert.equal(read(scratch), null, 'unstamped development is explicit');
+  const vercelConfig = JSON.parse(fs.readFileSync(path.resolve(__dirname, '../vercel.json'), 'utf8'));
+  assert.equal(vercelConfig.name, 'giggle-play', 'project identity is explicit before Vercel rewrites config');
+  assert.equal(vercelConfig.version, 2, 'Vercel config version is explicit');
+  const configPath = path.join(scratch, 'vercel.json');
+  fs.writeFileSync(configPath, JSON.stringify(vercelConfig, null, 2) + '\n');
+  const runtimePath = path.join(scratch, 'server/runtime.js');
+  const runtimeBytes = 'module.exports = { ready: true };\n';
+  fs.writeFileSync(runtimePath, runtimeBytes);
   const stamped = { ...manifest, buildSha256: buildHash(scratch) };
   fs.writeFileSync(path.join(scratch, 'public/release.json'), JSON.stringify(stamped));
   assert.deepEqual(read(scratch), stamped);
+
+  const reverseObjectKeys = value => {
+    if (Array.isArray(value)) return value.map(reverseObjectKeys);
+    if (value && typeof value === 'object') {
+      return Object.fromEntries(Object.keys(value).reverse().map(key => [key, reverseObjectKeys(value[key])]));
+    }
+    return value;
+  };
+  for (const text of [JSON.stringify(vercelConfig), JSON.stringify(vercelConfig, null, 4),
+    JSON.stringify(reverseObjectKeys(vercelConfig), null, 2) + '\n']) {
+    fs.writeFileSync(configPath, text);
+    assert.equal(buildHash(scratch), stamped.buildSha256, 'only JSON layout and object-key order may change');
+    assert.deepEqual(read(scratch), stamped, 'platform JSON rewriting still verifies');
+  }
+  for (const [name, change] of [
+    ['route value', value => { value.rewrites[0].destination = 'https://different.example/api/reports'; }],
+    ['header value', value => { value.headers[0].headers[0].value = "frame-ancestors 'none'"; }],
+    ['project name', value => { value.name = 'different-project'; }],
+    ['config version', value => { value.version = 1; }],
+    ['new config field', value => { value.cleanUrls = true; }],
+    ['route array order', value => { value.rewrites.reverse(); }],
+    ['header array order', value => { value.headers[2].headers.reverse(); }],
+  ]) {
+    const changed = structuredClone(vercelConfig);
+    change(changed);
+    fs.writeFileSync(configPath, JSON.stringify(changed));
+    assert.notEqual(buildHash(scratch), stamped.buildSha256, name + ' remains in the hash');
+    assert.throws(() => read(scratch), /bytes differ/, name + ' fails verification');
+  }
+  fs.writeFileSync(configPath, '{broken JSON');
+  assert.throws(() => read(scratch), SyntaxError, 'invalid config fails closed');
+  fs.writeFileSync(configPath, JSON.stringify(vercelConfig, null, 2) + '\n');
+  fs.writeFileSync(runtimePath, runtimeBytes + '\n');
+  assert.throws(() => read(scratch), /bytes differ/, 'even a whitespace-only raw JS change fails');
+  fs.writeFileSync(runtimePath, runtimeBytes);
+  fs.writeFileSync(path.join(scratch, 'railway.json'), '{}\n');
+  assert.throws(() => read(scratch), /bytes differ/, 'other JSON files still use their raw bytes');
+  fs.writeFileSync(path.join(scratch, 'railway.json'), '{}');
+  assert.deepEqual(read(scratch), stamped);
+
   fs.writeFileSync(path.join(scratch, 'server/changed.js'), 'changed');
   assert.throws(() => read(scratch), /bytes differ/);
 
@@ -157,6 +205,6 @@ async function main() {
     server.kill();
     if (server.exitCode === null && server.signalCode === null) await once(server, 'exit');
   }
-  console.log('RELEASE_GATE_PASS: credentials, source/build/deployment identity, provider SUCCESS, artifact tamper, no-cache config, production QA/malformed routes');
+  console.log('RELEASE_GATE_PASS: credentials, source/build/deployment identity, provider SUCCESS, canonical config values/array order, raw artifact tamper, no-cache config, production QA/malformed routes');
 }
 main().catch(error => { console.error(error); process.exitCode = 1; }).finally(() => fs.rmSync(scratch, { recursive: true, force: true }));

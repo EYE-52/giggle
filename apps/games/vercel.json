@@ -1,5 +1,7 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
+  "name": "giggle-play",
+  "version": 2,
   "framework": null,
   "outputDirectory": "public",
   "installCommand": "npm ci",
