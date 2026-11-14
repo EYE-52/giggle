@@ -1,11 +1,12 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { verifyReleaseDependencies } = require('../scripts/verify-release-dependencies.cjs');
+const { gamesSourceCommit } = require('../release-dependencies.json');
 const sha = 'a'.repeat(40), id = '11111111-2222-3333-4444-555555555555';
 const env = { VERCEL_ENV: 'production', VERCEL_GIT_COMMIT_REF: 'main', VERCEL_GIT_COMMIT_SHA: sha,
   NEXT_PUBLIC_BACKEND_URL: 'https://giggle-server-production.up.railway.app', NEXT_PUBLIC_GAMES_URL: 'https://play.gigglemeet.com' };
 function harness(patch = {}) {
-  const manifest = { schema: 1, sourceCommit: sha, buildSha256: 'b'.repeat(64), version: '0.1.38' };
+  const manifest = { schema: 1, sourceCommit: gamesSourceCommit, buildSha256: 'b'.repeat(64), version: '0.1.38' };
   const values = {
     '/health': { ok: true, services: { database: 'connected', redis: 'connected' }, release: { sourceCommit: sha, deploymentId: id } },
     '/release.json': manifest,
@@ -14,9 +15,11 @@ function harness(patch = {}) {
   const calls = [];
   return { calls, values, request: async (url, options) => { calls.push({ url, options }); return { status: 200, json: async () => values[new URL(url).pathname] }; } };
 }
-test('hosted promotion waits for the same healthy API and both Games hosts', async () => {
+test('hosted promotion waits for the current API and the explicitly pinned Games release', async () => {
   const h = harness(); const result = await verifyReleaseDependencies(env, h.request);
   assert.equal(result.sourceCommit, sha); assert.equal(h.calls.length, 3);
+  assert.equal(result.gamesSourceCommit, gamesSourceCommit);
+  assert.notEqual(gamesSourceCommit, sha, 'Meet-only changes do not require restarting Games');
   for (const { url, options } of h.calls) { assert.equal(options.redirect, 'error'); assert.equal(options.headers['Cache-Control'], 'no-cache'); assert.equal(new URL(url).searchParams.get('release'), sha); }
 });
 test('the post-build check reads again and rejects a dependency changed during compilation', async () => {

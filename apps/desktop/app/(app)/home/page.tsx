@@ -63,6 +63,7 @@ export default function HomePage() {
   const action = useRef(false);
   const [createOpen, setCreateOpen] = useState(false);
   const [communicationMode, setCommunicationMode] = useState<CommunicationMode>("video");
+  const [matching, setMatching] = useState(false);
   const [name, setName] = useState("");
   const [topics, setTopics] = useState<string[]>([]);
   const [createError, setCreateError] = useState("");
@@ -79,6 +80,7 @@ export default function HomePage() {
     const intent = readRoomCreateIntent(window.location.search);
     if (intent.requested) {
       setCommunicationMode(intent.communicationMode);
+      setMatching(intent.matching);
       setName("");
       setCreateOpen(true);
     }
@@ -193,6 +195,8 @@ export default function HomePage() {
     if (!active) {
       // no squad yet: start one, then invite them straight away
       setInviteAfterCreate(friend);
+      setMatching(false);
+      setCommunicationMode("video");
       setName("");
       setTopics([]);
       setCreateError("");
@@ -210,13 +214,14 @@ export default function HomePage() {
       setPending("");
     }
   }
-  function openCreate() {
+  function openCreate(forMatching = false) {
     setInviteAfterCreate(null);
     if (!ensureAuthed()) return;
     setName("");
     setTopics([]);
     setCreateError("");
-    setCommunicationMode(readRoomCreateIntent(window.location.search).communicationMode);
+    setCommunicationMode(forMatching ? "video" : readRoomCreateIntent(window.location.search).communicationMode);
+    setMatching(forMatching);
     setCreateOpen(true);
   }
   async function create() {
@@ -233,7 +238,7 @@ export default function HomePage() {
       const squad = await api.createSquad({ squadName: name.trim(), tags: topics, communicationMode });
       if (inviteAfterCreate) await api.inviteUserToSquad(squad.squadId, inviteAfterCreate.userId).catch(() => {});
       setCreateOpen(false);
-      router.push(withGameIntent(`/lobby?squad=${squad.squadId}`, readGameIntent(window.location.search), readGamesIntent(window.location.search)));
+      router.push(withGameIntent(`/lobby?squad=${squad.squadId}${matching ? "&match=1" : ""}`, readGameIntent(window.location.search), readGamesIntent(window.location.search)));
     } catch (error) {
       setCreateError(message(error, "Couldn't create your squad. Try again."));
     } finally {
@@ -302,6 +307,13 @@ export default function HomePage() {
   const seats = active ? Math.max(active.maxSlots, roster.length) : 0;
   return (
     <div className={`gg-screen gg-home-people ${styles.home}`}>
+      <header className={styles.welcome}>
+        <div>
+          <h1>{WEB_DISCOVERY_ENABLED ? "Group vs group" : "Bring your people together"}</h1>
+          <p>{WEB_DISCOVERY_ENABLED ? "Start a squad, invite your friends, and meet another group together." : "Start a call, invite friends, and bring a game along."}</p>
+        </div>
+        <Button onClick={() => openCreate(WEB_DISCOVERY_ENABLED)}><Icon.users size={20} />{WEB_DISCOVERY_ENABLED ? "Start your group" : "Start a squad"}</Button>
+      </header>
       <div className={styles.columns}>
         <section className={`card ${styles.panel}`} aria-labelledby="home-friends">
           <div className={styles.panelBody}>
@@ -387,11 +399,6 @@ export default function HomePage() {
               ))}
             </ul>
           )}
-          {active && (
-            <button type="button" className={`btn btn-ghost ${styles.newSquad}`} onClick={openCreate}>
-              <Icon.plus size={18} /> Start another squad
-            </button>
-          )}
           <div className={styles.joinArea}>
           <label htmlFor="squad-code" className={styles.joinLabel}>Have an invite code?</label>
           <form
@@ -472,10 +479,9 @@ export default function HomePage() {
         </section>
       </div>
 
-      <div className={styles.trayDock}>
-      <div className={`card ${styles.trayCard}`} role="region" aria-label={active ? `${active.squadName}, your squad` : "Your squad"}>
+      {active && <div className={styles.trayDock}>
+      <div className={`card ${styles.trayCard}`} role="region" aria-label={`${active.squadName}, your squad`}>
         <div className={styles.trayRow}>
-        {active ? (
           <>
             <div className={styles.traySeats} aria-hidden="true">
               {Array.from({ length: Math.min(seats, 8) }, (_, i) => {
@@ -494,24 +500,18 @@ export default function HomePage() {
               <small className="muted">{active.memberCount} of {active.maxSlots} here</small>
             </span>
           </>
-        ) : (
-          <span className={styles.trayText}>
-            <b>No squad yet</b>
-            <small className="muted">Start one, then invite friends.</small>
-          </span>
-        )}
-        <Button onClick={() => (active ? router.push(withGameIntent(squadDestination(active, WEB_DISCOVERY_ENABLED), readGameIntent(window.location.search), readGamesIntent(window.location.search))) : openCreate())}>
+        <Button onClick={() => router.push(withGameIntent(squadDestination(active, WEB_DISCOVERY_ENABLED), readGameIntent(window.location.search), readGamesIntent(window.location.search)))}>
           {trayAction}
           <Icon.arrowRight size={18} />
         </Button>
         </div>
       </div>
-      </div>
+      </div>}
 
       {createOpen && (
         <Modal
-          title="Start a squad"
-          subtitle={inviteAfterCreate ? `Name it, and ${inviteAfterCreate.name} gets an invite.` : "Name it, then invite friends."}
+          title={matching ? "Start your group" : "Start a squad"}
+          subtitle={inviteAfterCreate ? `Name it, and ${inviteAfterCreate.name} gets an invite.` : matching ? "Invite your friends to the lobby. When everyone is ready, find another group together." : "Name it, then invite friends."}
           onClose={() => {
             if (!pending) setCreateOpen(false);
           }}

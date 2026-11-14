@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useState, type CSSProperties } from 'react';
 import { logoPaths, logoViewBox } from '@giggle/ui-tokens';
+import styles from './Brand.module.css';
 
 export function Logomark({ size = 32, animated = false }: { size?: number; glow?: boolean; animated?: boolean }) {
   const [drawing, setDrawing] = useState(animated);
@@ -14,7 +15,7 @@ export function Logomark({ size = 32, animated = false }: { size?: number; glow?
     {logoPaths.map((path) => <path key={path} d={path} stroke="currentColor" strokeWidth={3.5} strokeLinecap="round" strokeLinejoin="round" />)}
   </svg>;
 }
-export function Wordmark({ size = 25, mark = true }: { size?: number; mark?: boolean }) {
-  const style: CSSProperties = { display:'inline-flex', alignItems:'center', gap:9, fontFamily:'var(--font-nunito), Nunito, sans-serif', fontWeight:800, fontSize:size, letterSpacing:'-.055em', color:'var(--text)' };
-  return <span className="wordmark" style={style}>{mark && <Logomark size={size * 1.3}/>}<span>giggle</span></span>;
+export function Wordmark({ size = 25, mark = true, product }: { size?: number; mark?: boolean; product?: string }) {
+  const style: CSSProperties = { display:'inline-flex', alignItems:'center', gap:9, fontFamily:'var(--font-nunito), Nunito, sans-serif', fontWeight:800, fontSize:size, lineHeight:1, letterSpacing:'-.055em', color:'var(--text)' };
+  return <span className={`wordmark ${styles.lockup}`} style={style}>{mark && <Logomark size={size * 1.2}/>}<span className={styles.name}>giggle{product && <span className={styles.product}>{product}</span>}</span></span>;
 }

@@ -6,7 +6,9 @@ export function referralSignInHref(search: string): string {
   if (query.get("create") === "1") {
     intent.set("create", "1");
     const mode = query.get("mode");
-    intent.set("mode", mode === "chat" || mode === "voice" ? mode : "video");
+    const matching = query.get("match") === "1";
+    intent.set("mode", !matching && (mode === "chat" || mode === "voice") ? mode : "video");
+    if (matching) intent.set("match", "1");
   }
   const game = query.get("game");
   if (game && game.length <= 48 && /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(game)) intent.set("game", game);

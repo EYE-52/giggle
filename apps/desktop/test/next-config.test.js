@@ -748,7 +748,7 @@ test("desktop lobby leave starts pending feedback and media cleanup before the b
 
 test("desktop lobby ready toggle surfaces backend failures", () => {
   const page = lobbySource();
-  const handler = page.match(/async function handleReady\(\) \{([\s\S]*?)\n  \}\n\n  async function handleFindMatch/)?.[1] ?? "";
+  const handler = page.match(/async function updateMyReady\(nextReady: boolean\): Promise<boolean> \{([\s\S]*?)\n  \}\n\n  async function handleReady/)?.[1] ?? "";
 
   assert.equal(page.includes("setMatchError((e as { message?: string })?.message || \"Couldn't update ready status.\")"), true);
   assert.equal(page.includes('console.error("setReady failed:", e);'), false);
@@ -768,7 +768,7 @@ test("desktop lobby requires every online member to be ready before starting a m
   // everyone else online must be ready; pressing "Find a squad" readies the leader
   assert.equal(page.includes("const waitingOn = activeMembers.filter(member => member.userId !== myUserId && !member.ready);"), true);
   assert.equal(page.includes("Waiting for ${waitingOn.map(member => member.displayName).join(\", \")} to be ready."), true);
-  assert.equal(page.includes("// Pressing \"Find a squad\" is the leader saying they're ready."), true);
+  assert.equal(page.includes("// Pressing \"Find a squad\" readies the leader only after devices connect."), true);
   assert.equal(page.includes("await api.setReady(squadId, true);\n      await api.setLobbyVideo"), false);
   assert.match(proceedFindMatch, /await api\.startSearch\(squadId\)/);
   assert.doesNotMatch(proceedFindMatch, /setLobbyVideo/);
@@ -788,8 +788,9 @@ test("desktop lobby joins audio before continuing without camera", () => {
   assert.match(page, /async function enableLobbyMedia\(withCamera = true, withAudio = true\)/);
   assert.match(page, /await squadCall\.connect\(squadId, null, \{ audio: withAudio, video: withCamera \}\)/);
   assert.equal(page.includes("onClick={enableLobbyMedia}"), false);
-  assert.match(page, /ok = await enableLobbyMedia\(false\)/);
-  assert.match(page, /if \(!ok\) return;[\s\S]*?await proceedFindMatch\(\)/);
+  assert.match(page, /completeDeviceSetup\(false\)/);
+  assert.match(page, /const ok = await enableLobbyMedia\(withCamera\)/);
+  assert.match(page, /if \(!ok \|\| generation !== lobbyMediaGenerationRef.current\) return;[\s\S]*?await proceedFindMatch\(\)/);
 });
 
 test("desktop lobby copy actions only show success after clipboard writes succeed", () => {
@@ -1634,10 +1635,11 @@ test("desktop home keeps one compact live activity strip", () => {
 test("desktop home gives new users one first-room task instead of an empty dashboard", () => {
   const page = desktopHomeSource();
 
-  // the squad tray carries the one first step for a new user
-  assert.equal(page.includes("Start a squad"), true);
-  assert.equal(page.includes("No squad yet"), true);
-  assert.equal(page.includes("Start one, then invite friends."), true);
+  // The introduction owns creation; the bottom tray only resumes a real squad.
+  assert.equal(page.includes("Start your group"), true);
+  assert.equal(page.includes("Group vs group"), true);
+  assert.equal(page.includes("Start a squad, invite your friends, and meet another group together."), true);
+  assert.equal(page.includes("{active && <div className={styles.trayDock}>"), true);
   assert.equal(page.includes('title="No squads yet"'), false);
 });
 
@@ -1679,9 +1681,9 @@ test("desktop home keeps create and join actions compact", () => {
 
 test("desktop home uses warm squad actions and discovery surfaces", () => {
   const page = desktopHomeSource();
-  assert.equal(page.includes("Your squad"), true);
+  assert.equal(page.includes("${active.squadName}, your squad"), true);
   assert.equal(page.includes("Start a squad"), true);
-  // discovery shows as its own compact list; no taglines on Home
+  // Discovery remains a compact list beneath the main group matching entry.
   assert.equal(page.includes("Open squads"), true);
   assert.equal(page.includes("Bring your friends. Meet another squad."), false);
 });

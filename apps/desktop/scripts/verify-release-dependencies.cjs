@@ -2,6 +2,9 @@
 // local `pnpm build` remains independent of production services.
 const assert = require('node:assert/strict');
 const { isDeepStrictEqual } = require('node:util');
+// Games ships independently. Pin the tested Games release instead of restarting
+// game rooms for every Meet-only UI change. Update this pin after a Games release.
+const { gamesSourceCommit } = require('../release-dependencies.json');
 const API = 'https://giggle-server-production.up.railway.app';
 const GAMES = 'https://play.gigglemeet.com';
 const GAME_API = 'https://giggle-play-production.up.railway.app';
@@ -12,6 +15,7 @@ async function verifyReleaseDependencies(env = process.env, request = fetch) {
   assert.equal(env.VERCEL_GIT_COMMIT_REF, 'main', 'Hosted release requires reviewed main');
   const sha = env.VERCEL_GIT_COMMIT_SHA;
   assert(/^[0-9a-f]{40}$/.test(sha || ''), 'Hosted release source identity is missing');
+  assert(/^[0-9a-f]{40}$/.test(gamesSourceCommit || ''), 'Tested Games release pin is missing');
   assert(env.NEXT_PUBLIC_BACKEND_URL === API, 'Meet API target differs');
   assert(env.NEXT_PUBLIC_GAMES_URL === GAMES, 'Games target differs');
   const get = async url => {
@@ -30,14 +34,14 @@ async function verifyReleaseDependencies(env = process.env, request = fetch) {
   assert.equal(health.release?.sourceCommit, sha, 'Meet API has not deployed this release');
   assert(uuid(health.release?.deploymentId), 'Meet API deployment identity is missing');
   assert.equal(frontend.schema, 1, 'Games frontend identity is missing');
-  assert.equal(frontend.sourceCommit, sha, 'Games frontend has not deployed this release');
+  assert.equal(frontend.sourceCommit, gamesSourceCommit, 'Games frontend differs from the tested release pin');
   assert(/^[0-9a-f]{64}$/.test(frontend.buildSha256 || ''), 'Games build identity is missing');
   assert(typeof frontend.version === 'string' && frontend.version.length > 0, 'Games version is missing');
   assert.equal(backend.ok, true, 'Games backend is unhealthy');
   assert(isDeepStrictEqual(backend.release, frontend), 'Games frontend/backend identity differs');
   assert(uuid(backend.deploymentId), 'Games backend deployment identity is missing');
   assert.equal(backend.giggleEnabled, true, 'Games bridge is disabled');
-  return { sourceCommit: sha, apiDeploymentId: health.release.deploymentId, gamesDeploymentId: backend.deploymentId };
+  return { sourceCommit: sha, gamesSourceCommit, apiDeploymentId: health.release.deploymentId, gamesDeploymentId: backend.deploymentId };
 }
 if (require.main === module) verifyReleaseDependencies().then(() => {
   console.log('RELEASE_DEPENDENCIES_PASS: matching healthy API and Games release');

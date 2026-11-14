@@ -17,10 +17,10 @@ export function canonicalSiteOrigin(value = ""): string {
 
 export const SITE_ORIGIN = canonicalSiteOrigin(process.env.NEXT_PUBLIC_SITE_URL);
 export const SITE_LOGO = `${SITE_ORIGIN}/icon.png`;
-export const HOME_DESCRIPTION = "Video calls with friends and free multiplayer games. Start a squad on Giggle Meet or play Giggle Games with no account or download.";
+export const HOME_DESCRIPTION = "Meet new people together with group vs group video calls. Bring your friends, start a private hangout, or play multiplayer games on Giggle Meet.";
 
 export const PUBLIC_PAGES = [
-  { path: "/", title: "Giggle Meet — Video calls & games with friends", description: HOME_DESCRIPTION },
+  { path: "/", title: "Giggle Meet — Group vs group video calls & games", description: HOME_DESCRIPTION },
   { path: "/safety", title: "Safety · Giggle Meet", description: "Learn about age checks, reporting, blocking and getting help on Giggle Meet." },
   { path: "/support", title: "Support · Giggle Meet", description: "Contact Giggle Meet for account help, age-verification appeals, safety concerns, data export or account deletion." },
   { path: "/privacy", title: "Privacy · Giggle Meet", description: "How Giggle Meet handles account data, age checks, video calls and safety reports, and how to ask about your data." },

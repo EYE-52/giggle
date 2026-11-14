@@ -65,10 +65,15 @@ function LobbyInner() {
   const [settingReady, setSettingReady] = useState(false);
   const [findingMatch, setFindingMatch] = useState(false);
   const [matchError, setMatchError] = useState<string | null>(null);
-  // Camera priming: confirm layer shown when finding a match with lobby media
-  // never enabled (we never auto-request permissions on mount).
+  // Readiness and search share this explicit device choice. Mounting the page
+  // never requests camera or microphone permission.
   const [noCamConfirmOpen, setNoCamConfirmOpen] = useState(false);
   const [noCamEnabling, setNoCamEnabling] = useState(false);
+  const [deviceAction, setDeviceAction] = useState<"ready" | "match">("match");
+  const deviceActionPending = useRef<symbol | null>(null);
+  const readyRequestPending = useRef<symbol | null>(null);
+  const joinRequestsScopeRef = useRef({ active: false, generation: 0 });
+  const lobbyExitingRef = useRef(false);
   // Poll-failure visibility: consecutive fetch failures (≥2) surface a small
   // dismissible "connection trouble" banner; any success clears it.
   const pollFailsRef = useRef(0);
@@ -192,6 +197,20 @@ function LobbyInner() {
   const deviceBusyRef = useRef({ audio: false, video: false });
   const [deviceBusy, setDeviceBusy] = useState({ audio: false, video: false });
   const [videoError, setVideoError] = useState<string | null>(null);
+  // A query-only room switch keeps this component mounted. Retire its requests
+  // and clear the old dialog; their eventual completion cannot own new UI.
+  useEffect(function resetLobbySetup() {
+    lobbyMediaGenerationRef.current += 1;
+    readyRequestPending.current = null;
+    deviceActionPending.current = null;
+    setSettingReady(false);
+    setNoCamEnabling(false);
+    setNoCamConfirmOpen(false);
+    setDeviceAction("match");
+    setFindingMatch(false);
+    setMatchError(null);
+  }, [squadId]);
+
   useEffect(() => {
     if (media.error) setVideoError(describeVideoError(media.error));
     else if (media.capture.audio === "denied" || media.capture.video === "denied") setVideoError("Allow camera or microphone access in your browser, then try again.");
@@ -414,12 +433,14 @@ function LobbyInner() {
   // squad changes (the SQUAD_UPDATED socket event already drives fetchSquad).
   useEffect(() => {
     if (!squadId || !isLeader) { setJoinReqs([]); return; }
+    joinRequestsScopeRef.current = { active: true, generation: joinRequestsScopeRef.current.generation + 1 };
     fetchJoinRequests();
     const socket = connectSocket(squadId);
     const onUpdate = () => fetchJoinRequests();
     socket.on(SOCKET_EVENTS.SQUAD_UPDATED, onUpdate);
     const stopPolling = pollWhileVisible(fetchJoinRequests, 15000);
     return () => {
+      joinRequestsScopeRef.current = { active: false, generation: joinRequestsScopeRef.current.generation + 1 };
       socket.off(SOCKET_EVENTS.SQUAD_UPDATED, onUpdate);
       stopPolling();
     };
@@ -461,12 +482,17 @@ function LobbyInner() {
   }
 
   async function fetchJoinRequests() {
-    if (!squadId) return;
+    if (!squadId || !joinRequestsScopeRef.current.active || lobbyExitingRef.current) return;
+    const generation = joinRequestsScopeRef.current.generation;
+    const isCurrent = () => joinRequestsScopeRef.current.active && !lobbyExitingRef.current &&
+      generation === joinRequestsScopeRef.current.generation;
     try {
       const { requests } = await api.joinRequests(squadId);
+      if (!isCurrent()) return;
       setJoinReqs(requests ?? []);
       pollSucceeded();
     } catch (e) {
+      if (!isCurrent()) return;
       console.error("joinRequests failed:", e);
       pollFailed();
     }
@@ -545,30 +571,87 @@ function LobbyInner() {
     );
   }
 
-  async function handleReady() {
-    if (!squadId || settingReady) return;
+  async function updateMyReady(nextReady: boolean): Promise<boolean> {
+    if (!squadId || readyRequestPending.current) return false;
     const myM = squad?.members.find(member => isOwnGroupMember(squad,member,session.user?.id));
-    const previousReady = myM?.ready ?? false;
-    const nextReady = !previousReady;
+    if (!myM) return false;
+    const call = squadCall.getSnapshot();
+    if (nextReady && (!call.joined || call.squadId !== squadId || call.encounterId)) {
+      setMatchError("Connect your microphone or camera before getting ready.");
+      return false;
+    }
+    const generation = lobbyMediaGenerationRef.current;
+    const previousReady = myM.ready ?? false;
     const setLocalReady = (ready: boolean) => setSquad(current => current ? {
       ...current,
-      members: current.members.map(member => member.memberId === myM?.memberId ? { ...member, ready } : member),
+      members: current.members.map(member => member.memberId === myM.memberId ? { ...member, ready } : member),
     } : current);
+    const request = Symbol("ready");
+    readyRequestPending.current = request;
     setSettingReady(true);
     setMatchError(null);
     setLocalReady(nextReady);
     try {
       await api.setReady(squadId, nextReady);
+      return generation === lobbyMediaGenerationRef.current;
     } catch (e) {
-      setLocalReady(previousReady);
-      setMatchError((e as { message?: string })?.message || "Couldn't update ready status.");
+      if (generation === lobbyMediaGenerationRef.current) {
+        setLocalReady(previousReady);
+        setMatchError((e as { message?: string })?.message || "Couldn't update ready status.");
+      }
+      return false;
     } finally {
-      setSettingReady(false);
+      if (readyRequestPending.current === request) {
+        readyRequestPending.current = null;
+        if (generation === lobbyMediaGenerationRef.current) setSettingReady(false);
+      }
+    }
+  }
+
+  async function handleReady() {
+    if (!squadId || settingReady || noCamEnabling || squad?.isPrivatePair ||
+        squad?.communicationMode && squad.communicationMode !== "video") return;
+    const myM = squad?.members.find(member => isOwnGroupMember(squad,member,session.user?.id));
+    if (!myM) return;
+    if (!myM.ready && !videoJoined) {
+      setMatchError(null);
+      setDeviceAction("ready");
+      setNoCamConfirmOpen(true);
+      return;
+    }
+    await updateMyReady(!myM.ready);
+  }
+
+  async function completeDeviceSetup(withCamera: boolean) {
+    if (deviceActionPending.current) return;
+    const request = Symbol("device setup");
+    deviceActionPending.current = request;
+    const action = deviceAction;
+    const generation = lobbyMediaGenerationRef.current;
+    setNoCamEnabling(true);
+    try {
+      const ok = await enableLobbyMedia(withCamera);
+      if (!ok || generation !== lobbyMediaGenerationRef.current) return;
+      if (action === "ready") {
+        if (!await updateMyReady(true)) return;
+        if (generation === lobbyMediaGenerationRef.current) setNoCamConfirmOpen(false);
+      } else {
+        if (!await updateMyReady(true)) return;
+        if (generation !== lobbyMediaGenerationRef.current) return;
+        setNoCamConfirmOpen(false);
+        await proceedFindMatch();
+      }
+    } finally {
+      if (deviceActionPending.current === request) {
+        deviceActionPending.current = null;
+        if (generation === lobbyMediaGenerationRef.current) setNoCamEnabling(false);
+      }
     }
   }
 
   async function handleFindMatch() {
-    if (!squadId || !isLeader || findingMatch) return;
+    if (!squadId || !isLeader || findingMatch || noCamEnabling || squad?.isPrivatePair ||
+        squad?.communicationMode && squad.communicationMode !== "video") return;
     if (!WEB_DISCOVERY_ENABLED) {
       setMatchError("Stranger discovery is unavailable.");
       return;
@@ -583,25 +666,15 @@ function LobbyInner() {
       setMatchError(`Waiting for ${waitingOn.map(member => member.displayName).join(", ")} to be ready.`);
       return;
     }
-    // Pressing "Find a squad" is the leader saying they're ready.
-    if (!squad?.members.find(member => member.userId === myUserId)?.ready) {
-      setFindingMatch(true);
-      try {
-        await api.setReady(squadId, true);
-        setSquad(current => current ? { ...current, members: current.members.map(member => member.userId === myUserId ? { ...member, ready: true } : member) } : current);
-      } catch (e) {
-        setFindingMatch(false);
-        setMatchError((e as { message?: string })?.message || "Couldn't get your squad ready.");
-        return;
-      }
-      setFindingMatch(false);
-    }
     // Camera priming: if lobby media was never enabled, confirm before entering
     // the encounter camera-less (never auto-request on mount).
     if (!videoJoined) {
+      setDeviceAction("match");
       setNoCamConfirmOpen(true);
       return;
     }
+    // Pressing "Find a squad" readies the leader only after devices connect.
+    if (!await updateMyReady(true)) return;
     await proceedFindMatch();
   }
 
@@ -671,6 +744,7 @@ function LobbyInner() {
       setMatchError("Choose the next group owner in group settings before leaving.");
       return;
     }
+    lobbyExitingRef.current = true;
     setLeavingSquad(true);
     setMatchError(null);
     const mediaExit = leaveLobbyMedia();
@@ -681,12 +755,14 @@ function LobbyInner() {
     } catch (e) {
       if ((e as { code?: string }).code === "OWNER_TRANSFER_REQUIRED") setOwnerTransferRequired(true);
       setMatchError((e as { message?: string })?.message || "Couldn't leave squad.");
+      lobbyExitingRef.current = false;
       setLeavingSquad(false);
     }
   }
 
   async function handleDisbandSquad() {
     if (!squadId || leavingSquad) return;
+    lobbyExitingRef.current = true;
     setLeavingSquad(true);
     setMatchError(null);
     try {
@@ -695,6 +771,7 @@ function LobbyInner() {
     } catch (e) {
       console.error("disbandSquad failed:", e);
       setMatchError((e as { message?: string })?.message || "Couldn't delete squad.");
+      lobbyExitingRef.current = false;
       setLeavingSquad(false);
       setLeaveMenuOpen(false);
     }
@@ -814,7 +891,7 @@ function LobbyInner() {
         <div className={styles.titleBlock}>
           <h1 className={styles.title}>{squad.squadName}</h1>
           <span className={`muted ${styles.subtitle}`}>
-            <span>{memberCount} of {MAX_SLOTS}</span>
+            <span>{params.get("match") === "1" && !squad.isPrivatePair && (!squad.communicationMode || squad.communicationMode === "video") ? "Group vs group · " : ""}{memberCount} of {MAX_SLOTS}</span>
             {currentTags.map(tag => <span key={tag} className={styles.interest}>{tag}</span>)}
           </span>
         </div>
@@ -893,7 +970,7 @@ function LobbyInner() {
                 onStart={() => squadCall.startScreenShare(squadId)} onStop={() => squadCall.stopScreenShare(squadId)} onError={setVideoError} />
             </div>
             <span id="lobby-match-status" className={`muted ${styles.readyLine}`} data-joining={videoJoining || undefined} role="status">{videoJoining ? <><span className="gg-spinner" aria-hidden="true" /> Connecting your devices…</> : readyLine}</span>
-            {WEB_DISCOVERY_ENABLED && !isLeader && <Button variant={myReady ? "secondary" : "primary"} loading={settingReady} onClick={handleReady}>{myReady ? "Not ready" : <><span className={styles.wide}>I&apos;m ready to join</span><span className={styles.narrow}>I&apos;m ready</span></>}</Button>}
+            {WEB_DISCOVERY_ENABLED && !isLeader && <Button variant={myReady ? "secondary" : "primary"} disabled={squad.isPrivatePair || !!(squad.communicationMode && squad.communicationMode !== "video") || noCamEnabling} loading={settingReady} onClick={handleReady}>{myReady ? "Not ready" : <><span className={styles.wide}>I&apos;m ready to join</span><span className={styles.narrow}>I&apos;m ready</span></>}</Button>}
             <Button variant={isLeader ? "primary" : "secondary"} disabled={squad.isPrivatePair || squad.communicationMode && squad.communicationMode !== "video" || !WEB_DISCOVERY_ENABLED || !isLeader || !othersReady || findingMatch} loading={findingMatch} onClick={handleFindMatch} aria-describedby="lobby-match-status">Find a squad<Icon.arrowRight size={18} weight="regular" /></Button>
           </div>
           {videoError && <p role="alert" className={styles.error}>{videoError}</p>}
@@ -991,7 +1068,7 @@ function LobbyInner() {
       {editingName && <Modal title="Rename squad" onClose={() => { if (!savingName) setEditingName(false); }} width={420}><form className={styles.modalStack} onSubmit={e => { e.preventDefault(); void saveName(); }}><label className={styles.field}>Squad name<input autoFocus maxLength={32} value={nameDraft} onChange={e => setNameDraft(e.target.value)} /></label>{matchError && <p role="alert" className={styles.error}>{matchError}</p>}<div className="gg-dialog-actions"><Button variant="secondary" disabled={savingName} onClick={() => setEditingName(false)}>Cancel</Button><Button type="submit" loading={savingName}>Save</Button></div></form></Modal>}
       {memberToRemove && <Modal title={`Remove ${memberToRemove.displayName}?`} onClose={() => { if (!removingMember) setMemberToRemove(null); }} width={420}><div className={styles.modalStack}><p className="gg-dialog-text">{squad.managedGroup ? "They will be removed and cannot rejoin until you unban them in group settings." : "They will leave this squad. You can invite them again later."}</p><div className="gg-dialog-actions"><Button variant="secondary" disabled={removingMember} onClick={() => setMemberToRemove(null)}>Cancel</Button><Button variant="danger" loading={removingMember} onClick={handleRemoveMember}>Remove</Button></div></div></Modal>}
       {leaveMenuOpen && <Modal title="Leave this squad?" onClose={() => { if (!leavingSquad) setLeaveMenuOpen(false); }} width={440}><div className={styles.modalStack}><p className="gg-dialog-text">{isLeader ? memberCount > 1 ? squad.managedGroup ? "Choose the next group owner in group settings before leaving. You can also end the group for everyone." : "Leadership will pass to another member. You can also end the squad for everyone." : "You are the only member. Leaving will close this squad." : "The rest of your squad can keep talking."}</p>{matchError && <p role="alert" className={styles.error}>{matchError}</p>}<div className="gg-dialog-actions">{isLeader && memberCount > 1 ? <Button variant="secondary" loading={leavingSquad} onClick={handleDisbandSquad}>End for everyone</Button> : <Button variant="secondary" disabled={leavingSquad} onClick={() => setLeaveMenuOpen(false)}>Cancel</Button>}{ownerTransferRequired || squad.managedGroup && isLeader && memberCount > 1 ? <Button onClick={() => router.push(`/groups/${squadId}`)}>Choose next owner</Button> : <Button variant="danger" loading={leavingSquad} onClick={handleLeaveSquad}>Leave squad</Button>}</div></div></Modal>}
-      {noCamConfirmOpen && <Modal title="Connect your devices" subtitle="Choose how you want to join the call." onClose={() => { if (!noCamEnabling) setNoCamConfirmOpen(false); }} width={440}><div className={styles.modalStack}>{videoError && <p role="alert" className={styles.error}>{videoError}</p>}<div className="gg-dialog-actions"><Button loading={noCamEnabling} onClick={async () => { setNoCamEnabling(true); const ok = await enableLobbyMedia(); setNoCamEnabling(false); if (!ok) return; setNoCamConfirmOpen(false); await proceedFindMatch(); }}>Turn on camera &amp; mic</Button><Button variant="secondary" loading={noCamEnabling} onClick={async () => { setNoCamEnabling(true); const ok = await enableLobbyMedia(false); setNoCamEnabling(false); if (!ok) return; setNoCamConfirmOpen(false); await proceedFindMatch(); }}>Audio only</Button></div></div></Modal>}
+      {noCamConfirmOpen && <Modal title="Connect your devices" subtitle={deviceAction === "ready" ? "Connect before telling your leader you're ready." : "Choose how you want to join the call."} onClose={() => { if (!noCamEnabling) setNoCamConfirmOpen(false); }} width={440}><div className={styles.modalStack}>{videoError && <p role="alert" className={styles.error}>{videoError}</p>}{matchError && <p role="alert" className={styles.error}>{matchError}</p>}<div className="gg-dialog-actions"><Button loading={noCamEnabling} onClick={() => void completeDeviceSetup(true)}>Turn on camera &amp; mic</Button><Button variant="secondary" loading={noCamEnabling} onClick={() => void completeDeviceSetup(false)}>Audio only</Button></div></div></Modal>}
       {invitePeopleOpen && <InviteToSquad squadId={squadId} squadName={squad.squadName} onClose={() => setInvitePeopleOpen(false)} />}
       {coverPickerOpen && <CoverPicker squadId={squadId} currentCover={squad.coverImage} onClose={() => setCoverPickerOpen(false)} onSaved={async () => { await fetchSquad(); setCoverPickerOpen(false); }} />}
       {vibeEditorOpen && <Modal title="Edit topics" onClose={() => { if (!savingVibes) setVibeEditorOpen(false); }} width={440}><div className={styles.modalStack}><TopicPicker value={selectedVibes} onChange={setSelectedVibes} disabled={savingVibes} />{matchError && <p role="alert" className={styles.error}>{matchError}</p>}<div className="gg-dialog-actions"><Button variant="secondary" disabled={savingVibes} onClick={() => setVibeEditorOpen(false)}>Cancel</Button><Button loading={savingVibes} onClick={saveVibes}>Save</Button></div></div></Modal>}

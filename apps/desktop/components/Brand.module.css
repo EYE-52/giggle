@@ -1,0 +1,5 @@
+.lockup { flex: none; white-space: nowrap; }
+.lockup > svg { display: block; flex: none; }
+.name { display: inline-flex; align-items: baseline; gap: .42em; }
+.product { font-size: .59em; line-height: 1; font-weight: 650; letter-spacing: -.015em; color: var(--text-muted); }
+@media (max-width: 800px) { .product { display: none; } }

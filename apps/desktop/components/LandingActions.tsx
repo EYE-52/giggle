@@ -12,11 +12,21 @@ const modes = [
   { id: "games", label: "Games", icon: Icon.dice, action: "Play in a call" },
 ] as const;
 
-export function LandingActions({ hrefs, gamesUrl }: { hrefs: Record<Mode, string>; gamesUrl: string }) {
+export function LandingActions({ hrefs, gamesUrl, groupHref }: { hrefs: Record<Mode, string>; gamesUrl: string; groupHref?: string }) {
   const group = useId();
+  const [purpose, setPurpose] = useState<"group" | "private">(groupHref ? "group" : "private");
   const [mode, setMode] = useState<Mode>("video");
   const chosen = modes.find(item => item.id === mode)!;
   return <div className={styles.launch}>
+    {groupHref && <fieldset className={styles.purposes}>
+      <legend className={styles.legend}>Who would you like to meet?</legend>
+      <label className={styles.purpose}><input type="radio" name={`${group}-purpose`} checked={purpose === "group"} onChange={() => setPurpose("group")} /><Icon.users size={20} color="currentColor" /><span>Group vs group</span></label>
+      <label className={styles.purpose}><input type="radio" name={`${group}-purpose`} checked={purpose === "private"} onChange={() => setPurpose("private")} /><Icon.cam size={20} color="currentColor" /><span>Private hangout</span></label>
+    </fieldset>}
+    {purpose === "group" && groupHref ? <>
+      <p className={styles.explainer}>Invite your friends, then meet another group on video. Stay together for every match.</p>
+      <Link href={groupHref} className={styles.start}>Start your group<Icon.arrowRight size={20} color="currentColor" /></Link>
+    </> : <>
     <fieldset className={styles.modes}>
       <legend className={styles.legend}>How would you like to hang out?</legend>
       {modes.map(item => <label key={item.id} className={styles.mode}>
@@ -27,5 +37,6 @@ export function LandingActions({ hrefs, gamesUrl }: { hrefs: Record<Mode, string
     </fieldset>
     <Link href={hrefs[mode]} className={styles.start}>{chosen.action}<Icon.arrowRight size={20} color="currentColor" /></Link>
     {mode === "games" && <a className={styles.standalone} href={gamesUrl}>Play games only<Icon.arrowRight size={16} color="currentColor" /></a>}
+    </>}
   </div>;
 }
