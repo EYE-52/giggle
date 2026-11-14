@@ -7,6 +7,7 @@ test("queue admission sends metadata and sorted-set writes in one pipeline", asy
   const pipeline = {
     hset: (...args) => { commands.push(["hset", ...args]); return pipeline; },
     zadd: (...args) => { commands.push(["zadd", ...args]); return pipeline; },
+    del: (...args) => { commands.push(["del", ...args]); return pipeline; },
     exec: async () => {
       commands.push(["exec"]);
       return pipelineError ? [[pipelineError, null], [null, 1]] : [[null, 1], [null, 1]];
@@ -46,6 +47,8 @@ test("queue admission sends metadata and sorted-set writes in one pipeline", asy
       queuedAt: 1234,
     }],
     ["zadd", "matchmaking_queue:global", 1234, "squad-a"],
+    ["zadd", "matchmaking_regions", 0, "global"],
+    ["del", "matchmaking_cursor:squad-a"],
     ["exec"],
   ]);
 

@@ -10,6 +10,7 @@ const swaggerUi = require('swagger-ui-express');
 const swaggerJSDoc = require('swagger-jsdoc');
 const { requestLogger } = require('./middlewares/requestLogger');
 const { rejectQueryOperators } = require('./middlewares/rejectQueryOperators');
+const { apiRateLimitKey } = require('./middlewares/apiRateLimitKey');
 const { ENABLE_REQUEST_LOGS, LOG_REQUEST_BODY, publicApiBaseUrl } = require('./config/appConfig');
 const { buildAllowedOrigins } = require('./config/corsOrigins');
 const socketService = require('./services/socketService');
@@ -124,12 +125,12 @@ function rateLimitStore(prefix) {
 }
 
 const generalLimiter = rateLimit({
-  // This is a REALTIME app: clients poll matchmaking/encounter status every ~2s
-  // (≈30 req/min/user) on top of normal traffic, and several users can share one
-  // NAT/office IP. 300/15min (≈20/min) tripped 429s during normal use; 3000/15min
-  // (≈200/min) comfortably covers polling + many users while still bounding abuse.
+  // Verified account tokens get separate polling budgets even behind a shared
+  // IP. Unauthenticated/invalid tokens retain the IPv6-safe IP budget. Auth
+  // routes also keep the separate stricter IP limiter above this middleware.
   windowMs: 15 * 60 * 1000,
   max: 3000,
+  keyGenerator: apiRateLimitKey,
   standardHeaders: true,
   legacyHeaders: false,
   message: { ok: false, error: { code: "RATE_LIMITED", message: "Too many requests, please try again later" } },

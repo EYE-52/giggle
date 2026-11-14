@@ -5,6 +5,14 @@ const { hasAdultAccess } = require("../services/ageAccessService");
 const isMongoObjectIdString = (value) =>
   typeof value === "string" && /^[a-f\d]{24}$/i.test(value);
 
+// Signature and expiry verification only. Live account/age checks remain in
+// requireApiAuth; the rate limiter reuses this without another database read.
+const verifyIdentityToken = (token) => {
+  const decoded = jwt.verify(token, process.env.JWT_SECRET);
+  const userId = decoded?.userId || decoded?.sub;
+  return isMongoObjectIdString(userId) ? { decoded, userId: userId.toLowerCase() } : null;
+};
+
 const requireIdentityAuth = (req, res, next) => {
   const authHeader = req.headers.authorization || "";
   const match = authHeader.match(/^Bearer\s+(.+)$/i);
@@ -18,15 +26,14 @@ const requireIdentityAuth = (req, res, next) => {
   }
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const userId = decoded?.userId || decoded?.sub;
-
-    if (!isMongoObjectIdString(userId)) {
+    const verified = verifyIdentityToken(token);
+    if (!verified) {
       return res.status(401).json({
         ok: false,
         error: { code: "INVALID_TOKEN", message: "Token missing required user identity" },
       });
     }
+    const { decoded } = verified;
 
     // Keep both keys during migration so old/new controllers keep working.
     req.user = decoded;
@@ -92,4 +99,4 @@ const requireApiAuth = (req, res, next) =>
     return next();
   });
 
-module.exports = { requireApiAuth, requireIdentityAuth, isMongoObjectIdString };
+module.exports = { requireApiAuth, requireIdentityAuth, isMongoObjectIdString, verifyIdentityToken };

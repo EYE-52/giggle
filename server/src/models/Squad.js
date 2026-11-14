@@ -68,6 +68,10 @@ squadSchema.index({ "members.userId": 1 });
 // findSquadsForIdentity $elemMatch/$or also matches on providerAccountId.
 squadSchema.index({ "members.providerAccountId": 1 });
 squadSchema.index({ status: 1 });
+// Oldest waiting searches are retried in bounded batches by maintenance.
+squadSchema.index({ status: 1, searchQueuedAt: 1, squadId: 1 });
+// Public directory: equality filters followed by newest-first ordering.
+squadSchema.index({ visibility: 1, status: 1, createdAt: -1 });
 
 const Squad = mongoose.model("Squad", squadSchema);
 const SquadMember = mongoose.model("SquadMember", squadMemberSchema);

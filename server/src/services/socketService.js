@@ -37,6 +37,8 @@ const MAX_CHAT_TEXT_LENGTH = 500;
 const CHAT_RATE_LIMIT = { limit: 20, windowMs: 10_000 };
 const REACTION_RATE_LIMIT = { limit: 30, windowMs: 10_000 };
 const REPORT_RATE_LIMIT = { limit: 3, windowMs: 60_000 };
+const CONTROL_RATE_LIMIT = { limit: 60, windowMs: 10_000 };
+const MAX_PENDING_CONTROLS = 8;
 const REPORT_CATEGORIES = new Set(['harassment', 'hate', 'sexual', 'minor_safety', 'spam', 'other']);
 const REPORT_UNAVAILABLE = { ok: false, error: 'Report unavailable.' };
 
@@ -142,6 +144,7 @@ const createSocketRateLimiter = ({ limit, windowMs }) => {
 const chatLimiter = createSocketRateLimiter(CHAT_RATE_LIMIT);
 const reactionLimiter = createSocketRateLimiter(REACTION_RATE_LIMIT);
 const reportLimiter = createSocketRateLimiter(REPORT_RATE_LIMIT);
+const controlLimiter = createSocketRateLimiter(CONTROL_RATE_LIMIT);
 
 const normalizeReportDetails = (value) => {
   if (value === undefined || value === null || value === '') return '';
@@ -395,11 +398,24 @@ const init = (server) => {
 
     let ownedMedia = null;
     let mediaOperation = Promise.resolve();
+    let pendingControls = 0;
+    let controlsStopped = false;
+    const beginControl = (ack) => {
+      if (controlsStopped || pendingControls >= MAX_PENDING_CONTROLS || !controlLimiter.allow(socket.id)) {
+        if (typeof ack === 'function') ack({ok:false, error:'BUSY'});
+        return false;
+      }
+      pendingControls += 1;
+      return true;
+    };
+    const finishControl = () => { pendingControls -= 1; };
 
     let ownedPresence = null, presenceOperation = Promise.resolve();
     socket.on('group_presence', (input = {}, ack) => {
+      if (!beginControl(ack)) return;
       presenceOperation = presenceOperation.then(async () => {
         const reply = typeof ack === 'function' ? ack : () => {};
+        if (controlsStopped) return reply({ok:false, error:'DISCONNECTED'});
         try {
           const squadId = normalizeRealtimeId(input.squadId);
           if (!socket.userId || !squadId || !['begin','update','end'].includes(input.action)) return reply({ok:false});
@@ -417,13 +433,15 @@ const init = (server) => {
           }
           emitToSquad(squadId,'SQUAD_UPDATED',{});reply({ok:true,generation:ownedPresence?.generation});
         } catch {reply({ok:false});}
-      });
+      }).finally(finishControl);
       return presenceOperation;
     });
 
     socket.on('member_media', (input = {}, ack) => {
+      if (!beginControl(ack)) return;
       mediaOperation = mediaOperation.then(async () => {
         const reply = typeof ack === 'function' ? ack : () => {};
+        if (controlsStopped) return reply({ok:false, error:'DISCONNECTED'});
         try {
           const squadId = normalizeRealtimeId(input.squadId);
           const encounterId = normalizeRealtimeId(input.encounterId);
@@ -457,11 +475,12 @@ const init = (server) => {
           console.error('member_media error:', err);
           reply({ok:false});
         }
-      });
+      }).finally(finishControl);
       return mediaOperation;
     });
 
     socket.on('join_squad', async (squadId) => {
+      if (!beginControl()) return;
       try {
         const result = await authorizeSquadRoomJoin({
           squadId,
@@ -475,10 +494,13 @@ const init = (server) => {
         socket.join(result.room);
       } catch (err) {
         console.error('join_squad error:', err);
+      } finally {
+        finishControl();
       }
     });
 
     socket.on('join_encounter', async (encounterId) => {
+      if (!beginControl()) return;
       try {
         const result = await authorizeEncounterRoomJoin({
           encounterId,
@@ -493,6 +515,8 @@ const init = (server) => {
         socket.join(result.sideRoom ? [result.room, result.sideRoom] : result.room);
       } catch (err) {
         console.error('join_encounter error:', err);
+      } finally {
+        finishControl();
       }
     });
 
@@ -637,13 +661,14 @@ const init = (server) => {
     });
 
     socket.on('disconnect', async () => {
+      controlsStopped = true;
+      if (presenceHeartbeat) clearInterval(presenceHeartbeat);
       await presenceOperation;
       if (ownedPresence) {
         await groupPresence.end(ownedPresence.squadId,socket.userId,socket.id,ownedPresence.generation).catch(() => {});
         emitToSquad(ownedPresence.squadId,'SQUAD_UPDATED',{});ownedPresence=null;
       }
       logRealtimeDebug('Client disconnected:', socket.id);
-      if (presenceHeartbeat) clearInterval(presenceHeartbeat);
       await mediaOperation;
       if (ownedMedia) {
         const owner = ownedMedia; ownedMedia = null;
@@ -657,6 +682,7 @@ const init = (server) => {
       chatLimiter.forget(socket.id);
       reactionLimiter.forget(socket.id);
       reportLimiter.forget(socket.id);
+      controlLimiter.forget(socket.id);
       if (!socket.userId) return; // dev sockets with no identity — nothing to clean up
       // Graceful shutdown: clients reconnect to another replica, so don't dequeue
       // their squads; presence keys expire on their own TTL.

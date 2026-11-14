@@ -273,18 +273,17 @@ const tryMatchmakeForSquad = async (squad) => {
     }
 
     const region = freshSquad.searchRegion || "global";
-    let candidates = await queueService.getQueuedSquadsByRegion(region);
+    const candidateOptions = { seekerId: freshSquad.squadId };
+    let candidates = await queueService.getQueuedSquadsByRegion(region, candidateOptions);
 
-    // Expansion Logic: If no local candidates, try all regions
+    // Expand into one rotating region after a wait or an empty local window.
     const waitSeconds = freshSquad.searchQueuedAt
       ? Math.floor((Date.now() - new Date(freshSquad.searchQueuedAt).getTime()) / 1000)
       : 0;
 
-    if (!candidates.length || candidates.length <= 1) {
-       const needsExpansion = waitSeconds > 10 || !candidates.some(c => c.squadId !== squad.squadId);
-       if (needsExpansion) {
-         candidates = await queueService.getAllQueuedSquads();
-       }
+    if (waitSeconds > 10 || !candidates.some(c => c.squadId !== squad.squadId)) {
+      const expanded = await queueService.getAllQueuedSquads(candidateOptions);
+      candidates = [...new Map([...candidates, ...expanded].map(candidate => [candidate.squadId, candidate])).values()];
     }
 
     if (!candidates.length) {
@@ -338,6 +337,7 @@ const tryMatchmakeForSquad = async (squad) => {
           Date.now() - new Date(freshSquad.lastEncounterEndedAt).getTime() < 120_000) continue;
       if (freshCandidate.status !== "searching") {
         logMatchmakingDebug(`[Matchmaking] Candidate ${freshCandidate.squadId} is already in state: ${freshCandidate.status}. Skipping.`);
+        await queueService.removeFromQueue(freshCandidate.squadId);
         continue;
       }
 
@@ -865,13 +865,23 @@ const SEARCH_RETRY_BATCH_SIZE = 25;
 const retrySearchingSquads = async ({ limit = SEARCH_RETRY_BATCH_SIZE } = {}) => {
   if (!isStrangerDiscoveryEnabled()) return 0;
   try {
-    const searching = await Squad.find({ status: "searching" })
-      .select("squadId status")
-      .sort({ searchQueuedAt: 1 })
-      .limit(limit)
+    const cursor = await queueService.getRetryCursor();
+    const findBatch = (after) => Squad.find({
+      status: "searching",
+      ...(after ? { $or: [
+        after.queuedAt === null ? {searchQueuedAt: {$type: "date"}} : { searchQueuedAt: { $gt: new Date(after.queuedAt) } },
+        { searchQueuedAt: after.queuedAt === null ? null : new Date(after.queuedAt), squadId: { $gt: after.squadId } },
+      ] } : {}),
+    })
+      .select("squadId status searchQueuedAt")
+      .sort({ searchQueuedAt: 1, squadId: 1 })
+      .limit(Math.floor(Math.min(SEARCH_RETRY_BATCH_SIZE, Math.max(1, Number(limit) || SEARCH_RETRY_BATCH_SIZE))))
       .lean();
+    let searching = await findBatch(cursor);
+    if (!searching.length && cursor) searching = await findBatch(null);
+    if (searching.length) await queueService.setRetryCursor(searching[searching.length - 1]);
     // A single searcher has nobody to match with.
-    if (searching.length < 2) return 0;
+    if (!searching.length || (!cursor && searching.length < 2)) return 0;
 
     const matchedSquadIds = new Set();
     let matches = 0;

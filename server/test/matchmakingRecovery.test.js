@@ -351,6 +351,8 @@ test("stopping searches is a no-op while discovery is enabled", async () => {
 
 test("the periodic matcher pairs two squads that were left searching", async () => {
   process.env.STRANGER_DISCOVERY_ENABLED = "true";
+  stub(queueService, "getRetryCursor", async () => null);
+  stub(queueService, "setRetryCursor", async () => {});
   const store = squadStore([
     squad("sq_a", USER_A, { status: "searching", searchQueuedAt: new Date(Date.now() - 200_000) }),
     squad("sq_b", USER_B, { status: "searching", searchQueuedAt: new Date(Date.now() - 150_000) }),
@@ -386,6 +388,8 @@ test("the periodic matcher pairs two squads that were left searching", async () 
 
 test("the periodic matcher does nothing for a lone searcher", async () => {
   process.env.STRANGER_DISCOVERY_ENABLED = "true";
+  stub(queueService, "getRetryCursor", async () => null);
+  stub(queueService, "setRetryCursor", async () => {});
   stub(Squad, "find", () => {
     const chain = { select: () => chain, sort: () => chain, limit: () => chain, lean: async () => [{ squadId: "sq_a", status: "searching" }] };
     return chain;
@@ -393,6 +397,28 @@ test("the periodic matcher does nothing for a lone searcher", async () => {
   stub(redlock, "using", () => assert.fail("a lone searcher needs no matching attempt"));
 
   assert.equal(await retrySearchingSquads(), 0);
+});
+
+test("retry continuation visits later seekers and wraps after the oldest batch", async () => {
+  process.env.STRANGER_DISCOVERY_ENABLED = "true";
+  const cursor = { squadId: "sq_025", queuedAt: "2026-01-01T00:00:00.000Z" };
+  stub(queueService, "getRetryCursor", async () => cursor);
+  const advanced = [];
+  stub(queueService, "setRetryCursor", async squad => advanced.push(squad.squadId));
+  const queries = [];
+  stub(Squad, "find", filter => {
+    queries.push(filter);
+    const rows = filter.$or ? [] : [{squadId:"sq_001",status:"searching",searchQueuedAt:new Date(cursor.queuedAt)}];
+    const chain = {select:()=>chain,sort:sort=>{assert.deepEqual(sort,{searchQueuedAt:1,squadId:1});return chain;},limit:limit=>{assert.equal(limit,25);return chain;},lean:async()=>rows};
+    return chain;
+  });
+  stub(Squad, "findOne", async () => null);
+  stub(queueService, "removeFromQueue", async () => {});
+  stubLock();
+  assert.equal(await retrySearchingSquads({limit:10000}),0);
+  assert.deepEqual(queries[0].$or,[{searchQueuedAt:{$gt:new Date(cursor.queuedAt)}},{searchQueuedAt:new Date(cursor.queuedAt),squadId:{$gt:"sq_025"}}]);
+  assert.equal(queries[1].$or,undefined);
+  assert.deepEqual(advanced,["sq_001"]);
 });
 
 test("skip never requeues a squad that already ended the call", async () => {
