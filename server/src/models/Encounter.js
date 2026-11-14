@@ -25,7 +25,7 @@ encounterSchema.index({ squadAId: 1 });
 encounterSchema.index({ squadBId: 1 });
 encounterSchema.index({ status: 1 });
 // Stuck-encounter sweeper: { status: "awaiting_ack", expiresAt: { $lt: now } }.
-encounterSchema.index({ status: 1, expiresAt: 1 });
+encounterSchema.index({ status: 1, expiresAt: 1, encounterId: 1 });
 
 const Encounter = mongoose.model("Encounter", encounterSchema);
 

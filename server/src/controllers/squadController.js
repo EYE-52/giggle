@@ -1503,13 +1503,13 @@ const startSearchHandler = async (req, res) => {
 
   let searchStateSaved = false;
   let squad = null;
-  let admissionLock;
+  let queueAdmissionId;
 
   try {
     const { member, squad: accessedSquad } = req.squadAccess;
     if (accessedSquad.authorizedPrincipalPair?.length || accessedSquad.communicationMode && accessedSquad.communicationMode !== "video") return res.status(409).json({ok:false,error:{code:"GROUP_ROOM_ONLY",message:"Use this group room for its chosen call mode.",squadId:accessedSquad.squadId}});
-    admissionLock = await redlock.acquire([`lock:squad:${accessedSquad.squadId}:admission`], 10_000);
-    squad = await Squad.findOne({ squadId: accessedSquad.squadId });
+    const admitted = await withSquadAdmissionLock(accessedSquad.squadId, async admissionSignal => {
+    squad = guardSquadWrites(await Squad.findOne({ squadId: accessedSquad.squadId }), admissionSignal);
 
     if (!squad || !squad.members.some((candidate) => candidate.memberId === member.memberId && candidate.role === "leader")) {
       return res.status(403).json({
@@ -1596,6 +1596,8 @@ const startSearchHandler = async (req, res) => {
       });
     }
 
+    const premium = await getSquadPremiumStatus(squad);
+    await withMatchmakingLock(async signal => {
     const now = new Date();
     squad.status = "searching";
     squad.searchQueuedAt = now;
@@ -1603,13 +1605,22 @@ const startSearchHandler = async (req, res) => {
     squad.currentEncounterId = null;
     squad.opponentSquadId = null;
     squad.matchedAt = null;
-    squad.isPremiumSquad = await getSquadPremiumStatus(squad);
+    squad.isPremiumSquad = premium;
+    if (signal.aborted) throw signal.error || new Error("Matchmaking lock was lost");
     await squad.save();
     searchStateSaved = true;
     socketService.emitToSquad(squad.squadId, "SQUAD_UPDATED", {});
 
     // Add to Redis Queue
-    await queueService.addToQueue(squad.squadId, squad.members.length, squad.searchRegion, squad.tags, squad.reputationScore);
+    queueAdmissionId = await queueService.addToQueue(squad.squadId, squad.members.length, squad.searchRegion, squad.tags, squad.reputationScore);
+
+    }, { squadIds: [squad.squadId] });
+    return { queued: true, member };
+    });
+    if (!admitted?.queued) return admitted;
+    const { member: startedBy } = admitted;
+    // Both the admission lease and own-squad state lease are released before
+    // the matcher attempts any pair, avoiding nested cross-squad admission.
 
     // The queue write is the durable boundary the caller needs. Flush the
     // response before the candidate scan so navigation does not wait on it.
@@ -1618,7 +1629,7 @@ const startSearchHandler = async (req, res) => {
       data: {
         squadId: squad.squadId,
         status: "searching",
-        startedByMemberId: member.memberId,
+        startedByMemberId: startedBy.memberId,
       },
     });
     await tryMatchmakeForSquad(squad);
@@ -1629,9 +1640,13 @@ const startSearchHandler = async (req, res) => {
     if (searchStateSaved) {
       try {
         if (squad) {
-          squad.status = "idle";
-          squad.searchQueuedAt = null;
-          await squad.save();
+          await withMatchmakingLock(async signal => {
+            if (signal.aborted) throw signal.error || new Error("Matchmaking lock was lost");
+            const reset = await Squad.updateOne({ squadId: squad.squadId, status: "searching", currentEncounterId: null,
+              searchQueuedAt: squad.searchQueuedAt, __v: squad.__v == null ? { $exists: false } : squad.__v },
+            { $set: { status: "idle", searchQueuedAt: null }, $inc: { __v: 1 } });
+            if ((reset.matchedCount ?? reset.n ?? 0) === 1 && queueAdmissionId) await queueService.removeFromQueue(squad.squadId, { admissionId: queueAdmissionId });
+          }, { squadIds: [squad.squadId] });
           socketService.emitToSquad(squad.squadId, "SQUAD_UPDATED", {});
         }
       } catch (rollbackError) {
@@ -1642,8 +1657,6 @@ const startSearchHandler = async (req, res) => {
       ok: false,
       error: { code: "INTERNAL_ERROR", message: "Failed to start search" },
     });
-  } finally {
-    if (admissionLock) await admissionLock.release();
   }
 };
 
@@ -1655,17 +1668,27 @@ const cancelSearchHandler = async (req, res) => {
       if (!squad) {
         return { error: { status: 404, code: "SQUAD_NOT_FOUND", message: "Squad not found" } };
       }
+      if (!squad.members.some(candidate => candidate.role === "leader" && isSameMember(candidate, getRequesterIdentity(req)))) {
+        return { error: { status: 403, code: "LEADER_ONLY", message: "Only the current squad leader can cancel search" } };
+      }
       if (squad.status !== "searching") {
         return { error: { status: 409, code: "NOT_IN_SEARCH", message: "Squad is not in searching state" } };
       }
 
-      squad.status = "idle";
-      squad.searchQueuedAt = null;
+      const admission = await queueService.getQueueAdmission(squad.squadId);
       if (signal.aborted) throw signal.error || new Error("Matchmaking lock was lost");
-      await squad.save();
-      await queueService.removeFromQueue(squad.squadId);
-      return { squadId: squad.squadId, status: squad.status };
-    });
+      const changed = await Squad.updateOne({
+        squadId: squad.squadId, status: "searching", currentEncounterId: null,
+        searchQueuedAt: squad.searchQueuedAt ?? null,
+        __v: squad.__v == null ? { $exists: false } : squad.__v,
+      }, { $set: { status: "idle", searchQueuedAt: null }, $inc: { __v: 1 } });
+      if ((changed.matchedCount ?? changed.n ?? 0) !== 1) {
+        return { error: { status: 409, code: "SQUAD_CHANGED", message: "This squad changed. Refresh it and try again." } };
+      }
+      if (signal.aborted) throw signal.error || new Error("Matchmaking lock was lost");
+      await queueService.removeIfAdmission(squad.squadId, admission);
+      return { squadId: squad.squadId, status: "idle" };
+    }, { squadIds: [accessedSquad.squadId] });
 
     if (outcome.error) {
       return res.status(outcome.error.status).json({

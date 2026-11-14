@@ -1,0 +1,455 @@
+{
+  "startedAt": "2026-11-14T12:17:54.590Z",
+  "success": true,
+  "configuration": {
+    "users": 200,
+    "squads": 100,
+    "replicas": 3,
+    "timeoutMs": 150000,
+    "graceMs": 32000,
+    "node": "v24.21.0",
+    "nodeEnv": "production",
+    "scopedMatchmakingLocks": true,
+    "dependencies": {
+      "mongoose": "8.24.9",
+      "ioredis": "5.10.1",
+      "socket.io": "4.8.3",
+      "@socket.io/redis-adapter": "8.3.0"
+    },
+    "isolatedStores": true,
+    "simulatedAdults": true,
+    "simulatedVideoPresence": true,
+    "simulatedAgoraCredentials": true,
+    "rtcProviderCalls": 0,
+    "immutableSourceSnapshot": true,
+    "mongoVersion": "8.0.12",
+    "redisVersion": "8.10.3"
+  },
+  "sourceCommit": "d4ed9b75aef3c4ce8ce6cfffb02e44f22c3db740",
+  "dirtyProductionSources": [
+    "server/src/config/redisConfig.js",
+    "server/src/controllers/encounterController.js",
+    "server/src/controllers/matchmakingController.js",
+    "server/src/controllers/squadController.js",
+    "server/src/models/Encounter.js",
+    "server/src/models/Squad.js",
+    "server/src/server.js",
+    "server/src/services/matchmakingService.js",
+    "server/src/services/queueService.js",
+    "server/src/services/socketService.js"
+  ],
+  "phases": {
+    "private_services": {
+      "elapsedMs": 1733.95
+    },
+    "seed_synthetic_accounts": {
+      "elapsedMs": 195.68
+    },
+    "create_squads": {
+      "elapsedMs": 289.74
+    },
+    "concurrent_joins": {
+      "elapsedMs": 340.36
+    },
+    "lobby_readiness": {
+      "elapsedMs": 700.81
+    },
+    "search_burst_and_queue_drain": {
+      "elapsedMs": 685.1
+    },
+    "acknowledge_and_initial_call": {
+      "elapsedMs": 2420.24
+    },
+    "all_socket_reconnect": {
+      "elapsedMs": 1947.95
+    },
+    "stale_media_owner_takeover": {
+      "elapsedMs": 786.47
+    },
+    "survive_disconnect_grace": {
+      "elapsedMs": 29861.91
+    }
+  },
+  "operations": {
+    "socket_connect": {
+      "attempts": 420,
+      "succeeded": 420,
+      "expectedDenials": 0,
+      "errors": 0,
+      "firstAttemptErrors": 0,
+      "recoveryErrors": 0,
+      "medianMs": 48.58,
+      "p95Ms": 81.39,
+      "maxMs": 85.81
+    },
+    "create_squad": {
+      "attempts": 100,
+      "succeeded": 100,
+      "expectedDenials": 0,
+      "errors": 0,
+      "firstAttemptErrors": 0,
+      "recoveryErrors": 0,
+      "medianMs": 46.63,
+      "p95Ms": 120.5,
+      "maxMs": 139.79
+    },
+    "join_squad": {
+      "attempts": 100,
+      "succeeded": 100,
+      "expectedDenials": 0,
+      "errors": 0,
+      "firstAttemptErrors": 0,
+      "recoveryErrors": 0,
+      "medianMs": 321.38,
+      "p95Ms": 336.02,
+      "maxMs": 337.23
+    },
+    "ready": {
+      "attempts": 200,
+      "succeeded": 200,
+      "expectedDenials": 0,
+      "errors": 0,
+      "firstAttemptErrors": 0,
+      "recoveryErrors": 0,
+      "medianMs": 4.46,
+      "p95Ms": 295.94,
+      "maxMs": 407.61
+    },
+    "lobby_video": {
+      "attempts": 200,
+      "succeeded": 200,
+      "expectedDenials": 0,
+      "errors": 0,
+      "firstAttemptErrors": 0,
+      "recoveryErrors": 0,
+      "medianMs": 10.54,
+      "p95Ms": 16.27,
+      "maxMs": 20.46
+    },
+    "lobby_token": {
+      "attempts": 200,
+      "succeeded": 200,
+      "expectedDenials": 0,
+      "errors": 0,
+      "firstAttemptErrors": 0,
+      "recoveryErrors": 0,
+      "medianMs": 14.2,
+      "p95Ms": 23.87,
+      "maxMs": 27.5
+    },
+    "search": {
+      "attempts": 100,
+      "succeeded": 100,
+      "expectedDenials": 0,
+      "errors": 0,
+      "firstAttemptErrors": 0,
+      "recoveryErrors": 0,
+      "medianMs": 82.81,
+      "p95Ms": 334.32,
+      "maxMs": 446.59
+    },
+    "ack": {
+      "attempts": 100,
+      "succeeded": 100,
+      "expectedDenials": 0,
+      "errors": 0,
+      "firstAttemptErrors": 0,
+      "recoveryErrors": 0,
+      "medianMs": 124.28,
+      "p95Ms": 395.1,
+      "maxMs": 500.95
+    },
+    "group_presence": {
+      "attempts": 420,
+      "succeeded": 420,
+      "expectedDenials": 0,
+      "errors": 0,
+      "firstAttemptErrors": 0,
+      "recoveryErrors": 0,
+      "medianMs": 22.24,
+      "p95Ms": 46.67,
+      "maxMs": 72.97
+    },
+    "media_begin": {
+      "attempts": 420,
+      "succeeded": 420,
+      "expectedDenials": 0,
+      "errors": 0,
+      "firstAttemptErrors": 0,
+      "recoveryErrors": 0,
+      "medianMs": 10.11,
+      "p95Ms": 17,
+      "maxMs": 27.22
+    },
+    "media_update": {
+      "attempts": 420,
+      "succeeded": 420,
+      "expectedDenials": 0,
+      "errors": 0,
+      "firstAttemptErrors": 0,
+      "recoveryErrors": 0,
+      "medianMs": 8.83,
+      "p95Ms": 13.42,
+      "maxMs": 20.92
+    },
+    "encounter_token": {
+      "attempts": 200,
+      "succeeded": 200,
+      "expectedDenials": 0,
+      "errors": 0,
+      "firstAttemptErrors": 0,
+      "recoveryErrors": 0,
+      "medianMs": 13.16,
+      "p95Ms": 23.6,
+      "maxMs": 29.13
+    },
+    "encounter_token_outsider_denial": {
+      "attempts": 50,
+      "succeeded": 0,
+      "expectedDenials": 50,
+      "errors": 0,
+      "firstAttemptErrors": 0,
+      "recoveryErrors": 0,
+      "medianMs": 5.73,
+      "p95Ms": 8.58,
+      "maxMs": 9.2
+    },
+    "chat_before_reconnect": {
+      "attempts": 50,
+      "succeeded": 50,
+      "expectedDenials": 0,
+      "errors": 0,
+      "firstAttemptErrors": 0,
+      "recoveryErrors": 0,
+      "medianMs": 12.66,
+      "p95Ms": 15.35,
+      "maxMs": 15.41
+    },
+    "private_chat_before_reconnect": {
+      "attempts": 100,
+      "succeeded": 100,
+      "expectedDenials": 0,
+      "errors": 0,
+      "firstAttemptErrors": 0,
+      "recoveryErrors": 0,
+      "medianMs": 8.18,
+      "p95Ms": 10.28,
+      "maxMs": 11.51
+    },
+    "ack_repeat": {
+      "attempts": 100,
+      "succeeded": 100,
+      "expectedDenials": 0,
+      "errors": 0,
+      "firstAttemptErrors": 0,
+      "recoveryErrors": 0,
+      "medianMs": 73.34,
+      "p95Ms": 367.49,
+      "maxMs": 420.12
+    },
+    "ack_after_reconnect": {
+      "attempts": 100,
+      "succeeded": 100,
+      "expectedDenials": 0,
+      "errors": 0,
+      "firstAttemptErrors": 0,
+      "recoveryErrors": 0,
+      "medianMs": 109.61,
+      "p95Ms": 373.91,
+      "maxMs": 418.42
+    },
+    "token_after_reconnect": {
+      "attempts": 200,
+      "succeeded": 200,
+      "expectedDenials": 0,
+      "errors": 0,
+      "firstAttemptErrors": 0,
+      "recoveryErrors": 0,
+      "medianMs": 12.8,
+      "p95Ms": 23.97,
+      "maxMs": 29.8
+    },
+    "token_after_reconnect_outsider_denial": {
+      "attempts": 50,
+      "succeeded": 0,
+      "expectedDenials": 50,
+      "errors": 0,
+      "firstAttemptErrors": 0,
+      "recoveryErrors": 0,
+      "medianMs": 4.54,
+      "p95Ms": 4.91,
+      "maxMs": 4.97
+    },
+    "chat_after_reconnect": {
+      "attempts": 50,
+      "succeeded": 50,
+      "expectedDenials": 0,
+      "errors": 0,
+      "firstAttemptErrors": 0,
+      "recoveryErrors": 0,
+      "medianMs": 10.86,
+      "p95Ms": 11.84,
+      "maxMs": 12.54
+    },
+    "private_chat_after_reconnect": {
+      "attempts": 100,
+      "succeeded": 100,
+      "expectedDenials": 0,
+      "errors": 0,
+      "firstAttemptErrors": 0,
+      "recoveryErrors": 0,
+      "medianMs": 7.09,
+      "p95Ms": 8.37,
+      "maxMs": 8.61
+    },
+    "stale_media_end_rejected": {
+      "attempts": 20,
+      "succeeded": 0,
+      "expectedDenials": 20,
+      "errors": 0,
+      "firstAttemptErrors": 0,
+      "recoveryErrors": 0,
+      "medianMs": 4.21,
+      "p95Ms": 6.93,
+      "maxMs": 7.25
+    },
+    "token_after_grace": {
+      "attempts": 200,
+      "succeeded": 200,
+      "expectedDenials": 0,
+      "errors": 0,
+      "firstAttemptErrors": 0,
+      "recoveryErrors": 0,
+      "medianMs": 20.42,
+      "p95Ms": 37.1,
+      "maxMs": 42.21
+    },
+    "token_after_grace_outsider_denial": {
+      "attempts": 50,
+      "succeeded": 0,
+      "expectedDenials": 50,
+      "errors": 0,
+      "firstAttemptErrors": 0,
+      "recoveryErrors": 0,
+      "medianMs": 9.43,
+      "p95Ms": 10.47,
+      "maxMs": 11.24
+    },
+    "chat_after_grace": {
+      "attempts": 50,
+      "succeeded": 50,
+      "expectedDenials": 0,
+      "errors": 0,
+      "firstAttemptErrors": 0,
+      "recoveryErrors": 0,
+      "medianMs": 14.49,
+      "p95Ms": 15.96,
+      "maxMs": 16.39
+    },
+    "private_chat_after_grace": {
+      "attempts": 100,
+      "succeeded": 100,
+      "expectedDenials": 0,
+      "errors": 0,
+      "firstAttemptErrors": 0,
+      "recoveryErrors": 0,
+      "medianMs": 7.8,
+      "p95Ms": 11.67,
+      "maxMs": 17.19
+    }
+  },
+  "firstAttemptFailures": [],
+  "recoveryFailures": [],
+  "checks": {
+    "exactEncounterCount": 50,
+    "noSelfMatch": true,
+    "noSquadInTwoLiveEncounters": true,
+    "queueDrainedWithoutManualRequeue": true,
+    "crossReplicaChatNoLeakage": true,
+    "duplicateAcknowledgementsIdempotent": true,
+    "rosterOnlyRtcTokenAuthorization": true,
+    "sameCallsAfterReconnectAndGrace": true,
+    "staleMediaOwnerCannotClearReplacement": true,
+    "allReplacementSocketsOnline": true,
+    "newPresenceLeaseOwned": true
+  },
+  "logsDirectory": "/var/folders/bx/7z3_cmzs3g77dlrl7f0kxl1w0000gn/T/giggle-meet-load-HzDNqO",
+  "productionSourceSha256": "ca03e38bb3a98903c541824a3e807d208cfe72dacb4eee690894a0bb8e615198",
+  "startupHealth": [
+    {
+      "httpStatus": 200,
+      "ok": true,
+      "status": "UP",
+      "timestamp": "2026-11-14T12:17:56.393Z",
+      "services": {
+        "api": "UP",
+        "database": "connected",
+        "redis": "connected",
+        "realtime": "connected"
+      },
+      "matchmaking": {
+        "lockMode": "scoped"
+      },
+      "release": {
+        "sourceCommit": null,
+        "deploymentId": null
+      }
+    },
+    {
+      "httpStatus": 200,
+      "ok": true,
+      "status": "UP",
+      "timestamp": "2026-11-14T12:17:56.393Z",
+      "services": {
+        "api": "UP",
+        "database": "connected",
+        "redis": "connected",
+        "realtime": "connected"
+      },
+      "matchmaking": {
+        "lockMode": "scoped"
+      },
+      "release": {
+        "sourceCommit": null,
+        "deploymentId": null
+      }
+    },
+    {
+      "httpStatus": 200,
+      "ok": true,
+      "status": "UP",
+      "timestamp": "2026-11-14T12:17:56.393Z",
+      "services": {
+        "api": "UP",
+        "database": "connected",
+        "redis": "connected",
+        "realtime": "connected"
+      },
+      "matchmaking": {
+        "lockMode": "scoped"
+      },
+      "release": {
+        "sourceCommit": null,
+        "deploymentId": null
+      }
+    }
+  ],
+  "adapterAtStartup": {
+    "patterns": 1,
+    "requestSubscribers": [
+      "socket.io-request#/#",
+      3
+    ]
+  },
+  "queue": {
+    "squads": 100,
+    "searchBurstHttpCompleteMs": 447.99,
+    "fullyMatchedAndQueueDrainedMs": 684.96,
+    "settleAfterHttpCompleteMs": 236.97,
+    "remainingQueuedSquads": 0,
+    "encounterCount": 50
+  },
+  "completedAt": "2026-11-14T12:18:35.424Z",
+  "totalUnexpectedErrors": 0,
+  "cleanFirstAttemptRun": true
+}

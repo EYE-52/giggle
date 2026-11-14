@@ -1,8 +1,9 @@
 # Meet backend scale checks
 
-These are local code changes and isolated measurements. They do not establish
-production user capacity or Agora video capacity. No replica, hosting, provider,
-or production data changes were made.
+These checks cover the Meet control server: group admission, matching, call
+identity, chat and reconnect state. Local measurements do not establish
+production user capacity or Agora video capacity. Production replica count and
+provider capacity are unchanged.
 
 ## Bounded matching work
 
@@ -94,30 +95,65 @@ no camera, browser rendering, Agora connection, outside account, or provider
 call was part of this check. This modest test does not establish a production
 capacity target or outage/reconnect behavior.
 
+## Concurrent matching and reconnect protection
+
+Normal match attempts scan candidates outside the lease. Final checks and state
+changes take only the two squads' deterministic Redis lock stripes (256 stripes).
+A busy candidate is skipped rather than holding every other pair in line.
+The match insert and both squad transitions commit in one Mongo transaction,
+with roster/version predicates to reject concurrent membership changes. Call
+acknowledgements also commit both squad states and the encounter together.
+Rare account/safety operations without an explicit squad scope take all stripes.
+
+Search admission releases its own lease before attempting a pair. Expired
+handoffs and live pointers to ended encounters use separate bounded pages, each
+with a continuation cursor, so historical calls cannot delay new expiry work.
+Reconnection cleanup checks current socket/media ownership. Queue admissions
+have unique IDs so an old cleanup cannot remove a replacement search.
+
+Redis adapter subscriptions skip the INFO ready check that could run after
+SUBSCRIBE and break cross-replica delivery at startup. The publisher connects
+at startup, and `/health` requires primary Redis, publisher and subscriber
+clients to be ready. This checks connection state; the multi-replica harness
+separately checks actual room delivery and isolation.
+
+The reproducible load harness, its scope and limitations are documented in
+[MEET_LOAD_TEST.md](MEET_LOAD_TEST.md). It uses private stores and synthetic
+accounts, not production traffic.
+
+## Safe lock rollout
+
+`MEET_SCOPED_MATCHMAKING_LOCKS` defaults to false. Compatibility mode takes the
+legacy `lock:matchmaking` key **and all stripe keys** in one lease. It is safe
+alongside the previous global-lock release. Scoped mode takes only the involved
+stripes, and is safe alongside this release's compatibility mode.
+
+1. Deploy this code with the flag absent or false. Verify `/health` reports
+   `matchmaking.lockMode: "compatibility"` and the intended release SHA.
+2. Wait until every legacy API process/deployment has stopped.
+3. Set the flag to true and redeploy the same tested build. Verify health reports
+   `scoped`, the same SHA, and connected database, Redis and realtime clients.
+
+Never run scoped mode alongside a legacy global-only replica. To roll back to
+legacy code, first redeploy this code in compatibility mode and wait for all
+scoped processes to stop. Compatibility mode requires standalone Redis because
+its legacy key and stripe keys use different Redis Cluster hash slots.
+
 ## Remaining capacity limits
 
-- Matching, acknowledgements, skip/end, and encounter cleanup still share one
-  global Redis lock. More API replicas do not remove this bottleneck. In an
-  isolated synthetic test using the existing lock retry policy, 100 simultaneous
-  calls each holding the lock for 50 ms produced 48 successes and 52 lock
-  failures in 2.74 seconds. This is lock behavior, not an app capacity estimate.
-- Up to 200 examined candidates can still mean many serial Mongo checks while
-  holding that lock. The expired/ended-encounter sweeper and discovery-disable
-  cleanup can still enumerate large sets. Their work needs bounded continuation
-  before substantially larger queues can be claimed safe.
-- Maintenance runs every 30 seconds. A large backlog or sparse compatible
-  groups can still wait several ticks. Its 25-second leader lease is not renewed
-  during long work; the next replica can start another maintenance run after it
-  expires. The global matchmaking lock still serializes state transitions.
-- HTTP budgets remain shared across replicas. Socket control budgets are per
-  connection; a connection storm needs a shared
-  authenticated-user/connection admission policy.
-- The public health check checks Mongo connection state and primary Redis state,
-  not adapter pub/sub readiness. Adapter clients retain offline commands during
-  Redis outages. Neither outage memory bounds nor multi-replica recovery were
-  load-tested here.
-- Mongo plans/index installation, real concurrent authenticated HTTP flows,
-  event-loop delay, database pool pressure, process memory, reconnect storms,
-  cross-replica delivery and Agora cost/capacity still need an isolated staging
-  test with an agreed user count and latency target. Current clients use direct
-  WebSocket transport; no transport or deployment assumptions were changed.
+- Stripe collisions can briefly serialize unrelated pairs. Rare global safety
+  operations still take all stripes, and discovery-disable cleanup may inspect
+  the full queue. This prioritizes stopping unsafe matching over throughput.
+- Maintenance retries at most 25 seekers every 30 seconds. Sparse compatible
+  groups or a large backlog can wait several ticks. Its leader lease is 25
+  seconds and is not renewed; overlapping maintenance is still protected by
+  per-pair leases and conditional database writes.
+- Socket control budgets are per connection. A connection storm still needs a
+  shared authenticated-user admission policy before materially larger targets.
+- Health readiness is not an end-to-end broadcast probe. Redis outages, replica
+  crashes, provider outages and queued adapter memory under a long outage need
+  separate fault tests.
+- The local workload does not include browser capture, Agora media transport,
+  internet latency, production query plans, database pool limits or billing.
+  Increase capacity against measured production CPU, memory, latency and
+  provider limits rather than treating the test's user count as a guarantee.

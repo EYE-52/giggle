@@ -1,8 +1,9 @@
 const { Squad } = require("../models/Squad");
+const mongoose = require("mongoose");
 const { Encounter } = require("../models/Encounter");
 const User = require("../models/User");
 const { generateId } = require("../utils/idGenerator");
-const { withMatchmakingLock, runAsSingleReplica } = require("../config/redisConfig");
+const { withMatchmakingLock, runAsSingleReplica, assertMatchmakingLease } = require("../config/redisConfig");
 const queueService = require("./queueService");
 const socketService = require("./socketService");
 const sessionService = require("./sessionService");
@@ -28,38 +29,53 @@ const logMatchmakingDebug = (...args) => {
   if (isMatchmakingDebugEnabled()) console.log(...args);
 };
 
+const settleMatchmakingEffects = async operations => {
+  const results = await Promise.allSettled(operations);
+  const failed = results.find(result => result.status === "rejected");
+  if (failed) throw failed.reason;
+};
+
 const getSquadSize = (squad) => (Array.isArray(squad.members) ? squad.members.length : 0);
 
 const hasMinimumOnlineMembers = (squad, onlineMemberIds, minimum = MIN_MEMBERS_TO_SEARCH) =>
   Array.isArray(squad?.members) && onlineMemberIds.size >= minimum;
 
-const resetInactiveSearchingSquad = async (squad) => {
+const resetInactiveSearchingSquad = async (squad, { signal, admission } = {}) => {
+  assertMatchmakingLease(signal);
+  const result = await Squad.updateOne({
+    squadId: squad.squadId, status: "searching", currentEncounterId: null,
+    searchQueuedAt: squad.searchQueuedAt,
+    __v: squad.__v == null ? { $exists: false } : squad.__v,
+  }, { $set: { status: "idle", currentEncounterId: null, searchQueuedAt: null }, $inc: { __v: 1 } });
+  if ((result.matchedCount ?? result.n ?? 0) !== 1) return false;
   squad.status = "idle";
   squad.currentEncounterId = null;
   squad.searchQueuedAt = null;
-  await squad.save();
-  await queueService.removeFromQueue(squad.squadId);
+  assertMatchmakingLease(signal);
+  if (admission) await queueService.removeIfAdmission(squad.squadId, admission);
   socketService.emitToSquad(squad.squadId, "SQUAD_UPDATED", {});
+  return true;
 };
 
-const rollbackSquadsToIdle = async (squadIds) => {
-  await Squad.updateMany(
-    { squadId: { $in: squadIds } },
-    {
-      $set: {
-        status: "idle",
-        currentEncounterId: null,
-        opponentSquadId: null,
-        matchedAt: null,
-        searchQueuedAt: null,
-        "members.$[].inEncounterVideo": false,
-      },
-    }
-  );
-
-  for (const squadId of squadIds) {
-    await queueService.removeFromQueue(squadId);
-    socketService.emitToSquad(squadId, "SQUAD_UPDATED", {});
+const rollbackSquadsToIdle = async (squads, { signal, admissions = new Map() } = {}) => {
+  // A lost lease may already have a new owner. Leave its repair to a fresh
+  // scoped attempt rather than resetting state from this stale routine.
+  if (signal?.aborted) return;
+  for (const squad of squads) {
+    assertMatchmakingLease(signal);
+    const reset = await Squad.updateOne({
+      squadId: squad.squadId, status: "searching", currentEncounterId: null,
+      searchQueuedAt: squad.searchQueuedAt,
+      __v: squad.__v == null ? { $exists: false } : squad.__v,
+      ...(squad.lastEncounterId ? { lastEncounterId: squad.lastEncounterId } : {}),
+    }, { $set: {
+      status: "idle", currentEncounterId: null, opponentSquadId: null,
+      matchedAt: null, searchQueuedAt: null, "members.$[].inEncounterVideo": false,
+    }, $inc: { __v: 1 } });
+    if ((reset.matchedCount ?? reset.n ?? 0) !== 1 || signal?.aborted) continue;
+    const admissionId = admissions.get(squad.squadId);
+    if (admissionId) await queueService.removeFromQueue(squad.squadId, { admissionId });
+    if (!signal?.aborted) socketService.emitToSquad(squad.squadId, "SQUAD_UPDATED", {});
   }
 };
 
@@ -174,12 +190,12 @@ const getEncounterRosterContext = async ({ encounter, squadA, squadB } = {}) => 
   };
 };
 
-const createEncounterForSquads = async (squadA, squadB) => {
+const createEncounterForSquads = async (squadA, squadB, signal, admissions = new Map()) => {
   const encounterId = generateId("enc");
   const now = new Date();
   const expiresAt = new Date(now.getTime() + ENCOUNTER_ACK_TIMEOUT_MS);
 
-  const encounter = await Encounter.create({
+  const encounterData = {
     encounterId,
     squadAId: squadA.squadId,
     squadBId: squadB.squadId,
@@ -190,7 +206,39 @@ const createEncounterForSquads = async (squadA, squadB) => {
     },
     matchedAt: now,
     expiresAt,
+  };
+
+  // Compare member/user/role identities without embedded-document field-order
+  // equality or live media flags. The version fences admission documents too.
+  const snapshot = squad => ({
+    squadId: squad.squadId,
+    status: "searching",
+    currentEncounterId: null,
+    members: { $size: squad.members.length, $all: squad.members.map(member => ({
+      $elemMatch: { memberId: member.memberId, userId: member.userId, role: member.role },
+    })) },
+    ...(squad.__v == null ? {} : { __v: squad.__v }),
   });
+  const snapshots = [snapshot(squadA), snapshot(squadB)];
+  assertMatchmakingLease(signal);
+  const encounter = await mongoose.connection.transaction(async session => {
+    assertMatchmakingLease(signal);
+    for (const [index, squad] of [squadA, squadB].entries()) {
+      const opponent = index === 0 ? squadB : squadA;
+      const result = await Squad.updateOne(snapshots[index], { $set: {
+        status: "matched", currentEncounterId: encounterId,
+        opponentSquadId: opponent.squadId, matchedAt: now, searchQueuedAt: null,
+      }, $inc: { __v: 1 } }, { session });
+      assertMatchmakingLease(signal);
+      if ((result.matchedCount ?? result.n ?? 0) !== 1) {
+        throw Object.assign(new Error("Matchmaking squad snapshot changed"), { code: "MATCH_SNAPSHOT_CHANGED" });
+      }
+    }
+    const [created] = await Encounter.create([encounterData], { session });
+    assertMatchmakingLease(signal);
+    return created;
+  });
+  assertMatchmakingLease(signal);
 
   squadA.status = "matched";
   squadA.currentEncounterId = encounterId;
@@ -204,11 +252,9 @@ const createEncounterForSquads = async (squadA, squadB) => {
   squadB.matchedAt = now;
   squadB.searchQueuedAt = null;
 
-  await Promise.all([
-    squadA.save(),
-    squadB.save(),
-    queueService.removeFromQueue(squadA.squadId),
-    queueService.removeFromQueue(squadB.squadId),
+  await settleMatchmakingEffects([
+    queueService.removeIfAdmission(squadA.squadId, admissions.get(squadA.squadId)),
+    queueService.removeIfAdmission(squadB.squadId, admissions.get(squadB.squadId)),
     // Reset lobby session states in Redis
     ...squadA.members.map(m => sessionService.setSessionField(squadA.squadId, m.memberId, 'ready', false)),
     ...squadA.members.map(m => sessionService.setSessionField(squadA.squadId, m.memberId, 'inLobbyVideo', false)),
@@ -245,33 +291,18 @@ const tryMatchmakeForSquad = async (squad) => {
   logMatchmakingDebug(`[Matchmaking] Starting search for squad: ${squad.squadId} (Region: ${squad.searchRegion})`);
 
   try {
-    return await withMatchmakingLock(async (signal) => {
-      let freshSquad = await Squad.findOne({ squadId: squad.squadId });
-    if (!freshSquad) {
-      console.warn(`[Matchmaking] Seeker squad ${squad.squadId} no longer exists. Purging.`);
-      await queueService.removeFromQueue(squad.squadId);
-      return null;
-    }
-    if (freshSquad.status !== "searching") {
-      await queueService.removeFromQueue(freshSquad.squadId);
-      return null;
-    }
     if (!isStrangerDiscoveryEnabled()) {
-      await resetInactiveSearchingSquad(freshSquad);
-      return null;
+      return await withMatchmakingLock(async signal => {
+        const admission = await queueService.getQueueAdmission(squad.squadId);
+        const current = await Squad.findOne({ squadId: squad.squadId });
+        assertMatchmakingLease(signal);
+        if (current?.status === "searching") await resetInactiveSearchingSquad(current, { signal, admission });
+        else await queueService.removeIfAdmission(squad.squadId, admission);
+        return null;
+      }, { squadIds: [squad.squadId] });
     }
-
-    const seekerUserIds = freshSquad.members.map((member) => member.userId);
-    const [seekerHasAccess, seekerHasBlockedPair] = await Promise.all([
-      allUsersHaveAdultAccess(seekerUserIds, { User }),
-      anyBlockedPair(seekerUserIds, { User }),
-    ]);
-    if (seekerHasBlockedPair || !seekerHasAccess || (freshSquad.tags || []).some((tag) => classifyVibe(tag) !== "ok")) {
-      console.warn(`[Matchmaking] Seeker ${freshSquad.squadId} is no longer eligible. Purging from queue.`);
-      await resetInactiveSearchingSquad(freshSquad);
-      return null;
-    }
-
+    let freshSquad = await Squad.findOne({ squadId: squad.squadId });
+    if (!freshSquad || freshSquad.status !== "searching") return null;
     const region = freshSquad.searchRegion || "global";
     const candidateOptions = { seekerId: freshSquad.squadId };
     let candidates = await queueService.getQueuedSquadsByRegion(region, candidateOptions);
@@ -287,7 +318,20 @@ const tryMatchmakeForSquad = async (squad) => {
     }
 
     if (!candidates.length) {
-      return null;
+      return await withMatchmakingLock(async signal => {
+        const admission = await queueService.getQueueAdmission(squad.squadId);
+        const current = await Squad.findOne({ squadId: squad.squadId });
+        if (!current || current.status !== "searching") return null;
+        const ids = current.members.map(member => member.userId);
+        const [allowed, blocked] = await Promise.all([
+          allUsersHaveAdultAccess(ids, { User }), anyBlockedPair(ids, { User }),
+        ]);
+        assertMatchmakingLease(signal);
+        if (!allowed || blocked || (current.tags || []).some(tag => classifyVibe(tag) !== "ok")) {
+          await resetInactiveSearchingSquad(current, { signal, admission });
+        }
+        return null;
+      }, { squadIds: [squad.squadId], retryCount: 0 });
     }
 
     // Sort candidates by score (best first)
@@ -312,33 +356,44 @@ const tryMatchmakeForSquad = async (squad) => {
     for (const item of scoredCandidates) {
       const bestCandidate = item.candidate;
 
+      try {
+        const outcome = await withMatchmakingLock(async (signal) => {
+      assertMatchmakingLease(signal);
+      const [seekerAdmission, candidateAdmission] = await Promise.all([
+        queueService.getQueueAdmission(squad.squadId), queueService.getQueueAdmission(bestCandidate.squadId),
+      ]);
+      const admissions = new Map([[squad.squadId, seekerAdmission], [bestCandidate.squadId, candidateAdmission]]);
       const [refreshedSquad, freshCandidate] = await Promise.all([
         Squad.findOne({ squadId: freshSquad.squadId }),
         Squad.findOne({ squadId: bestCandidate.squadId }),
       ]);
 
       if (!refreshedSquad) {
-        await queueService.removeFromQueue(freshSquad.squadId);
-        return null;
+        await queueService.removeIfAdmission(freshSquad.squadId, seekerAdmission);
+        return { stop: true };
       }
       freshSquad = refreshedSquad;
 
       if (!freshCandidate) {
         console.warn(`[Matchmaking] Purging ghost candidate from Redis: ${bestCandidate.squadId}`);
-        await queueService.removeFromQueue(bestCandidate.squadId);
-        continue; // Try next candidate
+        await queueService.removeIfAdmission(bestCandidate.squadId, candidateAdmission);
+        return null; // Try next candidate
       }
 
       if (freshSquad.status !== "searching") {
-        await queueService.removeFromQueue(freshSquad.squadId);
-        return null;
+        await queueService.removeIfAdmission(freshSquad.squadId, seekerAdmission);
+        return { stop: true };
+      }
+      if (!isStrangerDiscoveryEnabled()) {
+        await resetInactiveSearchingSquad(freshSquad, { signal, admission: seekerAdmission });
+        return { stop: true };
       }
       if (freshSquad.lastEncounterId && freshSquad.lastEncounterId === freshCandidate.lastEncounterId &&
-          Date.now() - new Date(freshSquad.lastEncounterEndedAt).getTime() < 120_000) continue;
+          Date.now() - new Date(freshSquad.lastEncounterEndedAt).getTime() < 120_000) return null;
       if (freshCandidate.status !== "searching") {
         logMatchmakingDebug(`[Matchmaking] Candidate ${freshCandidate.squadId} is already in state: ${freshCandidate.status}. Skipping.`);
-        await queueService.removeFromQueue(freshCandidate.squadId);
-        continue;
+        await queueService.removeIfAdmission(freshCandidate.squadId, candidateAdmission);
+        return null;
       }
 
       const [seekerStillHasAccess, candidateHasAccess] = await Promise.all([
@@ -347,13 +402,13 @@ const tryMatchmakeForSquad = async (squad) => {
       ]);
       if (!seekerStillHasAccess || (freshSquad.tags || []).some((tag) => classifyVibe(tag) !== "ok")) {
         console.warn(`[Matchmaking] Seeker ${freshSquad.squadId} is no longer eligible. Purging from queue.`);
-        await resetInactiveSearchingSquad(freshSquad);
-        return null;
+        await resetInactiveSearchingSquad(freshSquad, { signal, admission: seekerAdmission });
+        return { stop: true };
       }
       if (!candidateHasAccess || (freshCandidate.tags || []).some((tag) => classifyVibe(tag) !== "ok")) {
         console.warn(`[Matchmaking] Candidate ${freshCandidate.squadId} is no longer eligible. Purging from queue.`);
-        await resetInactiveSearchingSquad(freshCandidate);
-        continue;
+        await resetInactiveSearchingSquad(freshCandidate, { signal, admission: candidateAdmission });
+        return null;
       }
 
       const seekerUserIds = freshSquad.members.map((member) => member.userId);
@@ -363,23 +418,23 @@ const tryMatchmakeForSquad = async (squad) => {
       try {
         blockState = await loadBlockState(combinedUserIds, { User });
       } catch {
-        await resetInactiveSearchingSquad(freshSquad);
-        return null;
+        await resetInactiveSearchingSquad(freshSquad, { signal, admission: seekerAdmission });
+        return { stop: true };
       }
       const seekerHasBlockedPair = anyBlockedPairInState(seekerUserIds, blockState);
       const candidateHasBlockedPair = anyBlockedPairInState(candidateUserIds, blockState);
       const combinedHasBlockedPair = anyBlockedPairInState(combinedUserIds, blockState);
       if (seekerHasBlockedPair) {
         console.warn(`[Matchmaking] Seeker ${freshSquad.squadId} contains a blocked pair. Purging from queue.`);
-        await resetInactiveSearchingSquad(freshSquad);
-        return null;
+        await resetInactiveSearchingSquad(freshSquad, { signal, admission: seekerAdmission });
+        return { stop: true };
       }
       if (candidateHasBlockedPair) {
         console.warn(`[Matchmaking] Candidate ${freshCandidate.squadId} contains a blocked pair. Purging from queue.`);
-        await resetInactiveSearchingSquad(freshCandidate);
-        continue;
+        await resetInactiveSearchingSquad(freshCandidate, { signal, admission: candidateAdmission });
+        return null;
       }
-      if (combinedHasBlockedPair) continue;
+      if (combinedHasBlockedPair) return null;
 
       // Recheck both sides under the matchmaking lock. Ready/video are admission
       // checks; searching is continuing consent, and live membership prevents a
@@ -390,22 +445,29 @@ const tryMatchmakeForSquad = async (squad) => {
       ]);
       if (!hasMinimumOnlineMembers(freshSquad, seekerOnlineMembers)) {
         console.warn(`[Matchmaking] Seeker ${freshSquad.squadId} is no longer live. Purging from queue.`);
-        await resetInactiveSearchingSquad(freshSquad);
-        return null;
+        await resetInactiveSearchingSquad(freshSquad, { signal, admission: seekerAdmission });
+        return { stop: true };
       }
       if (!hasMinimumOnlineMembers(freshCandidate, candidateOnlineMembers)) {
         console.warn(`[Matchmaking] Candidate ${freshCandidate.squadId} is no longer live. Purging from queue.`);
-        await resetInactiveSearchingSquad(freshCandidate);
-        continue;
+        await resetInactiveSearchingSquad(freshCandidate, { signal, admission: candidateAdmission });
+        return null;
       }
 
       if (signal.aborted) throw signal.error || new Error("Matchmaking lock was lost");
       logMatchmakingDebug(`[Matchmaking] Success! Creating encounter for ${freshSquad.squadId} and ${freshCandidate.squadId}`);
-      return await createEncounterForSquads(freshSquad, freshCandidate);
+      return await createEncounterForSquads(freshSquad, freshCandidate, signal, admissions);
+        }, { squadIds: [squad.squadId, bestCandidate.squadId], retryCount: 0 });
+        if (outcome?.stop) return null;
+        if (outcome) return outcome;
+      } catch (error) {
+        // A busy oldest candidate must not stall all other pairs.
+        if (error.name === "ExecutionError" || error.code === "MATCH_SNAPSHOT_CHANGED") continue;
+        throw error;
+      }
     }
 
     return null; // No valid candidates found in this cycle
-    });
   } catch (err) {
     if (err.name !== 'ExecutionError') {
       console.error("[Matchmaking] Error:", err);
@@ -476,7 +538,7 @@ const getEncounterById = async (encounterId) => {
   return Encounter.findOne({ encounterId });
 };
 
-const ackEncounterForSquad = async ({ encounter, squadId, emitRealtime = true }) => {
+const ackEncounterForSquad = async ({ encounter, squadId, emitRealtime = true, signal }) => {
   if (!encounter) {
     return { error: { status: 404, code: "ENCOUNTER_NOT_FOUND", message: "Encounter not found" } };
   }
@@ -514,29 +576,43 @@ const ackEncounterForSquad = async ({ encounter, squadId, emitRealtime = true })
     };
   }
 
-  encounter.ackBySquad.set(squadId, true);
-
-  const allAcked = Boolean(encounter.ackBySquad.get(encounter.squadAId)) && Boolean(encounter.ackBySquad.get(encounter.squadBId));
-
-  if (allAcked) {
-    encounter.status = "active";
-
-    await Squad.updateMany(
-      { squadId: { $in: [encounter.squadAId, encounter.squadBId] } },
-      {
-        $set: {
-          status: "in_encounter",
-        },
+  const acknowledgements = new Map(encounter.ackBySquad);
+  acknowledgements.set(squadId, true);
+  const allAcked = Boolean(acknowledgements.get(encounter.squadAId)) && Boolean(acknowledgements.get(encounter.squadBId));
+  let updated;
+  try {
+    assertMatchmakingLease(signal);
+    updated = await mongoose.connection.transaction(async session => {
+      for (const id of [encounter.squadAId, encounter.squadBId]) {
+        assertMatchmakingLease(signal);
+        const result = await Squad.updateOne(
+          { squadId: id, status: "matched", currentEncounterId: encounter.encounterId },
+          { $set: { status: allAcked ? "in_encounter" : "matched" }, $inc: { __v: 1 } },
+          { session }
+        );
+        if ((result.matchedCount ?? result.n ?? 0) !== 1) {
+          throw Object.assign(new Error("Encounter squad changed"), { code: "ACK_STATE_CHANGED" });
+        }
       }
-    );
-
-    if (emitRealtime) {
-      socketService.emitToSquad(encounter.squadAId, "ENCOUNTER_ACTIVE", { encounterId: encounter.encounterId });
-      socketService.emitToSquad(encounter.squadBId, "ENCOUNTER_ACTIVE", { encounterId: encounter.encounterId });
-    }
+      const result = await Encounter.findOneAndUpdate(
+        { encounterId: encounter.encounterId, status: "awaiting_ack" },
+        { $set: { [`ackBySquad.${squadId}`]: true, ...(allAcked ? { status: "active" } : {}) } },
+        { new: true, session }
+      );
+      if (!result) throw Object.assign(new Error("Encounter changed"), { code: "ACK_STATE_CHANGED" });
+      assertMatchmakingLease(signal);
+      return result;
+    });
+  } catch (error) {
+    if (error.code !== "ACK_STATE_CHANGED") throw error;
+    return { error: { status: 409, code: "ENCOUNTER_CHANGED", message: "Encounter is no longer available" } };
   }
-
-  await encounter.save();
+  encounter.ackBySquad = acknowledgements;
+  encounter.status = updated.status;
+  if (allAcked && emitRealtime) {
+    socketService.emitToSquad(encounter.squadAId, "ENCOUNTER_ACTIVE", { encounterId: encounter.encounterId });
+    socketService.emitToSquad(encounter.squadBId, "ENCOUNTER_ACTIVE", { encounterId: encounter.encounterId });
+  }
 
   return {
     acknowledged: true,
@@ -546,7 +622,7 @@ const ackEncounterForSquad = async ({ encounter, squadId, emitRealtime = true })
   };
 };
 
-const endEncounterAndRequeue = async ({ encounter, triggeringSquadId, matchImmediately = true }) => {
+const endEncounterAndRequeue = async ({ encounter, triggeringSquadId, matchImmediately = true, signal }) => {
   if (!isStrangerDiscoveryEnabled()) {
     await endEncounterToIdle({ encounter });
     return null;
@@ -585,6 +661,7 @@ const endEncounterAndRequeue = async ({ encounter, triggeringSquadId, matchImmed
         searchQueuedAt: now,
         "members.$[].inEncounterVideo": false,
       },
+      $inc: { __v: 1 },
     }
   );
   if (idleSquadIds.length) {
@@ -596,6 +673,7 @@ const endEncounterAndRequeue = async ({ encounter, triggeringSquadId, matchImmed
     (s) => s.status === "searching" && !s.currentEncounterId && s.lastEncounterId === encounter.encounterId
   );
   const requeuedSquadIds = [];
+  const admissions = new Map();
   try {
     for (const s of squads) {
       const canRequeue =
@@ -603,10 +681,12 @@ const endEncounterAndRequeue = async ({ encounter, triggeringSquadId, matchImmed
         await allUsersHaveAdultAccess(s.members.map((member) => member.userId), { User }) &&
         !(await anyBlockedPair(s.members.map((member) => member.userId), { User }));
       if (!canRequeue) {
-        await rollbackSquadsToIdle([s.squadId]);
+        await rollbackSquadsToIdle([s], { signal, admissions });
         continue;
       }
-      await queueService.addToQueue(s.squadId, getSquadSize(s), s.searchRegion, s.tags, s.reputationScore);
+      assertMatchmakingLease(signal);
+      const admissionId = await queueService.addToQueue(s.squadId, getSquadSize(s), s.searchRegion, s.tags, s.reputationScore);
+      admissions.set(s.squadId, admissionId);
       requeuedSquadIds.push(s.squadId);
       // Reset encounter video state in Redis
       for (const m of s.members) {
@@ -614,7 +694,7 @@ const endEncounterAndRequeue = async ({ encounter, triggeringSquadId, matchImmed
       }
     }
   } catch (error) {
-    await rollbackSquadsToIdle(squadIds);
+    await rollbackSquadsToIdle(squads, { signal, admissions });
     throw error;
   }
 
@@ -656,8 +736,10 @@ const endEncounterToIdle = async ({ encounter, emitRealtime = true }) => {
 
 const didMatch = (result) => (result?.matchedCount ?? result?.n ?? 0) > 0;
 
-const endEncounterAsymmetric = async ({ encounter, disconnectingSquadId }) => {
+const endEncounterAsymmetric = async ({ encounter, disconnectingSquadId, shouldEnd }) => {
   const otherSquadId = encounter.squadAId === disconnectingSquadId ? encounter.squadBId : encounter.squadAId;
+  const squadIds = [encounter.squadAId, encounter.squadBId];
+  let didEnd = false;
 
   const idleState = IDLE_ENCOUNTER_STATE;
 
@@ -665,6 +747,18 @@ const endEncounterAsymmetric = async ({ encounter, disconnectingSquadId }) => {
   // cannot interleave with it. Matching takes the same lock, so it runs only
   // after the transition has released it.
   const squadToMatch = await withMatchmakingLock(async (signal) => {
+    encounter = await Encounter.findOne({ encounterId: encounter.encounterId });
+    if (!encounter || ![encounter.squadAId, encounter.squadBId].includes(disconnectingSquadId)) return null;
+    const disconnectingSquad = await Squad.findOne({ squadId: disconnectingSquadId });
+    if (shouldEnd && !(await shouldEnd({ encounter, disconnectingSquad }))) return null;
+    assertMatchmakingLease(signal);
+    didEnd = true;
+    if (disconnectingSquad?.currentEncounterId === encounter.encounterId) {
+      await settleMatchmakingEffects(disconnectingSquad.members.map(member =>
+        sessionService.setSessionField(disconnectingSquadId, member.memberId, 'inEncounterVideo', false)
+      ));
+      assertMatchmakingLease(signal);
+    }
     // Both resets are guarded by the old encounter id. A failed write leaves the
     // encounter retryable; a later retry cannot clobber a squad that has already
     // joined a newer encounter.
@@ -672,10 +766,12 @@ const endEncounterAsymmetric = async ({ encounter, disconnectingSquadId }) => {
       { squadId: disconnectingSquadId, currentEncounterId: encounter.encounterId },
       { $set: idleState }
     );
+    assertMatchmakingLease(signal);
     const otherReset = await Squad.updateOne(
       { squadId: otherSquadId, currentEncounterId: encounter.encounterId },
       { $set: idleState }
     );
+    assertMatchmakingLease(signal);
     if (!didMatch(disconnectingReset)) {
       // A skip that won the race already requeued this squad. End still means
       // stop, so take it back out of the search that skip started.
@@ -709,6 +805,8 @@ const endEncounterAsymmetric = async ({ encounter, disconnectingSquadId }) => {
     if (!isStrangerDiscoveryEnabled()) {
       await queueService.removeFromQueue(otherSquadId);
     } else if (otherWasResetNow && otherSquad?.status === "idle" && !otherSquad.currentEncounterId) {
+      let promotedSearch;
+      const admissions = new Map();
       try {
         const canRequeue =
           !(otherSquad.tags || []).some((tag) => classifyVibe(tag) !== "ok") &&
@@ -721,7 +819,7 @@ const endEncounterAsymmetric = async ({ encounter, disconnectingSquadId }) => {
           if (signal.aborted) throw signal.error || new Error("Matchmaking lock was lost");
           const promoted = await Squad.updateOne(
             { squadId: otherSquadId, status: "idle", currentEncounterId: null },
-            { $set: { ...idleState, status: "searching", searchQueuedAt: now } }
+            { $set: { ...idleState, status: "searching", searchQueuedAt: now }, $inc: { __v: 1 } }
           );
           if ((promoted?.matchedCount ?? promoted?.n ?? 1) > 0) {
             otherSquad.status = "searching";
@@ -729,13 +827,17 @@ const endEncounterAsymmetric = async ({ encounter, disconnectingSquadId }) => {
             otherSquad.currentEncounterId = null;
             otherSquad.opponentSquadId = null;
             otherSquad.matchedAt = null;
-            await queueService.addToQueue(
+            promotedSearch = { squadId: otherSquad.squadId, searchQueuedAt: now, lastEncounterId: otherSquad.lastEncounterId,
+              __v: (otherSquad.__v || 0) + 1 };
+            const admissionId = await queueService.addToQueue(
               otherSquad.squadId,
               getSquadSize(otherSquad),
               otherSquad.searchRegion,
               otherSquad.tags,
               otherSquad.reputationScore
             );
+            admissions.set(otherSquadId, admissionId);
+            assertMatchmakingLease(signal);
             // Sync Redis for other squad
             for (const m of otherSquad.members) {
               await sessionService.setSessionField(otherSquadId, m.memberId, 'inEncounterVideo', false);
@@ -745,26 +847,20 @@ const endEncounterAsymmetric = async ({ encounter, disconnectingSquadId }) => {
           }
         }
       } catch (error) {
-        await rollbackSquadsToIdle([otherSquadId]);
+        if (promotedSearch) await rollbackSquadsToIdle([promotedSearch], { signal, admissions });
         throw error;
       }
     }
     return null;
-  });
+  }, { squadIds });
+
+  if (!didEnd) return false;
 
   if (squadToMatch) await tryMatchmakeForSquad(squadToMatch);
 
-  const disconnectingSquad = await Squad.findOne({ squadId: disconnectingSquadId });
-  if (disconnectingSquad) {
-    const cleanupResults = await Promise.allSettled(disconnectingSquad.members.map((member) =>
-      sessionService.clearMemberSession(disconnectingSquadId, member.memberId)
-    ));
-    for (const result of cleanupResults) {
-      if (result.status === "rejected") {
-        console.error("[Matchmaking] Post-encounter session cleanup failed:", result.reason);
-      }
-    }
-  }
+  // Do not delete broad member sessions after releasing the pair lease.
+  // Socket disconnect cleanup separately fences current presence/media owners.
+  return true;
 };
 
 // ── Stuck-encounter sweeper ──────────────────────────────────────────────────
@@ -773,50 +869,58 @@ const endEncounterAsymmetric = async ({ encounter, disconnectingSquadId }) => {
 // pointing at the dead encounter. This sweeper periodically ends expired
 // awaiting_ack encounters and frees those squads back to "idle". It also frees
 // any squad still pointing at an encounter that some other path already ended.
-const releaseSquadsFromEndedEncounters = async () => {
-  const pointing = await Squad.find({
-    status: { $in: ["matched", "in_encounter"] },
-    currentEncounterId: { $ne: null },
-  }).select("squadId currentEncounterId").lean();
-  if (!pointing.length) return 0;
-
-  const encounterIds = [...new Set(pointing.map((squad) => squad.currentEncounterId))];
-  const ended = await Encounter.find({ encounterId: { $in: encounterIds }, status: "ended" });
-  for (const encounter of ended) {
-    await releaseSquadsFromEncounter(encounter);
-  }
-  return ended.length;
-};
-
+const ENCOUNTER_SWEEP_PAGE_SIZE = 50;
+const sweepCursors = { expired: null, repair: null };
 const sweepStuckEncounters = async () => {
   try {
-    // Holds the matchmaking lock so the sweep cannot interleave with an ack
-    // that is activating the same encounter.
-    return await withMatchmakingLock(async () => {
-      const now = new Date();
-      const stuck = await Encounter.find({ status: "awaiting_ack", expiresAt: { $lt: now } });
+    const expiredPage = after => Encounter.find({
+      status: "awaiting_ack", expiresAt: { $lt: new Date() },
+      ...(after ? { $or: [
+        { expiresAt: { $gt: after.expiresAt } },
+        { expiresAt: after.expiresAt, encounterId: { $gt: after.encounterId } },
+      ] } : {}),
+    }).sort({ expiresAt: 1, encounterId: 1 }).limit(ENCOUNTER_SWEEP_PAGE_SIZE);
+    let expired = await expiredPage(sweepCursors.expired);
+    if (!expired.length && sweepCursors.expired) expired = await expiredPage(null);
+    const lastExpired = expired.at(-1);
+    sweepCursors.expired = lastExpired ? { expiresAt: lastExpired.expiresAt, encounterId: lastExpired.encounterId } : null;
 
-      let swept = 0;
-      for (const encounter of stuck) {
-        // Conditional: an ack that activated the call first wins.
-        if (!(await markEncounterEnded(encounter, { fromStatus: "awaiting_ack" }))) continue;
-        swept += 1;
-
-        // Notify any connected clients so they bounce out of the handoff UI.
-        socketService.emitToSquad(encounter.squadAId, "ENCOUNTER_ENDED", { encounterId: encounter.encounterId });
-        socketService.emitToSquad(encounter.squadBId, "ENCOUNTER_ENDED", { encounterId: encounter.encounterId });
-        socketService.closeEncounterRoom(encounter);
-
-        // Only squads still on THIS dead encounter are reset.
-        await releaseSquadsFromEncounter(encounter);
+    // Repair only bounded live pointers, never page through ended history.
+    const repairPage = after => Squad.find({
+      status: { $in: ["matched", "in_encounter"] }, currentEncounterId: { $ne: null },
+      ...(after ? { squadId: { $gt: after } } : {}),
+    }).select("squadId currentEncounterId").sort({ squadId: 1 }).limit(ENCOUNTER_SWEEP_PAGE_SIZE).lean();
+    let pointing = await repairPage(sweepCursors.repair);
+    if (!pointing.length && sweepCursors.repair) pointing = await repairPage(null);
+    sweepCursors.repair = pointing.at(-1)?.squadId || null;
+    const encounterIds = [...new Set(pointing.map(squad => squad.currentEncounterId))];
+    const ended = encounterIds.length ? await Encounter.find({ encounterId: { $in: encounterIds }, status: "ended" }) : [];
+    const encounters = [...new Map([...expired, ...ended].map(encounter => [encounter.encounterId, encounter])).values()];
+    let swept = 0;
+    for (const item of encounters) {
+      try {
+        swept += await withMatchmakingLock(async signal => {
+          const encounter = await Encounter.findOne({ encounterId: item.encounterId });
+          if (!encounter) return 0;
+          assertMatchmakingLease(signal);
+          if (encounter.status === "ended") {
+            await releaseSquadsFromEncounter(encounter);
+            return 0;
+          }
+          if (encounter.status !== "awaiting_ack" || new Date(encounter.expiresAt).getTime() >= Date.now()) return 0;
+          if (!(await markEncounterEnded(encounter, { fromStatus: "awaiting_ack" }))) return 0;
+          assertMatchmakingLease(signal);
+          socketService.emitToSquad(encounter.squadAId, "ENCOUNTER_ENDED", { encounterId: encounter.encounterId });
+          socketService.emitToSquad(encounter.squadBId, "ENCOUNTER_ENDED", { encounterId: encounter.encounterId });
+          socketService.closeEncounterRoom(encounter);
+          await releaseSquadsFromEncounter(encounter);
+          return 1;
+        }, { squadIds: [item.squadAId, item.squadBId], retryCount: 0 });
+      } catch (error) {
+        if (error.name !== "ExecutionError") throw error;
       }
-
-      const repaired = await releaseSquadsFromEndedEncounters();
-      if (swept || repaired) {
-        logMatchmakingDebug(`[Sweeper] Ended ${swept} stuck awaiting_ack encounter(s); released squads from ${repaired} ended encounter(s)`);
-      }
-      return swept;
-    });
+    }
+    return swept;
   } catch (err) {
     console.error("[Sweeper] Error sweeping stuck encounters:", err);
     return 0;
@@ -934,6 +1038,7 @@ const stopEncounterSweeper = () => {
 
 module.exports = {
   hasMinimumOnlineMembers,
+  createEncounterForSquads,
   scoreCandidate,
   tryMatchmakeForSquad,
   sweepStuckEncounters,

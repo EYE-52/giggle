@@ -367,6 +367,11 @@ const init = (server) => {
 
   // Global Signaling Mesh: Broadast events across multiple server instances
   const { pubClient, subClient } = require('../config/redisConfig');
+  // The publisher is lazy. Start it now so readiness reflects the broadcast
+  // path before the first user event, rather than connecting during that event.
+  if (pubClient.status === 'wait') {
+    void pubClient.connect().catch(error => console.error('[socket] Redis publisher connection failed:', error));
+  }
   io.adapter(createAdapter(pubClient, subClient));
 
   // Authentication and live age access complete before any room or presence work.
@@ -387,7 +392,12 @@ const init = (server) => {
         console.error('[presence] online mark error:', err);
       });
       presenceHeartbeat = setInterval(() => {
-        markUserOnline(socket.userId, socket.id).catch((err) => {
+        // Disconnect waits for every started renewal, not only registration.
+        // Otherwise a slow heartbeat can resurrect this socket after cleanup.
+        presenceRegistration = presenceRegistration.then(async () => {
+          if (controlsStopped) return;
+          await markUserOnline(socket.userId, socket.id);
+        }).catch((err) => {
           console.error('[presence] heartbeat error:', err);
         });
       }, PRESENCE_REFRESH_MS);
@@ -706,20 +716,7 @@ const init = (server) => {
           status: 'searching',
         });
 
-        for (const squad of searchingSquads) {
-          const onlineMemberIds = await getOnlineUserIds(squad.members.map((m) => m.userId));
-          if (onlineMemberIds.size > 0) continue; // someone is still around — keep searching
-
-          const queueService = require('./queueService');
-          await queueService.removeFromQueue(squad.squadId);
-          squad.status = 'idle';
-          squad.searchQueuedAt = null;
-          await squad.save();
-          logRealtimeDebug(
-            `[presence] Squad ${squad.squadId} abandoned (all members offline) — dequeued and set idle`
-          );
-          emitToSquad(squad.squadId, 'SQUAD_UPDATED', {});
-        }
+        for (const squad of searchingSquads) await cancelAbandonedSearch(squad);
 
         // A user with no socket left is not in the encounter video either; a
         // stale flag would make squadmates think the call still has them.
@@ -740,19 +737,60 @@ const init = (server) => {
   return io;
 };
 
-// A user whose last socket closed is no longer in any encounter video; drop
-// the flag so it cannot keep reading as present.
+const cancelAbandonedSearch = async (observedSquad) => {
+  const { withMatchmakingLock } = require('../config/redisConfig');
+  const squadId = observedSquad.squadId;
+  return withMatchmakingLock(async signal => {
+    const squad = await Squad.findOne({ squadId, status: 'searching', currentEncounterId: null });
+    if (!squad || new Date(squad.searchQueuedAt || 0).getTime() !== new Date(observedSquad.searchQueuedAt || 0).getTime()) return false;
+    const onlineMemberIds = await getOnlineUserIds(squad.members.map(m => m.userId));
+    if (onlineMemberIds.size > 0) return false;
+    const queueService = require('./queueService');
+    const admission = await queueService.getQueueAdmission(squadId);
+    if (signal.aborted) throw signal.error || new Error('Matchmaking lock was lost');
+    const changed = await Squad.updateOne(
+      { squadId, status: 'searching', currentEncounterId: null, searchQueuedAt: squad.searchQueuedAt ?? null,
+        __v: squad.__v == null ? { $exists: false } : squad.__v },
+      { $set: { status: 'idle', searchQueuedAt: null }, $inc: { __v: 1 } },
+    );
+    if (!(changed.matchedCount ?? changed.n ?? 0)) return false;
+    if (signal.aborted) throw signal.error || new Error('Matchmaking lock was lost');
+    await queueService.removeIfAdmission(squadId, admission);
+    logRealtimeDebug(`[presence] Squad ${squadId} abandoned (all members offline) — set idle`);
+    emitToSquad(squadId, 'SQUAD_UPDATED', {});
+    return true;
+  }, { squadIds: [squadId] });
+};
+
+// Both checks and the flag write run in one Redis operation. A replacement
+// socket or outgoing-media generation must win over old disconnect cleanup.
+const clearEncounterFlagIfOffline = `
+if redis.call('EXISTS', KEYS[2]) == 1 then return 0 end
+for _, socketId in ipairs(redis.call('SMEMBERS', KEYS[3])) do
+ if redis.call('EXISTS', ARGV[1] .. socketId) == 1 then return 0 end
+end
+redis.call('HSET', KEYS[1], ARGV[2], 'false')
+redis.call('EXPIRE', KEYS[1], 7200)
+return 1`;
+
 const clearEncounterVideoPresence = async (userId) => {
   const squads = await Squad.find({ 'members.userId': userId, status: { $in: ['matched', 'in_encounter'] } });
-  if (!squads.length) return 0;
-  const sessionService = require('./sessionService');
+  const redis = getRedisClient();
+  let cleared = 0;
   for (const squad of squads) {
-    for (const member of squad.members.filter((m) => m.userId === userId)) {
-      await sessionService.setSessionField(squad.squadId, member.memberId, 'inEncounterVideo', false);
+    let changed = false;
+    for (const member of squad.members.filter(m => String(m.userId) === String(userId))) {
+      const result = await redis.eval(clearEncounterFlagIfOffline, 3,
+        `squad_session:${squad.squadId}`, `member_media:${userId}`, presenceUserKey(userId),
+        PRESENCE_SOCKET_PREFIX, `${member.memberId}:inEncounterVideo`);
+      changed = Boolean(result) || changed;
     }
-    emitToSquad(squad.squadId, 'SQUAD_UPDATED', {});
+    if (changed) {
+      cleared += 1;
+      emitToSquad(squad.squadId, 'SQUAD_UPDATED', {});
+    }
   }
-  return squads.length;
+  return cleared;
 };
 
 // A squad whose members all closed the app mid-call would leave the other
@@ -770,7 +808,19 @@ const endAbandonedEncounters = async (userId) => {
     const { getEncounterById, endEncounterAsymmetric } = require('./matchmakingService');
     const encounter = await getEncounterById(squad.currentEncounterId);
     if (!encounter || encounter.status === 'ended') continue;
-    await endEncounterAsymmetric({ encounter, disconnectingSquadId: squad.squadId });
+    const didEnd = await endEncounterAsymmetric({
+      encounter,
+      disconnectingSquadId: squad.squadId,
+      shouldEnd: async ({ encounter: currentEncounter, disconnectingSquad }) => {
+        if (!disconnectingSquad || disconnectingSquad.status !== 'in_encounter' ||
+            disconnectingSquad.currentEncounterId !== encounter.encounterId ||
+            currentEncounter.status !== 'active' ||
+            !disconnectingSquad.members.some(member => String(member.userId) === String(userId))) return false;
+        const online = await getOnlineUserIds(disconnectingSquad.members.map(member => member.userId));
+        return online.size === 0;
+      },
+    });
+    if (didEnd === false) continue;
     logRealtimeDebug(`[presence] Squad ${squad.squadId} left encounter ${encounter.encounterId} (all members offline)`);
     ended += 1;
   }
@@ -851,6 +901,7 @@ module.exports = {
   closeEncounterRoom,
   disconnectUserSockets,
   clearEncounterVideoPresence,
+  cancelAbandonedSearch,
   emitRealtimeProjection,
   endAbandonedEncounters,
   init,

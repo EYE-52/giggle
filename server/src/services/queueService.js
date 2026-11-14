@@ -1,4 +1,5 @@
 const { redis } = require('../config/redisConfig');
+const { randomUUID } = require('node:crypto');
 
 const QUEUE_PREFIX = 'matchmaking_queue:';
 const METADATA_PREFIX = 'squad_meta:';
@@ -109,6 +110,7 @@ const scanQueueKeys = async () => {
  */
 const addToQueue = async (squadId, size, region = 'global', tags = [], reputationScore = 100) => {
   const now = Date.now();
+  const admissionId = randomUUID();
   const queueKey = `${QUEUE_PREFIX}${region}`;
   const metadataKey = `${METADATA_PREFIX}${squadId}`;
 
@@ -122,6 +124,7 @@ const addToQueue = async (squadId, size, region = 'global', tags = [], reputatio
         tags: tags.join(','),
         reputationScore,
         queuedAt: now,
+        admissionId,
       })
       .zadd(queueKey, now, squadId)
       .zadd(REGION_INDEX, 0, region)
@@ -129,20 +132,54 @@ const addToQueue = async (squadId, size, region = 'global', tags = [], reputatio
       .exec();
     const commandError = results?.find(([error]) => error)?.[0];
     if (commandError) throw commandError;
+    return admissionId;
   } catch (error) {
-    // Redis pipelines are not atomic: remove either half of a partial admission.
-    await Promise.allSettled([
-      redis.zrem(queueKey, squadId),
-      redis.del(metadataKey),
-    ]);
+    // A delayed failure must never remove a replacement admission. Without
+    // our metadata owner token, leave an orphan for stale-entry repair.
+    await Promise.allSettled([removeFromQueue(squadId, { admissionId })]);
     throw error;
   }
 };
 
+const removeOwnedAdmission = `
+if redis.call('HGET', KEYS[1], 'admissionId') ~= ARGV[2] then return 0 end
+local region = redis.call('HGET', KEYS[1], 'region')
+if not region then return 0 end
+redis.call('ZREM', ARGV[3] .. region, ARGV[1])
+redis.call('DEL', KEYS[1], KEYS[2])
+return 1`;
+
+const getQueueAdmission = (squadId) => redis.hgetall(`${METADATA_PREFIX}${squadId}`);
+
+const removeLegacyAdmission = `
+if redis.call('HEXISTS', KEYS[2], 'admissionId') == 1
+ or redis.call('HGET', KEYS[2], 'squadId') ~= ARGV[1]
+ or redis.call('HGET', KEYS[2], 'region') ~= ARGV[2]
+ or redis.call('HGET', KEYS[2], 'queuedAt') ~= ARGV[3]
+ or tonumber(redis.call('ZSCORE', KEYS[1], ARGV[1])) ~= tonumber(ARGV[3]) then return 0 end
+redis.call('ZREM', KEYS[1], ARGV[1])
+redis.call('DEL', KEYS[2], KEYS[3])
+return 1`;
+
+/** Remove only the observed owner, including an unchanged pre-token admission. */
+const removeIfAdmission = async (squadId, admission) => {
+  if (admission?.admissionId) return removeFromQueue(squadId, { admissionId: admission.admissionId });
+  if (!admission?.region || admission.queuedAt == null || !Number.isFinite(Number(admission.queuedAt))) return false;
+  return Boolean(await redis.eval(removeLegacyAdmission, 3,
+    `${QUEUE_PREFIX}${admission.region}`, `${METADATA_PREFIX}${squadId}`, cursorKey(squadId),
+    squadId, admission.region, String(admission.queuedAt)));
+};
+
 /**
- * Removes a squad from the matchmaking queue.
+ * Removes a squad from the matchmaking queue. Supplying an admissionId
+ * removes only that owner and never falls back to a broad queue scan.
  */
-const removeFromQueue = async (squadId) => {
+const removeFromQueue = async (squadId, options = {}) => {
+  if (Object.prototype.hasOwnProperty.call(options, 'admissionId')) {
+    if (typeof options.admissionId !== 'string' || !options.admissionId) return false;
+    return Boolean(await redis.eval(removeOwnedAdmission, 2,
+      `${METADATA_PREFIX}${squadId}`, cursorKey(squadId), squadId, options.admissionId, QUEUE_PREFIX));
+  }
   const meta = await redis.hgetall(`${METADATA_PREFIX}${squadId}`);
   if (!meta || !meta.region) {
     // Fallback search across common regions if meta is lost
@@ -227,6 +264,8 @@ const getAllQueuedSquads = async (options = {}) => {
 module.exports = {
   addToQueue,
   removeFromQueue,
+  getQueueAdmission,
+  removeIfAdmission,
   getQueuedSquadsByRegion,
   getAllQueuedSquads,
   CANDIDATE_BATCH_SIZE,

@@ -215,10 +215,11 @@ app.get('/api-docs', (req, res, next) => swaggerUi.setup(getSwaggerSpec())(req, 
 // Health check endpoint
 app.get('/health', (req, res) => {
   const mongoStatus = mongoose.connection.readyState === 1 ? 'connected' : 'disconnected';
-  const { redis } = require('./config/redisConfig');
+  const { redis, pubClient, subClient } = require('./config/redisConfig');
   const redisStatus = redis.status === 'ready' ? 'connected' : 'disconnected';
   
-  const isHealthy = mongoStatus === 'connected' && redisStatus === 'connected';
+  const realtimeStatus = pubClient.status === 'ready' && subClient.status === 'ready' ? 'connected' : 'disconnected';
+  const isHealthy = mongoStatus === 'connected' && redisStatus === 'connected' && realtimeStatus === 'connected';
   
   res.status(isHealthy ? 200 : 503).json({
     ok: isHealthy,
@@ -228,7 +229,9 @@ app.get('/health', (req, res) => {
       api: 'UP',
       database: mongoStatus,
       redis: redisStatus,
+      realtime: realtimeStatus,
     },
+    matchmaking: { lockMode: process.env.MEET_SCOPED_MATCHMAKING_LOCKS === 'true' ? 'scoped' : 'compatibility' },
     release: require('./utils/releaseIdentity').releaseIdentity(),
   });
 });

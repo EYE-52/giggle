@@ -3,7 +3,7 @@ const { after, test } = require("node:test");
 
 const squadAccess = require("../src/app/squadAccess");
 const { Squad } = require("../src/models/Squad");
-const { redlock, redis, subClient } = require("../src/config/redisConfig");
+const { matchmakingLeaseResources, redlock, redis, subClient } = require("../src/config/redisConfig");
 
 after(async () => {
   await Promise.allSettled([redis.quit(), subClient.quit()]);
@@ -266,7 +266,7 @@ test("encounter acknowledgement holds the matchmaking lock across block check an
     }, res);
     assert.equal(res.statusCode, 200);
     assert.deepEqual(fixture.events, [
-      ["lock", ["lock:matchmaking"]],
+      ["lock", matchmakingLeaseResources(["squad_a", "squad_b"])],
       ["block-check"],
       ["ack"],
       ["release"],
@@ -290,7 +290,7 @@ test("encounter acknowledgement rechecks membership inside the matchmaking lock"
     assert.equal(fixture.rosterChecks(), 0);
     assert.equal(fixture.acknowledgements(), 0);
     assert.deepEqual(fixture.events, [
-      ["lock", ["lock:matchmaking"]],
+      ["lock", matchmakingLeaseResources(["squad_a", "squad_b"])],
       ["release"],
     ]);
   } finally {

@@ -5,16 +5,19 @@ const path = require('node:path');
 const vm = require('node:vm');
 const { createRequire } = require('node:module');
 
-function harness() {
+function harness({ publisher = {} } = {}) {
   const filename = path.join(__dirname, '../src/services/socketService.js');
   const realRequire = createRequire(filename);
   const sockets = new Map();
   const live = new Map();
   const emissions = [];
+  const errors = [];
   const queries = [];
   let blockRegistration;
   let registrationStarted = false;
+  let registrationCalls = 0;
   const intervals = new Set();
+  const heartbeatCallbacks = new Map();
   let failRoster = false;
   const redis = {
     smembers: async key => [...(sockets.get(key) || [])],
@@ -32,6 +35,7 @@ function harness() {
         set(key, id) { socketKey = key; userId = id; return this; },
         async exec() {
           registrationStarted = true;
+          registrationCalls += 1;
           if (blockRegistration) await blockRegistration;
           if (!sockets.has(userKey)) sockets.set(userKey, new Set());
           sockets.get(userKey).add(socketId);
@@ -57,12 +61,12 @@ function harness() {
   const module = { exports: {} };
   const context = {
     module, exports: module.exports, process, Buffer, clearInterval, setTimeout,
-    setInterval(handler, ms) { const timer = setInterval(handler, ms); intervals.add(timer); return timer; },
-    console: { log() {}, error() {} },
+    setInterval(handler, ms) { const timer = setInterval(handler, ms); intervals.add(timer); heartbeatCallbacks.set(timer, handler); return timer; },
+    console: { log() {}, error(...args) { errors.push(args); } },
     require(id) {
       if (id === 'socket.io') return { Server };
       if (id === '@socket.io/redis-adapter') return { createAdapter: () => ({}) };
-      if (id === '../config/redisConfig') return { redis, pubClient: {}, subClient: {} };
+      if (id === '../config/redisConfig') return { redis, pubClient: publisher, subClient: {} };
       if (id === '../models/Squad') return { Squad };
       return realRequire(id);
     },
@@ -74,9 +78,11 @@ function harness() {
     connect({ id, userId: 'user', join() {}, on(event, handler) { handlers[event] = handler; } });
     return { disconnect: () => handlers.disconnect() };
   };
-  return { service: module.exports, open, emissions, queries,
+  return { service: module.exports, open, emissions, queries, errors,
     socketIsLive: id => live.has('presence:socket:' + id),
     registrationStarted: () => registrationStarted,
+    registrationCalls: () => registrationCalls,
+    heartbeat: () => { for (const callback of heartbeatCallbacks.values()) callback(); },
     close: async () => { for (const timer of intervals) clearInterval(timer); await module.exports.close(); },
     holdRegistration: promise => { blockRegistration = promise; },
     failRoster: () => { failRoster = true; } };
@@ -125,4 +131,40 @@ test('fast disconnect waits pending registration and roster errors do not abort 
   assert.equal(h.queries.some(query => query.status === 'searching'), true);
   assert.equal(h.emissions.length, 0);
   await h.service.close();
+});
+
+
+test('disconnect waits a started heartbeat so it cannot revive a closed socket', async t => {
+  const h = harness();
+  t.after(() => h.close());
+  const socket = h.open('heartbeat');
+  await until(() => h.socketIsLive('heartbeat'));
+  let release;
+  h.holdRegistration(new Promise(resolve => { release = resolve; }));
+  h.heartbeat();
+  await until(() => h.registrationCalls() === 2);
+  let disconnected = false;
+  const pending = socket.disconnect().then(() => { disconnected = true; });
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(disconnected, false);
+  release();
+  await pending;
+  assert.equal(h.socketIsLive('heartbeat'), false);
+  assert.equal(await h.service.isUserOnline('user'), false);
+});
+
+
+test('socket startup connects a lazy publisher once and logs connection failure', async t => {
+  let connects = 0;
+  const publisher = { status: 'wait', connect() { connects++; this.status = 'connecting'; return Promise.resolve(); } };
+  const h = harness({ publisher });
+  t.after(() => h.close());
+  assert.equal(connects, 1);
+  h.service.init({});
+  assert.equal(connects, 1, 'an active connection attempt is reused');
+
+  const failed = harness({ publisher: { status: 'wait', connect: async () => { throw Error('publisher unavailable'); } } });
+  t.after(() => failed.close());
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(failed.errors.some(([message]) => message.includes('Redis publisher connection failed')), true);
 });

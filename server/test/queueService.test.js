@@ -17,6 +17,7 @@ test("queue admission sends metadata and sorted-set writes in one pipeline", asy
     pipeline: () => pipeline,
     zrem: async (...args) => { commands.push(["zrem", ...args]); },
     del: async (...args) => { commands.push(["del", ...args]); },
+    eval: async (...args) => { commands.push(["eval", ...args]); return 1; },
   };
   const redisPath = require.resolve("../src/config/redisConfig");
   const servicePath = require.resolve("../src/services/queueService");
@@ -37,6 +38,8 @@ test("queue admission sends metadata and sorted-set writes in one pipeline", asy
   const queueService = require(servicePath);
   await queueService.addToQueue("squad-a", 3, "global", ["music"], 90);
 
+  const firstAdmissionId = commands[0][2].admissionId;
+  assert.match(firstAdmissionId, /^[0-9a-f-]{36}$/);
   assert.deepEqual(commands, [
     ["hset", "squad_meta:squad-a", {
       squadId: "squad-a",
@@ -45,6 +48,7 @@ test("queue admission sends metadata and sorted-set writes in one pipeline", asy
       tags: "music",
       reputationScore: 90,
       queuedAt: 1234,
+      admissionId: firstAdmissionId,
     }],
     ["zadd", "matchmaking_queue:global", 1234, "squad-a"],
     ["zadd", "matchmaking_regions", 0, "global"],
@@ -52,13 +56,18 @@ test("queue admission sends metadata and sorted-set writes in one pipeline", asy
     ["exec"],
   ]);
 
+  commands.length = 0;
+  await queueService.addToQueue("squad-a", 3, "global", ["music"], 90);
+  assert.notEqual(commands[0][2].admissionId, firstAdmissionId, "same-millisecond admissions have distinct owners");
+
   pipelineError = new Error("Redis queue write failed");
   await assert.rejects(
     queueService.addToQueue("squad-b", 2, "global"),
     /Redis queue write failed/
   );
-  assert.deepEqual(commands.slice(-2), [
-    ["zrem", "matchmaking_queue:global", "squad-b"],
-    ["del", "squad_meta:squad-b"],
-  ]);
+  const cleanup = commands.at(-1);
+  assert.equal(cleanup[0], "eval");
+  assert.deepEqual(cleanup.slice(2, 6), [2, "squad_meta:squad-b", "matchmaking_cursor:squad-b", "squad-b"]);
+  assert.match(cleanup[6], /^[0-9a-f-]{36}$/);
+  assert.equal(cleanup[7], "matchmaking_queue:");
 });

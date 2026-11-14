@@ -1,3 +1,4 @@
+const mongoose = require("mongoose");
 require('../src/services/memberMediaService').clearMember = async () => false;
 require('../src/config/redisConfig').redis.hkeys = async () => [];
 require('../src/config/redisConfig').redis.hdel = async () => 0;
@@ -23,6 +24,11 @@ const { SquadCover } = require("../src/models/SquadCover");
 const User = require("../src/models/User");
 const { redlock, redis, subClient } = require("../src/config/redisConfig");
 const queueService = require("../src/services/queueService");
+const oldAdmissionRead = queueService.getQueueAdmission;
+const oldAdmissionRemove = queueService.removeIfAdmission;
+queueService.getQueueAdmission = async squadId => ({ squadId, admissionId: `test_${squadId}` });
+queueService.removeIfAdmission = async squadId => queueService.removeFromQueue(squadId);
+after(() => { queueService.getQueueAdmission = oldAdmissionRead; queueService.removeIfAdmission = oldAdmissionRemove; });
 const sessionService = require("../src/services/sessionService");
 const socketService = require("../src/services/socketService");
 
@@ -71,6 +77,7 @@ function squadStore(squads) {
   const byId = new Map(squads.map((squad) => [squad.squadId, squad]));
   const matches = (squad, filter) => Object.entries(filter).every(([key, value]) => {
     if (key === "squadId") return value?.$in ? value.$in.includes(squad.squadId) : squad.squadId === value;
+    if (key === "members") return squad.members.length === value.$size && value.$all.every(({ $elemMatch: expected }) => squad.members.some(member => Object.entries(expected).every(([field, entry]) => member[field] === entry)));
     if (value && typeof value === "object" && "$in" in value) return value.$in.includes(squad[key]);
     if (value && typeof value === "object" && "$ne" in value) return squad[key] !== value.$ne;
     return (squad[key] ?? null) === value;
@@ -118,9 +125,9 @@ function stubRealtime() {
 
 function stubLock() {
   const lock = { uses: 0 };
-  stub(redlock, "using", async (_resources, _duration, routine) => {
+  stub(redlock, "using", async (_resources, _duration, optionsOrRoutine, routine) => {
     lock.uses += 1;
-    return routine({ aborted: false });
+    return (routine || optionsOrRoutine)({ aborted: false });
   });
   return lock;
 }
@@ -219,7 +226,7 @@ test("the sweeper frees squads stuck on an ended encounter but leaves acked call
   // Mongoose query chain used by the repair scan.
   stub(Squad, "find", (filter) => {
     const result = store.find(filter);
-    return { select: () => ({ lean: () => result }) };
+    const chain = { select: () => chain, sort: () => chain, limit: () => chain, lean: () => result }; return chain;
   });
   const statuses = new Map([["enc_ended", "ended"], ["enc_raced", "active"]]);
   stubEncounterEnd(statuses);
@@ -228,12 +235,10 @@ test("the sweeper frees squads stuck on an ended encounter but leaves acked call
     // Expired by its handoff deadline, but an ack activated it before the sweep.
     enc_raced: { encounterId: "enc_raced", status: "awaiting_ack", squadAId: "sq_c", squadBId: "sq_d" },
   };
-  stub(Encounter, "find", async (filter) => {
-    if (filter.status === "awaiting_ack") return [encounters.enc_raced];
-    return filter.encounterId.$in
-      .filter((encounterId) => statuses.get(encounterId) === "ended")
-      .map((encounterId) => encounters[encounterId]);
-  });
+  stub(Encounter, "find", filter => filter.status === "awaiting_ack"
+    ? { sort: () => ({ limit: async () => [encounters.enc_raced] }) }
+    : Promise.resolve([encounters.enc_ended]));
+  stub(Encounter, "findOne", async ({ encounterId }) => ({ ...encounters[encounterId], status: statuses.get(encounterId) }));
   stub(sessionService, "setSessionField", async () => {});
   const events = stubRealtime();
   const lock = stubLock();
@@ -241,7 +246,7 @@ test("the sweeper frees squads stuck on an ended encounter but leaves acked call
   const swept = await sweepStuckEncounters();
 
   assert.equal(swept, 0);
-  assert.equal(lock.uses, 1);
+  assert.equal(lock.uses, 2);
   assert.equal(statuses.get("enc_raced"), "active");
   assert.equal(store.byId.get("sq_c").status, "in_encounter");
   assert.equal(store.byId.get("sq_d").status, "in_encounter");
@@ -261,9 +266,11 @@ test("repairing ended E preserves the former opponent's live N video presence", 
     squad("sq_b", USER_B, { status: "in_encounter", currentEncounterId: "enc_N" }),
   ]);
   stubSquads(store);
-  stub(Squad, "find", (filter) => ({ select: () => ({ lean: () => store.find(filter) }) }));
+  stub(Squad, "find", (filter) => { const chain = { select: () => chain, sort: () => chain, limit: () => chain, lean: () => store.find(filter) }; return chain; });
   const ended = { encounterId: "enc_E", status: "ended", squadAId: "sq_a", squadBId: "sq_b" };
-  stub(Encounter, "find", async (filter) => filter.status === "awaiting_ack" ? [] : [ended]);
+  stub(Encounter, "find", filter => filter.status === "awaiting_ack"
+    ? { sort: () => ({ limit: async () => [] }) } : Promise.resolve([ended]));
+  stub(Encounter, "findOne", async () => ended);
   const video = new Map([["sq_a", true], ["sq_b", true]]);
   const writes = [];
   stub(sessionService, "setSessionField", async (squadId, memberId, field, value) => {
@@ -326,7 +333,7 @@ test("turning discovery off stops in-flight searches and clears the queue", asyn
   stubSquads(store);
   stub(Squad, "find", (filter) => {
     const result = store.find(filter);
-    return { select: () => ({ lean: () => result }) };
+    const chain = { select: () => chain, sort: () => chain, limit: () => chain, lean: () => result }; return chain;
   });
   const removed = [];
   stub(queueService, "getAllQueuedSquads", async () => [{ squadId: "sq_a" }, { squadId: "sq_ghost" }]);
@@ -376,6 +383,7 @@ test("the periodic matcher pairs two squads that were left searching", async () 
   stubRealtime();
   const lock = stubLock();
   const created = [];
+  stub(mongoose.connection, "transaction", async work => work({ testSession: true }));
   stub(Encounter, "create", async (data) => { created.push(data); return data; });
 
   assert.equal(await retrySearchingSquads(), 1);
@@ -518,6 +526,7 @@ test("an End that lost the race to a skip still takes its squad out of the searc
   stubRealtime();
   const lock = stubLock();
   const encounter = { encounterId: "enc_x", status: "active", squadAId: "sq_a", squadBId: "sq_b" };
+  stub(Encounter, "findOne", async () => ({ ...encounter, status: "ended" }));
 
   await endEncounterAsymmetric({ encounter, disconnectingSquadId: "sq_a" });
 
@@ -622,13 +631,5 @@ test("skip frees a squad left pointing at an already-ended encounter", async () 
   assert.deepEqual(released, ["encounter_1"]);
 });
 
-test("a user's last socket closing clears their encounter-video flag", async () => {
-  stub(Squad, "find", async () => [
-    { squadId: "sq_a", members: [{ memberId: "member_gone", userId: USER_A }, { memberId: "member_here", userId: USER_B }] },
-  ]);
-  const writes = [];
-  stub(sessionService, "setSessionField", async (...args) => { writes.push(args); });
-
-  assert.equal(await socketService.clearEncounterVideoPresence(USER_A), 1);
-  assert.deepEqual(writes, [["sq_a", "member_gone", "inEncounterVideo", false]]);
-});
+// Disconnect flag cleanup and replacement ownership are covered with real Redis
+// in socketReconnect.test.js.

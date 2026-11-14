@@ -464,14 +464,19 @@ test("cancelling search serializes with matchmaking and refetches queue state", 
     acquire: redlock.acquire,
     using: redlock.using,
     findOne: Squad.findOne,
-    remove: queueService.removeFromQueue,
+    updateOne: Squad.updateOne,
+    admission: queueService.getQueueAdmission,
+    remove: queueService.removeIfAdmission,
     emit: socketService.emitToSquad,
   };
   const calls = [];
   const freshSquad = {
     squadId: "squad_a",
     status: "searching",
+    currentEncounterId: null,
+    __v: 0,
     searchQueuedAt: new Date(),
+    members: [{ memberId: "leader", userId: "leader-user", role: "leader" }],
     async save() { calls.push("save"); },
   };
 
@@ -485,12 +490,19 @@ test("cancelling search serializes with matchmaking and refetches queue state", 
     calls.push("find");
     return freshSquad;
   };
-  queueService.removeFromQueue = async () => { calls.push("dequeue"); };
+  Squad.updateOne = async (_filter, update) => {
+    calls.push("update");
+    Object.assign(freshSquad, update.$set);
+    return { matchedCount: 1 };
+  };
+  queueService.getQueueAdmission = async () => { calls.push("admission"); return { admissionId: "owner" }; };
+  queueService.removeIfAdmission = async () => { calls.push("dequeue"); };
   socketService.emitToSquad = () => { calls.push("emit"); };
 
   try {
     const res = createResponse();
     await cancelSearchHandler({
+      user: { userId: "leader-user" },
       squadAccess: {
         squad: { squadId: "squad_a", status: "searching" },
         member: { memberId: "leader" },
@@ -499,12 +511,14 @@ test("cancelling search serializes with matchmaking and refetches queue state", 
 
     assert.equal(res.statusCode, 200);
     assert.equal(freshSquad.status, "idle");
-    assert.deepEqual(calls, ["lock", "find", "save", "dequeue", "release", "emit"]);
+    assert.deepEqual(calls, ["lock", "find", "admission", "update", "dequeue", "release", "emit"]);
   } finally {
     redlock.acquire = originals.acquire;
     redlock.using = originals.using;
     Squad.findOne = originals.findOne;
-    queueService.removeFromQueue = originals.remove;
+    Squad.updateOne = originals.updateOne;
+    queueService.getQueueAdmission = originals.admission;
+    queueService.removeIfAdmission = originals.remove;
     socketService.emitToSquad = originals.emit;
   }
 });

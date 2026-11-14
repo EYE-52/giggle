@@ -1,3 +1,4 @@
+const { matchmakingLeaseResources } = require("../src/config/redisConfig");
 require("../src/config/redisConfig").redlock.using = async (_resources, _duration, work) => work({aborted:false});
 require('../src/config/redisConfig').redlock.acquire = async () => ({release:async()=>{}});
 // Source metadata has its own Redis integration and socket authorization tests.
@@ -457,7 +458,7 @@ test("request and invite final block decisions run under the auto-extending lock
     assert.deepEqual(events, [
       ["using:start", ["lock:squad:request_squad:admission"], 10000],
       "block-read:1",
-      ["using:start", ["lock:matchmaking"], 5000],
+      ["using:start", matchmakingLeaseResources(), 5000],
       "transaction",
       "block-read:2",
       "using:end",
@@ -486,7 +487,7 @@ test("request and invite final block decisions run under the auto-extending lock
     assert.equal(res.statusCode, 403);
     assert.deepEqual(inviteSquad.invitedUserIds, []);
     assert.deepEqual(events, [
-      ["using:start", ["lock:matchmaking"], 5000],
+      ["using:start", matchmakingLeaseResources(), 5000],
       "transaction",
       "block-read:1",
       "using:end",
@@ -503,7 +504,7 @@ test("request and invite final block decisions run under the auto-extending lock
     assert.equal(res.statusCode, 403);
     assert.deepEqual(inviteSquad.invitedUserIds, []);
     assert.deepEqual(events, [
-      ["using:start", ["lock:matchmaking"], 5000],
+      ["using:start", matchmakingLeaseResources(), 5000],
       "transaction",
       "block-read:1",
       "using:end",
@@ -563,7 +564,7 @@ test("notification persistence failure rolls back a join request without realtim
       throw error;
     }
   };
-  redlock.using = async (_resources, _duration, routine) => routine({ aborted: false });
+  redlock.using = async (_resources, _duration, optionsOrRoutine, routine) => (routine || optionsOrRoutine)({ aborted: false });
   socketService.emitToSquad = () => { emits += 1; };
   socketService.emitToUser = () => { emits += 1; };
 
@@ -861,7 +862,7 @@ test("blocked targets cannot be approved or invited into a squad", async () => {
   });
   Squad.findOne = async () => currentSquad;
   mongoose.connection.transaction = (routine) => routine({ transaction: true });
-  redlock.using = (_resources, _duration, routine) => routine({ aborted: false });
+  redlock.using = (_resources, _duration, optionsOrRoutine, routine) => (routine || optionsOrRoutine)({ aborted: false });
 
   try {
     for (const [handler, request] of [
@@ -925,7 +926,7 @@ test("squad premium capacity status is resolved live but not sent to matchmaking
   assert.equal(controller.includes("const getSquadPremiumStatus = async (squad) =>"), true);
   assert.equal(createHandler.includes("isPremiumSquad: await getUserPremiumStatus(userId)"), true);
   assert.equal(createHandler.includes("const { userId, providerAccountId, name, email, isPremium } = identity"), false);
-  assert.equal(searchHandler.includes("squad.isPremiumSquad = await getSquadPremiumStatus(squad);"), true);
+  assert.equal(searchHandler.includes("const premium = await getSquadPremiumStatus(squad);"), true);
   assert.equal(searchHandler.includes("queueService.addToQueue(squad.squadId, squad.members.length, squad.searchRegion, squad.tags, squad.reputationScore, squad.isPremiumSquad)"), false);
   assert.equal(queueService.includes("isPremiumSquad"), false);
 });
@@ -937,8 +938,9 @@ test("start search rolls back squad state when queue insertion fails", () => {
   assert.equal(searchHandler.includes("let searchStateSaved = false;"), true);
   assert.equal(searchHandler.includes("searchStateSaved = true;"), true);
   assert.equal(searchHandler.includes("if (searchStateSaved)"), true);
-  assert.equal(searchHandler.includes('squad.status = "idle";'), true);
-  assert.equal(searchHandler.includes("squad.searchQueuedAt = null;"), true);
+  assert.match(searchHandler, /Squad.updateOne\(\{ squadId: squad.squadId, status: "searching", currentEncounterId: null,/);
+  assert.match(searchHandler, /searchQueuedAt: squad.searchQueuedAt/);
+  assert.match(searchHandler, /\$set: \{ status: "idle", searchQueuedAt: null \}/);
   assert.equal(searchHandler.indexOf("searchStateSaved = true;") < searchHandler.indexOf("await queueService.addToQueue"), true);
 });
 
@@ -961,7 +963,7 @@ test("encounter requeue rolls squads back to idle when Redis queue insertion fai
   assert.equal(service.includes("const rollbackSquadsToIdle = async"), true);
   assert.equal(requeueHandler.includes("const requeuedSquadIds = [];"), true);
   assert.equal(requeueHandler.includes("requeuedSquadIds.push(s.squadId);"), true);
-  assert.match(requeueHandler, /catch \(error\) \{[\s\S]*await rollbackSquadsToIdle\(squadIds\);[\s\S]*throw error;[\s\S]*\}/);
+  assert.match(requeueHandler, /catch \(error\) \{[\s\S]*await rollbackSquadsToIdle\(squads, \{ signal, admissions \}\);[\s\S]*throw error;[\s\S]*\}/);
 });
 
 test("asymmetric encounter end rolls opponent back to idle when requeue fails", () => {
@@ -970,12 +972,7 @@ test("asymmetric encounter end rolls opponent back to idle when requeue fails", 
 
   assert.equal(asymmetricHandler.includes('reason: "squad_disconnected"'), true);
   assert.equal(asymmetricHandler.includes("endedBySquadId: disconnectingSquadId"), true);
-  assert.equal(
-    asymmetricHandler.indexOf("{ squadId: otherSquadId }") <
-      asymmetricHandler.indexOf("{ squadId: disconnectingSquadId }"),
-    true
-  );
-  assert.match(asymmetricHandler, /catch \(error\) \{[\s\S]*await rollbackSquadsToIdle\(\[otherSquadId\]\);[\s\S]*throw error;[\s\S]*\}/);
+  assert.match(asymmetricHandler, /if \(promotedSearch\) await rollbackSquadsToIdle\(\[promotedSearch\], \{ signal, admissions \}\)/);
 });
 
 test("encounter requeue paths refuse mature or blocked tags", () => {
@@ -1316,7 +1313,7 @@ for (const [name, handler, req] of [
     };
     Squad.findOne = async () => squad;
     mongoose.connection.transaction = (routine) => routine({ transaction: true });
-    redlock.using = (_resources, _duration, routine) => routine({ aborted: false });
+    redlock.using = (_resources, _duration, optionsOrRoutine, routine) => (routine || optionsOrRoutine)({ aborted: false });
 
     try {
       const res = createResponse();
@@ -1364,7 +1361,7 @@ async function runSearchWithUsers(users, tags = ["gaming"], members) {
   };
   let queued = 0;
   redlock.acquire = async () => ({ release: async () => {} });
-  redlock.using = (_resources, _duration, routine) => routine({ aborted: false });
+  redlock.using = (_resources, _duration, optionsOrRoutine, routine) => (routine || optionsOrRoutine)({ aborted: false });
   Squad.findOne = async () => squad;
   User.find = () => ({
     select: async () => users,

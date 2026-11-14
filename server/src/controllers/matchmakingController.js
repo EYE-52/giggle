@@ -203,7 +203,7 @@ const ackEncounterJoinHandler = async (req, res) => {
         return { error: { status: 403, code: "INTERACTION_BLOCKED", message: "This encounter is unavailable" } };
       }
       if (signal.aborted) throw signal.error || new Error("Matchmaking lock was lost");
-      const result = await ackEncounterForSquad({ encounter, squadId, emitRealtime: false });
+      const result = await ackEncounterForSquad({ encounter, squadId, emitRealtime: false, signal });
       if (result.error) return { error: result.error, realtime: result.realtime };
       return {
         realtime: result.realtime,
@@ -214,7 +214,7 @@ const ackEncounterJoinHandler = async (req, res) => {
           allAcked: result.allAcked,
         },
       };
-    });
+    }, { squadIds: [encounter.squadAId, encounter.squadBId] });
 
     if (outcome.realtime?.close) {
       // The ack ended the handoff (expired or discovery disabled) and freed both
@@ -257,6 +257,7 @@ const skipEncounterHandler = async (req, res) => {
   }
 
   try {
+    const lockEncounter = await getEncounterById(encounterId);
     const outcome = await withMatchmakingLock(async (signal) => {
       const context = await getSquadAccessContext({ squadId, identity });
       if (context.error) return { error: context.error };
@@ -274,9 +275,9 @@ const skipEncounterHandler = async (req, res) => {
         return { queueStatus: context.squad?.status === "idle" ? "idle" : "searching" };
       }
       if (signal.aborted) throw signal.error || new Error("Matchmaking lock was lost");
-      const requeuedSquad = await endEncounterAndRequeue({ encounter, triggeringSquadId: squadId, matchImmediately: false });
+      const requeuedSquad = await endEncounterAndRequeue({ encounter, triggeringSquadId: squadId, matchImmediately: false, signal });
       return { requeuedSquad, queueStatus: requeuedSquad?.squadId === squadId ? "searching" : "idle" };
-    });
+    }, { squadIds: lockEncounter ? [lockEncounter.squadAId, lockEncounter.squadBId] : [squadId] });
     if (outcome.error) return res.status(outcome.error.status).json({ ok: false, error: { code: outcome.error.code, message: outcome.error.message } });
     const response = res.status(200).json({ ok: true, data: { squadId, previousEncounterId: encounterId, queueStatus: outcome.queueStatus } });
     // The matcher owns the same lock. Run it only after the transition releases it.

@@ -1,3 +1,4 @@
+const { matchmakingLeaseResources } = require("../src/config/redisConfig");
 require('../src/services/queueService').removeFromQueue = async () => {};
 require('../src/config/redisConfig').redis.del = async () => 0;
 // Source metadata has its own Redis integration and socket authorization tests.
@@ -348,7 +349,7 @@ test("block atomically records canonical blocks and cleans legacy relationship i
     assert.deepEqual(res.body.data, { status: "blocked", userIds: [targetA, targetB] });
     assert.equal(transactionCount, 1);
     assert.deepEqual(events, [
-      ["using", ["lock:matchmaking"], 5000],
+      ["using", matchmakingLeaseResources(), 5000],
       ["transaction"],
       ["release"],
       ["cleanup"],

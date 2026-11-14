@@ -43,6 +43,6 @@ test("a squad that all went offline mid-call ends its encounter after a grace pe
   // re-checks presence after the grace, so a reload that reconnects keeps the call
   assert.match(socketService, /const endAbandonedEncounters = async \(userId\) => \{\n  if \(await isUserOnline\(userId\)\) return 0;/);
   assert.equal(socketService.includes("if (onlineMemberIds.size > 0 || !squad.currentEncounterId) continue;"), true);
-  assert.equal(socketService.includes("await endEncounterAsymmetric({ encounter, disconnectingSquadId: squad.squadId });"), true);
+  assert.match(socketService, /shouldEnd: async \(\{ encounter: currentEncounter, disconnectingSquad \}\) =>/);
   assert.equal(socketService.includes("if (shuttingDown) return;"), true);
 });

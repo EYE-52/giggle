@@ -1,4 +1,4 @@
-require("../src/config/redisConfig").redlock.using = async (_resources, _duration, work) => work({aborted:false});
+require("../src/config/redisConfig").redlock.using = async (_resources, _duration, optionsOrWork, work) => (work || optionsOrWork)({aborted:false});
 const assert = require("node:assert/strict");
 const { after, afterEach, test } = require("node:test");
 
@@ -9,6 +9,11 @@ const User = require("../src/models/User");
 const { Notification } = require("../src/models/Notification");
 const { redlock, redis, subClient } = require("../src/config/redisConfig");
 const queueService = require("../src/services/queueService");
+const oldAdmissionRead = queueService.getQueueAdmission;
+const oldAdmissionRemove = queueService.removeIfAdmission;
+queueService.getQueueAdmission = async squadId => ({ squadId, admissionId: `test_${squadId}` });
+queueService.removeIfAdmission = async squadId => queueService.removeFromQueue(squadId);
+after(() => { queueService.getQueueAdmission = oldAdmissionRead; queueService.removeIfAdmission = oldAdmissionRemove; });
 const socketService = require("../src/services/socketService");
 const {
   createSquadHandler,
@@ -140,6 +145,7 @@ test("private squad creation and code join are not disabled with discovery", asy
 test("disabled matcher resets and dequeues a stale searching squad", async () => {
   process.env.STRANGER_DISCOVERY_ENABLED = "false";
   const originals = {
+    updateOne: Squad.updateOne,
     using: redlock.using,
     findOne: Squad.findOne,
     remove: queueService.removeFromQueue,
@@ -157,12 +163,13 @@ test("disabled matcher resets and dequeues a stale searching squad", async () =>
   const staleSquad = {
     squadId: "sq_stale",
     status: "searching",
-    currentEncounterId: "enc_stale",
+    currentEncounterId: null,
     searchQueuedAt: new Date(),
     async save() { saves += 1; },
   };
   const freshSquad = { ...staleSquad, async save() { saves += 1; } };
   Squad.findOne = async () => freshSquad;
+  Squad.updateOne = async () => { saves++; return { matchedCount: 1 }; };
 
   try {
     assert.equal(await tryMatchmakeForSquad(staleSquad), null);
@@ -174,6 +181,7 @@ test("disabled matcher resets and dequeues a stale searching squad", async () =>
     assert.equal(saves, 1);
     assert.equal(lockUses, 1);
   } finally {
+    Squad.updateOne = originals.updateOne;
     redlock.using = originals.using;
     Squad.findOne = originals.findOne;
     queueService.removeFromQueue = originals.remove;

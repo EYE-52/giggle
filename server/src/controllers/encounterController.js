@@ -1,4 +1,4 @@
-const { getRequesterIdentity, getSquadAccessContext } = require("../app/squadAccess");
+const { getRequesterIdentity, getSquadAccessContext, isSameMember } = require("../app/squadAccess");
 const User = require("../models/User");
 const { hasAdultAccess } = require("../services/ageAccessService");
 const { publicMemberId } = require("../services/groupIdentityService");
@@ -167,7 +167,16 @@ const disconnectEncounterHandler = async (req, res) => {
     // End the current encounter: 
     // - The disconnecting squad goes to IDLE
     // - The other squad goes to SEARCHING
-    await endEncounterAsymmetric({ encounter, disconnectingSquadId: squadId });
+    await endEncounterAsymmetric({
+      encounter,
+      disconnectingSquadId: squadId,
+      shouldEnd: ({ disconnectingSquad }) => {
+        if (!disconnectingSquad?.members.some(candidate => isSameMember(candidate, identity))) {
+          throw Object.assign(new Error("Squad membership is no longer available"), { status: 403, code: "FORBIDDEN" });
+        }
+        return true;
+      },
+    });
 
     return res.status(200).json({
       ok: true,
@@ -179,6 +188,9 @@ const disconnectEncounterHandler = async (req, res) => {
       },
     });
   } catch (error) {
+    if (error.status === 403) {
+      return res.status(403).json({ ok: false, error: { code: error.code, message: error.message } });
+    }
     console.error("Error disconnecting encounter:", error);
     return res.status(500).json({
       ok: false,
